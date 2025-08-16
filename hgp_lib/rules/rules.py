@@ -4,7 +4,7 @@ from typing import List, Optional
 
 
 class Rule(ABC):
-    __slots__ = ("subrules", "parent", "value", "negated")
+    __slots__ = ("subrules", "parent", "value", "negated")  # We use slots to optimize rule usage
 
     def __init__(
             self,
@@ -13,6 +13,9 @@ class Rule(ABC):
             value: Optional[int] = None,
             negated: bool = False
     ):
+        # We do not do any runtime checking inside the rules class for performance reasons.
+        # Unintended usage may have unexpected behavior.
+        # TODO: Make documentation
         self.subrules = [] if subrules is None else [s.copy(self) for s in subrules]
         self.parent = parent
         self.value = value

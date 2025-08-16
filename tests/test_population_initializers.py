@@ -7,7 +7,10 @@ from hgp_lib.rules.operators import And, Or
 from hgp_lib.rules.low_memory_operators import And as LowMemoryAnd, Or as LowMemoryOr
 
 
-# TODO: Also provide a testing functionality that will test a client population initializer
+# TODO: Also provide a testing functionality that will test a client population initializer (for example, it will
+#  assert the types, try to use generate on toy data and validates the results)
+
+
 class TestPopulationInitializers(unittest.TestCase):
     def setUp(self):
         self.data = np.random.rand(10, 20) < 0.5
