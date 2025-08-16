@@ -1,19 +1,36 @@
+import random
 from abc import ABC, abstractmethod
+from typing import List, Iterable, Type, Tuple
 
+import numpy as np
 from numpy import ndarray
+
+from hgp_lib.rules import Rule
 
 
 class PopulationInitializer(ABC):
-    def __init__(self, pop_size: int):
-        # TODO: Add messages for asserts
+    def __init__(self, pop_size: int, data: ndarray, labels: ndarray, available_operators: List[Type[Rule]]):
+        # TODO: Add messages for asserts. If cleaner, separate the asserts
         assert isinstance(pop_size, int)
         assert pop_size > 0
+        assert isinstance(available_operators, Iterable) and len(available_operators) > 0
+        # all([isinstance(x, Rule) and not isinstance(x, Literal) for x in available_operators])
+        # TODO: Check how to check if the type is ok
 
         self.pop_size = pop_size
+        self.data = data
+        self.labels = labels
+        self.available_operators = available_operators
+        self.columns = tuple(range(self.data.shape[1]))
 
     @abstractmethod
-    def generate(self):
+    def generate(self) -> List[Rule]:
         pass
+
+    def select_operators(self) -> Tuple[ndarray, List[Type[Rule]]]:
+        chosen_operators = random.choices(self.available_operators, k=self.pop_size)
+        negated_operators = np.random.rand(self.pop_size) < 0.5
+        return chosen_operators, negated_operators
 
 # TODO: Document how to pass the population initializer to the orchestrator.
 #  * The plan is like this:

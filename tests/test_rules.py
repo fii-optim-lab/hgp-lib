@@ -164,9 +164,13 @@ class TestRules(unittest.TestCase):
             ]
         )
         result = (
-            self.data[:, 1] & ~self.data[:, 2]
-            | (self.data[:, 3] | self.data[:, 4] | ~self.data[:, 5]) & ~self.data[:, 6]
-            | self.data[:, 7]
-            | ~self.data[:, 8]
+                self.data[:, 1] & ~self.data[:, 2]
+                | (self.data[:, 3] | self.data[:, 4] | ~self.data[:, 5]) & ~self.data[:, 6]
+                | self.data[:, 7]
+                | ~self.data[:, 8]
         )
         np.testing.assert_array_equal(test_rule_1.evaluate(self.data), result)
+
+
+if __name__ == "__main__":
+    unittest.main()

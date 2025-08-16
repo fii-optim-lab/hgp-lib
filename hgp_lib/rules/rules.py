@@ -34,7 +34,7 @@ class Rule(ABC):
         return self.__str__()
 
     def copy(self, parent):
-        return self.__class__(self.subrules, parent or self.parent, self.value, self.negated)
+        return self.__class__(self.subrules, self.parent if parent is None else parent, self.value, self.negated)
 
     @abstractmethod
     def evaluate(self, data):

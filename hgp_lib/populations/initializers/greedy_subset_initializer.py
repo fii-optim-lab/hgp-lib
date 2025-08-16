@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import List, Type
 
 from numpy import ndarray
 
@@ -7,48 +8,45 @@ from hgp_lib.rules import Or, And, Rule, Literal
 
 
 class SubsetInitializer(PopulationInitializer, ABC):
-    def __init__(self, pop_size: int, data: ndarray, labels: ndarray, sample_ratio: float, feature_ratio: float):
-        super().__init__(pop_size)
+    def __init__(self, pop_size: int, data: ndarray, labels: ndarray, available_operators: List[Type[Rule]],
+                 sample_ratio: float, feature_ratio: float):
+        super().__init__(pop_size, data, labels, available_operators)
 
         assert 0.0 <= sample_ratio <= 1.0, \
             f"Sample ratio for initializer must be between 0.0 and 1.0, is {sample_ratio}"
         assert 0.0 <= feature_ratio <= 1.0, \
             f"Feature ratio for initializer must be between 0.0 and 1.0, is {feature_ratio}"
+        # TODO: Add check that check that subset of features still preserves at least 2 columns
 
-        # TODO: Add asserts for data checking the API we use
-        self.data = data
-        self.labels = labels
         self.sample_ratio = sample_ratio
         self.feature_ratio = feature_ratio
 
-    def generate(self):
+        # TODO: Implement sample methods here, for samples and features
+
+    def generate(self) -> List[Rule]:
         return [self.generate_one() for _ in range(self.pop_size)]
 
     @abstractmethod
-    def generate_one(self):
+    def generate_one(self) -> Rule:
         pass
 
 
 class BestLiteralOnSubsetInitializer(SubsetInitializer):
-    def generate_one(self):
+    def generate_one(self) -> Rule:
         raise NotImplementedError("TODO: Implement subset and then best literal")
 
 
 class BestOperatorOnSubsetInitializer(SubsetInitializer):
-    def __init__(self, pop_size: int, data: ndarray, labels: ndarray, sample_ratio: float, feature_ratio: float,
-                 operator: Or | And, num_literals: int):
-        super().__init__(pop_size, data, labels, sample_ratio, feature_ratio)
+    def __init__(self, pop_size: int, data: ndarray, labels: ndarray, available_operators: List[Type[Rule]],
+                 sample_ratio: float, feature_ratio: float, max_num_literals: int):
+        super().__init__(pop_size, data, labels, available_operators, sample_ratio, feature_ratio)
 
-        assert isinstance(operator, Rule) and not isinstance(operator, Literal), \
-            f"Operator must be Or | And, is {operator}"
-        assert isinstance(num_literals, int) and num_literals > 0, \
-            f"The number of literals must be a positive integer, is {num_literals}"
+        assert isinstance(max_num_literals, int) and max_num_literals > 2, \
+            f"The maximum number of literals for random population initialization must be an integer >= 2, " \
+            f"is {max_num_literals}"
+        # TODO: Add assert for the number of columns in the data, here we need at least 2
 
-        self.operator = operator
-        self.num_literals = num_literals
-
-    def generate_one(self):
+    def generate_one(self) -> [Rule]:
         raise NotImplementedError("TODO: Implement subset and then search for the best operator with the best literals")
-
 
 # TODO: Also add a pyomo class for solver based initialization
