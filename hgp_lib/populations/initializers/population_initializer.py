@@ -6,6 +6,7 @@ import numpy as np
 from numpy import ndarray
 
 from hgp_lib.rules import Rule
+from hgp_lib.rules.operators import is_operator_type
 
 
 class PopulationInitializer(ABC):
@@ -14,8 +15,7 @@ class PopulationInitializer(ABC):
         assert isinstance(pop_size, int)
         assert pop_size > 0
         assert isinstance(available_operators, Iterable) and len(available_operators) > 0
-        # all([isinstance(x, Rule) and not isinstance(x, Literal) for x in available_operators])
-        # TODO: Check how to check if the type is ok
+        assert all([is_operator_type(t) for t in available_operators])
 
         self.pop_size = pop_size
         self.data = data

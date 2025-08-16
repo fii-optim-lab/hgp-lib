@@ -1,6 +1,17 @@
+from typing import Type
+
 import numpy as np
 
+from hgp_lib.rules import Literal
 from hgp_lib.rules.rules import Rule
+
+
+def is_operator(op: Rule):
+    return isinstance(op, Rule) and not isinstance(op, Literal)
+
+
+def is_operator_type(t: Type[Rule]):
+    return isinstance(t, type) and issubclass(t, Rule) and not issubclass(t, Literal)
 
 
 class And(Rule):
@@ -55,6 +66,5 @@ class Or(Rule):
         if self.negated:
             mask = np.logical_not(mask, out=mask)
         return mask
-
 
 # TODO: Add higher level operators from Boolxai

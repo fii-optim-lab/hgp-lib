@@ -17,7 +17,7 @@ class TestPopulationInitializers(unittest.TestCase):
         initializer = RandomInitializer(100, self.data, self.labels, [And, Or], 25)
         self.assertEqual(initializer.max_num_literals, self.data.shape[1])
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError):  # We try to select more literals than available
             initializer.generate_one(self.data.shape[1] * 10, And, False)
 
         all_literals_and = initializer.generate_one(self.data.shape[1], And, False)
