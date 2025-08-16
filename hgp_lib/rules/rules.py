@@ -8,15 +8,15 @@ class Rule(ABC):
 
     def __init__(
             self,
-            subrules=None,
-            parent=None,
-            value=None,
-            negated=False
+            subrules: Optional[List["Rule"]] = None,
+            parent: Optional["Rule"] = None,
+            value: Optional[int] = None,
+            negated: bool = False
     ):
-        self.subrules: List[Rule] = [] if subrules is None else [s.copy(self) for s in subrules]
-        self.parent: Optional[Rule] = parent
-        self.value: Optional[int] = value
-        self.negated: bool = negated
+        self.subrules = [] if subrules is None else [s.copy(self) for s in subrules]
+        self.parent = parent
+        self.value = value
+        self.negated = negated
 
     def flatten(self):
         result = [self]
@@ -34,7 +34,7 @@ class Rule(ABC):
         return self.__str__()
 
     def copy(self, parent):
-        return self.__class__(self.subrules, self.parent if parent is None else parent, self.value, self.negated)
+        return self.__class__(self.subrules, parent or self.parent, self.value, self.negated)
 
     @abstractmethod
     def evaluate(self, data):
