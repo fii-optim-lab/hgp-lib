@@ -1,0 +1,45 @@
+[project]
+name = "hgp-lib"  # TODO
+version = "0.0.1"
+requires-python = ">=3.10"
+description = "" # TODO
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+    { name = "", email = ""},  # TODO
+]
+maintainers = [
+    { name = "", email = ""}, # TODO
+]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: BSD License",  # TODO: APACHE licence
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+keywords = [
+# TODO
+]
+dependencies = [
+# TODO
+]
+[tool.setuptools.packages.find]
+include = ["hgp_lib"]
+
+[project.urls]
+Repository = "https://github.com/TODO"
+Issues = "https://github.com/TODO/issues"
+
+
+[project.optional-dependencies]
+docs = [
+    "mkdocs",
+    "mkdocstrings[python]",
+    "mkdocs-material",
+]
+dev = [
+    "matplotlib",
+    "pytest",
+    "flake8"
+]
