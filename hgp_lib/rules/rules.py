@@ -36,7 +36,7 @@ class Rule(ABC):
     def __repr__(self):
         return self.__str__()
 
-    def copy(self, parent):
+    def copy(self, parent: Optional["Rule"] = None):
         return self.__class__(self.subrules, self.parent if parent is None else parent, self.value, self.negated)
 
     @abstractmethod
