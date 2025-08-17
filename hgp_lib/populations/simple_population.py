@@ -2,10 +2,10 @@ from typing import List, Optional
 
 import numpy as np
 
+from hgp_lib.mutations.mutation_executor import MutationExecutor
 from hgp_lib.populations.initializers.population_initializer import PopulationInitializer
-from hgp_lib.populations.mutations.mutation_executor import MutationExecutor
-from hgp_lib.populations.utils.integrity_checker import IntegrityChecker
 from hgp_lib.rules import Rule
+from hgp_lib.utils.integrity_checker import IntegrityChecker
 
 
 class SimplePopulation:
@@ -33,7 +33,7 @@ class SimplePopulation:
         self.pop_size = pop_size
         self.population_initializer = population_initializer
         self.mutation_p = mutation_p
-        self.max_complexity: int = 9223372036854775807 if max_complexity is None else max_complexity
+        self.max_complexity: int = 2 ** 64 if max_complexity is None else max_complexity
         self.mutation_executor = mutation_executor
         self.integrity_checker = integrity_checker
 

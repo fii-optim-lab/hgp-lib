@@ -1,9 +1,9 @@
 import random
-from typing import List, Callable, Iterable, Sequence
+from typing import List, Callable, Sequence
 
-from hgp_lib.populations.mutations.mutation_executor import MutationExecutor, MutationError
-from hgp_lib.populations.mutations.standard_mutations import delete, negate, remove_intermediate_operator
-from hgp_lib.populations.mutations.utils import mutation_fn_checker
+from hgp_lib.mutations.mutation_executor import MutationExecutor, MutationError
+from hgp_lib.mutations.standard_mutations import delete
+from hgp_lib.mutations.utils import mutation_fn_checker
 from hgp_lib.rules import Rule
 from hgp_lib.rules.operators import is_operator
 

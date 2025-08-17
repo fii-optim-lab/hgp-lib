@@ -19,8 +19,8 @@ class And(Rule):
         cols = []
         neg_mask = []
         sub_operators = []
-        for s in self.subrules:  # We have a literal
-            if s.value is not None:
+        for s in self.subrules:
+            if s.value is not None:  # We have a literal
                 cols.append(s.value)
                 neg_mask.append(s.negated)
             else:  # We have an operator

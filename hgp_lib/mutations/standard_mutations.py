@@ -1,11 +1,9 @@
 import random
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import Callable, List, Type, Tuple, Iterable
+from typing import Type, Tuple, Iterable
 
 import numpy as np
 
-from hgp_lib.populations.mutations.mutation_executor import MutationError
+from hgp_lib.mutations.mutation_executor import MutationError
 from hgp_lib.rules import Rule, Literal, Or, And
 
 

@@ -1,6 +1,6 @@
 from typing import Callable
 
-from hgp_lib.populations.mutations.mutation_executor import MutationError
+from hgp_lib.mutations.mutation_executor import MutationError
 from hgp_lib.rules import Rule, Or, Literal
 
 
