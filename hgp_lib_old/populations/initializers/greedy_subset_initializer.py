@@ -44,7 +44,7 @@ class BestOperatorOnSubsetInitializer(SubsetInitializer):
         assert isinstance(max_num_literals, int) and max_num_literals > 2, \
             f"The maximum number of literals for random population initialization must be an integer >= 2, " \
             f"is {max_num_literals}"
-        # TODO: Add assert for the number of columns in the data, here we need at least 2
+        # TODO: Add assert for the number of columns in the preprocessing, here we need at least 2
 
     def generate_one(self) -> [Rule]:
         raise NotImplementedError("TODO: Implement subset and then search for the best operator with the best literals")

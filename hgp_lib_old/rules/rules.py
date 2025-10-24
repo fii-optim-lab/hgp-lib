@@ -22,25 +22,21 @@ class Rule(ABC):
         self.negated = negated
 
     def flatten(self):
-        # TODO: Test this function
         result = [self]
         for subrule in self.subrules:
             result.extend(subrule.flatten())
         return result
 
     def __len__(self):
-        # TODO: Test this function
         return 1 + sum([len(s) for s in self.subrules])
 
     def __str__(self):
-        # TODO: Test this function
         return f"{type(self).__name__}({', '.join(str(s) for s in self.subrules)})"
 
     def __repr__(self):
         return self.__str__()
 
     def copy(self, parent: Optional["Rule"] = None):
-        # TODO: Test this function
         return self.__class__(self.subrules, self.parent if parent is None else parent, self.value, self.negated)
 
     @abstractmethod

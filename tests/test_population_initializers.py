@@ -8,7 +8,7 @@ from hgp_lib.rules.low_memory_operators import And as LowMemoryAnd, Or as LowMem
 
 
 # TODO: Also provide a testing functionality that will test a client population initializer (for example, it will
-#  assert the types, try to use generate on toy data and validates the results)
+#  assert the types, try to use generate on toy preprocessing and validates the results)
 
 
 class TestPopulationInitializers(unittest.TestCase):

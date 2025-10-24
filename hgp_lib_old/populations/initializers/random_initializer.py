@@ -16,7 +16,7 @@ class RandomInitializer(PopulationInitializer):
         assert isinstance(max_num_literals, int) and max_num_literals > 2, \
             f"The maximum number of literals for random population initialization must be an integer >= 2, " \
             f"is {max_num_literals}"
-        # TODO: Add assert for the number of columns in the data, here we need at least 2
+        # TODO: Add assert for the number of columns in the preprocessing, here we need at least 2
 
         # TODO: Add warning if number of columns is less than max_num_literals. Catch warning in tests
         self.max_num_literals = min(max_num_literals, len(self.columns))

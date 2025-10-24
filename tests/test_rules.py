@@ -174,3 +174,6 @@ class TestRules(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+    # TODO: Add performance test that should execute both operator types and measure
+    # Use np.testing.measure
+
