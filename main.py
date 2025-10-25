@@ -1,8 +1,9 @@
-from sklearn.model_selection import cross_validate
+from sklearn.model_selection import cross_validate, train_test_split
 from hgp_lib.preprocessing import binarize
-from hgp_lib.preprocessing import train_test_split
 from hgp_lib.algorithm import HierarchicalGP
 from hgp_lib.mutation import MutationExecutor
+
+train_test_split
 
 data = ...
 labels = ...
@@ -20,6 +21,8 @@ val_data = binarize(val_data)
 test_data = binarize(test_data)
 
 list_of_mutations = ...
+
+
 
 mutation_executor = MutationExecutor(list_of_mutations)
 
