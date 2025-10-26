@@ -1,5 +1,4 @@
 import numpy as np
-# TODO: Make this compatible with torch
 
 from .rules import Rule
 
@@ -17,7 +16,7 @@ class And(Rule):
                 sub_operators.append(s)
 
         if cols:  # Hot branch for literals
-            mask = (data[:, cols] ^ np.array(neg_mask, dtype=np.bool)).all(axis=1)  # One-liner for all literals
+            mask = (data[:, cols] ^ np.array(neg_mask)).all(1)  # One-liner for all literals
             # Updating with operators
             for s in sub_operators:
                 mask &= s.evaluate(data)
@@ -44,7 +43,7 @@ class Or(Rule):
                 sub_operators.append(s)
 
         if cols:  # Hot branch for literals
-            mask = (data[:, cols] ^ np.array(neg_mask, dtype=np.bool)).any(axis=1)  # One-liner for all literals
+            mask = (data[:, cols] ^ np.array(neg_mask)).any(1)  # One-liner for all literals
             # Updating with operators
             for s in sub_operators:
                 mask |= s.evaluate(data)

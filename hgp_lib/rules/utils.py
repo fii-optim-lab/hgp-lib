@@ -4,9 +4,9 @@ from .rules import Rule
 from .literals import Literal
 
 
-def is_operator(op: Rule):
+def is_operator(op: Rule) -> bool:
     return isinstance(op, Rule) and not isinstance(op, Literal)
 
 
-def is_operator_type(t: Type[Rule]):
+def is_operator_type(t: Type[Rule]) -> bool:
     return isinstance(t, type) and issubclass(t, Rule) and not issubclass(t, Literal)
