@@ -1,6 +1,8 @@
+import doctest
 import unittest
 import numpy as np
 
+import hgp_lib
 from hgp_lib.rules import Literal
 from hgp_lib.rules.operators import And, Or
 from hgp_lib.rules.low_memory_operators import And as LowMemoryAnd, Or as LowMemoryOr
@@ -170,6 +172,10 @@ class TestRules(unittest.TestCase):
                 | ~self.data[:, 8]
         )
         np.testing.assert_array_equal(test_rule_1.evaluate(self.data), result)
+
+    def test_doctests(self):
+        result = doctest.testmod(hgp_lib.rules.rules, verbose=False)
+        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 import numpy as np
 
-from hgp_lib.rules.rules import Rule
+from .rules import Rule
 
 
 class Literal(Rule):

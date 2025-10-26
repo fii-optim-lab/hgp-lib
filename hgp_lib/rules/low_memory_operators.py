@@ -1,6 +1,6 @@
 import numpy as np
 
-from hgp_lib.rules.rules import Rule
+from .rules import Rule
 
 
 # TODO: Add some performance tests comparing operator implementations
