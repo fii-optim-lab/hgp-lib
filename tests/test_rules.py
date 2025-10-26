@@ -176,6 +176,8 @@ class TestRules(unittest.TestCase):
     def test_doctests(self):
         result = doctest.testmod(hgp_lib.rules.rules, verbose=False)
         self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
+        result = doctest.testmod(hgp_lib.rules.literals, verbose=False)
+        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 if __name__ == "__main__":

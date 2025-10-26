@@ -13,6 +13,12 @@ class Rule(ABC):
 
     Rules can be nested to form complex logical expressions.
     The tree can be traversed, copied, or evaluated against data.
+    Supported data formats:
+    - numpy arrays
+    - torch Tensors
+
+    TODO: We should add tests confirming that rules work with both numpy and torch.
+     Optionally we could choose to support dask.
 
     Attributes:
         subrules (Optional[List[Rule]]):

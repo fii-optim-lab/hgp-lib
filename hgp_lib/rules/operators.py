@@ -1,4 +1,5 @@
 import numpy as np
+# TODO: Make this compatible with torch
 
 from .rules import Rule
 
