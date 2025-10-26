@@ -3,6 +3,9 @@ import numpy as np
 from .rules import Rule
 
 
+# TODO: Write documentation and add doctests
+
+
 class And(Rule):
     def evaluate(self, data):
         cols = []

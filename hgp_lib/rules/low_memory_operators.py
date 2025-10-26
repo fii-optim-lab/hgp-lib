@@ -4,6 +4,9 @@ from .rules import Rule
 
 
 # TODO: Add some performance tests comparing operator implementations
+# TODO: Write documentation and add doctests
+
+
 class And(Rule):
     def evaluate(self, data):
         rez = self.subrules[0].evaluate(data)

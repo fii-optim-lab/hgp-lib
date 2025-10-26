@@ -47,13 +47,12 @@ score_fn = ...  # My scoring function
 num_epochs = 1000
 
 trainer = GPTrainer(
-    population_generator=PopulationGenerator(num_columns=train_data.shape[1]),
-    score_fn=score_fn,
-    train_data=train_data,
-    train_labels=train_labels,
-    val_data=val_data,
-    val_labels=val_labels,
-    num_epochs=num_epochs,
+    num_epochs=num_epochs,  # Optional
+    score_fn=score_fn,  # Mandatory
+    train_data=train_data,  # Mandatory
+    train_labels=train_labels,  # Optional
+    val_data=val_data,  # Optional
+    val_labels=val_labels,  # Optional
 )
 trainer_metrics = trainer.fit()
 test_metrics = trainer.evaluate(test_data, test_labels)
@@ -65,8 +64,9 @@ test_metrics = trainer.evaluate(test_data, test_labels)
 ```python
 from hgp_lib.mutations import MutationExecutor, default_mutations
 from hgp_lib.crossover import CrossoverExecutor
+from hgp_lib.selections import TournamentSelection, RoulleteSelection, ParetoSelection
 from hgp_lib.populations import PopulationGenerator
-from hgp_lib.rules import Rule, tautology_or_contradiction
+from hgp_lib.rules import Rule
 
 
 max_rule_size = 100
@@ -82,18 +82,13 @@ num_epochs = 1000
 def is_rule_valid(rule: Rule) -> bool:
     if len(rule) > max_rule_size:
         return False
-    if tautology_or_contradiction(rule):
-        return False
     return True
  
 
 population_generator = PopulationGenerator(
-    num_columns=train_data.shape[1],  # Mandatory
-    train_data=train_data,  # Optional
-    labels=train_labels,  # Optional
     score_fn=score_fn,  # Optional
     population_size=population_size,  # Optional
-    strategy="random"  # Optional
+    strategy="random"  # Optional (will be extended)
 )
 mutation_executor = MutationExecutor(
     mutations=default_mutations,  # Optional
@@ -107,6 +102,7 @@ crossover_executor = CrossoverExecutor(
     check_valid=is_rule_valid,  # Optional
     num_tries=2,  # Optional
 )
+selection = TournamentSelection(size=10, selection_probability=0.4)
 ```
 
 * Population initialization is covered in TODO.
@@ -122,10 +118,13 @@ from hgp_lib.algorithms import BooleanGP
 
 
 gp_algo = BooleanGP(
-    population_generator=population_generator,  # Mandatory
+    score_fn=score_fn,  # Mandatory
+    
+    population_generator=population_generator,  # Optional
     mutation_executor=mutation_executor,  # Optional
     crossover_executor=crossover_executor,  # Optional
-    score_fn=score_fn,  # Mandatory
+    selection=selection,  # Optional
+    
     regeneration=regeneration,  # Optional
     regeneration_patience=regeneration_patience,  # Optional
 )
@@ -150,17 +149,21 @@ from hgp_lib.trainers import GPTrainer
 
 
 trainer = GPTrainer(
-    population_generator=population_generator,  # Mandatory
-    mutation_executor=mutation_executor,  # Optional
-    crossover_executor=crossover_executor,  # Optional
     score_fn=score_fn,  # Mandatory
-    regeneration=regeneration,  # Optional
-    regeneration_patience=regeneration_patience,  # Optional
+    num_epochs=num_epochs,  # Mandatory
+
     train_data=train_data,  # Mandatory
     train_labels=train_labels,  # Optional
     val_data=val_data,  # Optional
     val_labels=val_labels,  # Optional
-    num_epochs=num_epochs,  # Mandatory
+
+    population_generator=population_generator,  # Optional
+    mutation_executor=mutation_executor,  # Optional
+    crossover_executor=crossover_executor,  # Optional
+    selection=selection,  # Optional
+    
+    regeneration=regeneration,  # Optional
+    regeneration_patience=regeneration_patience,  # Optional
     val_every=100,  # Optional
 )
 trainer_metrics = trainer.fit()
@@ -175,20 +178,28 @@ from hgp_lib.benchmarkers import GPBenchmarker
 
 
 benchmarker = GPBenchmarker(
-    population_size=population_size,  # Optional
-    population_strategy="random",  # Optional
+    score_fn=score_fn,  # Mandatory
+    num_epochs=num_epochs,  # Mandatory
+
+    train_data=train_data,  # Mandatory
+    train_labels=train_labels,  # Optional
+    val_data=val_data,  # Optional
+    val_labels=val_labels,  # Optional
+
+    population_generator=population_generator,  # Optional
     mutation_executor=mutation_executor,  # Optional
     crossover_executor=crossover_executor,  # Optional
-    score_fn=score_fn,  # Mandatory
+    selection=selection,  # Optional
+    
     regeneration=regeneration,  # Optional
     regeneration_patience=regeneration_patience,  # Optional
-    train_data=train_data,  # Mandatory, must be train + val
-    train_labels=train_labels,  # Optional
+    val_every=100,  # Optional
+    
     cv_splits=30,  # Optional
     val_size=0.3,  # Optional
-    num_iterations=num_iterations,  # Mandatory
-    val_every=100,  # Optional
 )
 benchmark_metrics = benchmarker.fit()
 test_performance = benchmarker.evaluate(test_data, test_labels)
 ```
+
+
