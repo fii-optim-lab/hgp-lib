@@ -3,7 +3,7 @@ from typing import Tuple, Type, Sequence
 
 from .base_mutation import Mutation
 from .literal_mutations import DeleteMutation, NegateMutation
-from .utils import MutationError
+from .utils import MutationError, validate_num_literals, validate_operator_types
 from ..rules import Rule, Or, And, Literal
 
 
@@ -29,19 +29,12 @@ class RemoveIntermediateOperator(Mutation):
 class ReplaceOperator(Mutation):
     def __init__(self, operator_types: Sequence[Type[Rule]] = (Or, And)):
         super().__init__(is_literal_mutation=False, is_operator_mutation=True)
-
-        if not isinstance(operator_types, Sequence):
-            raise TypeError(f"operator_types must be a Sequence, is '{type(operator_types)}'")
-        if len(operator_types) < 2:
-            raise ValueError(f"operator_types must have at least two operator types")
-        for operator_type in operator_types:
-            if not issubclass(operator_type, Rule):
-                raise TypeError(f"All operator types must be subclassing Rule. Found '{type(operator_type)}'")
-
+        validate_operator_types(operator_types)
         self.operator_types: Tuple[Type[Rule]] = tuple(operator_types)
 
     def apply(self, rule: Rule):
-        other_operators = [operator_type for operator_type in self.operator_types if not isinstance(rule, operator_type)]
+        other_operators = [operator_type for operator_type in self.operator_types if
+                           not isinstance(rule, operator_type)]
         rule.__class__ = random.choice(other_operators)
 
 
@@ -49,10 +42,7 @@ class AddLiteral(Mutation):
     def __init__(self, num_literals: int):
         super().__init__(is_literal_mutation=False, is_operator_mutation=True)
 
-        if not isinstance(num_literals, int):
-            raise TypeError(f"Number of literals must be an integer, is '{type(num_literals)}'")
-        if num_literals <= 0:
-            raise ValueError(f"Number of literals must be a positive integer, is '{num_literals}'")
+        validate_num_literals(num_literals)
 
         self.available_literals = set(range(num_literals))
 
