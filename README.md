@@ -62,7 +62,7 @@ test_metrics = trainer.evaluate(test_data, test_labels)
 
 
 ```python
-from hgp_lib.mutations import MutationExecutor, standard_literal_mutations, standard_operator_mutations
+from hgp_lib.mutations import MutationExecutor, create_standard_literal_mutations, create_standard_operator_mutations
 from hgp_lib.crossover import CrossoverExecutor
 from hgp_lib.selections import TournamentSelection, RoulleteSelection, ParetoSelection
 from hgp_lib.populations import PopulationGenerator
@@ -84,15 +84,17 @@ def is_rule_valid(rule: Rule) -> bool:
     return True
 
 
+literal_mutations = create_standard_literal_mutations(train_data.shape[1])
+operator_mutations = create_standard_operator_mutations(train_data.shape[1])
 population_generator = PopulationGenerator(
     score_fn=score_fn,  # Optional
     population_size=population_size,  # Optional
     strategy="random"  # Optional (will be extended)
 )
 mutation_executor = MutationExecutor(
+    literal_mutations=literal_mutations,  # Mandatory
+    operator_mutations=operator_mutations,  # Mandatory
     mutation_p=mutation_p,  # Optional
-    literal_mutations=standard_literal_mutations,  # Optional
-    operator_mutations=standard_operator_mutations,  # Optional
     check_valid=is_rule_valid,  # Optional
     num_tries=10,  # Optional
 )
@@ -119,9 +121,9 @@ from hgp_lib.algorithms import BooleanGP
 
 gp_algo = BooleanGP(
     score_fn=score_fn,  # Mandatory
+    mutation_executor=mutation_executor,  # Mandatory
     
-    population_generator=population_generator,  # Optional
-    mutation_executor=mutation_executor,  # Optional
+    population_generator=population_generator,  # Mandatory
     crossover_executor=crossover_executor,  # Optional
     selection=selection,  # Optional
     

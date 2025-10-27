@@ -4,15 +4,13 @@ from typing import Callable, Sequence, Tuple, List
 import numpy as np
 
 from .base_mutation import Mutation
-from .literal_mutations import standard_literal_mutations
-from .operator_mutations import standard_operator_mutations
+from .utils import MutationError
 from ..rules import Rule, Literal
 
 
 class MutationExecutor:
-    def __init__(self, mutation_p: float = 0.1, literal_mutations: Sequence[Mutation] = standard_literal_mutations,
-                 operator_mutations: Sequence[Mutation] = standard_operator_mutations,
-                 check_valid: Callable[[Rule], bool] | None = None, num_tries: int = 1):
+    def __init__(self, literal_mutations: Sequence[Mutation], operator_mutations: Sequence[Mutation],
+                 mutation_p: float = 0.1, check_valid: Callable[[Rule], bool] | None = None, num_tries: int = 1):
         self._validate_params(mutation_p, literal_mutations, operator_mutations, check_valid, num_tries)
         self.mutation_p: float = mutation_p
         self.literal_mutations: Tuple = tuple(literal_mutations)
@@ -87,10 +85,13 @@ class MutationExecutor:
             flattened = new_rule.flatten()
             for _ in range(self.num_tries):
                 selected = random.choice(flattened)
-                if isinstance(selected, Literal):
-                    random.choice(self.literal_mutations).apply(selected)
-                else:
-                    random.choice(self.operator_mutations).apply(selected)
+
+                try:
+                    random.choice(
+                        self.literal_mutations if isinstance(selected, Literal) else self.operator_mutations
+                    ).apply(selected)
+                except MutationError:
+                    continue
 
                 if self.check_valid is None or self.check_valid(new_rule):
                     rule = new_rule
