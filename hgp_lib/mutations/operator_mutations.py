@@ -35,8 +35,9 @@ class RemoveIntermediateOperator(Mutation):
         >>> mutation = RemoveIntermediateOperator()
         >>> mutation.apply(rule.subrules[1])
         >>> rule
-        And(0, 1, 2, 3)
+        And(0, 3, 1, 2)
     """
+
     def __init__(self):
         super().__init__(is_literal_mutation=False, is_operator_mutation=True)
 
@@ -70,7 +71,7 @@ class RemoveIntermediateOperator(Mutation):
             >>> mutation = RemoveIntermediateOperator()
             >>> mutation.apply(rule.subrules[1])
             >>> rule
-            Or(1, 2, 3, 4)
+            Or(1, 4, 2, 3)
         """
         parent = rule.parent
         if parent is None:
@@ -110,6 +111,7 @@ class ReplaceOperator(Mutation):
         >>> rule
         Or(0, 1)
     """
+
     def __init__(self, operator_types: Sequence[Type[Rule]] = (Or, And)):
         super().__init__(is_literal_mutation=False, is_operator_mutation=True)
         validate_operator_types(operator_types)
@@ -164,6 +166,7 @@ class AddLiteral(Mutation):
         >>> rule
         And(0, 1, ~2)
     """
+
     def __init__(self, num_literals: int):
         super().__init__(is_literal_mutation=False, is_operator_mutation=True)
 
@@ -191,11 +194,14 @@ class AddLiteral(Mutation):
             >>> rule = Or([Literal(value=0), Literal(value=1)])
             >>> mutation.apply(rule)
             >>> rule.subrules[2].negated=False  # Setting negated to have deterministic output
+            >>> rule.subrules[2]
+            2
             >>> rule
             Or(0, 1, 2)
         """
         # TODO: Check performance. Maybe a better implementation is needed.
-        available_literals = tuple(self.available_literals.difference([s.value for s in rule.subrules if s.value]))
+        available_literals = tuple(
+            self.available_literals.difference([s.value for s in rule.subrules if s.value is not None]))
         if len(available_literals) == 0:
             raise MutationError()
         rule.subrules.append(
