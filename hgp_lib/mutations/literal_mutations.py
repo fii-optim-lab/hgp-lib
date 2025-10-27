@@ -3,9 +3,9 @@ from typing import Sequence, Type, Tuple
 
 import numpy as np
 
-from hgp_lib.mutations.base_mutation import Mutation
-from hgp_lib.mutations.utils import MutationError, validate_num_literals, validate_operator_types
-from hgp_lib.rules import Rule, Or, And, Literal
+from .base_mutation import Mutation
+from .utils import MutationError, validate_num_literals, validate_operator_types
+from ..rules import Rule, Or, And, Literal
 
 
 class DeleteMutation(Mutation):
@@ -54,8 +54,8 @@ class DeleteMutation(Mutation):
                 If the `rule` has no parent (is a root node), or if the parent has only two subrules, which would leave
                 it invalid after deletion.
             RuntimeError:
-                If the target rule is not found within its parent's subrule list,
-                which should never occur during normal operation.
+                If the target rule is not found within its parent's subrule list, which should never occur during
+                normal operation.
 
         Examples:
             >>> from hgp_lib.mutations import DeleteMutation
@@ -280,6 +280,30 @@ class PromoteLiteral(Mutation):
 
 def create_standard_literal_mutations(num_literals: int, operator_types: Sequence[Type[Rule]] = (Or, And)) \
         -> Tuple[Mutation, ...]:
+    """
+    Creates a standard set of literal-level mutations commonly used in rule evolution.
+
+    Args:
+        num_literals (int):
+            Total number of available literal values. Must be greater than 1.
+        operator_types (Sequence[Type[Rule]]):
+            Sequence of operator classes (e.g., `(Or, And)`) used by `PromoteLiteral`. Default: `(Or, And)`.
+
+    Returns:
+        Tuple[Mutation, ...]:
+            A tuple of initialized mutation instances for literals. The tuple includes:
+            1. `DeleteMutation()` — removes a rule from its parent operator.
+            2. `NegateMutation()` — toggles the negation flag of a rule.
+            3. `ReplaceLiteral(num_literals)` — replaces a literal’s value with a different random one.
+            4. `PromoteLiteral(num_literals, operator_types)` — converts a literal into an operator with two literals.
+
+    Examples:
+        >>> from hgp_lib.mutations import create_standard_literal_mutations
+        >>> from hgp_lib.rules import And, Or
+        >>> mutations = create_standard_literal_mutations(num_literals=4, operator_types=(Or, And))
+        >>> [type(mutation).__name__ for mutation in mutations]
+        ['DeleteMutation', 'NegateMutation', 'ReplaceLiteral', 'PromoteLiteral']
+    """
     return (
         DeleteMutation(),
         NegateMutation(),
