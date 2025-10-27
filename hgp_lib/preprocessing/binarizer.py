@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_bool_dtype, is_numeric_dtype, is_categorical_dtype
@@ -21,7 +23,7 @@ class StandardBinarizer:
         categorical_values_ (dict): Stores unique values for each categorical column.
         numerical_bins_ (dict): Stores bin edges for each numerical column.
 
-    Example:
+    Examples:
         >>> import pandas as pd
         >>> import numpy as np
         >>> np.random.seed(42)
@@ -40,19 +42,19 @@ class StandardBinarizer:
         3     False      False      False       True          False           True
     """
 
-    def __init__(self, num_bins=5, column_strategy=None):
+    def __init__(self, num_bins: int = 5, column_strategy: Optional[dict[str, int]] = None):
         """
         Initialize the StandardBinarizer.
 
         Args:
-            num_bins (int): Number of bins for numerical features. Default is 5.
-            column_strategy (dict, optional): Custom binning strategy for specific columns.
-                Format: {column_name: num_bins}
+            num_bins (int, optional): Number of bins for numerical features. Defaults to 5.
+            column_strategy (dict[str, int], optional): Custom binning strategy for specific columns.
+                Format: {column_name: num_bins}. Defaults to None.
 
         Raises:
             ValueError: If num_bins is less than 2 or if column_strategy is invalid.
 
-        Example:
+        Examples:
             >>> binarizer = StandardBinarizer(num_bins=3, column_strategy={'num_col': 4})
             >>> binarizer.num_bins
             3
@@ -65,7 +67,7 @@ class StandardBinarizer:
         self.categorical_values_ = {}
         self.numerical_bins_ = {}
 
-    def _validate_params(self, num_bins, column_strategy):
+    def _validate_params(self, num_bins: int, column_strategy: Optional[dict[str, int]]) -> None:
         """Validate initialization parameters."""
         if not isinstance(num_bins, int) or num_bins < 2:
             raise ValueError("num_bins must be an integer >= 2")
@@ -77,19 +79,19 @@ class StandardBinarizer:
                 if not isinstance(bins, int) or bins < 2:
                     raise ValueError(f"Number of bins for column {col} must be an integer >= 2")
 
-    def _get_tree_based_bins(self, X, y, n_bins):
+    def _get_tree_based_bins(self, X: np.ndarray, y: np.ndarray, n_bins: int) -> np.ndarray:
         """
         Get bin edges using decision tree splits.
 
         Args:
-            X (array-like): Input feature to be binned
-            y (array-like): Target values for supervised binning
+            X (np.ndarray): Input feature to be binned
+            y (np.ndarray): Target values for supervised binning
             n_bins (int): Number of bins to create
 
         Returns:
             numpy.ndarray: Array of bin edges including -inf and inf
 
-        Example:
+        Examples:
             >>> X = np.array([1, 2, 3, 4, 5, 6, 7, 8])
             >>> y = np.array([0, 0, 0, 0, 1, 1, 1, 1])
             >>> binarizer = StandardBinarizer(num_bins=2)
@@ -107,7 +109,7 @@ class StandardBinarizer:
 
         return np.concatenate([[-np.inf], thresholds, [np.inf]])
 
-    def _get_quantile_based_bins(self, X, n_bins):
+    def _get_quantile_based_bins(self, X: np.ndarray, n_bins: int) -> np.ndarray:
         """
         Get bin edges using quantile-based approach.
 
@@ -118,7 +120,7 @@ class StandardBinarizer:
         Returns:
             numpy.ndarray: Array of bin edges including -inf and inf
 
-        Example:
+        Examples:
             >>> X = np.array([1, 2, 3, 4, 5, 6, 7, 8])
             >>> binarizer = StandardBinarizer(num_bins=4)
             >>> binarizer._get_quantile_based_bins(X, 4)
@@ -133,7 +135,7 @@ class StandardBinarizer:
         bins[-1] = np.inf
         return np.unique(bins)
 
-    def fit_transform(self, X, y=None):
+    def fit_transform(self, X: pd.DataFrame, y: Optional[np.ndarray] = None) -> pd.DataFrame:
         """
         Fit the binarizer and transform the input data.
 
@@ -147,7 +149,7 @@ class StandardBinarizer:
         Raises:
             ValueError: If X is not a pandas DataFrame
 
-        Example:
+        Examples:
             >>> data = pd.DataFrame({
             ...     'bool_col': [True, False, True, False],
             ...     'cat_col': pd.Categorical(['A', 'B', 'A', 'C']),
@@ -195,7 +197,7 @@ class StandardBinarizer:
 
         return result
 
-    def transform(self, X):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Transform new data using the fitted binarizer.
 
@@ -208,7 +210,7 @@ class StandardBinarizer:
         Raises:
             ValueError: If X is not a pandas DataFrame or if binarizer is not fitted
 
-        Example:
+        Examples:
             >>> train_data = pd.DataFrame({
             ...     'bool_col': [True, False, True, False],
             ...     'cat_col': pd.Categorical(['A', 'B', 'A', 'C']),
