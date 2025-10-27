@@ -31,16 +31,18 @@ class Literal(Rule):
 
     def evaluate(self, data):
         """
-        Evaluates this literal on the given data array.
+        Evaluates this literal on the given data array, based on the `self.value` feature.
 
         Args:
-            data: A 2D array where each column represents a feature.
+            data (np.ndarray):
+                Input data passed to subrules. Must be a 2D ndarray, with instances on rows and features on columns.
+                Not checked at runtime for performance reasons.
 
         Returns:
-            xp.ndarray: Boolean array corresponding to this literal’s value
-                        (negated if `self.negated` is True).
+            np.ndarray:
+                The boolean result of evaluating this rule vectorized across all instances.
 
-        Example:
+        Examples:
             >>> import torch
             >>> data = torch.tensor([[True, False], [False, True]])
             >>> Literal(value=0).evaluate(data)

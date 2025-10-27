@@ -2,6 +2,8 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
+import numpy as np
+
 
 class Rule(ABC):
     """
@@ -28,7 +30,7 @@ class Rule(ABC):
         - `__slots__` are used for performance optimization to reduce memory overhead.
         - No runtime validation is performed for speed; incorrect usage may cause undefined behavior.
 
-    Example:
+    Examples:
         >>> from hgp_lib.rules import And, Or, Literal
         >>> rule = And([
         ...     Literal(value=0),
@@ -136,15 +138,16 @@ class Rule(ABC):
         return self.__class__(self.subrules, self.parent if parent is None else parent, self.value, self.negated)
 
     @abstractmethod
-    def evaluate(self, data):
+    def evaluate(self, data: np.ndarray) -> np.ndarray:
         """
-        Abstract method to evaluate this rule against a given context.
+        Abstract method to evaluate this rule against the given data, in a vectorized manner.
 
         Args:
-            data: The input data or environment against which the rule is evaluated.
+            data (np.ndarray): The input data. Must be a 2D ndarray, with instances on rows and features on columns.
 
         Returns:
-            bool: The result of evaluating this rule.
+            np.ndarray:
+                The boolean result of evaluating this rule vectorized across all instances.
 
         Notes:
             Concrete subclasses (`And`, `Or`, `Literal`, etc.) must implement this.
