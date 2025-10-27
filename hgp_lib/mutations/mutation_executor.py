@@ -3,36 +3,52 @@ from typing import Callable, Sequence, Tuple, List
 
 import numpy as np
 
+from .base_mutation import Mutation
+from .literal_mutations import standard_literal_mutations
+from .operator_mutations import standard_operator_mutations
 from ..rules import Rule, Literal
 
 
 class MutationExecutor:
-    def __init__(self, mutation_p: float = 0.1, mutations: Sequence = None, check_valid: Callable[[Rule], bool] | None = None,
-                 num_tries: int = 1):
-        self._validate_params(mutation_p, mutations, check_valid, num_tries)
+    def __init__(self, mutation_p: float = 0.1, literal_mutations: Sequence[Mutation] = standard_literal_mutations,
+                 operator_mutations: Sequence[Mutation] = standard_operator_mutations,
+                 check_valid: Callable[[Rule], bool] | None = None, num_tries: int = 1):
+        self._validate_params(mutation_p, literal_mutations, operator_mutations, check_valid, num_tries)
         self.mutation_p: float = mutation_p
-        self.mutations: Tuple = tuple(mutations)
+        self.literal_mutations: Tuple = tuple(literal_mutations)
+        self.operator_mutations: Tuple = tuple(operator_mutations)
         self.check_valid: Callable[[Rule], bool] | None = check_valid
         self.num_tries: int = num_tries
 
     @staticmethod
-    def _validate_params(mutation_p: float = 0.1, mutations: Sequence = None,
-                         check_valid: Callable[[Rule], bool] | None = None,
-                         num_tries: int = 1):
+    def _validate_params(mutation_p: float, literal_mutations: Sequence[Mutation],
+                         operator_mutations: Sequence[Mutation], check_valid: Callable[[Rule], bool] | None,
+                         num_tries: int):
         """Validate initialization parameters."""
         if not isinstance(mutation_p, float):
             raise TypeError(f"mutation_p must be a float, is '{type(mutation_p)}'")
         if mutation_p < 0.0 or mutation_p > 1.0:
-            raise ValueError(f"mutation_p must be a float between 0.0 and 1.0, is '{mutation_p}'}")
+            raise ValueError(f"mutation_p must be a float between 0.0 and 1.0, is '{mutation_p}'")
 
-        if not isinstance(mutations, Sequence):
-            raise TypeError(f"mutations must be a Sequence, is '{type(mutations)}'")
-        if len(mutations) == 0:
-            raise ValueError(f"mutations must be a non-empty Sequence")
-        for mutation in mutations:
-            if not isinstance(mutation, str):  # TODO: Change this
-                raise TypeError(f"Each element in mutations must be TODO, but one element is '{type(mutation)}'")
+        if not isinstance(literal_mutations, Sequence):
+            raise TypeError(f"literal_mutations must be a Sequence, is '{type(literal_mutations)}'")
+        if len(literal_mutations) == 0:
+            raise ValueError(f"literal_mutations must be a non-empty Sequence")
+        for mutation in literal_mutations:
+            if not isinstance(mutation, Mutation):
+                raise TypeError(f"Each literal_mutations must be Mutation, but one element is '{type(mutation)}'")
+            if not mutation.is_literal_mutation:
+                raise TypeError(f"Each literal_mutations must be a literal mutation, but '{type(mutation)} is not'")
 
+        if not isinstance(operator_mutations, Sequence):
+            raise TypeError(f"operator_mutations must be a Sequence, is '{type(operator_mutations)}'")
+        if len(operator_mutations) == 0:
+            raise ValueError(f"operator_mutations must be a non-empty Sequence")
+        for mutation in operator_mutations:
+            if not isinstance(mutation, Mutation):
+                raise TypeError(f"Each operator_mutations must be Mutation, but one element is '{type(mutation)}'")
+            if not mutation.is_operator_mutation:
+                raise TypeError(f"Each operator_mutations must be an operator mutation, but '{type(mutation)} is not'")
 
         if check_valid is not None:
             error_msg = f"check_valid must be a callable that accepts a Rule and returns bool, is {type(check_valid)}"
@@ -42,8 +58,8 @@ class MutationExecutor:
                 boolean = check_valid(Literal(value=0))
                 if not isinstance(boolean, bool):
                     raise TypeError(error_msg)
-            except:
-                raise TypeError(error_msg)
+            except Exception as e:
+                raise TypeError(error_msg) from e
 
         if not isinstance(num_tries, int):
             raise TypeError(f"num_tries must be an int, is '{type(num_tries)}'")
@@ -51,7 +67,6 @@ class MutationExecutor:
             raise ValueError(f"num_tries must be greater than 0, is '{num_tries}'")
         if num_tries > 1 and check_valid is None:
             raise ValueError(f"num_tries must be 1 if check_valid is None")
-
 
     def apply(self, rules: List[Rule]):
         """
@@ -68,9 +83,19 @@ class MutationExecutor:
 
     def _mutate(self, rule: Rule, n_mutations: int) -> Rule:
         for _ in range(n_mutations):
+            new_rule = rule.copy()
+            flattened = new_rule.flatten()
             for _ in range(self.num_tries):
-                new_rule = random.choice(self.mutations).apply(rule.copy())
+                selected = random.choice(flattened)
+                if isinstance(selected, Literal):
+                    random.choice(self.literal_mutations).apply(selected)
+                else:
+                    random.choice(self.operator_mutations).apply(selected)
+
                 if self.check_valid is None or self.check_valid(new_rule):
                     rule = new_rule
                     break
+                else:
+                    new_rule = rule.copy()
+                    flattened = new_rule.flatten()
         return rule

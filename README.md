@@ -62,12 +62,11 @@ test_metrics = trainer.evaluate(test_data, test_labels)
 
 
 ```python
-from hgp_lib.mutations import MutationExecutor, default_mutations
+from hgp_lib.mutations import MutationExecutor, standard_literal_mutations, standard_operator_mutations
 from hgp_lib.crossover import CrossoverExecutor
 from hgp_lib.selections import TournamentSelection, RoulleteSelection, ParetoSelection
 from hgp_lib.populations import PopulationGenerator
 from hgp_lib.rules import Rule
-
 
 max_rule_size = 100
 population_size = 100
@@ -83,7 +82,7 @@ def is_rule_valid(rule: Rule) -> bool:
     if len(rule) > max_rule_size:
         return False
     return True
- 
+
 
 population_generator = PopulationGenerator(
     score_fn=score_fn,  # Optional
@@ -91,8 +90,9 @@ population_generator = PopulationGenerator(
     strategy="random"  # Optional (will be extended)
 )
 mutation_executor = MutationExecutor(
-    mutations=default_mutations,  # Optional
     mutation_p=mutation_p,  # Optional
+    literal_mutations=standard_literal_mutations,  # Optional
+    operator_mutations=standard_operator_mutations,  # Optional
     check_valid=is_rule_valid,  # Optional
     num_tries=10,  # Optional
 )
