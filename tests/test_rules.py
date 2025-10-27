@@ -178,10 +178,13 @@ class TestRules(unittest.TestCase):
         self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
         result = doctest.testmod(hgp_lib.rules.literals, verbose=False)
         self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
+        result = doctest.testmod(hgp_lib.rules.operators, verbose=False)
+        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
+        result = doctest.testmod(hgp_lib.rules.low_memory_operators, verbose=False)
+        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 if __name__ == "__main__":
     unittest.main()
     # TODO: Add performance test that should execute both operator types and measure
     # Use np.testing.measure
-

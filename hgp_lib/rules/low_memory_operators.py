@@ -8,23 +8,22 @@ from .rules import Rule
 
 class And(Rule):
     """
-    Logical conjunction (`AND`) operator node for rule trees.
-
-    The `And` class represents the logical AND operation. It evaluates to `True` only if every subrule evaluates to
+    Logical conjunction (`AND`) operator node for rule trees. It evaluates to `True` only if every subrule evaluates to
     `True`.
 
     Attributes:
         subrules (List[Rule]):
-            A list of child rules combined with logical AND. Must be a list longer than 1 element, but this is
-            not checked at runtime.
+            A list of child rules combined with logical AND. Must be a list longer than 1 element. Not checked at
+            runtime for performance reasons. Default: `None`.
         parent (Optional[Rule]):
-            A reference to the parent rule, if part of a larger tree.
+            A reference to the parent rule, if part of a larger tree. Default: `None`.
         value (None):
-            Always `None` for operator nodes (non-literals).
+            Always `None` for operator nodes (non-literals). Not checked at runtime for performance reasons. Default:
+            `None`.
         negated (bool):
-            Whether the entire conjunction is logically negated (`~And(...)`).
+            Whether the entire conjunction is logically negated (`~And(...)`). Default: `False`.
 
-    Example:
+    Examples:
         >>> from hgp_lib.rules.low_memory_operators import And, Or
         >>> from hgp_lib.rules import Literal
         >>> rule = And([
@@ -36,29 +35,35 @@ class And(Rule):
         And(0, Or(~1, 2), 3)
     """
 
-    def evaluate(self, data):
+    def evaluate(self, data: np.ndarray) -> np.ndarray:
         """
-        Evaluates this `And` rule against input data or context.
-
         All subrules are recursively evaluated, and their results are combined using logical conjunction. The final
         result is optionally negated if `self.negated` is `True`.
 
         Args:
             data (np.ndarray):
-                Input data passed to subrules, a matrix of instances and features.
+                Input data passed to subrules. Must be a 2D ndarray, with instances on rows and features on columns.
+                Not checked at runtime for performance reasons.
 
         Returns:
             np.ndarray:
-                The logical AND of all subrule evaluations, optionally negated.
+                The boolean result of evaluating this rule vectorized across all instances.
 
-        Example:
+        Examples:
             >>> from hgp_lib.rules.low_memory_operators import And
             >>> from hgp_lib.rules import Literal
             >>> import numpy as np
-            >>> data = np.array([True, False, True])
+            >>> data = np.array([
+            ...     [True, False],
+            ...     [False, False],
+            ...     [False, False]
+            ... ])
             >>> rule = And([Literal(value=0), Literal(value=1, negated=True)])
             >>> rule.evaluate(data)
-            array([False,  True, False])
+            array([ True, False, False])
+
+        Notes:
+            This implementation is efficient and allocates as little memory as possible.
         """
         rez = self.subrules[0].evaluate(data)
         if self.subrules[0].value is not None and not self.subrules[0].negated:
@@ -72,22 +77,21 @@ class And(Rule):
 
 class Or(Rule):
     """
-    Logical disjunction (`OR`) operator node for rule trees.
-
-    The `Or` class represents a logical OR operation. It evaluates to `True` if any subrule evaluates to `True`.
+    Logical disjunction (`OR`) operator node for rule trees. It evaluates to `True` if any subrule evaluates to `True`.
 
     Attributes:
         subrules (List[Rule]):
-            A list of child rules combined with logical OR.  Must be a list longer than 1 element, but this is
-            not checked at runtime.
+            A list of child rules combined with logical AND. Must be a list longer than 1 element. Not checked at
+            runtime for performance reasons. Default: `None`.
         parent (Optional[Rule]):
-            A reference to the parent rule, if part of a larger tree.
+            A reference to the parent rule, if part of a larger tree. Default: `None`.
         value (None):
-            Always `None` for operator nodes (non-literals).
+            Always `None` for operator nodes (non-literals). Not checked at runtime for performance reasons. Default:
+            `None`.
         negated (bool):
-            Whether the entire disjunction is logically negated (`~Or(...)`).
+            Whether the entire conjunction is logically negated (`~And(...)`). Default: `False`.
 
-    Example:
+    Examples:
         >>> from hgp_lib.rules.low_memory_operators import And
         >>> from hgp_lib.rules import Literal
         >>> rule = Or([Literal(value=0), Literal(value=1, negated=True)])
@@ -95,29 +99,34 @@ class Or(Rule):
         Or(0, ~1)
     """
 
-    def evaluate(self, data):
+    def evaluate(self, data: np.ndarray) -> np.ndarray:
         """
-        Evaluates this `Or` rule against input data or context.
-
         All subrules are recursively evaluated, and their results are combined using logical disjunction. The final
         result is optionally negated if `self.negated` is `True`.
 
         Args:
             data (np.ndarray):
-                Input data passed to subrules, a matrix of instances and features.
+                Input data passed to subrules. Must be a 2D ndarray, with instances on rows and features on columns.
+                Not checked at runtime for performance reasons.
 
         Returns:
             np.ndarray:
-                The logical OR of all subrule evaluations, optionally negated.
+                The boolean result of evaluating this rule vectorized across all instances.
 
-        Example:
+        Examples:
             >>> from hgp_lib.rules.low_memory_operators import And
             >>> from hgp_lib.rules import Literal
             >>> import numpy as np
-            >>> data = np.array([True, False, True])
-            >>> rule = And([Literal(value=0), Literal(value=1, negated=True)])
+            >>> data = np.array([
+            ...     [True, False, True],
+            ...     [False, False, True]
+            ... ])
+            >>> rule = Or([Literal(value=0), Literal(value=1)])
             >>> rule.evaluate(data)
-            array([False,  True, False])
+            array([ True, False])
+
+        Notes:
+            This implementation is efficient and allocates as little memory as possible.
         """
         rez = self.subrules[0].evaluate(data)
         if self.subrules[0].value is not None and not self.subrules[0].negated:
