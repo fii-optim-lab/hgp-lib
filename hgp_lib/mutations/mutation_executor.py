@@ -33,7 +33,7 @@ class MutationExecutor:
         if not isinstance(literal_mutations, Sequence):
             raise TypeError(f"literal_mutations must be a Sequence, is '{type(literal_mutations)}'")
         if len(literal_mutations) == 0:
-            raise ValueError(f"literal_mutations must be a non-empty Sequence")
+            raise ValueError("literal_mutations must be a non-empty Sequence")
         for mutation in literal_mutations:
             if not isinstance(mutation, Mutation):
                 raise TypeError(f"Each literal_mutations must be Mutation, but one element is '{type(mutation)}'")
@@ -43,7 +43,7 @@ class MutationExecutor:
         if not isinstance(operator_mutations, Sequence):
             raise TypeError(f"operator_mutations must be a Sequence, is '{type(operator_mutations)}'")
         if len(operator_mutations) == 0:
-            raise ValueError(f"operator_mutations must be a non-empty Sequence")
+            raise ValueError("operator_mutations must be a non-empty Sequence")
         for mutation in operator_mutations:
             if not isinstance(mutation, Mutation):
                 raise TypeError(f"Each operator_mutations must be Mutation, but one element is '{type(mutation)}'")
@@ -66,7 +66,7 @@ class MutationExecutor:
         if num_tries < 1:
             raise ValueError(f"num_tries must be greater than 0, is '{num_tries}'")
         if num_tries > 1 and check_valid is None:
-            raise ValueError(f"num_tries must be 1 if check_valid is None")
+            raise ValueError("num_tries must be 1 if check_valid is None")
 
     def apply(self, rules: List[Rule]):
         """
