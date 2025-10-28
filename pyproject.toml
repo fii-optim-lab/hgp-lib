@@ -23,6 +23,7 @@ keywords = [
 ]
 dependencies = [
     "numpy",
+    "pandas",
     "scikit-learn",
 ]
 [tool.setuptools.packages.find]
