@@ -27,7 +27,7 @@ dependencies = [
     "scikit-learn",
 ]
 [tool.setuptools.packages.find]
-include = ["hgp_lib"]
+include = ["hgp_lib*"]
 
 [project.urls]
 Repository = "https://github.com/fii-optim-lab/hgp-lib"

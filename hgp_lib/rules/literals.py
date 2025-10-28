@@ -47,12 +47,12 @@ class Literal(Rule):
                 The boolean result of evaluating this rule vectorized across all instances.
 
         Examples:
-            >>> import torch
-            >>> data = torch.tensor([[True, False], [False, True]])
+            >>> import numpy as np
+            >>> data = np.array([[True, False], [False, True]])
             >>> Literal(value=0).evaluate(data)
-            tensor([ True, False])
+            array([ True, False])
             >>> Literal(value=1, negated=True).evaluate(data)
-            tensor([ True, False])
+            array([ True, False])
         """
         return ~data[:, self.value] if self.negated else data[:, self.value]
 
