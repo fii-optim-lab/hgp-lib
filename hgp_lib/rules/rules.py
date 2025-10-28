@@ -105,9 +105,13 @@ class Rule(ABC):
             >>> from hgp_lib.rules import And, Literal
             >>> str(And([Literal(value=1), Literal(value=2)]))
             'And(1, 2)'
+            >>> str(And([Literal(value=1), Literal(value=2)], negated=True))
+            '~And(1, 2)'
         """
-
-        return f"{type(self).__name__}({', '.join(str(s) for s in self.subrules)})"
+        rez = f"{type(self).__name__}({', '.join(str(s) for s in self.subrules)})"
+        if self.negated:
+            return "~" + rez
+        return rez
 
     def __repr__(self) -> str:
         return self.__str__()

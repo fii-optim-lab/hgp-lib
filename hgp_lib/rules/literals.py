@@ -9,6 +9,10 @@ class Literal(Rule):
     It may optionally be negated, in which case its logical value is inverted.
 
     Attributes:
+        subrules (Optional[List[Rule]]):
+            The list of child rules, for operators, or `None`, for literals. Default: `None`.
+        parent (Optional[Rule]):
+            A reference to the parent rule in the tree (if any). Default: `None`.
         value (int):
             The column index of the feature this literal refers to in `data`.
         negated (bool):
