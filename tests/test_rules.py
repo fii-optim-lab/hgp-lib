@@ -2,7 +2,7 @@ import doctest
 import unittest
 import numpy as np
 
-import hgp_lib.rules
+import hgp_lib
 from hgp_lib.rules import Literal
 from hgp_lib.rules.operators import And, Or
 from hgp_lib.rules.low_memory_operators import And as LowMemoryAnd, Or as LowMemoryOr

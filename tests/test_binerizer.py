@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
+import hgp_lib
 from hgp_lib.preprocessing import StandardBinarizer
 
 
@@ -138,8 +139,6 @@ class TestStandardBinarizer(unittest.TestCase):
 
     def test_doctests(self):
         """Verify that all doctests pass."""
-        import hgp_lib.preprocessing
-
         result = doctest.testmod(hgp_lib.preprocessing.binarizer, verbose=False)
         self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
