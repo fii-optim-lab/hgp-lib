@@ -135,8 +135,11 @@ class ReplaceOperator(Mutation):
             >>> rule
             And(2, 3)
         """
-        other_operators = [operator_type for operator_type in self.operator_types if
-                           not isinstance(rule, operator_type)]
+        other_operators = [
+            operator_type
+            for operator_type in self.operator_types
+            if not isinstance(rule, operator_type)
+        ]
         rule.__class__ = random.choice(other_operators)
 
 
@@ -201,16 +204,22 @@ class AddLiteral(Mutation):
         """
         # TODO: Check performance. Maybe a better implementation is needed.
         available_literals = tuple(
-            self.available_literals.difference([s.value for s in rule.subrules if s.value is not None]))
+            self.available_literals.difference(
+                [s.value for s in rule.subrules if s.value is not None]
+            )
+        )
         if len(available_literals) == 0:
             raise MutationError()
         rule.subrules.append(
-            Literal(None, rule, random.choice(available_literals), random.random() < 0.5)
+            Literal(
+                None, rule, random.choice(available_literals), random.random() < 0.5
+            )
         )
 
 
-def create_standard_operator_mutations(num_literals: int, operator_types: Sequence[Type[Rule]] = (Or, And)) \
-        -> Tuple[Mutation, ...]:
+def create_standard_operator_mutations(
+    num_literals: int, operator_types: Sequence[Type[Rule]] = (Or, And)
+) -> Tuple[Mutation, ...]:
     """
     Creates a standard set of operator-level mutations used for structural modifications of rule trees.
 

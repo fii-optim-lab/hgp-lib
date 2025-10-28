@@ -79,7 +79,9 @@ class DeleteMutation(Mutation):
         if parent is None or len(parent.subrules) == 2:
             raise MutationError()
         for i in range(len(parent.subrules)):
-            if parent.subrules[i] is rule:  # We use reference checking because it is faster
+            if (
+                parent.subrules[i] is rule
+            ):  # We use reference checking because it is faster
                 del parent.subrules[i]
                 return
         raise RuntimeError("Unreachable code")
@@ -229,7 +231,9 @@ class PromoteLiteral(Mutation):
         1
     """
 
-    def __init__(self, num_literals: int, operator_types: Sequence[Type[Rule]] = (Or, And)):
+    def __init__(
+        self, num_literals: int, operator_types: Sequence[Type[Rule]] = (Or, And)
+    ):
         super().__init__(is_literal_mutation=True, is_operator_mutation=False)
 
         validate_num_literals(num_literals)
@@ -265,8 +269,12 @@ class PromoteLiteral(Mutation):
             ~0
         """
         rule.__class__ = random.choice(self.operator_types)  # Efficient class change
-        negated = np.random.rand(2) < 0.5  # Creating negated flag for the new operator and the new literal
-        new_value = np.random.randint(self.num_literals)  # Creating value for new literal
+        negated = (
+            np.random.rand(2) < 0.5
+        )  # Creating negated flag for the new operator and the new literal
+        new_value = np.random.randint(
+            self.num_literals
+        )  # Creating value for new literal
         if new_value == rule.value:
             new_value = (new_value + 1) % self.num_literals
         rule.subrules = [
@@ -277,8 +285,9 @@ class PromoteLiteral(Mutation):
         rule.value = None  # Removing the value from the new operator
 
 
-def create_standard_literal_mutations(num_literals: int, operator_types: Sequence[Type[Rule]] = (Or, And)) \
-        -> Tuple[Mutation, ...]:
+def create_standard_literal_mutations(
+    num_literals: int, operator_types: Sequence[Type[Rule]] = (Or, And)
+) -> Tuple[Mutation, ...]:
     """
     Creates a standard set of literal-level mutations commonly used in rule evolution.
 

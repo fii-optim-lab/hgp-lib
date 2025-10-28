@@ -2,14 +2,24 @@ import doctest
 import unittest
 
 import hgp_lib.mutations
-from hgp_lib.mutations import Mutation, DeleteMutation, MutationError, NegateMutation, ReplaceLiteral, PromoteLiteral, \
-    RemoveIntermediateOperator, ReplaceOperator, AddLiteral
+from hgp_lib.mutations import (
+    Mutation,
+    DeleteMutation,
+    MutationError,
+    NegateMutation,
+    ReplaceLiteral,
+    PromoteLiteral,
+    RemoveIntermediateOperator,
+    ReplaceOperator,
+    AddLiteral,
+)
 from hgp_lib.rules import Rule, Literal, Or, And
 
 
 class TestMutations(unittest.TestCase):
     def test_base_mutation(self):
         with self.subTest("Bad Mutation Init"):
+
             class BadMutation(Mutation):
                 def __init__(self):
                     super().__init__(False, False)
@@ -19,10 +29,13 @@ class TestMutations(unittest.TestCase):
 
             with self.assertRaises(ValueError) as e:
                 BadMutation()
-            self.assertIn("A mutation must be at least either a literal mutation, or an operator mutation.",
-                          str(e.exception))
+            self.assertIn(
+                "A mutation must be at least either a literal mutation, or an operator mutation.",
+                str(e.exception),
+            )
 
         with self.subTest("Good Mutation Init"):
+
             class GoodMutation(Mutation):
                 def __init__(self):
                     super().__init__(True, False)
@@ -33,14 +46,18 @@ class TestMutations(unittest.TestCase):
             GoodMutation().apply(Literal(value=0))
 
     def test_delete_mutation(self):
-        rule = Or([
-            And([
-                Literal(value=0),
+        rule = Or(
+            [
+                And(
+                    [
+                        Literal(value=0),
+                        Literal(value=1),
+                    ]
+                ),
                 Literal(value=1),
-            ]),
-            Literal(value=1),
-            Literal(value=2)
-        ])
+                Literal(value=2),
+            ]
+        )
         mutation = DeleteMutation()
 
         self.assertTrue(mutation.is_literal_mutation)
@@ -70,14 +87,18 @@ class TestMutations(unittest.TestCase):
             self.assertEqual(str(rule), "Or(And(0, 1), 2)")
 
     def test_negate_mutation(self):
-        rule = Or([
-            And([
-                Literal(value=0),
+        rule = Or(
+            [
+                And(
+                    [
+                        Literal(value=0),
+                        Literal(value=1),
+                    ]
+                ),
                 Literal(value=1),
-            ]),
-            Literal(value=1),
-            Literal(value=2)
-        ])
+                Literal(value=2),
+            ]
+        )
         mutation = NegateMutation()
 
         self.assertTrue(mutation.is_literal_mutation)
@@ -113,13 +134,17 @@ class TestMutations(unittest.TestCase):
             with self.assertRaises(ValueError):
                 mutation = ReplaceLiteral(-1)
 
-        rule = Or([
-            And([
-                Literal(value=0),
+        rule = Or(
+            [
+                And(
+                    [
+                        Literal(value=0),
+                        Literal(value=1),
+                    ]
+                ),
                 Literal(value=1),
-            ]),
-            Literal(value=1),
-        ])
+            ]
+        )
         mutation = ReplaceLiteral(2)
 
         self.assertTrue(mutation.is_literal_mutation)
@@ -178,17 +203,18 @@ class TestMutations(unittest.TestCase):
 
     def test_remove_intermediate_operator(self):
         mutation = RemoveIntermediateOperator()
-        rule = And([
-            Or([
-                Literal(value=0),
-                Literal(value=1)
-            ]),
-            And([
-                Literal(value=2),
-                Literal(value=3),
-            ]),
-            Literal(value=4)
-        ])
+        rule = And(
+            [
+                Or([Literal(value=0), Literal(value=1)]),
+                And(
+                    [
+                        Literal(value=2),
+                        Literal(value=3),
+                    ]
+                ),
+                Literal(value=4),
+            ]
+        )
         rule_str = str(rule)
 
         self.assertFalse(mutation.is_literal_mutation)
@@ -225,10 +251,13 @@ class TestMutations(unittest.TestCase):
         self.assertFalse(mutation.is_literal_mutation)
         self.assertTrue(mutation.is_operator_mutation)
 
-        rule = Or([
-            Literal(value=0),
-            Literal(value=1),
-        ], negated=True)
+        rule = Or(
+            [
+                Literal(value=0),
+                Literal(value=1),
+            ],
+            negated=True,
+        )
 
         mutation.apply(rule)
         self.assertEqual(type(rule), And)
@@ -257,17 +286,21 @@ class TestMutations(unittest.TestCase):
         self.assertFalse(mutation.is_literal_mutation)
         self.assertTrue(mutation.is_operator_mutation)
 
-        rule = Or([
-            And([
+        rule = Or(
+            [
+                And(
+                    [
+                        Literal(value=0),
+                        Literal(value=1),
+                    ]
+                ),
                 Literal(value=0),
                 Literal(value=1),
-            ]),
-            Literal(value=0),
-            Literal(value=1),
-            Literal(value=2),
-            Literal(value=3),
-            Literal(value=4),
-        ])
+                Literal(value=2),
+                Literal(value=3),
+                Literal(value=4),
+            ]
+        )
 
         copy = rule.copy()
         with self.assertRaises(MutationError):
