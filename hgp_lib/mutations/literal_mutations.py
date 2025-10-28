@@ -76,7 +76,6 @@ class DeleteMutation(Mutation):
             Or(1, 2)
         """
         parent = rule.parent
-        # TODO: @? Should we keep 2 as the limit? Maybe we can let operators have 1 subrule?
         if parent is None or len(parent.subrules) == 2:
             raise MutationError()
         for i in range(len(parent.subrules)):
@@ -237,7 +236,7 @@ class PromoteLiteral(Mutation):
         validate_operator_types(operator_types)
 
         self.num_literals = num_literals
-        self.operator_types: Tuple[Type[Rule]] = tuple(operator_types)
+        self.operator_types: Tuple[Type[Rule], ...] = tuple(operator_types)
 
     def apply(self, rule: Rule):
         """
