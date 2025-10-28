@@ -2,7 +2,7 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_bool_dtype, is_numeric_dtype, is_categorical_dtype
+from pandas.api.types import is_bool_dtype, is_numeric_dtype
 from sklearn.tree import DecisionTreeClassifier
 
 
@@ -183,7 +183,7 @@ class StandardBinarizer:
             if is_bool_dtype(X[column]):
                 result[column] = X[column]
 
-            elif is_categorical_dtype(X[column]):
+            elif isinstance(X[column].dtype, pd.CategoricalDtype):
                 unique_values = X[column].unique()
                 self.categorical_values_[column] = unique_values
                 for value in unique_values:
@@ -207,7 +207,9 @@ class StandardBinarizer:
                     result[f"{column}_bin_{bin_idx}"] = binned_values == bin_idx
 
             else:
-                raise ValueError(f"Unsupported column type for column {column}")
+                raise ValueError(
+                    f"Unsupported column type for column {column} of type {X[column].dtype}"
+                )
 
         return result
 
@@ -255,7 +257,7 @@ class StandardBinarizer:
             if is_bool_dtype(X[column]):
                 result[column] = X[column]
 
-            elif is_categorical_dtype(X[column]):
+            elif isinstance(X[column].dtype, pd.CategoricalDtype):
                 for value in self.categorical_values_[column]:
                     result[f"{column}_{value}"] = X[column] == value
 
@@ -268,7 +270,9 @@ class StandardBinarizer:
                     result[f"{column}_bin_{bin_idx}"] = binned_values == bin_idx
 
             else:
-                raise ValueError(f"Unsupported column type for column {column}")
+                raise ValueError(
+                    f"Unsupported column type for column {column} of type {X[column].dtype}"
+                )
 
         return result
 
