@@ -3,8 +3,6 @@ from abc import ABC, abstractmethod
 from ..rules import Rule
 
 
-# TODO: Add unittests
-
 class Mutation(ABC):
     """
     Base mutation class that performs inplace mutation for a given `Rule`. Operator and literal mutations must inherit
