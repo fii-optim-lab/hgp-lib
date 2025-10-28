@@ -40,14 +40,15 @@ class Rule(ABC):
         >>> rule
         And(0, Or(~1, 2), 3)
     """
+
     __slots__ = ("subrules", "parent", "value", "negated")
 
     def __init__(
-            self,
-            subrules: Optional[List["Rule"]] = None,
-            parent: Optional["Rule"] = None,
-            value: Optional[int] = None,
-            negated: bool = False
+        self,
+        subrules: Optional[List["Rule"]] = None,
+        parent: Optional["Rule"] = None,
+        value: Optional[int] = None,
+        negated: bool = False,
     ):
         self.subrules = [] if subrules is None else [s.copy(self) for s in subrules]
         self.parent = parent
@@ -139,7 +140,12 @@ class Rule(ABC):
             True
         """
 
-        return self.__class__(self.subrules, self.parent if parent is None else parent, self.value, self.negated)
+        return self.__class__(
+            self.subrules,
+            self.parent if parent is None else parent,
+            self.value,
+            self.negated,
+        )
 
     @abstractmethod
     def evaluate(self, data: np.ndarray) -> np.ndarray:

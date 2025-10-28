@@ -42,7 +42,9 @@ class StandardBinarizer:
         3     False      False      False       True          False           True
     """
 
-    def __init__(self, num_bins: int = 5, column_strategy: Optional[dict[str, int]] = None):
+    def __init__(
+        self, num_bins: int = 5, column_strategy: Optional[dict[str, int]] = None
+    ):
         """
         Initialize the StandardBinarizer.
 
@@ -67,7 +69,9 @@ class StandardBinarizer:
         self.categorical_values_ = {}
         self.numerical_bins_ = {}
 
-    def _validate_params(self, num_bins: int, column_strategy: Optional[dict[str, int]]) -> None:
+    def _validate_params(
+        self, num_bins: int, column_strategy: Optional[dict[str, int]]
+    ) -> None:
         """Validate initialization parameters."""
         if not isinstance(num_bins, int) or num_bins < 2:
             raise ValueError("num_bins must be an integer >= 2")
@@ -77,9 +81,13 @@ class StandardBinarizer:
                 raise ValueError("column_strategy must be a dictionary")
             for col, bins in column_strategy.items():
                 if not isinstance(bins, int) or bins < 2:
-                    raise ValueError(f"Number of bins for column {col} must be an integer >= 2")
+                    raise ValueError(
+                        f"Number of bins for column {col} must be an integer >= 2"
+                    )
 
-    def _get_tree_based_bins(self, X: np.ndarray, y: np.ndarray, n_bins: int) -> np.ndarray:
+    def _get_tree_based_bins(
+        self, X: np.ndarray, y: np.ndarray, n_bins: int
+    ) -> np.ndarray:
         """
         Get bin edges using decision tree splits.
 
@@ -135,7 +143,9 @@ class StandardBinarizer:
         bins[-1] = np.inf
         return np.unique(bins)
 
-    def fit_transform(self, X: pd.DataFrame, y: Optional[np.ndarray] = None) -> pd.DataFrame:
+    def fit_transform(
+        self, X: pd.DataFrame, y: Optional[np.ndarray] = None
+    ) -> pd.DataFrame:
         """
         Fit the binarizer and transform the input data.
 
@@ -177,20 +187,24 @@ class StandardBinarizer:
                 unique_values = X[column].unique()
                 self.categorical_values_[column] = unique_values
                 for value in unique_values:
-                    result[f"{column}_{value}"] = (X[column] == value)
+                    result[f"{column}_{value}"] = X[column] == value
 
             elif is_numeric_dtype(X[column]):
                 n_bins = self.column_strategy.get(column, self.num_bins)
 
-                bins = (self._get_tree_based_bins(X[column].values, y, n_bins)
-                        if y is not None
-                        else self._get_quantile_based_bins(X[column].values, n_bins))
+                bins = (
+                    self._get_tree_based_bins(X[column].values, y, n_bins)
+                    if y is not None
+                    else self._get_quantile_based_bins(X[column].values, n_bins)
+                )
 
                 self.numerical_bins_[column] = bins
 
-                binned_values = pd.cut(X[column], bins=bins, labels=False, include_lowest=True)
+                binned_values = pd.cut(
+                    X[column], bins=bins, labels=False, include_lowest=True
+                )
                 for bin_idx in range(len(bins) - 1):
-                    result[f"{column}_bin_{bin_idx}"] = (binned_values == bin_idx)
+                    result[f"{column}_bin_{bin_idx}"] = binned_values == bin_idx
 
             else:
                 raise ValueError(f"Unsupported column type for column {column}")
@@ -243,13 +257,15 @@ class StandardBinarizer:
 
             elif is_categorical_dtype(X[column]):
                 for value in self.categorical_values_[column]:
-                    result[f"{column}_{value}"] = (X[column] == value)
+                    result[f"{column}_{value}"] = X[column] == value
 
             elif is_numeric_dtype(X[column]):
                 bins = self.numerical_bins_[column]
-                binned_values = pd.cut(X[column], bins=bins, labels=False, include_lowest=True)
+                binned_values = pd.cut(
+                    X[column], bins=bins, labels=False, include_lowest=True
+                )
                 for bin_idx in range(len(bins) - 1):
-                    result[f"{column}_bin_{bin_idx}"] = (binned_values == bin_idx)
+                    result[f"{column}_bin_{bin_idx}"] = binned_values == bin_idx
 
             else:
                 raise ValueError(f"Unsupported column type for column {column}")

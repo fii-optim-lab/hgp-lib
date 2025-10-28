@@ -13,10 +13,18 @@ class TestRules(unittest.TestCase):
         self.data = np.random.rand(10, 20) < 0.5
 
     def test_literal(self):
-        np.testing.assert_array_equal(Literal(value=0, negated=True).evaluate(self.data), ~self.data[:, 0])
-        np.testing.assert_array_equal(Literal(value=0, negated=False).evaluate(self.data), self.data[:, 0])
-        np.testing.assert_array_equal(Literal(value=1, negated=False).evaluate(self.data), self.data[:, 1])
-        np.testing.assert_array_equal(Literal(value=1, negated=True).evaluate(self.data), ~self.data[:, 1])
+        np.testing.assert_array_equal(
+            Literal(value=0, negated=True).evaluate(self.data), ~self.data[:, 0]
+        )
+        np.testing.assert_array_equal(
+            Literal(value=0, negated=False).evaluate(self.data), self.data[:, 0]
+        )
+        np.testing.assert_array_equal(
+            Literal(value=1, negated=False).evaluate(self.data), self.data[:, 1]
+        )
+        np.testing.assert_array_equal(
+            Literal(value=1, negated=True).evaluate(self.data), ~self.data[:, 1]
+        )
 
     def test_and(self):
         for and_type in [And, LowMemoryAnd]:
@@ -26,36 +34,45 @@ class TestRules(unittest.TestCase):
                         Literal(value=0),
                         Literal(value=0),
                     ],
-                    negated=False
+                    negated=False,
                 )
-                np.testing.assert_array_equal(same_rule.evaluate(self.data), self.data[:, 0])
+                np.testing.assert_array_equal(
+                    same_rule.evaluate(self.data), self.data[:, 0]
+                )
 
                 same_rule_negated = and_type(
                     subrules=[
                         Literal(value=1),
                         Literal(value=1),
                     ],
-                    negated=True
+                    negated=True,
                 )
-                np.testing.assert_array_equal(same_rule_negated.evaluate(self.data), ~self.data[:, 1])
+                np.testing.assert_array_equal(
+                    same_rule_negated.evaluate(self.data), ~self.data[:, 1]
+                )
 
                 all_zero = and_type(
                     subrules=[
                         Literal(value=2),
                         Literal(value=2, negated=True),
                     ],
-                    negated=False
+                    negated=False,
                 )
-                np.testing.assert_array_equal(all_zero.evaluate(self.data), np.zeros(len(self.data), dtype=np.bool))
+                np.testing.assert_array_equal(
+                    all_zero.evaluate(self.data),
+                    np.zeros(len(self.data), dtype=np.bool),
+                )
 
                 all_one = and_type(
                     subrules=[
                         Literal(value=3),
                         Literal(value=3, negated=True),
                     ],
-                    negated=True
+                    negated=True,
                 )
-                np.testing.assert_array_equal(all_one.evaluate(self.data), np.ones(len(self.data), dtype=np.bool))
+                np.testing.assert_array_equal(
+                    all_one.evaluate(self.data), np.ones(len(self.data), dtype=np.bool)
+                )
 
                 test_rule_1 = and_type(
                     subrules=[
@@ -63,7 +80,7 @@ class TestRules(unittest.TestCase):
                         Literal(value=1, negated=True),
                         Literal(value=2),
                     ],
-                    negated=False
+                    negated=False,
                 )
                 result = self.data[:, 0] & ~self.data[:, 1] & self.data[:, 2]
                 np.testing.assert_array_equal(test_rule_1.evaluate(self.data), result)
@@ -74,7 +91,7 @@ class TestRules(unittest.TestCase):
                         Literal(value=1, negated=True),
                         Literal(value=4, negated=True),
                     ],
-                    negated=True
+                    negated=True,
                 )
                 result = ~(self.data[:, 0] & ~self.data[:, 1] & ~self.data[:, 4])
                 np.testing.assert_array_equal(test_rule_2.evaluate(self.data), result)
@@ -87,36 +104,45 @@ class TestRules(unittest.TestCase):
                         Literal(value=0),
                         Literal(value=0),
                     ],
-                    negated=False
+                    negated=False,
                 )
-                np.testing.assert_array_equal(same_rule.evaluate(self.data), self.data[:, 0])
+                np.testing.assert_array_equal(
+                    same_rule.evaluate(self.data), self.data[:, 0]
+                )
 
                 same_rule_negated = or_type(
                     subrules=[
                         Literal(value=1),
                         Literal(value=1),
                     ],
-                    negated=True
+                    negated=True,
                 )
-                np.testing.assert_array_equal(same_rule_negated.evaluate(self.data), ~self.data[:, 1])
+                np.testing.assert_array_equal(
+                    same_rule_negated.evaluate(self.data), ~self.data[:, 1]
+                )
 
                 all_one = or_type(
                     subrules=[
                         Literal(value=2),
                         Literal(value=2, negated=True),
                     ],
-                    negated=False
+                    negated=False,
                 )
-                np.testing.assert_array_equal(all_one.evaluate(self.data), np.ones(len(self.data), dtype=np.bool))
+                np.testing.assert_array_equal(
+                    all_one.evaluate(self.data), np.ones(len(self.data), dtype=np.bool)
+                )
 
                 all_zero = or_type(
                     subrules=[
                         Literal(value=3),
                         Literal(value=3, negated=True),
                     ],
-                    negated=True
+                    negated=True,
                 )
-                np.testing.assert_array_equal(all_zero.evaluate(self.data), np.zeros(len(self.data), dtype=np.bool))
+                np.testing.assert_array_equal(
+                    all_zero.evaluate(self.data),
+                    np.zeros(len(self.data), dtype=np.bool),
+                )
 
                 test_rule_1 = or_type(
                     subrules=[
@@ -124,7 +150,7 @@ class TestRules(unittest.TestCase):
                         Literal(value=1, negated=True),
                         Literal(value=2),
                     ],
-                    negated=False
+                    negated=False,
                 )
                 result = self.data[:, 0] | ~self.data[:, 1] | self.data[:, 2]
                 np.testing.assert_array_equal(test_rule_1.evaluate(self.data), result)
@@ -135,7 +161,7 @@ class TestRules(unittest.TestCase):
                         Literal(value=1, negated=True),
                         Literal(value=4, negated=True),
                     ],
-                    negated=True
+                    negated=True,
                 )
                 result = ~(self.data[:, 0] | ~self.data[:, 1] | ~self.data[:, 4])
                 np.testing.assert_array_equal(test_rule_2.evaluate(self.data), result)
@@ -166,10 +192,10 @@ class TestRules(unittest.TestCase):
             ]
         )
         result = (
-                self.data[:, 1] & ~self.data[:, 2]
-                | (self.data[:, 3] | self.data[:, 4] | ~self.data[:, 5]) & ~self.data[:, 6]
-                | self.data[:, 7]
-                | ~self.data[:, 8]
+            self.data[:, 1] & ~self.data[:, 2]
+            | (self.data[:, 3] | self.data[:, 4] | ~self.data[:, 5]) & ~self.data[:, 6]
+            | self.data[:, 7]
+            | ~self.data[:, 8]
         )
         np.testing.assert_array_equal(test_rule_1.evaluate(self.data), result)
 
