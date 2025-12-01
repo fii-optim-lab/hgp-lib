@@ -178,15 +178,15 @@ class TestMutations(unittest.TestCase):
                 mutation = PromoteLiteral(-1)
 
             with self.assertRaises(TypeError):
-                mutation = PromoteLiteral(1, dict())
+                mutation = PromoteLiteral(2, dict())
 
             with self.assertRaises(ValueError):
-                mutation = PromoteLiteral(1, [])
+                mutation = PromoteLiteral(2, [])
             with self.assertRaises(ValueError):
-                mutation = PromoteLiteral(1, [Or])
+                mutation = PromoteLiteral(2, [Or])
 
             with self.assertRaises(TypeError):
-                mutation = PromoteLiteral(1, [Or, 1])
+                mutation = PromoteLiteral(2, [Or, 1])
 
         mutation = PromoteLiteral(2, [Or, And])
 

@@ -3,14 +3,15 @@ from typing import Tuple, Type, Sequence
 
 from .base_mutation import Mutation
 from .literal_mutations import DeleteMutation, NegateMutation
-from .utils import MutationError, validate_num_literals, validate_operator_types
+from .utils import MutationError
+from ..utils.validation import validate_num_literals, validate_operator_types
 from ..rules import Rule, Or, And, Literal
 
 
 class RemoveIntermediateOperator(Mutation):
     """
     The `RemoveIntermediateOperator` mutation removes an intermediate operator node (e.g., `And`, `Or`) and promotes its
-    subrules to the operator’s parent, flattening the rule tree structure.
+    subrules to the operator's parent, flattening the rule tree structure.
 
     Attributes:
         is_literal_mutation (bool): `False`.
@@ -19,7 +20,7 @@ class RemoveIntermediateOperator(Mutation):
     Notes:
         - The mutation raises a `MutationError` if the operator has no parent (i.e., it is the root of the tree).
         - All child subrules of the removed operator are reattached directly to the parent.
-        - The parent’s subrule list is updated inplace, preserving the relative order of existing subrules.
+        - The parent's subrule list is updated inplace, preserving the relative order of existing subrules.
 
     Examples:
         >>> from hgp_lib.mutations import RemoveIntermediateOperator
@@ -54,7 +55,7 @@ class RemoveIntermediateOperator(Mutation):
             MutationError:
                 If the operator has no parent (i.e., it is the root node).
             RuntimeError:
-                If the target operator is not found within its parent’s subrule list, which should never occur during
+                If the target operator is not found within its parent's subrule list, which should never occur during
                 normal operation.
 
         Examples:
@@ -99,7 +100,7 @@ class ReplaceOperator(Mutation):
 
     Notes:
         - The mutation has no effect on literal nodes.
-        - The operator type is switched inplace by directly reassigning the node’s `__class__` attribute.
+        - The operator type is switched inplace by directly reassigning the node's `__class__` attribute.
         - The replacement operator is always different from the current operator type.
 
     Examples:
@@ -156,8 +157,8 @@ class AddLiteral(Mutation):
 
     Notes:
         - The mutation raises a `MutationError` if all possible literals are already present under the operator.
-        - The added literal’s negation flag is determined randomly with equal probability.
-        - The mutation operates inplace, modifying the operator’s list of subrules directly.
+        - The added literal's negation flag is determined randomly with equal probability.
+        - The mutation operates inplace, modifying the operator's list of subrules directly.
 
     Examples:
         >>> from hgp_lib.mutations import AddLiteral
@@ -179,7 +180,7 @@ class AddLiteral(Mutation):
 
     def apply(self, rule: Rule):
         """
-        Adds a new literal subrule to the given operator node. The new literal’s value is selected randomly from the
+        Adds a new literal subrule to the given operator node. The new literal's value is selected randomly from the
         remaining available literals not already present in the operator.
 
         Args:
@@ -227,18 +228,18 @@ def create_standard_operator_mutations(
 
     Args:
         num_literals (int):
-            Total number of available literal values. Must be greater than 1.
+            Total number of available literal values. Must be greater than `1`.
         operator_types (Sequence[Type[Rule]]):
             Sequence of operator classes (e.g., `(Or, And)`) used by `ReplaceOperator`. Default: `(Or, And)`.
 
     Returns:
         Tuple[Mutation, ...]:
             A tuple of initialized operator-level mutation instances. The tuple includes:
-            1. `DeleteMutation()` — removes a rule from its parent operator.
-            2. `NegateMutation()` — toggles the negation flag of an operator.
-            3. `RemoveIntermediateOperator()` — removes an intermediate operator and promotes its children.
-            4. `ReplaceOperator(operator_types)` — replaces an operator with another type (e.g., `And` with `Or`).
-            5. `AddLiteral(num_literals)` — adds a new literal subrule to the operator.
+            1. `DeleteMutation()` - removes a rule from its parent operator.
+            2. `NegateMutation()` - toggles the negation flag of an operator.
+            3. `RemoveIntermediateOperator()` - removes an intermediate operator and promotes its children.
+            4. `ReplaceOperator(operator_types)` - replaces an operator with another type (e.g., `And` with `Or`).
+            5. `AddLiteral(num_literals)` - adds a new literal subrule to the operator.
 
 
     Examples:

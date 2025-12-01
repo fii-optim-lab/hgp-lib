@@ -25,6 +25,9 @@ class Rule(ABC):
             The value held by this rule (e.g., for literals). Should be `None` for operators. Default: `None`.
         negated (bool):
             Whether this rule or literal is logically negated (e.g., `~A`). Default: `False`.
+        copy_subrules (bool):
+            Whether to deep copy the subrules (valid only for operators). If False, the subrules are moved.
+            Default: `True`.
 
     Notes:
         - `__slots__` are used for performance optimization to reduce memory overhead.
@@ -49,11 +52,32 @@ class Rule(ABC):
         parent: Optional["Rule"] = None,
         value: Optional[int] = None,
         negated: bool = False,
+        copy_subrules: bool = True,
     ):
-        self.subrules = [] if subrules is None else [s.copy(self) for s in subrules]
+        self.subrules = []
+        if subrules is not None:
+            self.extend(subrules, copy=copy_subrules)
+
         self.parent = parent
         self.value = value
         self.negated = negated
+
+    def extend(self, new_subrules: List["Rule"], copy: bool = True):
+        """
+        Extends the current subrules with a list of new subrules.
+
+        Args:
+            new_subrules (List[Rule]): The list of new subrules to add.
+            copy (bool): If True, deep copies each new subrule. If False, moves them (assigns parent to self).
+                         Default: True.
+        """
+        # TODO: Check where this can be added to improve performance.
+        if copy:
+            self.subrules.extend([s.copy(self) for s in new_subrules])
+        else:
+            for s in new_subrules:
+                s.parent = self
+            self.subrules.extend(new_subrules)
 
     def flatten(self) -> List["Rule"]:
         """

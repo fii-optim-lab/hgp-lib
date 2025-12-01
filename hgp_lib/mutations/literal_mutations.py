@@ -4,7 +4,8 @@ from typing import Sequence, Type, Tuple
 import numpy as np
 
 from .base_mutation import Mutation
-from .utils import MutationError, validate_num_literals, validate_operator_types
+from .utils import MutationError
+from ..utils.validation import validate_num_literals, validate_operator_types
 from ..rules import Rule, Or, And, Literal
 
 
@@ -118,7 +119,7 @@ class NegateMutation(Mutation):
 
     def apply(self, rule: Rule):
         """
-        Applies an inplace negation mutation to the given `Rule`. Toggles the rule’s `negated` flag.
+        Applies an inplace negation mutation to the given `Rule`. Toggles the rule's `negated` flag.
 
         Args:
             rule (Rule):
@@ -148,13 +149,13 @@ class ReplaceLiteral(Mutation):
     Attributes:
         is_literal_mutation (bool): `True`.
         is_operator_mutation (bool): `False`.
-        num_literals (int): The total number of possible literal values. Must be greater than `0`.
+        num_literals (int): The total number of possible literal values. Must be greater than `1`.
 
     Notes:
         - The new literal value is chosen uniformly at random from the range `[0, num_literals)`.
-        - If the randomly chosen value equals the current literal’s value, it is incremented modulo `num_literals`
+        - If the randomly chosen value equals the current literal's value, it is incremented modulo `num_literals`
           to guarantee a change.
-        - The mutation operates inplace and modifies only the literal’s `value`.
+        - The mutation operates inplace and modifies only the literal's `value`.
 
     Examples:
         >>> from hgp_lib.mutations import ReplaceLiteral
@@ -300,10 +301,10 @@ def create_standard_literal_mutations(
     Returns:
         Tuple[Mutation, ...]:
             A tuple of initialized mutation instances for literals. The tuple includes:
-            1. `DeleteMutation()` — removes a rule from its parent operator.
-            2. `NegateMutation()` — toggles the negation flag of a rule.
-            3. `ReplaceLiteral(num_literals)` — replaces a literal’s value with a different random one.
-            4. `PromoteLiteral(num_literals, operator_types)` — converts a literal into an operator with two literals.
+            1. `DeleteMutation()` - removes a rule from its parent operator.
+            2. `NegateMutation()` - toggles the negation flag of a rule.
+            3. `ReplaceLiteral(num_literals)` - replaces a literal's value with a different random one.
+            4. `PromoteLiteral(num_literals, operator_types)` - converts a literal into an operator with two literals.
 
     Examples:
         >>> from hgp_lib.mutations import create_standard_literal_mutations
