@@ -11,7 +11,7 @@ Binarization keeps boolean columns and transforms categorical and numeric featur
 For more information about binarization and custom configurations, see TODO (create a section about binarization and link it here).
 
 Label aware binarization is usually employed to create class-aware bins for numerical columns.
-The binarizer fit on the training data must be used on the validation and test data to prevent data leakage. 
+The binarizer must be fit only on the training data to prevent data leakage!
 
 Depending on usage, data preparation may very (i.e. when doing k-fold cross-validation).
 
@@ -39,7 +39,6 @@ test_data = binarizer.transform(test_data)
 The snippet below will run a training with default hyperparameters.
 
 ```python
-from hgp_lib.populations import PopulationGenerator
 from hgp_lib.trainers import GPTrainer
 
 
@@ -65,7 +64,7 @@ test_metrics = trainer.evaluate(test_data, test_labels)
 from hgp_lib.mutations import MutationExecutor, create_standard_literal_mutations, create_standard_operator_mutations
 from hgp_lib.crossover import CrossoverExecutor
 from hgp_lib.selections import TournamentSelection, RoulleteSelection, ParetoSelection
-from hgp_lib.populations import PopulationGenerator
+from hgp_lib.populations import PopulationGenerator, RandomStrategy, BestLiteralStrategy
 from hgp_lib.rules import Rule
 
 max_rule_size = 100
@@ -86,11 +85,23 @@ def is_rule_valid(rule: Rule) -> bool:
 
 literal_mutations = create_standard_literal_mutations(train_data.shape[1])
 operator_mutations = create_standard_operator_mutations(train_data.shape[1])
-population_generator = PopulationGenerator(
-    score_fn=score_fn,  # Optional
-    population_size=population_size,  # Optional
-    strategy="random"  # Optional (will be extended)
+
+random_strategy = RandomStrategy(num_literals=train_data.shape[1])
+best_literal_strategy = BestLiteralStrategy(
+    num_literals=train_data.shape[1],
+    score_fn=score_fn,
+    train_data=train_data,
+    train_labels=train_labels,
+    sample_size=0.1,  # Use 10% of data for evaluation
+    feature_size=0.5  # Use 50% of features for evaluation
 )
+
+population_generator = PopulationGenerator(
+    strategies=[random_strategy, best_literal_strategy],
+    population_size=population_size,
+    weights=[0.8, 0.2]  # 80% Random, 20% Best Literal
+)
+
 mutation_executor = MutationExecutor(
     literal_mutations=literal_mutations,  # Mandatory
     operator_mutations=operator_mutations,  # Mandatory
@@ -107,10 +118,42 @@ crossover_executor = CrossoverExecutor(
 selection = TournamentSelection(size=10, selection_probability=0.4)
 ```
 
-* Population initialization is covered in TODO.
+* Population initialization is covered in [Population Generation](#population-generation).
 * Mutation is covered in TODO.
 * Crossover is covered in TODO.
 
+
+### Population Generation
+
+The `PopulationGenerator` creates the initial set of rules. It uses a strategy pattern to allow for different initialization methods.
+
+```python
+from hgp_lib.populations import PopulationGenerator, RandomStrategy, BestLiteralStrategy
+
+# Simple Random Strategy
+# Generates rules with one operator (And/Or) and two random literals
+random_strategy = RandomStrategy(num_literals=10)
+
+# Best Literal Strategy
+# Evaluates all single literals on a subset of data and picks the best one
+best_literal_strategy = BestLiteralStrategy(
+    num_literals=10,
+    score_fn=my_score_fn,
+    train_data=X_train,
+    train_labels=y_train,
+    sample_size=100,  # Evaluate on 100 random samples
+    feature_size=None # Evaluate all features
+)
+
+# Combine strategies
+generator = PopulationGenerator(
+    strategies=[random_strategy, best_literal_strategy],
+    population_size=100,
+    weights=[0.7, 0.3] # 70% of rules from Random, 30% from Best Literal
+)
+
+initial_population = generator.generate()
+```
 
 ### Low level usage with fine control
 
