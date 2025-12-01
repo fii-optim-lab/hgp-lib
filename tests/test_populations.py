@@ -24,10 +24,7 @@ class TestPopulations(unittest.TestCase):
         self.train_labels = np.array([1, 0, 1, 0])
         self.num_literals = 4
 
-    def simple_score_fn(self, rule, data, labels=None):
-        if labels is None:
-            return 0.0
-        predictions = rule.evaluate(data)
+    def simple_score_fn(self, predictions, labels):
         return np.mean(predictions == labels)
 
     def test_random_strategy_init(self):

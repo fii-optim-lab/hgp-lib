@@ -1,3 +1,4 @@
+from math import ceil
 from typing import Sequence, Type, Callable, List
 import numpy as np
 
@@ -87,12 +88,12 @@ class BestLiteralStrategy(PopulationStrategy):
         train_labels (np.ndarray): The training labels.
         sample_size (int | float | None): Size of the sample subset (rows) to use for evaluation.
             - If `int`: Number of samples.
-            - If `float`: Fraction of samples.
+            - If `float`: Fraction of samples in (0.0, 1.0].
             - If `None`: Use all samples.
             Default: `None`.
         feature_size (int | float | None): Size of the feature subset (columns) to use for evaluation.
             - If `int`: Number of features.
-            - If `float`: Fraction of features.
+            - If `float`: Fraction of features in (0.0, 1.0].
             - If `None`: Use all features.
             Default: `None`.
 
@@ -152,7 +153,7 @@ class BestLiteralStrategy(PopulationStrategy):
         if isinstance(size, float):
             if not (0.0 < size <= 1.0):
                 raise ValueError(f"Float size must be between 0.0 and 1.0, got {size}")
-            return int(total * size)
+            return ceil(total * size)
         if isinstance(size, int):
             if not (0 < size <= total):
                 raise ValueError(
