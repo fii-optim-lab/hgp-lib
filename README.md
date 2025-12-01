@@ -63,7 +63,7 @@ test_metrics = trainer.evaluate(test_data, test_labels)
 ```python
 from hgp_lib.mutations import MutationExecutor, create_standard_literal_mutations, create_standard_operator_mutations
 from hgp_lib.crossover import CrossoverExecutor
-from hgp_lib.selections import TournamentSelection, RoulleteSelection, ParetoSelection
+from hgp_lib.selections import TournamentSelection, RouletteSelection, ParetoSelection
 from hgp_lib.populations import PopulationGenerator, RandomStrategy, BestLiteralStrategy
 from hgp_lib.rules import Rule
 

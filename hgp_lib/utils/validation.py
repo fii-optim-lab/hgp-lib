@@ -61,3 +61,5 @@ def check_X_y(X: np.ndarray, y: np.ndarray):
 
     if len(X) == 0:
         raise ValueError("X and y cannot be empty")
+    if X.ndim != 2:
+        raise ValueError(f"X must be 2D array (samples, features), got shape {X.shape}")
