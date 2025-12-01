@@ -1,9 +1,11 @@
 import doctest
 import unittest
+from unittest.mock import patch
 
 import hgp_lib
 from hgp_lib.mutations import (
     Mutation,
+    MutationExecutor,
     DeleteMutation,
     MutationError,
     NegateMutation,
@@ -14,6 +16,26 @@ from hgp_lib.mutations import (
     AddLiteral,
 )
 from hgp_lib.rules import Rule, Literal, Or, And
+
+
+class _IncrementLiteralMutation(Mutation):
+    """Test helper mutation that increments literal values deterministically."""
+
+    def __init__(self):
+        super().__init__(True, False)
+
+    def apply(self, rule: Rule):
+        rule.value += 1
+
+
+class _ToggleOperatorMutation(Mutation):
+    """Test helper mutation that toggles the negation flag on operator nodes."""
+
+    def __init__(self):
+        super().__init__(False, True)
+
+    def apply(self, rule: Rule):
+        rule.negated = not rule.negated
 
 
 class TestMutations(unittest.TestCase):
@@ -317,6 +339,95 @@ class TestMutations(unittest.TestCase):
         with self.assertRaises(MutationError):
             mutation.apply(rule.subrules[0])
         self.assertEqual(str(rule), str(copy))
+
+    def test_mutation_executor_validation(self):
+        literal_mutations = [NegateMutation()]
+        operator_mutations = [NegateMutation()]
+
+        with self.subTest("mutation_p type"):
+            with self.assertRaises(TypeError):
+                MutationExecutor(literal_mutations, operator_mutations, mutation_p=1)
+
+        with self.subTest("mutation_p bounds"):
+            with self.assertRaises(ValueError):
+                MutationExecutor(literal_mutations, operator_mutations, mutation_p=1.5)
+
+        with self.subTest("literal mutations cannot be empty"):
+            with self.assertRaises(ValueError):
+                MutationExecutor([], operator_mutations)
+
+        with self.subTest("operator mutations cannot be empty"):
+            with self.assertRaises(ValueError):
+                MutationExecutor(literal_mutations, [])
+
+        with self.subTest("num_tries requires check_valid"):
+            with self.assertRaises(ValueError):
+                MutationExecutor(
+                    literal_mutations,
+                    operator_mutations,
+                    mutation_p=0.5,
+                    num_tries=2,
+                )
+
+        with self.subTest("check_valid must be callable and return bool"):
+            with self.assertRaises(TypeError):
+                MutationExecutor(
+                    literal_mutations,
+                    operator_mutations,
+                    check_valid="not callable",
+                )
+
+            def invalid_return(_rule: Rule):
+                return "invalid"
+
+            with self.assertRaises(TypeError):
+                MutationExecutor(
+                    literal_mutations,
+                    operator_mutations,
+                    check_valid=invalid_return,
+                )
+
+    def test_mutation_executor_apply(self):
+        executor = MutationExecutor(
+            literal_mutations=[_IncrementLiteralMutation()],
+            operator_mutations=[_ToggleOperatorMutation()],
+            mutation_p=1.0,
+        )
+        rules = [
+            Literal(value=0),
+            And([Literal(value=0), Literal(value=1)]),
+        ]
+
+        with patch(
+            "hgp_lib.mutations.mutation_executor.random.choice",
+            side_effect=lambda seq: seq[0],
+        ):
+            executor.apply(rules)
+
+        self.assertEqual(rules[0].value, 1)
+        self.assertTrue(rules[1].negated)
+        self.assertEqual(str(rules[1]), "~And(0, 1)")
+
+    def test_mutation_executor_respects_validator_and_retries(self):
+        def even_literal(rule: Rule):
+            return rule.value is None or rule.value % 2 == 0
+
+        executor = MutationExecutor(
+            literal_mutations=[_IncrementLiteralMutation()],
+            operator_mutations=[_ToggleOperatorMutation()],
+            mutation_p=1.0,
+            check_valid=even_literal,
+            num_tries=2,
+        )
+        rules = [Literal(value=2)]
+
+        with patch(
+            "hgp_lib.mutations.mutation_executor.random.choice",
+            side_effect=lambda seq: seq[0],
+        ):
+            executor.apply(rules)
+
+        self.assertEqual(rules[0].value, 2)
 
     def test_doctests(self):
         result = doctest.testmod(hgp_lib.mutations.base_mutation, verbose=False)
