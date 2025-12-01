@@ -149,7 +149,7 @@ class ReplaceLiteral(Mutation):
     Attributes:
         is_literal_mutation (bool): `True`.
         is_operator_mutation (bool): `False`.
-        num_literals (int): The total number of possible literal values. Must be greater than `0`.
+        num_literals (int): The total number of possible literal values. Must be greater than `1`.
 
     Notes:
         - The new literal value is chosen uniformly at random from the range `[0, num_literals)`.
@@ -301,10 +301,10 @@ def create_standard_literal_mutations(
     Returns:
         Tuple[Mutation, ...]:
             A tuple of initialized mutation instances for literals. The tuple includes:
-            1. `DeleteMutation()` — removes a rule from its parent operator.
-            2. `NegateMutation()` — toggles the negation flag of a rule.
-            3. `ReplaceLiteral(num_literals)` — replaces a literal's value with a different random one.
-            4. `PromoteLiteral(num_literals, operator_types)` — converts a literal into an operator with two literals.
+            1. `DeleteMutation()` - removes a rule from its parent operator.
+            2. `NegateMutation()` - toggles the negation flag of a rule.
+            3. `ReplaceLiteral(num_literals)` - replaces a literal's value with a different random one.
+            4. `PromoteLiteral(num_literals, operator_types)` - converts a literal into an operator with two literals.
 
     Examples:
         >>> from hgp_lib.mutations import create_standard_literal_mutations

@@ -228,7 +228,7 @@ def create_standard_operator_mutations(
 
     Args:
         num_literals (int):
-            Total number of available literal values. Must be greater than 1.
+            Total number of available literal values. Must be greater than `1`.
         operator_types (Sequence[Type[Rule]]):
             Sequence of operator classes (e.g., `(Or, And)`) used by `ReplaceOperator`. Default: `(Or, And)`.
 

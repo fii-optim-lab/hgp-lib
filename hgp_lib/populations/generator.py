@@ -36,8 +36,8 @@ class PopulationGenerator:
 
         Args:
             strategies (Sequence[PopulationStrategy]): A non-empty sequence of PopulationStrategy instances.
-            population_size (int): The number of rules to generate. Must be greater than 0. Default: `100`.
-            weights (Optional[Sequence[float]]): Optional weights for each strategy. Must sum to > 0 and be non-negative.
+            population_size (int): The number of rules to generate. Must be greater than `0`. Default: `100`.
+            weights (Optional[Sequence[float]]): Optional weights for each strategy. Must sum to > `0` and be non-negative.
                 Default: `None`.
         """
         if not isinstance(strategies, Sequence) or len(strategies) == 0:
