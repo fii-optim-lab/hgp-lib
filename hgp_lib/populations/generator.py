@@ -53,29 +53,32 @@ class PopulationGenerator:
                 f"population_size must be a positive integer, got {population_size}"
             )
 
+        self.strategies = strategies
+        self.population_size = population_size
+
+        self.counts = self._init_counts(weights)
+
+    def _init_counts(self, weights: Optional[Sequence[float]]) -> np.ndarray:
         if weights is not None:
             if not isinstance(weights, Sequence):
                 raise TypeError(f"weights must be a Sequence, got {type(weights)}")
-            if len(weights) != len(strategies):
+            if len(weights) != len(self.strategies):
                 raise ValueError(
-                    f"weights length ({len(weights)}) must match strategies length ({len(strategies)})"
+                    f"weights length ({len(weights)}) must match strategies length ({len(self.strategies)})"
                 )
             if any(w < 0 for w in weights):
                 raise ValueError("weights must be non-negative")
             if sum(weights) <= 0:
                 raise ValueError("Sum of weights must be positive")
 
-        self.strategies = strategies
-        self.population_size = population_size
-
         pvals = (
             weights
             if weights is not None
-            else [1.0 / len(strategies)] * len(strategies)
+            else [1.0 / len(self.strategies)] * len(self.strategies)
         )
         sum_weights = sum(pvals)
         pvals = [w / sum_weights for w in pvals]
-        self.counts = np.random.multinomial(self.population_size, pvals)
+        return np.random.multinomial(self.population_size, pvals)
 
     def generate(self) -> List[Rule]:
         """

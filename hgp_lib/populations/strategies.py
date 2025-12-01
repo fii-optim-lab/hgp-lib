@@ -46,19 +46,27 @@ class RandomStrategy(PopulationStrategy):
         Returns:
             List[Rule]: A list of randomly generated operator rules, each containing two literal subrules.
         """
-        rules = []
-        for _ in range(n):
-            operator_class = random.choice(self.operator_types)
+        if n <= 0:
+            return []
 
-            idx1, idx2 = random.sample(range(self.num_literals), 2)
+        rules = []
+
+        op_indices = np.random.randint(0, len(self.operator_types), size=n)
+        idx1s = np.random.randint(0, self.num_literals, size=n)
+        idx2s = np.random.randint(0, self.num_literals - 1, size=n)
+        idx2s += idx2s >= idx1s  # Avoid duplicate indices.
+        negations = np.random.randint(0, 2, size=(n, 3)).astype(bool)
+
+        for i in range(n):
+            operator_class = self.operator_types[op_indices[i]]
 
             rules.append(
                 operator_class(
                     subrules=[
-                        Literal(value=idx1, negated=random.random() < 0.5),
-                        Literal(value=idx2, negated=random.random() < 0.5),
+                        Literal(value=idx1s[i], negated=negations[i, 1]),
+                        Literal(value=idx2s[i], negated=negations[i, 2]),
                     ],
-                    negated=random.random() < 0.5,
+                    negated=negations[i, 0],
                     copy_subrules=False,
                 )
             )
