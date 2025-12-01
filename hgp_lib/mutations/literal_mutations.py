@@ -207,7 +207,7 @@ class PromoteLiteral(Mutation):
     Attributes:
         is_literal_mutation (bool): `True`.
         is_operator_mutation (bool): `False`.
-        num_literals (int): The total number of possible literal values. Must be greater than `0`.
+        num_literals (int): The total number of possible literal values. Must be greater than `1`.
         operator_types (Tuple[Type[Rule]]): Tuple of operator classes (e.g., `(Or, And)`) that can replace the literal.
 
     Notes:
@@ -294,7 +294,7 @@ def create_standard_literal_mutations(
 
     Args:
         num_literals (int):
-            Total number of available literal values. Must be greater than 1.
+            Total number of available literal values. Must be greater than `1`.
         operator_types (Sequence[Type[Rule]]):
             Sequence of operator classes (e.g., `(Or, And)`) used by `PromoteLiteral`. Default: `(Or, And)`.
 
