@@ -1,4 +1,4 @@
-from typing import List, Sequence, Tuple
+from typing import List, Sequence
 
 from ..rules import Rule
 
@@ -36,4 +36,3 @@ class StubSelection:
 
         ranked.sort(key=lambda item: item[0], reverse=True)
         return [rule.copy() for (_, rule) in ranked[:n_select]]
-

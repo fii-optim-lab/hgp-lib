@@ -23,4 +23,3 @@ class StubCrossover:
             Tuple[Rule, Rule]: Independent copies of the parents.
         """
         return parent_a.copy(), parent_b.copy()
-
