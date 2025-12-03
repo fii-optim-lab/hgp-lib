@@ -5,6 +5,8 @@ import pandas as pd
 from pandas.api.types import is_bool_dtype, is_numeric_dtype
 from sklearn.tree import DecisionTreeClassifier
 
+from hgp_lib.utils.validation import check_isinstance
+
 
 class StandardBinarizer:
     """
@@ -73,14 +75,15 @@ class StandardBinarizer:
         self, num_bins: int, column_strategy: Optional[dict[str, int]]
     ) -> None:
         """Validate initialization parameters."""
-        if not isinstance(num_bins, int) or num_bins < 2:
+        check_isinstance(num_bins, int)
+        if num_bins < 2:
             raise ValueError("num_bins must be an integer >= 2")
 
         if column_strategy is not None:
-            if not isinstance(column_strategy, dict):
-                raise ValueError("column_strategy must be a dictionary")
+            check_isinstance(column_strategy, dict)
             for col, bins in column_strategy.items():
-                if not isinstance(bins, int) or bins < 2:
+                check_isinstance(bins, int)
+                if bins < 2:
                     raise ValueError(
                         f"Number of bins for column {col} must be an integer >= 2"
                     )
@@ -174,9 +177,7 @@ class StandardBinarizer:
             >>> result.dtypes.unique()
             array([dtype('bool')], dtype=object)
         """
-        if not isinstance(X, pd.DataFrame):
-            raise ValueError("Input X must be a pandas DataFrame")
-
+        check_isinstance(X, pd.DataFrame)
         result = pd.DataFrame(index=X.index)
 
         for column in X.columns:
@@ -245,8 +246,7 @@ class StandardBinarizer:
             0      True      False       True      False           True          False
             1     False      False      False       True          False           True
         """
-        if not isinstance(X, pd.DataFrame):
-            raise ValueError("Input X must be a pandas DataFrame")
+        check_isinstance(X, pd.DataFrame)
 
         if not self.categorical_values_ or not self.numerical_bins_:
             raise ValueError("Binarizer must be fitted before calling transform")

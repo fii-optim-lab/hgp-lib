@@ -1,14 +1,34 @@
-from typing import Sequence, Type
+import inspect
+from typing import Sequence, Type, Callable, Any
 import numpy as np
 
 from ..rules import Rule
 
 
-def validate_num_literals(num_literals: int):
-    if not isinstance(num_literals, int):
+def validate_callable(maybe_callable: Callable, error_message: str | None = None):
+    if not callable(maybe_callable):
+        if error_message is None:
+            error_message = f"score_fn must be callable, is {type(maybe_callable)}"
+        raise TypeError(error_message)
+
+
+def check_isinstance(value: Any, expected_type: Type):
+    if not isinstance(value, expected_type):
+        # Search the name in the caller
+        frame = inspect.currentframe().f_back
+        for var_name, var_val in {**frame.f_locals, **frame.f_globals}.items():
+            if var_val is value:
+                name = var_name
+                break
+        else:
+            name = "<unknown value>"
         raise TypeError(
-            f"Number of literals must be an integer, is '{type(num_literals)}'"
+            f"{name} should be of type {expected_type.__name__}, but is {type(value).__name__}"
         )
+
+
+def validate_num_literals(num_literals: int):
+    check_isinstance(num_literals, int)
     if num_literals <= 1:
         raise ValueError(
             f"Number of literals must be greater than 1, is '{num_literals}'"
@@ -16,10 +36,7 @@ def validate_num_literals(num_literals: int):
 
 
 def validate_operator_types(operator_types: Sequence[Type[Rule]]):
-    if not isinstance(operator_types, Sequence):
-        raise TypeError(
-            f"operator_types must be a Sequence, is '{type(operator_types)}'"
-        )
+    check_isinstance(operator_types, Sequence)
     if len(operator_types) < 2:
         raise ValueError("operator_types must have at least two operator types")
     for operator_type in operator_types:
@@ -49,10 +66,8 @@ def check_X_y(X: np.ndarray, y: np.ndarray):
     if y is None:
         raise ValueError("y (labels) cannot be None")
 
-    if not isinstance(X, np.ndarray):
-        raise TypeError(f"X must be a numpy array, got {type(X)}")
-    if not isinstance(y, np.ndarray):
-        raise TypeError(f"y must be a numpy array, got {type(y)}")
+    check_isinstance(X, np.ndarray)
+    check_isinstance(y, np.ndarray)
 
     if len(X) != len(y):
         raise ValueError(

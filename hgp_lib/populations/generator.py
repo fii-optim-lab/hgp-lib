@@ -4,6 +4,7 @@ import numpy as np
 
 from .base_strategy import PopulationStrategy
 from ..rules import Rule
+from ..utils.validation import check_isinstance
 
 
 class PopulationGenerator:
@@ -40,15 +41,15 @@ class PopulationGenerator:
             weights (Optional[Sequence[float]]): Optional weights for each strategy. Must sum to > `0` and be non-negative.
                 Default: `None`.
         """
-        if not isinstance(strategies, Sequence) or len(strategies) == 0:
-            raise ValueError("Strategies must be a non-empty Sequence")
-        for s in strategies:
-            if not isinstance(s, PopulationStrategy):
-                raise TypeError(
-                    f"All elements in strategies must be PopulationStrategy, found {type(s)}"
-                )
+        check_isinstance(population_size, int)
+        check_isinstance(strategies, Sequence)
 
-        if not isinstance(population_size, int) or population_size <= 0:
+        if len(strategies) == 0:
+            raise ValueError("Strategies must be a non-empty Sequence")
+        for strategy in strategies:
+            check_isinstance(strategy, PopulationStrategy)
+
+        if population_size <= 0:
             raise ValueError(
                 f"population_size must be a positive integer, got {population_size}"
             )
@@ -60,8 +61,7 @@ class PopulationGenerator:
 
     def _init_counts(self, weights: Optional[Sequence[float]]) -> np.ndarray:
         if weights is not None:
-            if not isinstance(weights, Sequence):
-                raise TypeError(f"weights must be a Sequence, got {type(weights)}")
+            check_isinstance(weights, Sequence)
             if len(weights) != len(self.strategies):
                 raise ValueError(
                     f"weights length ({len(weights)}) must match strategies length ({len(self.strategies)})"
