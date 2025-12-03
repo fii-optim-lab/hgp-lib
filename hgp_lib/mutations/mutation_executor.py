@@ -99,16 +99,16 @@ class MutationExecutor:
             raise ValueError("literal_mutations must be a non-empty Sequence")
 
         for literal_mutation in literal_mutations:
-            check_isinstance(literal_mutation, Sequence)
+            check_isinstance(literal_mutation, Mutation)
             if not literal_mutation.is_literal_mutation:
                 raise TypeError(
-                    f"Each literal_mutations must be a literal mutation, but '{type(mutation)} is not'"
+                    f"Each literal_mutations must be a literal mutation, but '{type(literal_mutation)} is not'"
                 )
         for operator_mutation in operator_mutations:
-            check_isinstance(operator_mutation, Sequence)
+            check_isinstance(operator_mutation, Mutation)
             if not operator_mutation.is_operator_mutation:
                 raise TypeError(
-                    f"Each operator_mutations must be an operator mutation, but '{type(mutation)} is not'"
+                    f"Each operator_mutations must be an operator mutation, but '{type(operator_mutation)} is not'"
                 )
 
         if check_valid is not None:
