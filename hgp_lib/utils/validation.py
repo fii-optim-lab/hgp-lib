@@ -15,15 +15,14 @@ def validate_callable(maybe_callable: Callable, error_message: str | None = None
 def check_isinstance(value: Any, expected_type: Type | Tuple[Type, ...]):
     if not isinstance(value, expected_type):
         name = "<unknown value>"
-        try:
-            # Search the name in the caller
-            frame = inspect.currentframe().f_back
+        # Search the name in the caller
+        frame = inspect.currentframe()
+        if frame is not None:
+            frame = frame.f_back
             for var_name, var_val in {**frame.f_locals, **frame.f_globals}.items():
                 if var_val is value:
                     name = var_name
                     break
-        except:
-            pass
         if isinstance(expected_type, tuple):
             expected_type = " or ".join([str(t) for t in expected_type])
         else:
