@@ -4,7 +4,12 @@ import numpy as np
 
 from .base_strategy import PopulationStrategy
 from ..rules import Rule, Literal, And, Or
-from ..utils.validation import validate_num_literals, validate_operator_types, check_X_y
+from ..utils.validation import (
+    validate_num_literals,
+    validate_operator_types,
+    check_X_y,
+    validate_callable,
+)
 
 
 class RandomStrategy(PopulationStrategy):
@@ -129,9 +134,7 @@ class BestLiteralStrategy(PopulationStrategy):
         feature_size: int | float | None = None,
     ):
         validate_num_literals(num_literals)
-        if not callable(score_fn):
-            raise TypeError(f"score_fn must be callable, is {type(score_fn)}")
-
+        validate_callable(score_fn)
         check_X_y(train_data, train_labels)
 
         self.num_literals = num_literals
