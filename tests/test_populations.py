@@ -31,6 +31,9 @@ class TestPopulations(unittest.TestCase):
         strategy = RandomStrategy(num_literals=10, operator_types=(And, Or))
         self.assertEqual(strategy.num_literals, 10)
 
+        with self.assertRaises(TypeError):
+            RandomStrategy(num_literals=3.5)
+
         with self.assertRaises(ValueError):
             RandomStrategy(num_literals=0)
 
@@ -53,6 +56,13 @@ class TestPopulations(unittest.TestCase):
         self.assertTrue(0 <= rule.subrules[0].value < self.num_literals)
         self.assertTrue(0 <= rule.subrules[1].value < self.num_literals)
 
+    def test_random_strategy_generate_zero(self):
+        strategy = RandomStrategy(
+            num_literals=self.num_literals, operator_types=(And, Or)
+        )
+        self.assertEqual(strategy.generate(n=0), [])
+        self.assertEqual(strategy.generate(n=-5), [])
+
     def test_random_strategy_generate_batch(self):
         strategy = RandomStrategy(
             num_literals=self.num_literals, operator_types=(And, Or)
@@ -70,6 +80,14 @@ class TestPopulations(unittest.TestCase):
             train_data=self.train_data,
             train_labels=self.train_labels,
         )
+
+        with self.assertRaises(TypeError):
+            BestLiteralStrategy(
+                num_literals=self.num_literals,
+                score_fn="not callable",
+                train_data=self.train_data,
+                train_labels=self.train_labels,
+            )
 
         with self.assertRaises(ValueError):
             BestLiteralStrategy(
@@ -182,10 +200,22 @@ class TestPopulations(unittest.TestCase):
         PopulationGenerator(strategies=[s1], population_size=10)
 
         with self.assertRaises(ValueError):
+            PopulationGenerator(strategies=[s1], population_size=0)
+
+        with self.assertRaises(TypeError):
+            PopulationGenerator(strategies=None)
+
+        with self.assertRaises(TypeError):
+            PopulationGenerator(strategies=[s1], population_size=10.5)
+
+        with self.assertRaises(ValueError):
             PopulationGenerator(strategies=[])
 
         with self.assertRaises(TypeError):
             PopulationGenerator(strategies=[s1, "not_a_strategy"])
+
+        with self.assertRaises(TypeError):
+            PopulationGenerator(strategies=[s1], weights=0.5)
 
         with self.assertRaises(ValueError):
             PopulationGenerator(strategies=[s1], weights=[-1.0])
@@ -232,6 +262,47 @@ class TestPopulations(unittest.TestCase):
         )
         pop_best = gen_best.generate()
         self.assertTrue(all(isinstance(r, Literal) for r in pop_best))
+
+    def test_population_generator_numpy_weights(self):
+        s1 = RandomStrategy(self.num_literals)
+        s2 = RandomStrategy(self.num_literals)
+
+        generator = PopulationGenerator(
+            strategies=[s1, s2], population_size=10, weights=np.array([0.7, 0.3])
+        )
+        self.assertEqual(generator.counts.sum(), 10)
+        self.assertEqual(len(generator.counts), 2)
+
+        with self.assertRaises(ValueError):
+            PopulationGenerator(
+                strategies=[s1],
+                population_size=10,
+                weights=np.array([0.5, 0.5]),
+            )
+
+        with self.assertRaises(ValueError):
+            PopulationGenerator(
+                strategies=[s1, s2],
+                population_size=10,
+                weights=np.array([0.0, 0.0]),
+            )
+
+        with self.assertRaises(ValueError):
+            PopulationGenerator(
+                strategies=[s1, s2],
+                population_size=10,
+                weights=np.array([0.5, -0.5]),
+            )
+
+    def test_best_literal_strategy_size_type_error(self):
+        with self.assertRaises(TypeError):
+            BestLiteralStrategy(
+                num_literals=self.num_literals,
+                score_fn=self.simple_score_fn,
+                train_data=self.train_data,
+                train_labels=self.train_labels,
+                sample_size={"invalid": "type"},
+            )
 
     def test_doctests(self):
         import doctest

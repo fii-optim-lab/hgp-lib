@@ -1,5 +1,5 @@
 import inspect
-from typing import Sequence, Type, Callable, Any
+from typing import Sequence, Tuple, Type, Callable, Any
 import numpy as np
 
 from ..rules import Rule
@@ -12,18 +12,24 @@ def validate_callable(maybe_callable: Callable, error_message: str | None = None
         raise TypeError(error_message)
 
 
-def check_isinstance(value: Any, expected_type: Type):
+def check_isinstance(value: Any, expected_type: Type | Tuple[Type, ...]):
     if not isinstance(value, expected_type):
-        # Search the name in the caller
-        frame = inspect.currentframe().f_back
-        for var_name, var_val in {**frame.f_locals, **frame.f_globals}.items():
-            if var_val is value:
-                name = var_name
-                break
+        name = "<unknown value>"
+        try:
+            # Search the name in the caller
+            frame = inspect.currentframe().f_back
+            for var_name, var_val in {**frame.f_locals, **frame.f_globals}.items():
+                if var_val is value:
+                    name = var_name
+                    break
+        except:
+            pass
+        if isinstance(expected_type, tuple):
+            expected_type = " or ".join([str(t) for t in expected_type])
         else:
-            name = "<unknown value>"
+            expected_type = str(expected_type)
         raise TypeError(
-            f"{name} should be of type {expected_type.__name__}, but is {type(value).__name__}"
+            f"{name} should be of type {expected_type}, but is {type(value)}"
         )
 
 

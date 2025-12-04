@@ -87,6 +87,7 @@ class MutationExecutor:
         check_isinstance(mutation_p, float)
         check_isinstance(literal_mutations, Sequence)
         check_isinstance(operator_mutations, Sequence)
+        check_isinstance(num_tries, int)
 
         if mutation_p < 0.0 or mutation_p > 1.0:
             raise ValueError(
@@ -96,7 +97,7 @@ class MutationExecutor:
         if len(literal_mutations) == 0:
             raise ValueError("literal_mutations must be a non-empty Sequence")
         if len(operator_mutations) == 0:
-            raise ValueError("literal_mutations must be a non-empty Sequence")
+            raise ValueError("operator_mutations must be a non-empty Sequence")
 
         for literal_mutation in literal_mutations:
             check_isinstance(literal_mutation, Mutation)
@@ -121,7 +122,6 @@ class MutationExecutor:
             except Exception as e:
                 raise TypeError(error_msg) from e
 
-        check_isinstance(num_tries, int)
         if num_tries < 1:
             raise ValueError(f"num_tries must be greater than 0, is '{num_tries}'")
         if num_tries > 1 and check_valid is None:

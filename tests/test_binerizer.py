@@ -29,14 +29,16 @@ class TestStandardBinarizer(unittest.TestCase):
         with self.subTest("Testing invalid num_bins"):
             with self.assertRaises(ValueError):
                 StandardBinarizer(num_bins=1)
-            with self.assertRaises(ValueError):
+            with self.assertRaises(TypeError):
                 StandardBinarizer(num_bins="5")
 
         with self.subTest("Testing invalid column_strategy"):
             with self.assertRaises(ValueError):
                 StandardBinarizer(column_strategy={"col": 1})
-            with self.assertRaises(ValueError):
+            with self.assertRaises(TypeError):
                 StandardBinarizer(column_strategy="invalid")
+            with self.assertRaises(TypeError):
+                StandardBinarizer(column_strategy={"col": "2"})
 
     def test_fit_transform_unlabeled(self):
         """Test fit_transform without labels."""
@@ -59,6 +61,11 @@ class TestStandardBinarizer(unittest.TestCase):
 
             # Check all columns are boolean
             self.assertTrue(all(result[col].dtype == bool for col in result.columns))
+
+        with self.subTest("Input must be DataFrame"):
+            binarizer = StandardBinarizer()
+            with self.assertRaises(TypeError):
+                binarizer.fit_transform(self.data.values)
 
     def test_fit_transform_labeled(self):
         """Test fit_transform with labels."""
@@ -107,6 +114,12 @@ class TestStandardBinarizer(unittest.TestCase):
             binarizer = StandardBinarizer()
             with self.assertRaises(ValueError):
                 binarizer.transform(self.data)
+
+        with self.subTest("Transform input must be DataFrame"):
+            binarizer = StandardBinarizer()
+            binarizer.fit_transform(self.data)
+            with self.assertRaises(TypeError):
+                binarizer.transform(self.data.values)
 
     def test_column_strategy(self):
         """Test custom column binning strategy."""

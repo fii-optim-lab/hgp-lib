@@ -67,6 +67,18 @@ class TestMutations(unittest.TestCase):
 
             GoodMutation().apply(Literal(value=0))
 
+        with self.subTest("Flags must be bool"):
+
+            class WrongFlagMutation(Mutation):
+                def __init__(self):
+                    super().__init__("yes", 0)
+
+                def apply(self, rule: Rule):
+                    pass
+
+            with self.assertRaises(TypeError):
+                WrongFlagMutation()
+
     def test_delete_mutation(self):
         rule = Or(
             [
@@ -356,9 +368,25 @@ class TestMutations(unittest.TestCase):
             with self.assertRaises(ValueError):
                 MutationExecutor([], operator_mutations)
 
+        with self.subTest("literal mutations must be Sequence"):
+            with self.assertRaises(TypeError):
+                MutationExecutor(NegateMutation(), operator_mutations)
+
         with self.subTest("operator mutations cannot be empty"):
             with self.assertRaises(ValueError):
                 MutationExecutor(literal_mutations, [])
+
+        with self.subTest("operator mutations must be Sequence"):
+            with self.assertRaises(TypeError):
+                MutationExecutor(literal_mutations, NegateMutation())
+
+        with self.subTest("literal mutations must contain literal mutations"):
+            with self.assertRaises(TypeError):
+                MutationExecutor([_ToggleOperatorMutation()], operator_mutations)
+
+        with self.subTest("operator mutations must contain operator mutations"):
+            with self.assertRaises(TypeError):
+                MutationExecutor(literal_mutations, [_IncrementLiteralMutation()])
 
         with self.subTest("num_tries requires check_valid"):
             with self.assertRaises(ValueError):
@@ -385,6 +413,24 @@ class TestMutations(unittest.TestCase):
                     literal_mutations,
                     operator_mutations,
                     check_valid=invalid_return,
+                )
+
+        with self.subTest("num_tries must be positive"):
+            with self.assertRaises(ValueError):
+                MutationExecutor(
+                    literal_mutations,
+                    operator_mutations,
+                    check_valid=lambda r: True,
+                    num_tries=0,
+                )
+
+        with self.subTest("num_tries must be int"):
+            with self.assertRaises(TypeError):
+                MutationExecutor(
+                    literal_mutations,
+                    operator_mutations,
+                    check_valid=lambda r: True,
+                    num_tries=1.5,
                 )
 
     def test_mutation_executor_apply(self):
@@ -428,6 +474,29 @@ class TestMutations(unittest.TestCase):
             executor.apply(rules)
 
         self.assertEqual(rules[0].value, 2)
+
+    def test_mutation_executor_handles_mutation_error(self):
+        class _FailingLiteralMutation(Mutation):
+            def __init__(self):
+                super().__init__(True, False)
+
+            def apply(self, rule: Rule):
+                raise MutationError("fail")
+
+        executor = MutationExecutor(
+            literal_mutations=[_FailingLiteralMutation()],
+            operator_mutations=[_ToggleOperatorMutation()],
+            mutation_p=1.0,
+        )
+        rules = [Literal(value=0)]
+
+        with patch(
+            "hgp_lib.mutations.mutation_executor.random.choice",
+            side_effect=lambda seq: seq[0],
+        ):
+            executor.apply(rules)
+
+        self.assertEqual(rules[0].value, 0)
 
     def test_doctests(self):
         result = doctest.testmod(hgp_lib.mutations.base_mutation, verbose=False)
