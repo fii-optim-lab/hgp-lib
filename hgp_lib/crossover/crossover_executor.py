@@ -143,7 +143,9 @@ class CrossoverExecutor:
             partition_point = n
 
         if partition_point % 2 == 1:
-            partition_point = partition_point + 1 if partition_point < n else partition_point - 1
+            partition_point = (
+                partition_point + 1 if partition_point + 1 < n else partition_point - 1
+            )
 
         children = []
         for i in range(0, partition_point, 2):
@@ -158,7 +160,7 @@ class CrossoverExecutor:
 
         A random node is selected from each parent, and the subtrees rooted at those
         nodes are exchanged using `deep_swap`. When a validator is provided, each child
-        is checked individually and accepted children are collected until two pass
+        is validated individually and accepted children are collected until two pass
         validation or `num_tries` attempts are exhausted.
 
         Args:
