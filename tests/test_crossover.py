@@ -257,6 +257,23 @@ class TestCrossoverExecutor(unittest.TestCase):
         # Single rule can't be paired, should return empty list
         self.assertEqual(len(children), 0)
 
+    def test_apply_crossover_p_zero(self):
+        """Test that apply returns empty list when crossover_p=0.0 (no rules selected)."""
+        executor = CrossoverExecutor(crossover_p=0.0)
+        rules = [
+            And([Literal(value=0), Literal(value=1)]),
+            Or([Literal(value=2), Literal(value=3)]),
+            And([Literal(value=4), Literal(value=5)]),
+            Or([Literal(value=6), Literal(value=7)]),
+        ]
+
+        np.random.seed(42)
+        children = executor.apply(rules)
+
+        # With crossover_p=0.0, all random probabilities will exceed threshold,
+        # so no rules should be selected for crossover
+        self.assertEqual(len(children), 0)
+
     def test_doctests(self):
         result = doctest.testmod(hgp_lib.crossover.crossover_executor, verbose=False)
         self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
