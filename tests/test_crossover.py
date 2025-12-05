@@ -1,6 +1,5 @@
 import doctest
 import unittest
-from unittest.mock import patch
 import random
 
 import numpy as np
@@ -134,6 +133,7 @@ class TestCrossoverExecutor(unittest.TestCase):
 
     def test_crossover_returns_empty_when_validator_always_rejects(self):
         """Test that crossover returns empty list when validator always rejects."""
+
         def always_reject(rule: Rule) -> bool:
             return False
 
@@ -189,14 +189,18 @@ class TestCrossoverExecutor(unittest.TestCase):
         """Test that crossover produces structurally valid rules."""
         executor = CrossoverExecutor()
 
-        parent_a = And([
-            Literal(value=0),
-            Or([Literal(value=1), Literal(value=2)]),
-        ])
-        parent_b = Or([
-            And([Literal(value=3), Literal(value=4)]),
-            Literal(value=5),
-        ])
+        parent_a = And(
+            [
+                Literal(value=0),
+                Or([Literal(value=1), Literal(value=2)]),
+            ]
+        )
+        parent_b = Or(
+            [
+                And([Literal(value=3), Literal(value=4)]),
+                Literal(value=5),
+            ]
+        )
 
         random.seed(123)
         children = executor.crossover(parent_a, parent_b)

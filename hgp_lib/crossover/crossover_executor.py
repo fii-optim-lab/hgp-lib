@@ -8,7 +8,6 @@ from ..rules.utils import deep_swap
 from ..utils.validation import validate_callable, check_isinstance
 
 
-
 class CrossoverExecutor:
     """
     Coordinates subtree crossover operations across a collection of `Rule` trees.
@@ -127,7 +126,7 @@ class CrossoverExecutor:
         """
         n = len(rules)
         if n == 0:
-            return[]
+            return []
 
         if self.crossover_strategy == "random":
             probabilities = np.random.rand(n)
@@ -147,7 +146,6 @@ class CrossoverExecutor:
             i2 = idx_sorted[i + 1]
             children.extend(self.crossover(rules[i1], rules[i2]))
         return children
-
 
     def crossover(self, parent_a: Rule, parent_b: Rule) -> Sequence[Rule]:
         """
@@ -198,6 +196,3 @@ class CrossoverExecutor:
             if len(accepted) == 2:
                 break
         return accepted
-
-
-
