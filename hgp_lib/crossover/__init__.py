@@ -1,3 +1,3 @@
-from .stub import StubCrossover
+from .crossover_executor import CrossoverExecutor
 
-__all__ = ["StubCrossover"]
+__all__ = ["CrossoverExecutor"]
