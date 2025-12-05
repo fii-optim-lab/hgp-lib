@@ -227,6 +227,36 @@ class TestCrossoverExecutor(unittest.TestCase):
             children = executor.crossover(parent_a, parent_b)
             self.assertEqual(len(children), 2, f"Failed with seed {seed}")
 
+    def test_apply_handles_odd_selected_rules(self):
+        """Test that apply handles when an odd number of rules is selected for crossover."""
+        executor = CrossoverExecutor(crossover_p=1.0)
+        rules = [
+            And([Literal(value=0), Literal(value=1)]),
+            Or([Literal(value=2), Literal(value=3)]),
+            And([Literal(value=4), Literal(value=5)]),
+        ]
+
+        # With 3 rules and crossover_p=1.0, all are selected but we need pairs
+        # Should round up to 4 if possible, but n=3 so rounds down to 2
+        random.seed(42)
+        np.random.seed(42)
+        children = executor.apply(rules)
+
+        # Should return 2 children from 1 pair (partition_point rounds down to 2)
+        self.assertIsInstance(children, list)
+        self.assertEqual(len(children), 2)
+
+    def test_apply_single_rule(self):
+        """Test that apply handles a single rule gracefully."""
+        executor = CrossoverExecutor(crossover_p=1.0)
+        rules = [And([Literal(value=0), Literal(value=1)])]
+
+        np.random.seed(42)
+        children = executor.apply(rules)
+
+        # Single rule can't be paired, should return empty list
+        self.assertEqual(len(children), 0)
+
     def test_doctests(self):
         result = doctest.testmod(hgp_lib.crossover.crossover_executor, verbose=False)
         self.assertEqual(result.failed, 0, f"Doctests failed: {result}")

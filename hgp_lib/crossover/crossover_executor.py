@@ -22,9 +22,11 @@ class CrossoverExecutor:
         crossover_strategy (str, optional):
             Strategy for pairing rules. Must be `"best"` or `"random"`. Default: `"random"`.
         check_valid (Callable[[Rule], bool] | None, optional):
-            Optional validator executed after crossover. When supplied, each children must
+            Optional validator executed after crossover. When supplied, each child must
             pass validation or the crossover is retried up to `num_tries` times. All children that
             pass validation are kept until two children pass validation. Default: `None`.
+            Note: The validator is called once during initialization to verify it returns a bool.
+            Stateful validators should account for this extra call.
         num_tries (int, optional):
             Maximum number of crossover attempts per pair when validation fails.
             Must be `1` when no validator is provided. Default: `1`.
@@ -137,8 +139,11 @@ class CrossoverExecutor:
         idx_sorted = np.argsort(probabilities)
         partition_point = np.argmax(probabilities[idx_sorted] > self.crossover_p)
         if partition_point == 0 and probabilities[0] < self.crossover_p:
-            # partition_point is 0 if all probabilities are bellow the crossover probability
+            # partition_point is 0 if all probabilities are below the crossover probability
             partition_point = n
+
+        if partition_point % 2 == 1:
+            partition_point = partition_point + 1 if partition_point < n else partition_point - 1
 
         children = []
         for i in range(0, partition_point, 2):
