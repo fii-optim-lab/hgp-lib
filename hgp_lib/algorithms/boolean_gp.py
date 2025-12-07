@@ -57,17 +57,32 @@ class BooleanGP:
         }
         self._epoch = 0
 
-    def step(self, train_data: ndarray, train_labels: ndarray):
+    def step(self, train_data: ndarray, train_labels: ndarray) -> dict:
         self.population += self.crossover_executor.apply(self.population)
         self.mutation_executor.apply(self.population)
-        scores = self.evaluate(train_data, train_labels)
-        self._update_metrics(scores)
+        scores = self._evaluate_population(train_data, train_labels)
         self.population = self.selection.select(
             self.population, scores, self.population_size
         )
         self._epoch += 1
+        return self._get_metrics(scores)
 
-    def evaluate(self, data: ndarray, labels: ndarray) -> ndarray:
+    def _get_metrics(self, scores: ndarray) -> dict:
+        best_idx = np.argmax(scores)
+        current_best = scores[best_idx]
+        if current_best > self.best_score:
+            self.best_score = current_best
+            self.best_rule = self.population[best_idx].copy()
+
+        return {
+            "best": self.best_score,
+            "best_rule": self.best_rule,
+            "current_best": current_best,
+            "population_scores": scores,
+            "epoch": self._epoch,
+        }
+
+    def _evaluate_population(self, data: ndarray, labels: ndarray) -> ndarray:
         # TODO: we should also support batched evaluation or free-threaded evaluation
         n = len(self.population)
         scores = np.zeros(n)
@@ -75,25 +90,19 @@ class BooleanGP:
             scores[i] = self.score_fn(self.population[i].evaluate(data), labels)
         return scores
 
-    def _update_metrics(self, scores: ndarray):
-        best_idx = np.argmax(scores)
-        current_best = scores[best_idx]
-        if current_best > self.best_score:
-            self.best_score = current_best
-            self.best_rule = self.population[best_idx].copy()
-        self.training_metrics["current_best"].append(current_best)
-        self.training_metrics["all_time_best"].append((self._epoch, self.best_score))
-
     def validate(self, data: ndarray, labels: ndarray, strategy: str = "best"):
+        if strategy not in ("best", "population"):
+            raise ValueError("Invalid strategy. Must be 'best' or 'population'.")
+
         if self.best_rule is None:
             raise RuntimeError("No best rule available. Run at least one step first.")
 
         metrics = {
-            "best_score": self.score_fn(self.best_rule.evaluate(data), labels),
+            "best": self.score_fn(self.best_rule.evaluate(data), labels),
             "best_rule": self.best_rule,
         }
         if strategy == "best":
             return metrics
 
-        metrics["population_scores"] = self.evaluate(data, labels)
+        metrics["population_scores"] = self._evaluate_population(data, labels)
         return metrics
