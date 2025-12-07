@@ -18,6 +18,8 @@ class StepMetrics(TypedDict):
     current_best: float
     population_scores: ndarray
     epoch: int
+    best_not_improved_epochs: int
+    regenerated: bool
 
 
 class ValidateBestMetrics(TypedDict):
@@ -65,40 +67,65 @@ class BooleanGP:
         self.mutation_executor = mutation_executor
         self.crossover_executor = crossover_executor
         self.selection = selection
+        self.regeneration = regeneration
+        self.regeneration_patience = regeneration_patience
 
         self.population = self.population_generator.generate()
         self.population_size = len(self.population)
 
         self.best_score = -float("inf")
-        self.best_rule = None
-        self._epoch = 0
+        self.best_rule: Rule | None = None
+        self.best_not_improved_epochs = 0
+        self.real_best_score = -float("inf")
+        self.real_best_rule: Rule | None = None
+        self._epoch = -1
 
     def step(self, train_data: ndarray, train_labels: ndarray) -> StepMetrics:
+        self._epoch += 1
         self.population += self.crossover_executor.apply(self.population)
         self.mutation_executor.apply(self.population)
         scores = self._evaluate_population(train_data, train_labels)
-        metrics = self._handle_metrics(scores)
-        # We must calculate the metrics before the selection, otherwise population is changed and metrics are not correct
-        self.population = self.selection.select(
-            self.population, scores, self.population_size
-        )
-        self._epoch += 1
-        return metrics
+        return self._new_generation(scores)
 
-    def _handle_metrics(self, scores: ndarray) -> StepMetrics:
+    def _new_generation(self, scores: ndarray) -> StepMetrics:
         best_idx = np.argmax(scores)
         current_best = scores[best_idx]
-        if current_best > self.best_score:
+
+        if current_best >= self.best_score:
             self.best_score = current_best
             self.best_rule = self.population[best_idx].copy()
+        else:
+            self.best_not_improved_epochs += 1
 
-        return {
-            "best": self.best_score,
-            "best_rule": self.best_rule,
-            "current_best": current_best,
-            "population_scores": scores,
-            "epoch": self._epoch,
-        }
+        regenerated = False
+
+        if (
+            self.regeneration
+            and self.best_not_improved_epochs >= self.regeneration_patience
+        ):
+            regenerated = True
+
+        metrics = StepMetrics(
+            best=self.best_score,
+            best_rule=self.best_rule,
+            current_best=current_best,
+            population_scores=scores,
+            epoch=self._epoch,
+            best_not_improved_epochs=self.best_not_improved_epochs,
+            regenerated=regenerated,
+        )
+
+        if regenerated:
+            self._update_real_best()
+            self.population = self.population_generator.generate()
+            self.best_score = -float("inf")
+            self.best_not_improved_epochs = 0
+            self._real_best = self.best_rule
+        else:
+            self.population = self.selection.select(
+                self.population, scores, self.population_size
+            )
+        return metrics
 
     def _evaluate_population(self, data: ndarray, labels: ndarray) -> ndarray:
         # TODO: we should also support batched evaluation or free-threaded evaluation
@@ -108,13 +135,19 @@ class BooleanGP:
             scores[i] = self.score_fn(self.population[i].evaluate(data), labels)
         return scores
 
+    def _update_real_best(self):
+        if self.best_score > self.real_best_score:
+            self.real_best_score = self.best_score
+            self.real_best_rule = self.best_rule
+
     def validate_best(self, data: ndarray, labels: ndarray) -> ValidateBestMetrics:
         if self.best_rule is None:
             raise RuntimeError("No best rule available. Run at least one step first.")
+        self._update_real_best()
 
         return {
-            "best": self.score_fn(self.best_rule.evaluate(data), labels),
-            "best_rule": self.best_rule,
+            "best": self.score_fn(self.real_best_rule.evaluate(data), labels),
+            "best_rule": self.real_best_rule,
         }
 
     def validate_population(
@@ -122,9 +155,10 @@ class BooleanGP:
     ) -> ValidatePopulationMetrics:
         if self.best_rule is None:
             raise RuntimeError("No best rule available. Run at least one step first.")
+        self._update_real_best()
 
         return {
-            "best": self.score_fn(self.best_rule.evaluate(data), labels),
-            "best_rule": self.best_rule,
+            "best": self.score_fn(self.real_best_rule.evaluate(data), labels),
+            "best_rule": self.real_best_rule,
             "population_scores": self._evaluate_population(data, labels),
         }
