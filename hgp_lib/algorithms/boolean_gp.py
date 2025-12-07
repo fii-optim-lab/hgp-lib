@@ -51,23 +51,21 @@ class BooleanGP:
 
         self.best_score = -float("inf")
         self.best_rule = None
-        self.training_metrics = {
-            "current_best": [],
-            "all_time_best": [],
-        }
         self._epoch = 0
 
     def step(self, train_data: ndarray, train_labels: ndarray) -> dict:
         self.population += self.crossover_executor.apply(self.population)
         self.mutation_executor.apply(self.population)
         scores = self._evaluate_population(train_data, train_labels)
+        metrics = self._handle_metrics(scores)
+        # We must calculate the metrics before the selection, otherwise population is changed and metrics are not correct
         self.population = self.selection.select(
             self.population, scores, self.population_size
         )
         self._epoch += 1
-        return self._get_metrics(scores)
+        return metrics
 
-    def _get_metrics(self, scores: ndarray) -> dict:
+    def _handle_metrics(self, scores: ndarray) -> dict:
         best_idx = np.argmax(scores)
         current_best = scores[best_idx]
         if current_best > self.best_score:
@@ -90,7 +88,7 @@ class BooleanGP:
             scores[i] = self.score_fn(self.population[i].evaluate(data), labels)
         return scores
 
-    def validate(self, data: ndarray, labels: ndarray, strategy: str = "best"):
+    def validate(self, data: ndarray, labels: ndarray, strategy: str = "best") -> dict:
         if strategy not in ("best", "population"):
             raise ValueError("Invalid strategy. Must be 'best' or 'population'.")
 
