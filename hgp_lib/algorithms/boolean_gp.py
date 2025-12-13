@@ -15,6 +15,8 @@ from hgp_lib.selections import StubSelection
 class StepMetrics(TypedDict):
     best: float
     best_rule: Rule
+    real_best: float
+    real_best_rule: Rule
     current_best: float
     population_scores: ndarray
     epoch: int
@@ -92,8 +94,7 @@ class BooleanGP:
         current_best = scores[best_idx]
 
         if current_best >= self.best_score:
-            self.best_score = current_best
-            self.best_rule = self.population[best_idx].copy()
+            self._update_best(current_best, self.population[best_idx])
         else:
             self.best_not_improved_epochs += 1
 
@@ -108,6 +109,8 @@ class BooleanGP:
         metrics = StepMetrics(
             best=self.best_score,
             best_rule=self.best_rule,
+            real_best=self.real_best_score,
+            real_best_rule=self.real_best_rule,
             current_best=current_best,
             population_scores=scores,
             epoch=self._epoch,
@@ -116,7 +119,6 @@ class BooleanGP:
         )
 
         if regenerated:
-            self._update_real_best()
             self.population = self.population_generator.generate()
             self.best_score = -float("inf")
             self.best_not_improved_epochs = 0
@@ -135,30 +137,32 @@ class BooleanGP:
             scores[i] = self.score_fn(self.population[i].evaluate(data), labels)
         return scores
 
-    def _update_real_best(self):
+    def _update_best(self, new_best: float, new_best_rule: Rule):
+        self.best_score = new_best
+        self.best_rule = new_best_rule.copy()
         if self.best_score > self.real_best_score:
             self.real_best_score = self.best_score
             self.real_best_rule = self.best_rule
 
-    def validate_best(self, data: ndarray, labels: ndarray) -> ValidateBestMetrics:
-        if self.best_rule is None:
+    def validate_best(self, data: ndarray, labels: ndarray, all_time_best: bool = False) -> ValidateBestMetrics:
+        if self.real_best_rule is None or self.best_rule is None:
             raise RuntimeError("No best rule available. Run at least one step first.")
-        self._update_real_best()
 
-        return {
-            "best": self.score_fn(self.real_best_rule.evaluate(data), labels),
-            "best_rule": self.real_best_rule,
-        }
+        best_rule = self.real_best_rule if all_time_best else self.best_rule
+        return ValidateBestMetrics(
+            best=self.score_fn(best_rule.evaluate(data), labels),
+            best_rule=best_rule
+        )
 
     def validate_population(
-        self, data: ndarray, labels: ndarray
+        self, data: ndarray, labels: ndarray, all_time_best: bool = False
     ) -> ValidatePopulationMetrics:
-        if self.best_rule is None:
+        if self.real_best_rule is None or self.best_rule is None:
             raise RuntimeError("No best rule available. Run at least one step first.")
-        self._update_real_best()
+        best_rule = self.real_best_rule if all_time_best else self.best_rule
 
-        return {
-            "best": self.score_fn(self.real_best_rule.evaluate(data), labels),
-            "best_rule": self.real_best_rule,
-            "population_scores": self._evaluate_population(data, labels),
-        }
+        return ValidatePopulationMetrics(
+            best=self.score_fn(best_rule.evaluate(data), labels),
+            best_rule=best_rule,
+            population_scores=self._evaluate_population(data, labels),
+        )

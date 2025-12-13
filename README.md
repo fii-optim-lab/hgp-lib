@@ -177,12 +177,11 @@ gp_algo = BooleanGP(
 for i in range(num_epochs):
     train_metrics = gp_algo.step(train_data, train_labels)
     if i % 100 == 0:
-        val_metrics = gp_algo.validate_best(val_data, val_labels)
-        current_best = val_metrics["best"]
-        print(f"Epoch {i} -> {current_best}")
+        val_metrics = gp_algo.validate_population(val_data, val_labels)
+        print(f"Epoch {i} -> {val_metrics.best}, Population average: {val_metrics.population_scores.mean()}")
 
-test_metrics = gp_algo.validate_best(test_data, test_labels)
-print(f"Test result: {test_metrics['best']}")
+test_metrics = gp_algo.validate_population(test_data, test_labels, all_time_best=True)
+print(f"Test result: Best: {test_metrics.best}, Population average: {test_metrics.population_scores.mean()}")
 ```
 
 For lower level usage, consider inheriting from `BooleanGP` or `BooleanHGP` and overwriting `step`.
