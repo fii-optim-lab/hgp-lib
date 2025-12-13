@@ -72,4 +72,3 @@ class BaseSelection(ABC):
             [1, 2]
         """
         pass
-

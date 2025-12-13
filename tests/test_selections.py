@@ -46,9 +46,7 @@ class TestBaseSelection(unittest.TestCase):
         self.assertEqual(selected[1].value, 2)  # score 0.5
 
     def test_doctests(self):
-        result = doctest.testmod(
-            hgp_lib.selections.base_selection, verbose=False
-        )
+        result = doctest.testmod(hgp_lib.selections.base_selection, verbose=False)
         self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
@@ -182,9 +180,7 @@ class TestRouletteSelection(unittest.TestCase):
             self.assertIsInstance(rule, Rule)
 
     def test_doctests(self):
-        result = doctest.testmod(
-            hgp_lib.selections.roulette_selection, verbose=False
-        )
+        result = doctest.testmod(hgp_lib.selections.roulette_selection, verbose=False)
         self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 

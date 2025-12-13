@@ -97,4 +97,4 @@ class RouletteSelection(BaseSelection):
             len(rules), size=n_select, p=probabilities, replace=True
         )
 
-        return [rules[i] for i in selected_indices]
+        return [rules[i].copy() for i in selected_indices]
