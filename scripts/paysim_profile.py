@@ -153,13 +153,14 @@ def print_timing_results(measurements: dict):
     print("\n" + "=" * 60)
     print("Timing Results:")
     print("=" * 60)
+    sorted_measurements = sorted(measurements.items(), key=lambda x: x[1][2])
 
-    for key, (counts, elapsed, own_time) in measurements.items():
+    for key, (counts, elapsed, own_time) in sorted_measurements:
         own_time /= 1e9
         elapsed /= 1e9
         print(
             f"Function {key} was called {counts} time(s) and took {own_time:.4f}s/{elapsed:.4f}s "
-            f"({own_time / counts}/{elapsed / counts} per call)"
+            f"({own_time / counts:.4f}/{elapsed / counts:.4f} per call)"
         )
 
     print()
@@ -175,10 +176,10 @@ def main():
     measurements = setup_timing()
 
     hdf_path = "data/PaySim.hdf"
-    num_epochs = 2000
+    num_epochs = 5000
     population_size = 100
     max_rule_size = 50
-    mutation_p = 0.1
+    mutation_p = 0.05
     crossover_p = 0.7
 
     (
