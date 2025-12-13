@@ -144,14 +144,15 @@ class BooleanGP:
             self.real_best_score = self.best_score
             self.real_best_rule = self.best_rule
 
-    def validate_best(self, data: ndarray, labels: ndarray, all_time_best: bool = False) -> ValidateBestMetrics:
+    def validate_best(
+        self, data: ndarray, labels: ndarray, all_time_best: bool = False
+    ) -> ValidateBestMetrics:
         if self.real_best_rule is None or self.best_rule is None:
             raise RuntimeError("No best rule available. Run at least one step first.")
 
         best_rule = self.real_best_rule if all_time_best else self.best_rule
         return ValidateBestMetrics(
-            best=self.score_fn(best_rule.evaluate(data), labels),
-            best_rule=best_rule
+            best=self.score_fn(best_rule.evaluate(data), labels), best_rule=best_rule
         )
 
     def validate_population(
