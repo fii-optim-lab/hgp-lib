@@ -93,10 +93,7 @@ class BooleanGP:
         best_idx = np.argmax(scores)
         current_best = scores[best_idx]
 
-        if current_best >= self.best_score:
-            self._update_best(current_best, self.population[best_idx])
-        else:
-            self.best_not_improved_epochs += 1
+        self._update_best(current_best, self.population[best_idx])
 
         regenerated = False
 
@@ -122,7 +119,6 @@ class BooleanGP:
             self.population = self.population_generator.generate()
             self.best_score = -float("inf")
             self.best_not_improved_epochs = 0
-            self._real_best = self.best_rule
         else:
             self.population = self.selection.select(
                 self.population, scores, self.population_size
@@ -137,12 +133,16 @@ class BooleanGP:
             scores[i] = self.score_fn(self.population[i].evaluate(data), labels)
         return scores
 
-    def _update_best(self, new_best: float, new_best_rule: Rule):
-        self.best_score = new_best
-        self.best_rule = new_best_rule.copy()
-        if self.best_score > self.real_best_score:
-            self.real_best_score = self.best_score
-            self.real_best_rule = self.best_rule
+    def _update_best(self, current_best: float, current_best_rule: Rule):
+        if current_best >= self.best_score:
+            self.best_not_improved_epochs = 0
+            self.best_score = current_best
+            self.best_rule = current_best_rule.copy()
+            if self.best_score > self.real_best_score:
+                self.real_best_score = self.best_score
+                self.real_best_rule = self.best_rule
+        else:
+            self.best_not_improved_epochs += 1
 
     def validate_best(
         self, data: ndarray, labels: ndarray, all_time_best: bool = False
