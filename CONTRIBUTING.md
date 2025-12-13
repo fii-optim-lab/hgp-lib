@@ -32,6 +32,9 @@ ruff format
 
 # 4. Optional: Check code complexity (not mandatory to fix)
 flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+# Combined check
+ruff check --fix && flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics && ruff format && flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 ```
 
 Following these steps ensures consistent code quality and style across the project.

@@ -131,8 +131,7 @@ class MutationExecutor:
         """
         Mutates the provided list of rules in place.
 
-        Every rule is copied before applying mutations so the original objects remain untouched,
-        but the `rules` list receives the mutated instances.
+        In the event of a mutation failure, the original rule is kept in place.
 
         Args:
             rules (List[Rule]):
