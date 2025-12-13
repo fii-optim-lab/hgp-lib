@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List, Sequence
 
+import numpy as np
+
 from ..rules import Rule
 
 
@@ -33,7 +35,7 @@ class BaseSelection(ABC):
     def select(
         self,
         rules: Sequence[Rule],
-        scores: Sequence[float],
+        scores: np.ndarray | Sequence[float],
         n_select: int,
     ) -> List[Rule]:
         """
@@ -45,7 +47,7 @@ class BaseSelection(ABC):
         Args:
             rules (Sequence[Rule]):
                 The collection of candidate rules to select from.
-            scores (Sequence[float]):
+            scores (np.ndarray | Sequence[float]):
                 Fitness scores corresponding to each rule. A higher score indicates
                 better fitness. Must have the same length as `rules`.
             n_select (int):
