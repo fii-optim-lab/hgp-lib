@@ -9,7 +9,7 @@ from hgp_lib.rules import Rule
 from hgp_lib.utils.validation import check_isinstance, validate_callable
 
 from hgp_lib.crossover import CrossoverExecutor
-from hgp_lib.selections import StubSelection
+from hgp_lib.selections import BaseSelection, RouletteSelection
 
 
 class StepMetrics(TypedDict):
@@ -42,7 +42,7 @@ class BooleanGP:
         population_generator: PopulationGenerator,
         mutation_executor: MutationExecutor,
         crossover_executor: CrossoverExecutor | None = None,
-        selection: StubSelection | None = None,
+        selection: BaseSelection | None = None,
         regeneration: bool = False,
         regeneration_patience: int = 100,
     ):
@@ -57,10 +57,9 @@ class BooleanGP:
         else:
             crossover_executor = CrossoverExecutor()
         if selection is not None:
-            check_isinstance(selection, StubSelection)
+            check_isinstance(selection, BaseSelection)
         else:
-            # TODO: Implement a real selection strategy
-            selection = StubSelection()
+            selection = RouletteSelection()
         if regeneration and regeneration_patience < 1:
             raise ValueError("regeneration_patience must be a positive integer")
 
