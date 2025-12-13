@@ -259,7 +259,9 @@ def main():
                 val_avg = val_metrics["population_scores"].mean()
             tbar.set_postfix(
                 {
+                    "current_best": f"{train_metrics['current_best']:.4f}",
                     "train_best": f"{train_metrics['best']:.4f}",
+                    "real_best": f"{train_metrics['real_best']:.4f}",
                     "val_best": f"{val_best:.4f}",
                     "val_avg": f"{val_avg:.4f}",
                 }
