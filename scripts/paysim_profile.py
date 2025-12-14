@@ -180,7 +180,7 @@ def main():
     apply_timing_decorators()
 
     hdf_path = "data/PaySim.hdf"
-    num_epochs = 5000
+    num_epochs = 1000
     population_size = 100
     max_rule_size = 50
     mutation_p = 0.05
@@ -198,7 +198,7 @@ def main():
         train_data_bin, train_labels
     )
     val_data_bin, val_labels, sample_weight_val = remove_duplicates(
-        train_data_bin, train_labels
+        val_data_bin, val_labels
     )
 
     train_score_fn = partial(fast_f1_score, sample_weight=sample_weight)
@@ -246,6 +246,8 @@ def main():
 
     print(f"\nStarting training for {num_epochs} epochs...")
 
+    with open("debug.txt", "w") as f:
+        pass
     val_best = 0
     val_avg = 0
     with tqdm(range(num_epochs), desc="Training") as tbar:
@@ -258,6 +260,12 @@ def main():
                 )
                 val_best = val_metrics["best"]
                 val_avg = val_metrics["population_scores"].mean()
+                if (epoch + 1) % 50 == 0:
+                    with open("debug.txt", "a") as f:
+                        f.write(str(epoch) + "\n")
+                        for r in gp_algo.population:
+                            f.write(str(r) + "\n")
+                        f.write("\n--------------------\n")
             tbar.set_postfix(
                 {
                     "current_best": f"{train_metrics['current_best']:.4f}",

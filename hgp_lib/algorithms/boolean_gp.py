@@ -217,6 +217,22 @@ class BooleanGP:
         return self._new_generation(scores)
 
     def _new_generation(self, scores: ndarray) -> StepMetrics:
+        """
+        Creates a new generation by selecting individuals and optionally regenerating the population.
+
+        Updates the best rule tracking, checks if regeneration is needed, and selects the next
+        generation using the configured selection strategy. If regeneration is triggered,
+        the population is completely regenerated and best tracking is reset.
+
+        Args:
+            scores (ndarray):
+                Fitness scores for all rules in the current population. Must have the same
+                length as `self.population`.
+
+        Returns:
+            StepMetrics: Dictionary containing metrics about the generation step, including
+                whether regeneration occurred and the current best scores.
+        """
         best_idx = np.argmax(scores)
         current_best = scores[best_idx]
 
@@ -258,7 +274,27 @@ class BooleanGP:
         labels: ndarray,
         score_fn: Callable[[ndarray, ndarray], float],
     ) -> ndarray:
-        # TODO: we should also support batched evaluation or free-threaded evaluation
+        """
+        Evaluates all rules in the population against the given data.
+
+        Computes fitness scores for each rule by evaluating it on the data and applying
+        the scoring function. This is done sequentially for each rule in the population.
+
+        Args:
+            data (ndarray):
+                Data to evaluate rules on. A 2D boolean array with instances on rows
+                and features on columns.
+            labels (ndarray):
+                True labels for the data. A 1D integer array (0 or 1 for binary classification).
+            score_fn (Callable[[ndarray, ndarray], float]):
+                Function to compute fitness scores. Signature: `score_fn(predictions, labels) -> float`.
+
+        Returns:
+            ndarray: Array of fitness scores, one for each rule in the population.
+
+        Note:
+            TODO: we should also support batched evaluation or free-threaded evaluation
+        """
         n = len(self.population)
         scores = np.zeros(n)
         for i in range(n):
@@ -266,13 +302,27 @@ class BooleanGP:
         return scores
 
     def _update_best(self, current_best: float, current_best_rule: Rule):
+        """
+        Updates the best rule tracking based on the current generation's best.
+
+        If the current best score is greater than or equal to the stored best score,
+        updates both the current run's best and the all-time best (if it's a new record).
+        Otherwise, increments the counter for epochs without improvement.
+
+        Args:
+            current_best (float):
+                The best fitness score from the current generation.
+            current_best_rule (Rule):
+                The rule that achieved the best score in the current generation.
+                This rule will be copied when stored.
+        """
         if current_best >= self.best_score:
             self.best_not_improved_epochs = 0
             self.best_score = current_best
             self.best_rule = current_best_rule.copy()
             if self.best_score > self.real_best_score:
                 self.real_best_score = self.best_score
-                self.real_best_rule = self.best_rule
+                self.real_best_rule = self.best_rule.copy()
         else:
             self.best_not_improved_epochs += 1
 
