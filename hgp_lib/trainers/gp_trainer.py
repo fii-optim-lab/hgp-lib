@@ -1,0 +1,277 @@
+from typing import Callable, List
+from tqdm import tqdm
+
+from numpy import ndarray
+
+from ..algorithms import BooleanGP, TrainerMetrics, ValidateBestMetrics
+from ..crossover import CrossoverExecutor
+from ..mutations import (
+    MutationExecutor,
+    create_standard_literal_mutations,
+    create_standard_operator_mutations,
+)
+from ..populations import PopulationGenerator, RandomStrategy
+from ..selections import BaseSelection, RouletteSelection
+from ..utils.validation import validate_callable, check_isinstance
+
+
+class GPTrainer:
+    """
+    High-level trainer for Boolean Genetic Programming.
+
+    This class provides a simplified interface for training Boolean GP models with
+    sensible defaults. It handles the creation of default components (population
+    generator, mutation executor, crossover executor, selection) if not provided,
+    and manages the training loop with optional validation.
+
+    Args:
+        score_fn (Callable[[ndarray, ndarray], float]):
+            Function that computes fitness scores. Signature: `score_fn(predictions, labels) -> float`.
+            Higher scores indicate better fitness. Must accept boolean predictions and integer labels.
+        num_epochs (int):
+            Number of training epochs to run.
+        train_data (ndarray):
+            Training data as a 2D boolean array with instances on rows and features on columns.
+        train_labels (ndarray):
+            Training labels as a 1D integer array (0 or 1 for binary classification).
+        val_data (ndarray | None, optional):
+            Validation data as a 2D boolean array. If provided, validation is performed
+            every `val_every` epochs. Must be provided together with `val_labels`.
+            Default: `None`.
+        val_labels (ndarray | None, optional):
+            Validation labels as a 1D integer array. Must be provided together with `val_data`.
+            Default: `None`.
+        val_score_fn (Callable[[ndarray, ndarray], float] | None, optional):
+            Scoring function for validation. If `None`, uses `score_fn`. Default: `None`.
+        population_generator (PopulationGenerator | None, optional):
+            Generator that creates the initial population of rules. If `None`, a default
+            generator with `RandomStrategy` is created. Default: `None`.
+        mutation_executor (MutationExecutor | None, optional):
+            Executor that applies mutations to the population. If `None`, a default
+            executor with standard mutations is created. Default: `None`.
+        crossover_executor (CrossoverExecutor | None, optional):
+            Executor that applies crossover operations. If `None`, a default executor
+            is created. Default: `None`.
+        selection (BaseSelection | None, optional):
+            Selection strategy for choosing individuals for the next generation.
+            If `None`, a default `RouletteSelection` is created. Default: `None`.
+        regeneration (bool, optional):
+            Whether to regenerate the population when no improvement is observed.
+            Default: `False`.
+        regeneration_patience (int, optional):
+            Number of epochs without improvement before regenerating the population.
+            Must be positive when `regeneration=True`. Default: `100`.
+        val_every (int, optional):
+            Frequency of validation (in epochs). Validation is performed every `val_every`
+            epochs if `val_data` and `val_labels` are provided. Default: `100`.
+        progress_bar (bool, optional):
+            Whether to display a progress bar during training. Default: `True`.
+
+    Examples:
+        >>> import numpy as np
+        >>> from hgp_lib.trainers import GPTrainer
+        >>>
+        >>> def accuracy(predictions, labels):
+        ...     return np.mean(predictions == labels)
+        >>>
+        >>> train_data = np.array([[True, False, True, False], [False, True, False, True]])
+        >>> train_labels = np.array([1, 0])
+        >>> val_data = np.array([[True, True, False, False]])
+        >>> val_labels = np.array([1])
+        >>>
+        >>> trainer = GPTrainer(
+        ...     score_fn=accuracy,
+        ...     num_epochs=10,
+        ...     train_data=train_data,
+        ...     train_labels=train_labels,
+        ...     val_data=val_data,
+        ...     val_labels=val_labels,
+        ...     val_every=5,
+        ...     progress_bar=False
+        ... )
+        >>> trainer_metrics = trainer.fit()
+        >>> test_metrics = trainer.score(val_data, val_labels)
+    """
+
+    def __init__(
+        self,
+        score_fn: Callable[[ndarray, ndarray], float],
+        num_epochs: int,
+        train_data: ndarray,
+        train_labels: ndarray,
+        val_data: ndarray | None = None,
+        val_labels: ndarray | None = None,
+        val_score_fn: Callable[[ndarray, ndarray], float] | None = None,
+        population_generator: PopulationGenerator | None = None,
+        mutation_executor: MutationExecutor | None = None,
+        crossover_executor: CrossoverExecutor | None = None,
+        selection: BaseSelection | None = None,
+        regeneration: bool = False,
+        regeneration_patience: int = 100,
+        val_every: int = 100,
+        progress_bar: bool = True,
+    ):
+        validate_callable(score_fn)
+        check_isinstance(num_epochs, int)
+        check_isinstance(train_data, ndarray)
+        check_isinstance(train_labels, ndarray)
+
+        if num_epochs < 1:
+            raise ValueError("num_epochs must be a positive integer")
+
+        if len(train_labels) != train_data.shape[0]:
+            raise ValueError(
+                f"train_labels length ({len(train_labels)}) must match "
+                f"train_data rows ({train_data.shape[0]})"
+            )
+
+        if (val_data is None) != (val_labels is None):
+            raise ValueError(
+                "val_data and val_labels must both be provided or both be None"
+            )
+
+        if val_data is not None:
+            check_isinstance(val_data, ndarray)
+            check_isinstance(val_labels, ndarray)
+            if len(val_labels) != val_data.shape[0]:
+                raise ValueError(
+                    f"val_labels length ({len(val_labels)}) must match "
+                    f"val_data rows ({val_data.shape[0]})"
+                )
+
+        if val_score_fn is not None:
+            validate_callable(val_score_fn)
+
+        if val_every < 1:
+            raise ValueError("val_every must be a positive integer")
+
+        self.score_fn = score_fn
+        self.val_score_fn = val_score_fn if val_score_fn is not None else score_fn
+        self.num_epochs = num_epochs
+        self.train_data = train_data
+        self.train_labels = train_labels
+        self.val_data = val_data
+        self.val_labels = val_labels
+        self.val_every = val_every
+        self.progress_bar = progress_bar
+
+        num_features = train_data.shape[1]
+
+        if population_generator is None:
+            random_strategy = RandomStrategy(num_literals=num_features)
+            population_generator = PopulationGenerator(
+                strategies=[random_strategy],
+                population_size=100,
+            )
+
+        if mutation_executor is None:
+            literal_mutations = create_standard_literal_mutations(num_features)
+            operator_mutations = create_standard_operator_mutations(num_features)
+            mutation_executor = MutationExecutor(
+                literal_mutations=literal_mutations,
+                operator_mutations=operator_mutations,
+            )
+
+        if crossover_executor is None:
+            crossover_executor = CrossoverExecutor()
+
+        if selection is None:
+            selection = RouletteSelection()
+
+        self.gp_algo = BooleanGP(
+            score_fn=score_fn,
+            population_generator=population_generator,
+            mutation_executor=mutation_executor,
+            crossover_executor=crossover_executor,
+            selection=selection,
+            regeneration=regeneration,
+            regeneration_patience=regeneration_patience,
+        )
+
+        self._train_best_history: List[float] = []
+        self._val_best_history: List[float] = []
+        self._val_epochs: List[int] = []
+
+    def fit(self) -> TrainerMetrics:
+        """
+        Trains the Boolean GP model for the specified number of epochs.
+
+        Returns:
+            TrainerMetrics: Dictionary containing:
+                - `train_best_history` (List[float]): Best training scores per epoch.
+                - `val_best_history` (List[float]): Best validation scores at each validation step.
+                - `val_epochs` (List[int]): Epoch numbers when validation was performed.
+        """
+        val_best = 0.0
+
+        with tqdm(
+            range(self.num_epochs),
+            desc="Training",
+            disable=not self.progress_bar,
+            leave=False,
+        ) as tbar:
+            for epoch in tbar:
+                train_metrics = self.gp_algo.step(self.train_data, self.train_labels)
+                self._train_best_history.append(float(train_metrics["current_best"]))
+
+                if self.val_data is not None and (epoch + 1) % self.val_every == 0:
+                    val_metrics = self.gp_algo.validate_population(
+                        self.val_data, self.val_labels, score_fn=self.val_score_fn
+                    )
+                    val_best = val_metrics["best"]
+                    self._val_best_history.append(float(val_best))
+                    self._val_epochs.append(epoch)
+
+                tbar.set_postfix(
+                    {
+                        "current_best": f"{train_metrics['current_best']:.4f}",
+                        "val_best": f"{val_best:.4f}",
+                    }
+                )
+
+        return TrainerMetrics(
+            train_best_history=self._train_best_history,
+            val_best_history=self._val_best_history,
+            val_epochs=self._val_epochs,
+        )
+
+    def score(
+        self,
+        test_data: ndarray,
+        test_labels: ndarray,
+        score_fn: Callable[[ndarray, ndarray], float] | None = None,
+        all_time_best: bool = True,
+    ) -> ValidateBestMetrics:
+        """
+        Evaluates the trained model on test data.
+
+        Args:
+            test_data (ndarray):
+                Test data as a 2D boolean array with instances on rows and features on columns.
+            test_labels (ndarray):
+                Test labels as a 1D integer array (0 or 1 for binary classification).
+            score_fn (Callable[[ndarray, ndarray], float] | None, optional):
+                Optional custom scoring function. If `None`, uses the trainer's `score_fn`.
+                Default: `None`.
+            all_time_best (bool, optional):
+                If `True`, evaluates the all-time best rule. If `False`, evaluates
+                the current run's best rule. Default: `True`.
+
+        Returns:
+            ValidateBestMetrics: Dictionary containing:
+                - `best` (float): Fitness score of the best rule on the test data.
+                - `best_rule` (Rule): The evaluated best rule.
+        """
+        check_isinstance(test_data, ndarray)
+        check_isinstance(test_labels, ndarray)
+
+        if len(test_labels) != test_data.shape[0]:
+            raise ValueError(
+                f"test_labels length ({len(test_labels)}) must match "
+                f"test_data rows ({test_data.shape[0]})"
+            )
+
+        score_fn = score_fn if score_fn is not None else self.score_fn
+        return self.gp_algo.validate_best(
+            test_data, test_labels, score_fn=score_fn, all_time_best=all_time_best
+        )

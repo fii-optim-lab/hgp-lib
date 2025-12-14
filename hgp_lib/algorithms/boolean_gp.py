@@ -1,4 +1,4 @@
-from typing import Callable, TypedDict
+from typing import Callable
 
 from numpy import ndarray
 import numpy as np
@@ -10,29 +10,7 @@ from hgp_lib.utils.validation import check_isinstance, validate_callable
 
 from hgp_lib.crossover import CrossoverExecutor
 from hgp_lib.selections import BaseSelection, RouletteSelection
-
-
-class StepMetrics(TypedDict):
-    best: float
-    best_rule: Rule
-    real_best: float
-    real_best_rule: Rule
-    current_best: float
-    population_scores: ndarray
-    epoch: int
-    best_not_improved_epochs: int
-    regenerated: bool
-
-
-class ValidateBestMetrics(TypedDict):
-    best: float
-    best_rule: Rule
-
-
-class ValidatePopulationMetrics(TypedDict):
-    best: float
-    best_rule: Rule
-    population_scores: ndarray
+from .metrics import StepMetrics, ValidateBestMetrics, ValidatePopulationMetrics
 
 
 class BooleanGP:
