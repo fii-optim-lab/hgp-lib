@@ -10,7 +10,7 @@ from hgp_lib.utils.validation import check_isinstance, validate_callable
 
 from hgp_lib.crossover import CrossoverExecutor
 from hgp_lib.selections import BaseSelection, RouletteSelection
-from .metrics import StepMetrics, ValidateBestMetrics, ValidatePopulationMetrics
+from hgp_lib.metrics import StepMetrics, ValidateBestMetrics, ValidatePopulationMetrics
 
 
 class BooleanGP:

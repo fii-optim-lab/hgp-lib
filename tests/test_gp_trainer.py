@@ -437,6 +437,21 @@ class TestGPTrainer(unittest.TestCase):
             self.assertGreaterEqual(score, 0.0)
             self.assertLessEqual(score, 1.0)
 
+    def test_score_before_fit_raises_error(self):
+        trainer = GPTrainer(
+            score_fn=self.score_fn,
+            num_epochs=5,
+            train_data=self.train_data,
+            train_labels=self.train_labels,
+            progress_bar=False,
+        )
+
+        # score() before fit() should raise RuntimeError
+        with self.assertRaises(RuntimeError) as context:
+            trainer.score(self.test_data, self.test_labels)
+
+        self.assertIn("No best rule available", str(context.exception))
+
     def test_doctests(self):
         result = doctest.testmod(hgp_lib.trainers.gp_trainer, verbose=False)
         self.assertEqual(result.failed, 0, f"Doctests failed: {result}")

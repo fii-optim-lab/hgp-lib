@@ -3,7 +3,8 @@ from tqdm import tqdm
 
 from numpy import ndarray
 
-from ..algorithms import BooleanGP, TrainerMetrics, ValidateBestMetrics
+from ..algorithms import BooleanGP
+from ..metrics import TrainerMetrics, ValidateBestMetrics
 from ..crossover import CrossoverExecutor
 from ..mutations import (
     MutationExecutor,
