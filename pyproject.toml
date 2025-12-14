@@ -25,6 +25,7 @@ dependencies = [
     "numpy",
     "pandas",
     "scikit-learn",
+    "tqdm"
 ]
 [tool.setuptools.packages.find]
 include = ["hgp_lib*"]
