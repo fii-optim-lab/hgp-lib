@@ -25,6 +25,8 @@ from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.rules import Rule, Literal, And, Or
 from functools import partial
 
+from hgp_lib.selections import BaseSelection
+
 
 def fast_f1_score(y_pred, y_true, sample_weight=None):
     if sample_weight is None:
@@ -127,26 +129,27 @@ def setup_timing():
     return measurements
 
 
-def apply_timing_decorators(gp_algo: BooleanGP, score_fn):
+def apply_timing_decorators():
     decorator = get_timed_decorator("GPTimer")
 
     Literal.evaluate = decorator(Literal.evaluate)
     And.evaluate = decorator(And.evaluate)
     Or.evaluate = decorator(Or.evaluate)
 
-    score_fn = decorator(score_fn)
+    global fast_f1_score
+    fast_f1_score = decorator(fast_f1_score)
 
-    gp_algo.step = decorator(gp_algo.step)
-    gp_algo._new_generation = decorator(gp_algo._new_generation)
-    gp_algo._evaluate_population = decorator(gp_algo._evaluate_population)
-    gp_algo._update_best = decorator(gp_algo._update_best)
-    gp_algo.validate_population = decorator(gp_algo.validate_population)
+    BooleanGP.step = decorator(BooleanGP.step)
+    BooleanGP._new_generation = decorator(BooleanGP._new_generation)
+    BooleanGP._evaluate_population = decorator(BooleanGP._evaluate_population)
+    BooleanGP._update_best = decorator(BooleanGP._update_best)
+    BooleanGP.validate_population = decorator(BooleanGP.validate_population)
 
-    gp_algo.crossover_executor.apply = decorator(gp_algo.crossover_executor.apply)
-    gp_algo.mutation_executor.apply = decorator(gp_algo.mutation_executor.apply)
-    gp_algo.selection.select = decorator(gp_algo.selection.select)
+    CrossoverExecutor.apply = decorator(CrossoverExecutor.apply)
 
-    return score_fn
+    MutationExecutor.apply = decorator(MutationExecutor.apply)
+
+    BaseSelection.select = decorator(BaseSelection.select)
 
 
 def print_timing_results(measurements: dict):
@@ -174,6 +177,7 @@ def remove_duplicates(data, labels):
 
 def main():
     measurements = setup_timing()
+    apply_timing_decorators()
 
     hdf_path = "data/PaySim.hdf"
     num_epochs = 5000
@@ -239,9 +243,6 @@ def main():
         regeneration=True,
         regeneration_patience=200,
     )
-
-    train_score_fn = apply_timing_decorators(gp_algo, train_score_fn)
-    gp_algo.train_score_fn = train_score_fn
 
     print(f"\nStarting training for {num_epochs} epochs...")
 
