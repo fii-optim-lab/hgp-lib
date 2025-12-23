@@ -13,7 +13,7 @@ from hgp_lib.mutations import (
     create_standard_operator_mutations,
 )
 from hgp_lib.populations import PopulationGenerator, RandomStrategy
-from hgp_lib.selections import RouletteSelection
+from hgp_lib.selections import RouletteSelection, TournamentSelection
 from hgp_lib.rules import Rule
 
 
@@ -179,7 +179,7 @@ class TestGPTrainer(unittest.TestCase):
         )
 
         self.assertIsInstance(trainer.gp_algo.crossover_executor, CrossoverExecutor)
-        self.assertIsInstance(trainer.gp_algo.selection, RouletteSelection)
+        self.assertIsInstance(trainer.gp_algo.selection, TournamentSelection)
         self.assertEqual(trainer.val_every, 100)
         self.assertFalse(trainer.progress_bar)
 
