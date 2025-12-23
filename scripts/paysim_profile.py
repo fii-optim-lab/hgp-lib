@@ -49,14 +49,6 @@ def fast_f1_score(y_pred, y_true, sample_weight=None):
 def preprocess_paysim_data(hdf_path: str):
     print(f"Loading data from {hdf_path}...")
 
-    feature_columns = [
-        "type",
-        "amount",
-        "oldbalanceOrg",
-        "newbalanceOrig",
-        "oldbalanceDest",
-        "newbalanceDest",
-    ]
     df: pd.DataFrame = pd.read_hdf(hdf_path)
     if "isFraud" in df.columns:
         target_column = "isFraud"
@@ -65,12 +57,12 @@ def preprocess_paysim_data(hdf_path: str):
     else:
         raise RuntimeError(df.columns)
 
-    data = df[feature_columns].copy()
     labels = df[target_column].values.copy()
+    data = df.drop([target_column], axis=1)
 
     del df
 
-    print(f"Loaded {len(data)} samples with {len(feature_columns)} features")
+    print(f"Loaded {len(data)} samples with {len(data.columns)} features")
     print(f"Fraud rate: {labels.mean():.4f} ({labels.sum()} fraud cases)")
 
     print("\nSplitting data...")
