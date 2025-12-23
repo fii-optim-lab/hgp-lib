@@ -25,7 +25,7 @@ from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.rules import Rule, Literal, And, Or
 from functools import partial
 
-from hgp_lib.selections import BaseSelection
+from hgp_lib.selections import TournamentSelection, RouletteSelection
 
 
 def fast_f1_score(y_pred, y_true, sample_weight=None):
@@ -146,10 +146,9 @@ def apply_timing_decorators():
     BooleanGP.validate_population = decorator(BooleanGP.validate_population)
 
     CrossoverExecutor.apply = decorator(CrossoverExecutor.apply)
-
     MutationExecutor.apply = decorator(MutationExecutor.apply)
-
-    BaseSelection.select = decorator(BaseSelection.select)
+    TournamentSelection.select = decorator(TournamentSelection.select)
+    RouletteSelection.select = decorator(RouletteSelection.select)
 
 
 def print_timing_results(measurements: dict):
