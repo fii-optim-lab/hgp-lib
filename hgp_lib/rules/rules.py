@@ -1,6 +1,6 @@
 # Reimplementation based on https://github.com/fidelity/boolxai/blob/main/boolxai/rules/rule.py
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import numpy as np
 
@@ -119,9 +119,14 @@ class Rule(ABC):
         """
         return 1 + sum([len(s) for s in self.subrules])
 
-    def __str__(self) -> str:
+    def to_str(self, feature_names: Dict[int, str] | None = None) -> str:
         """
-        Returns a human-readable string representation of this rule.
+        Returns a human-readable string representation of this rule and replaces the literal values with the feature
+        names if available.
+
+        Args:
+            feature_names (Dict[int, str] | None): The feature names that can be used to replace literal values when
+                provided. Default: `None`.
 
         Returns:
             str: A string representation such as `And(A, B)` or `Literal(1)`.
@@ -132,14 +137,19 @@ class Rule(ABC):
             'And(1, 2)'
             >>> str(And([Literal(value=1), Literal(value=2)], negated=True))
             '~And(1, 2)'
+            >>> And([Literal(value=1), Literal(value=2)], negated=True).to_str({1: "good", 2:"nice"})
+            '~And(good, nice)'
         """
-        rez = f"{type(self).__name__}({', '.join(str(s) for s in self.subrules)})"
+        rez = f"{type(self).__name__}({', '.join(s.to_str(feature_names) for s in self.subrules)})"
         if self.negated:
             return "~" + rez
         return rez
 
+    def __str__(self) -> str:
+        return self.to_str()
+
     def __repr__(self) -> str:
-        return self.__str__()
+        return self.to_str()
 
     def copy(self, parent: Optional["Rule"] = None) -> "Rule":
         """
