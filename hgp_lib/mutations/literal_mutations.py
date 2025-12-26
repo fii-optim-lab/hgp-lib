@@ -22,10 +22,11 @@ class DeleteMutation(Mutation):
     Notes:
         - The mutation will raise a `MutationError` if:
             - The rule has no parent (i.e., it is the root of the rule tree), or
-            - The parent operator has only two subrules, since deleting one would leave the parent with a single child,
-            which is considered invalid.
-        - Subrule deletion is performed using reference identity (`is`) for
-          speed and precision.
+            - The parent operator has only two subrules and no grandparent exists,
+              since the collapse operation cannot be performed.
+        - When the parent has exactly two subrules, deleting one triggers a collapse:
+          the remaining sibling is moved up to the grandparent, and the now-empty
+          parent operator is also removed.
 
     Examples:
         >>> from hgp_lib.mutations import DeleteMutation
@@ -52,8 +53,8 @@ class DeleteMutation(Mutation):
 
         Raises:
             MutationError:
-                If the `rule` has no parent (is a root node), or if the parent has only two subrules, which would leave
-                it invalid after deletion.
+                If the `rule` has no parent (is a root node), or if the parent has only two subrules and no
+                grandparent exists (preventing the collapse operation).
             RuntimeError:
                 If the target rule is not found within its parent's subrule list, which should never occur during
                 normal operation.
@@ -76,14 +77,27 @@ class DeleteMutation(Mutation):
             >>> parent
             Or(1, 2)
         """
+        # TODO: Update documentation
         parent = rule.parent
-        if parent is None or len(parent.subrules) == 2:
+        if parent is None:
             raise MutationError()
-        for i in range(len(parent.subrules)):
-            if (
-                parent.subrules[i] is rule
-            ):  # We use reference checking because it is faster
-                del parent.subrules[i]
+        subrules = parent.subrules
+        if len(subrules) == 2:
+            # Special case, we might need to collapse the operator along with the literal
+            grandparent = parent.parent
+            if grandparent is None:
+                raise MutationError()
+            other_rule_index = 0
+            if subrules[0] is rule:
+                other_rule_index = 1
+            subrules[other_rule_index].parent = grandparent
+            grandparent.subrules.append(subrules[other_rule_index])
+            del subrules[1 - other_rule_index]
+            subrules = grandparent.subrules
+            rule = parent
+        for i in range(len(subrules)):
+            if subrules[i] is rule:
+                del subrules[i]
                 return
         raise RuntimeError("Unreachable code")
 

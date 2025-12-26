@@ -106,13 +106,12 @@ class TestMutations(unittest.TestCase):
             mutation.apply(copy.subrules[1])
             self.assertEqual(str(copy), "Or(And(0, 1), 2)")
 
+            mutation.apply(copy.subrules[0].subrules[0])
+            self.assertEqual(str(copy), "Or(2, 1)")
+
         with self.subTest("Mutation fails if invalid"):
             with self.assertRaises(MutationError):
                 mutation.apply(rule)
-            self.assertEqual(str(rule), "Or(And(0, 1), 1, 2)")
-
-            with self.assertRaises(MutationError):
-                mutation.apply(rule.subrules[0].subrules[0])
             self.assertEqual(str(rule), "Or(And(0, 1), 1, 2)")
 
             mutation.apply(rule.subrules[1])
