@@ -119,7 +119,9 @@ class Rule(ABC):
         """
         return 1 + sum([len(s) for s in self.subrules])
 
-    def to_str(self, feature_names: Dict[int, str] | None = None) -> str:
+    def to_str(
+        self, feature_names: Dict[int, str] | None = None, indent: int = -1
+    ) -> str:
         """
         Returns a human-readable string representation of this rule and replaces the literal values with the feature
         names if available.
@@ -127,6 +129,8 @@ class Rule(ABC):
         Args:
             feature_names (Dict[int, str] | None): The feature names that can be used to replace literal values when
                 provided. Default: `None`.
+            indent (int): The indentation level when printing the rules. If `-1`, no indentation is used.
+                For standard indentation, use `0`. Default: `-1`.
 
         Returns:
             str: A string representation such as `And(A, B)` or `Literal(1)`.
@@ -140,7 +144,19 @@ class Rule(ABC):
             >>> And([Literal(value=1), Literal(value=2)], negated=True).to_str({1: "good", 2:"nice"})
             '~And(good, nice)'
         """
-        rez = f"{type(self).__name__}({', '.join(s.to_str(feature_names) for s in self.subrules)})"
+        if indent == -1:
+            rez = f"{type(self).__name__}({', '.join(s.to_str(feature_names, indent) for s in self.subrules)})"
+        else:
+            new_indent = indent + 1
+            separator = ",\n"
+            tab = "\t"
+            rez = f"{type(self).__name__}(\n{
+                separator.join(
+                    tab * new_indent + s.to_str(feature_names, new_indent)
+                    for s in self.subrules
+                )
+            }\n{tab * indent})"
+
         if self.negated:
             return "~" + rez
         return rez

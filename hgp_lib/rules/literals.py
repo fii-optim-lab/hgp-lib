@@ -58,7 +58,9 @@ class Literal(Rule):
         """
         return ~data[:, self.value] if self.negated else data[:, self.value]
 
-    def to_str(self, feature_names: Dict[int, str] | None = None) -> str:
+    def to_str(
+        self, feature_names: Dict[int, str] | None = None, indent: bool = -1
+    ) -> str:
         """
         Returns a human-readable string representation of the literal. The literal can be replaced with the feature
         name if provided.
@@ -66,6 +68,7 @@ class Literal(Rule):
         Args:
             feature_names (Dict[int, str] | None): The feature names that can be used to replace literal values when
                 provided. Default: `None`.
+            indent (int): Not used. Default: `-1`.
 
         Returns:
             str: The literal as a string, prefixed with `~` if negated.
