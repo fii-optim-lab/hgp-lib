@@ -37,15 +37,18 @@ class StandardBinarizer:
         >>> binarizer = StandardBinarizer(num_bins=2)
         >>> result = binarizer.fit_transform(data)
         >>> result
-           bool_col  cat_col_A  cat_col_B  cat_col_C  num_col_bin_0  num_col_bin_1
-        0      True       True      False      False           True          False
-        1     False      False       True      False           True          False
-        2      True       True      False      False          False           True
-        3     False      False      False       True          False           True
+           bool_col  cat_col=A  cat_col=B  cat_col=C  num_col < 2.500  2.500 <= num_col
+        0      True       True      False      False             True             False
+        1     False      False       True      False             True             False
+        2      True       True      False      False            False              True
+        3     False      False      False       True            False              True
     """
 
     def __init__(
-        self, num_bins: int = 5, column_strategy: Optional[dict[str, int]] = None
+        self,
+        num_bins: int = 5,
+        column_strategy: Optional[dict[str, int]] = None,
+        precision: int = 3,
     ):
         """
         Initialize the StandardBinarizer.
@@ -54,6 +57,8 @@ class StandardBinarizer:
             num_bins (int, optional): Number of bins for numerical features. Defaults to 5.
             column_strategy (dict[str, int], optional): Custom binning strategy for specific columns.
                 Format: {column_name: num_bins}. Defaults to None.
+            precision (int | None): Number of decimals to be included in the column name for numerical columns.
+                Default: 3
 
         Raises:
             ValueError: If num_bins is less than 2 or if column_strategy is invalid.
@@ -65,14 +70,18 @@ class StandardBinarizer:
             >>> binarizer.column_strategy
             {'num_col': 4}
         """
-        self._validate_params(num_bins, column_strategy)
+        self._validate_params(num_bins, column_strategy, precision)
         self.num_bins = num_bins
         self.column_strategy = column_strategy or {}
+        self.precision = precision
+        # TODO: Update documentation
+        # TODO: Add precision strategy
+        self.column_precision = {}
         self.categorical_values_ = {}
         self.numerical_bins_ = {}
 
     def _validate_params(
-        self, num_bins: int, column_strategy: Optional[dict[str, int]]
+        self, num_bins: int, column_strategy: Optional[dict[str, int]], precision: int
     ) -> None:
         """Validate initialization parameters."""
         check_isinstance(num_bins, int)
@@ -87,6 +96,11 @@ class StandardBinarizer:
                     raise ValueError(
                         f"Number of bins for column {col} must be an integer >= 2"
                     )
+
+        # TODO: Add tests
+        check_isinstance(precision, int)
+        if precision < 0:
+            raise ValueError("precision must be an integer >= 0")
 
     def _get_tree_based_bins(
         self, X: np.ndarray, y: np.ndarray, n_bins: int
@@ -171,8 +185,8 @@ class StandardBinarizer:
             >>> binarizer = StandardBinarizer(num_bins=2)
             >>> result = binarizer.fit_transform(data)
             >>> result.columns
-            Index(['bool_col', 'cat_col_A', 'cat_col_B', 'cat_col_C', 'num_col_bin_0',
-                   'num_col_bin_1'],
+            Index(['bool_col', 'cat_col=A', 'cat_col=B', 'cat_col=C', 'num_col < 2.500',
+                   '2.500 <= num_col'],
                   dtype='object')
             >>> result.dtypes.unique()
             array([dtype('bool')], dtype=object)
@@ -188,7 +202,7 @@ class StandardBinarizer:
                 unique_values = X[column].unique()
                 self.categorical_values_[column] = unique_values
                 for value in unique_values:
-                    result[f"{column}_{value}"] = X[column] == value
+                    result[f"{column}={value}"] = X[column] == value
 
             elif is_numeric_dtype(X[column]):
                 n_bins = self.column_strategy.get(column, self.num_bins)
@@ -205,7 +219,11 @@ class StandardBinarizer:
                     X[column], bins=bins, labels=False, include_lowest=True
                 )
                 for bin_idx in range(len(bins) - 1):
-                    result[f"{column}_bin_{bin_idx}"] = binned_values == bin_idx
+                    result[
+                        self._format_numeric_bin_name(
+                            column, bins[bin_idx], bins[bin_idx + 1]
+                        )
+                    ] = binned_values == bin_idx
 
             else:
                 raise ValueError(
@@ -213,6 +231,14 @@ class StandardBinarizer:
                 )
 
         return result
+
+    def _format_numeric_bin_name(self, column: str, left: float, right: float) -> str:
+        precision = self.column_precision.get(column, self.precision)
+        if np.isneginf(left):
+            return f"{column} < {right:.{precision}f}"
+        if np.isposinf(right):
+            return f"{left:.{precision}f} <= {column}"
+        return f"{left:.{precision}f} <= {column} < {right:.{precision}f}"
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
@@ -242,9 +268,9 @@ class StandardBinarizer:
             ... })
             >>> result = binarizer.transform(new_data)
             >>> result
-               bool_col  cat_col_A  cat_col_B  cat_col_C  num_col_bin_0  num_col_bin_1
-            0      True      False       True      False           True          False
-            1     False      False      False       True          False           True
+               bool_col  cat_col=A  cat_col=B  cat_col=C  num_col < 2.500  2.500 <= num_col
+            0      True      False       True      False             True             False
+            1     False      False      False       True            False              True
         """
         check_isinstance(X, pd.DataFrame)
 
@@ -259,7 +285,7 @@ class StandardBinarizer:
 
             elif isinstance(X[column].dtype, pd.CategoricalDtype):
                 for value in self.categorical_values_[column]:
-                    result[f"{column}_{value}"] = X[column] == value
+                    result[f"{column}={value}"] = X[column] == value
 
             elif is_numeric_dtype(X[column]):
                 bins = self.numerical_bins_[column]
@@ -267,7 +293,11 @@ class StandardBinarizer:
                     X[column], bins=bins, labels=False, include_lowest=True
                 )
                 for bin_idx in range(len(bins) - 1):
-                    result[f"{column}_bin_{bin_idx}"] = binned_values == bin_idx
+                    result[
+                        self._format_numeric_bin_name(
+                            column, bins[bin_idx], bins[bin_idx + 1]
+                        )
+                    ] = binned_values == bin_idx
 
             else:
                 raise ValueError(
