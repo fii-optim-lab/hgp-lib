@@ -98,22 +98,34 @@ class CrossoverExecutor:
             raise ValueError("num_tries must be 1 if check_valid is None")
 
     def apply(
-        self, rules: List[Rule], feature_mappings: List[dict]
+        self, rules: List[Rule], feature_mappings: List[dict | None]
     ) -> Tuple[List[Rule], List[int]]:
         """
-        Applies crossover to the provided list of rules and returns a list of children.
+        Applies crossover to the provided list of rules and returns children with parent tracking.
 
         Rules are randomly selected for crossover based on `crossover_p`, paired
-        consecutively, and their subtrees are exchanged.
-        # TODO: Add documentation
+        consecutively, and their subtrees are exchanged. Before crossover, feature mappings
+        are applied to translate rules from child populations (which may use different
+        feature indices) into the parent's feature space.
+
+        This method supports hierarchical GP by tracking which parent rules contributed
+        to each child, enabling score propagation back to child populations.
 
         Args:
             rules (List[Rule]):
-                The collection of parents that will undergo crossover.
+                The collection of parent rules that will undergo crossover. May include
+                rules from both the current population and child populations.
+            feature_mappings (List[dict | None]):
+                A list of feature mapping dictionaries, one per rule. Each mapping translates
+                feature indices from a child population's space to the parent's space.
+                Use `None` for rules that don't need remapping (i.e., from the current population).
 
         Returns:
-            # TODO: Update documentation
-            List[Rule]: The list of children produced by crossover operations.
+            Tuple[List[Rule], List[int]]: A tuple containing:
+                - List[Rule]: The children produced by crossover operations.
+                - List[int]: The indices of parent rules that contributed to each child.
+                  For each child, both parent indices are recorded (so the list length
+                  is 2x the number of children).
 
         Examples:
             >>> import random
@@ -126,7 +138,7 @@ class CrossoverExecutor:
             ...     And([Literal(value=0), Literal(value=1)]),
             ...     Or([Literal(value=2), Literal(value=3)])
             ... ]
-            >>> children = executor.apply(rules)
+            >>> children, parent_indices = executor.apply(rules, [None, None])
             >>> len(children)
             2
         """

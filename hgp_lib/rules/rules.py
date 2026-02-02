@@ -213,8 +213,33 @@ class Rule(ABC):
         """
         pass
 
-    def apply_feature_mapping(self, feature_mapping: Dict[int, int]) -> "Rule":
-        # TODO: Add documentation and tests
+    def apply_feature_mapping(self, feature_mapping: Dict[int, int]):
+        """
+        Applies a feature mapping to this rule and all its subrules in-place.
+
+        This method remaps feature indices used in literals according to the provided
+        mapping dictionary. It is used in hierarchical GP when child populations operate
+        on a subset of features (feature bagging) and need to be translated back to the
+        parent's feature space during crossover.
+
+        Args:
+            feature_mapping (Dict[int, int]):
+                A dictionary mapping old feature indices to new feature indices.
+                For literals, `self.value` is replaced with `feature_mapping[self.value]`.
+
+        Returns:
+            None: This method modifies the rule in-place.
+
+        Raises:
+            KeyError: If `self.value` is not found in `feature_mapping`.
+
+        Examples:
+            >>> from hgp_lib.rules import And, Literal
+            >>> rule = And([Literal(value=0), Literal(value=1)])
+            >>> rule.apply_feature_mapping({0: 5, 1: 10})
+            >>> str(rule)
+            'And(5, 10)'
+        """
         if self.value is not None:
             self.value = feature_mapping[self.value]
         else:

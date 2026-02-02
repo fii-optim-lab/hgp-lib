@@ -15,6 +15,31 @@ import inspect
 
 
 def normalize(data: ndarray) -> ndarray:
+    """
+    Normalizes an array to have zero mean and unit standard deviation.
+
+    Creates a copy of the input array and applies z-score normalization.
+    If the standard deviation is zero (constant array), returns an array of zeros.
+
+    Args:
+        data (ndarray): The input array to normalize.
+
+    Returns:
+        ndarray: A new array with the same shape as `data`, normalized to have
+            mean 0 and standard deviation 1 (or all zeros if input is constant).
+
+    Examples:
+        >>> import numpy as np
+        >>> from hgp_lib.utils.metrics import normalize
+        >>> data = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+        >>> normalized = normalize(data)
+        >>> np.isclose(normalized.mean(), 0)
+        True
+        >>> np.isclose(normalized.std(), 1)
+        True
+        >>> normalize(np.array([5.0, 5.0, 5.0]))  # Constant array
+        array([0., 0., 0.])
+    """
     data = data.copy()
     mean = data.mean()
     std = data.std(mean=mean)

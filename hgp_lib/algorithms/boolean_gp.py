@@ -22,6 +22,12 @@ class BooleanGP:
     boolean rules to optimize a fitness function. Each generation applies crossover and
     mutation operations, evaluates the population, and selects the best individuals.
 
+    The algorithm supports hierarchical GP, where child populations can contribute rules
+    to the parent's crossover pool. Child populations may operate on feature subsets
+    (feature bagging), with feature mappings translating indices during crossover.
+    Fitness signals propagate bidirectionally: children contribute rules during the
+    forward pass, and receive score feedback during the backward pass.
+
     The algorithm tracks both the current best rule (best in the current run) and the
     real best rule (all-time best across regenerations). When enabled, regeneration
     resets the population if no improvement is observed for a specified number of epochs.
@@ -30,6 +36,11 @@ class BooleanGP:
         score_fn (Callable[[ndarray, ndarray], float]):
             Function that computes fitness scores. Signature: `score_fn(predictions, labels) -> float`.
             Higher scores indicate better fitness. Must accept boolean predictions and integer labels.
+        train_data (ndarray):
+            Training data as a 2D boolean array with instances on rows and features on columns.
+        train_labels (ndarray):
+            Training labels as a 1D integer array (0 or 1 for binary classification).
+            Must have the same length as the number of rows in `train_data`.
         population_generator (PopulationGenerator):
             Generator that creates the initial population of rules.
         mutation_executor (MutationExecutor):
@@ -46,6 +57,13 @@ class BooleanGP:
         regeneration_patience (int, optional):
             Number of epochs without improvement before regenerating the population.
             Must be positive when `regeneration=True`. Default: `100`.
+
+    Attributes:
+        child_populations (List[BooleanGP]):
+            List of child BooleanGP instances for hierarchical GP. Empty by default.
+        feature_mapping (dict[int, int] | None):
+            Mapping from this population's feature indices to the parent's indices.
+            Used when this population operates on a feature subset. None for root populations.
 
     Examples:
         >>> import numpy as np
@@ -68,15 +86,17 @@ class BooleanGP:
         ...     operator_mutations=create_standard_operator_mutations(4)
         ... )
         >>>
+        >>> train_data = np.array([[True, False, True, False], [False, True, False, True]])
+        >>> train_labels = np.array([1, 0])
         >>> gp = BooleanGP(
         ...     score_fn=accuracy,
+        ...     train_data=train_data,
+        ...     train_labels=train_labels,
         ...     population_generator=generator,
         ...     mutation_executor=mutation_executor
         ... )
         >>>
-        >>> train_data = np.array([[True, False, True, False], [False, True, False, True]])
-        >>> train_labels = np.array([1, 0])
-        >>> metrics = gp.step(train_data, train_labels)
+        >>> metrics = gp.step()
         >>> metrics['epoch']
         0
     """
@@ -142,24 +162,26 @@ class BooleanGP:
         self.real_best_rule: Rule | None = None
         self._epoch = -1
 
-        self.child_populations: List[BooleanGP] = []
-        self.feature_mapping = None  # TODO: It is not None if feature bagging
+        self.child_populations: List["BooleanGP"] = []
+        self.feature_mapping: dict[int, int] | None = None
+        self.child_population_sizes: List[int] = []
+        self.parent_rule_indices: List[int] = []
 
     def step(self) -> StepMetrics:
         """
         Performs one training step (generation) of the genetic programming algorithm.
 
-        Each step applies crossover to create offspring, mutates the population,
-        evaluates all rules, updates the best rule, and selects individuals for
-        the next generation. If regeneration is enabled and no improvement has
-        been observed for `regeneration_patience` epochs, the population is
-        regenerated.
+        Each step consists of a forward pass (crossover and mutation) followed by a
+        backward pass (evaluation and selection). In hierarchical GP, child populations
+        also perform their forward/backward passes, with scores propagating between levels.
 
-        Args:
-            train_data (ndarray):
-                Training data as a 2D boolean array with instances on rows and features on columns.
-            train_labels (ndarray):
-                Training labels as a 1D integer array (0 or 1 for binary classification).
+        The forward pass applies crossover to create offspring (including rules from
+        child populations when present), then mutates the population. The backward pass
+        evaluates all rules, updates the best rule tracking, and selects individuals
+        for the next generation.
+
+        If regeneration is enabled and no improvement has been observed for
+        `regeneration_patience` epochs, the population is regenerated.
 
         Returns:
             StepMetrics: Dictionary containing:
@@ -193,15 +215,17 @@ class BooleanGP:
             ...     operator_mutations=create_standard_operator_mutations(4)
             ... )
             >>>
+            >>> train_data = np.array([[True, False, True, False], [False, True, False, True]])
+            >>> train_labels = np.array([1, 0])
             >>> gp = BooleanGP(
             ...     score_fn=accuracy,
+            ...     train_data=train_data,
+            ...     train_labels=train_labels,
             ...     population_generator=generator,
             ...     mutation_executor=mutation_executor
             ... )
             >>>
-            >>> train_data = np.array([[True, False, True, False], [False, True, False, True]])
-            >>> train_labels = np.array([1, 0])
-            >>> metrics = gp.step(train_data, train_labels)
+            >>> metrics = gp.step()
             >>> 'best' in metrics
             True
             >>> metrics['epoch']
@@ -211,10 +235,29 @@ class BooleanGP:
         self.forward()
         return self.backward()
 
-    def forward(self):
+    def forward(self) -> None:
+        """
+        Performs the forward pass of the genetic programming algorithm.
+
+        The forward pass consists of:
+        1. Recursively calling forward() on all child populations
+        2. Collecting rules from child populations with their feature mappings
+        3. Applying crossover to create offspring (combining rules from current
+           and child populations)
+        4. Applying mutations to the expanded population
+
+        In hierarchical GP, child populations may operate on different feature
+        subsets. Their rules are translated to the parent's feature space via
+        feature mappings before crossover.
+
+        This method updates:
+            - `self.child_population_sizes`: Sizes of each child population
+            - `self.parent_rule_indices`: Indices tracking which parents contributed to children
+            - `self.population`: Extended with new offspring from crossover
+        """
         child_populations = []
         self.child_population_sizes = []
-        feature_mappings = [None] * self.population_size
+        feature_mappings: List[dict[int, int] | None] = [None] * self.population_size
 
         for child in self.child_populations:
             child.forward()
@@ -230,7 +273,26 @@ class BooleanGP:
 
         self.mutation_executor.apply(self.population)
 
-    def get_index_from_helper(self, index):
+    def get_index_from_helper(self, index: int) -> tuple[int, int]:
+        """
+        Maps a flattened child population index to (child_index, local_index).
+
+        When rules from multiple child populations are concatenated, this method
+        determines which child population a given index belongs to and the
+        corresponding local index within that child's population.
+
+        Args:
+            index (int): The flattened index into the concatenated child populations
+                (already offset by `self.population_size`).
+
+        Returns:
+            tuple[int, int]: A tuple of (child_population_index, local_index) where:
+                - child_population_index: Which child population (0-indexed)
+                - local_index: Index within that child's population
+
+        Raises:
+            RuntimeError: If the index is out of bounds for all child populations.
+        """
         for child_population_index, child_population_size in enumerate(
             self.child_population_sizes
         ):
@@ -240,7 +302,23 @@ class BooleanGP:
                 return child_population_index, index
         raise RuntimeError("Unreachable code")
 
-    def process_helper_scores(self, scores):
+    def process_helper_scores(self, scores: ndarray) -> List[ndarray]:
+        """
+        Distributes normalized scores to child populations based on parent contributions.
+
+        When child population rules contribute to offspring via crossover, this method
+        propagates fitness signals back to those child populations. Scores are normalized
+        and accumulated for each rule in each child population based on how often that
+        rule was selected as a parent.
+
+        Args:
+            scores (ndarray): Fitness scores for the current population's rules.
+
+        Returns:
+            List[ndarray]: A list of score arrays, one per child population. Each array
+                has the same length as the corresponding child population and contains
+                accumulated normalized scores for rules that contributed to offspring.
+        """
         normalized_scores = normalize(scores)
         child_population_scores = [
             np.zeros(child_population_size)
@@ -251,14 +329,37 @@ class BooleanGP:
             if (
                 index >= self.population_size
             ):  # index is not from the current population
-                child_population_index, remainder = self.get_index_from_helper(index)
+                child_population_index, remainder = self.get_index_from_helper(index - self.population_size)
                 child_population_scores[child_population_index][remainder] += (
                     normalized_scores[index]
                 )
 
         return child_population_scores
 
-    def backward(self, parent_scores=None):
+    def backward(self, parent_scores: ndarray | None = None) -> StepMetrics:
+        """
+        Performs the backward pass of the genetic programming algorithm.
+
+        The backward pass consists of:
+        1. Evaluating all rules in the population against training data
+        2. Adding any scores propagated from parent populations (in hierarchical GP)
+        3. Propagating scores to child populations based on their contributions
+        4. Recursively calling backward() on child populations
+        5. Creating the next generation via selection
+
+        In hierarchical GP, scores flow bidirectionally: parent populations receive
+        rules from children during crossover (forward), and children receive fitness
+        signals based on how well their contributed rules performed (backward).
+
+        Args:
+            parent_scores (ndarray | None): Optional scores propagated from a parent
+                population. These are added to the local evaluation scores. Used in
+                hierarchical GP to reward child rules that contributed to successful
+                offspring in the parent. Default: None.
+
+        Returns:
+            StepMetrics: Dictionary containing metrics about the generation step.
+        """
         scores = self._evaluate_population(
             self.train_data, self.train_labels, self.score_fn
         )

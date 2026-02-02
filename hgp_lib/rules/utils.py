@@ -67,6 +67,36 @@ def deep_swap(node_a: Rule, node_b: Rule) -> None:
 
 
 def apply_feature_mapping(rule: Rule, feature_mapping: Dict[int, int] | None) -> Rule:
+    """
+    Creates a copy of a rule with feature indices remapped according to the provided mapping.
+
+    This is a convenience wrapper that handles the common case of optionally applying
+    a feature mapping. If no mapping is provided, the original rule is returned unchanged.
+    Otherwise, a deep copy is made and the mapping is applied in-place to the copy.
+
+    Args:
+        rule (Rule): The rule to potentially remap.
+        feature_mapping (Dict[int, int] | None): A dictionary mapping old feature indices
+            to new feature indices, or None to skip remapping.
+
+    Returns:
+        Rule: The original rule if `feature_mapping` is None, otherwise a new copy
+            with remapped feature indices.
+
+    Examples:
+        >>> from hgp_lib.rules import And, Literal
+        >>> from hgp_lib.rules.utils import apply_feature_mapping
+        >>> rule = And([Literal(value=0), Literal(value=1)])
+        >>> mapped = apply_feature_mapping(rule, {0: 5, 1: 10})
+        >>> str(mapped)
+        'And(5, 10)'
+        >>> str(rule)  # Original unchanged
+        'And(0, 1)'
+        >>> apply_feature_mapping(rule, None) is rule
+        True
+    """
     if feature_mapping is None:
         return rule
-    return rule.copy().apply_feature_mapping(feature_mapping)
+    new_rule = rule.copy()
+    new_rule.apply_feature_mapping(feature_mapping)
+    return new_rule
