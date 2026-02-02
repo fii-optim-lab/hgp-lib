@@ -73,6 +73,9 @@ class GPTrainer:
             epochs if `val_data` and `val_labels` are provided. Default: `100`.
         progress_bar (bool, optional):
             Whether to display a progress bar during training. Default: `True`.
+        progress_desc (str | None, optional):
+            Description for the progress bar. If `None`, uses "Training". Useful for
+            nested progress bars (e.g. "    Epochs"). Default: `None`.
 
     Examples:
         >>> import numpy as np
@@ -118,6 +121,7 @@ class GPTrainer:
         regeneration_patience: int = 100,
         val_every: int = 100,
         progress_bar: bool = True,
+        progress_desc: str | None = None,
     ):
         validate_callable(score_fn)
         check_isinstance(num_epochs, int)
@@ -162,6 +166,7 @@ class GPTrainer:
         self.val_labels = val_labels
         self.val_every = val_every
         self.progress_bar = progress_bar
+        self.progress_desc = progress_desc if progress_desc is not None else "Training"
 
         num_features = train_data.shape[1]
 
@@ -215,7 +220,7 @@ class GPTrainer:
 
         with tqdm(
             range(self.num_epochs),
-            desc="Training",
+            desc=self.progress_desc,
             disable=not self.progress_bar,
             leave=False,
         ) as tbar:

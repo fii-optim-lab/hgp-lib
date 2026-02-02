@@ -217,33 +217,60 @@ test_metrics = trainer.score(test_data, test_labels)
 
 ### Benchmarking Boolean GP
 
+The benchmarker runs multiple full runs (default 30), each with a stratified train/test split and k-fold CV on the training set. Results are aggregated across runs. Runs execute in parallel by default.
+
+**Scorer Optimization**: The benchmarker can automatically optimize scorers per fold by deduplicating data and using sample weights. This significantly speeds up scoring for datasets with many duplicate rows. To use this feature, pass a base scorer (not pre-optimized) that accepts a `sample_weight` parameter.
+
 ```python
 from hgp_lib.benchmarkers import GPBenchmarker
 
 
-benchmarker = GPBenchmarker(
-    score_fn=score_fn,  # Mandatory
-    num_epochs=num_epochs,  # Mandatory
+# Define a scorer that supports sample_weight for optimization
+def f1_score(predictions, labels, sample_weight=None):
+    if sample_weight is None:
+        tp = (predictions & labels).sum()
+        pred_sum, label_sum = predictions.sum(), labels.sum()
+    else:
+        tp = np.dot(predictions & labels, sample_weight)
+        pred_sum = np.dot(predictions, sample_weight)
+        label_sum = np.dot(labels, sample_weight)
+    if pred_sum == 0 or label_sum == 0:
+        return 1.0 if pred_sum == label_sum == 0 else 0.0
+    return 2 * tp / (pred_sum + label_sum)
 
-    train_data=train_data,  # Mandatory
-    train_labels=train_labels,  # Optional
-    val_data=val_data,  # Optional
-    val_labels=val_labels,  # Optional
+
+benchmarker = GPBenchmarker(
+    score_fn=f1_score,  # Mandatory (base scorer, not pre-optimized)
+    num_epochs=num_epochs,  # Mandatory
+    data=data,  # Mandatory (full dataset; split internally)
+    labels=labels,  # Mandatory
+
+    num_runs=30,  # Optional, number of benchmark runs
+    test_size=0.2,  # Optional, fraction for test set
+    n_folds=5,  # Optional, k for k-fold CV per run
+    n_jobs=-1,  # Optional, parallel jobs (-1 = all CPUs)
+    optimize_scorer=True,  # Optional, optimize scorer per fold (default: True)
 
     population_generator=population_generator,  # Optional
     mutation_executor=mutation_executor,  # Optional
     crossover_executor=crossover_executor,  # Optional
     selection=selection,  # Optional
-    
+
     regeneration=regeneration,  # Optional
     regeneration_patience=regeneration_patience,  # Optional
     val_every=100,  # Optional
-    
-    cv_splits=30,  # Optional
-    val_size=0.3,  # Optional
+
+    progress_bar=True,  # Optional
+    show_run_progress=True,  # Optional
+    show_fold_progress=True,  # Optional (sequential only)
+    show_epoch_progress=True,  # Optional (sequential only)
 )
 benchmark_metrics = benchmarker.fit()
-test_performance = benchmarker.score(test_data, test_labels)
+# benchmark_metrics contains: run_metrics, mean_test_score, std_test_score,
+# mean_best_val_score, std_best_val_score, all_test_scores
+# Per-run test scores and best rules are in benchmark_metrics["run_metrics"]
 ```
+
+**Important**: Do NOT pass pre-optimized scorers (e.g., from `optimize_scorer_for_data`) when using the benchmarker. Pre-optimized scorers have sample weights bound to the original data, which become invalid after train/test/fold splits. Either pass a base scorer with `optimize_scorer=True` (default), or use `optimize_scorer=False` for scorers without `sample_weight` support.
 
 
