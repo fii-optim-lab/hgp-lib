@@ -184,10 +184,8 @@ class StandardBinarizer:
             ... })
             >>> binarizer = StandardBinarizer(num_bins=2)
             >>> result = binarizer.fit_transform(data)
-            >>> result.columns
-            Index(['bool_col', 'cat_col=A', 'cat_col=B', 'cat_col=C', 'num_col < 2.500',
-                   '2.500 <= num_col'],
-                  dtype='object')
+            >>> result.columns.tolist()
+            ['bool_col', 'cat_col=A', 'cat_col=B', 'cat_col=C', 'num_col < 2.500', '2.500 <= num_col']
             >>> result.dtypes.unique()
             array([dtype('bool')], dtype=object)
         """
