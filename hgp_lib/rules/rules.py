@@ -150,12 +150,11 @@ class Rule(ABC):
             new_indent = indent + 1
             separator = ",\n"
             tab = "\t"
-            rez = f"{type(self).__name__}(\n{
-                separator.join(
-                    tab * new_indent + s.to_str(feature_names, new_indent)
-                    for s in self.subrules
-                )
-            }\n{tab * indent})"
+            to_join = separator.join(
+                tab * new_indent + s.to_str(feature_names, new_indent)
+                for s in self.subrules
+            )
+            rez = f"{type(self).__name__}(\n{to_join}\n{tab * indent})"
 
         if self.negated:
             return "~" + rez
@@ -213,3 +212,11 @@ class Rule(ABC):
             Concrete subclasses (`And`, `Or`, `Literal`, etc.) must implement this.
         """
         pass
+
+    def apply_feature_mapping(self, feature_mapping: Dict[int, int]) -> "Rule":
+        # TODO: Add documentation and tests
+        if self.value is not None:
+            self.value = feature_mapping[self.value]
+        else:
+            for subrule in self.subrules:
+                subrule.apply_feature_mapping(feature_mapping)

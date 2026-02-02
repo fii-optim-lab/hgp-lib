@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, Dict
 
 from .rules import Rule
 from .literals import Literal
@@ -64,3 +64,9 @@ def deep_swap(node_a: Rule, node_b: Rule) -> None:
     copy_node_b = node_b.copy()
     replace_with_rule(node_a, copy_node_b)
     replace_with_rule(node_b, copy_node_a)
+
+
+def apply_feature_mapping(rule: Rule, feature_mapping: Dict[int, int] | None) -> Rule:
+    if feature_mapping is None:
+        return rule
+    return rule.copy().apply_feature_mapping(feature_mapping)

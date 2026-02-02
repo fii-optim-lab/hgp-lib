@@ -14,6 +14,17 @@ import inspect
 # TODO: Add tests
 
 
+def normalize(data: ndarray) -> ndarray:
+    data = data.copy()
+    mean = data.mean()
+    std = data.std(mean=mean)
+    if std == 0:
+        return np.zeros_like(data)
+    data -= mean
+    data /= std
+    return data
+
+
 def accepts_sample_weight(scorer):
     try:
         sig = inspect.signature(scorer)

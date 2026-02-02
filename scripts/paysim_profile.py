@@ -220,6 +220,8 @@ def main():
     print("\nInitializing Boolean GP...")
     gp_algo = BooleanGP(
         score_fn=train_score_fn,
+        train_data=train_data_bin,
+        train_labels=train_labels,
         population_generator=population_generator,
         mutation_executor=mutation_executor,
         crossover_executor=crossover_executor,
@@ -235,7 +237,7 @@ def main():
     val_avg = 0
     with tqdm(range(num_epochs), desc="Training") as tbar:
         for epoch in tbar:
-            train_metrics = gp_algo.step(train_data_bin, train_labels)
+            train_metrics = gp_algo.step()
 
             if (epoch + 1) % 10 == 0:
                 val_metrics = gp_algo.validate_population(

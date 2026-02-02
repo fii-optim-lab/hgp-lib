@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, List
 
 from numpy import ndarray
 import numpy as np
@@ -6,6 +6,7 @@ import numpy as np
 from hgp_lib.mutations import MutationExecutor
 from hgp_lib.populations import PopulationGenerator
 from hgp_lib.rules import Rule
+from hgp_lib.utils.metrics import normalize
 from hgp_lib.utils.validation import check_isinstance, validate_callable
 
 from hgp_lib.crossover import CrossoverExecutor
@@ -83,6 +84,8 @@ class BooleanGP:
     def __init__(
         self,
         score_fn: Callable[[ndarray, ndarray], float],
+        train_data: ndarray,
+        train_labels: ndarray,
         population_generator: PopulationGenerator,
         mutation_executor: MutationExecutor,
         crossover_executor: CrossoverExecutor | None = None,
@@ -96,6 +99,19 @@ class BooleanGP:
         check_isinstance(mutation_executor, MutationExecutor)
         check_isinstance(regeneration, bool)
         check_isinstance(regeneration_patience, int)
+
+        check_isinstance(train_data, ndarray)
+        check_isinstance(train_labels, ndarray)
+        # TODO: Add checks for dim
+
+        if len(train_labels) != train_data.shape[0]:
+            raise ValueError(
+                f"train_labels length ({len(train_labels)}) must match "
+                f"train_data rows ({train_data.shape[0]})"
+            )
+
+        self.train_data = train_data
+        self.train_labels = train_labels
 
         if crossover_executor is not None:
             check_isinstance(crossover_executor, CrossoverExecutor)
@@ -126,7 +142,10 @@ class BooleanGP:
         self.real_best_rule: Rule | None = None
         self._epoch = -1
 
-    def step(self, train_data: ndarray, train_labels: ndarray) -> StepMetrics:
+        self.child_populations: List[BooleanGP] = []
+        self.feature_mapping = None  # TODO: It is not None if feature bagging
+
+    def step(self) -> StepMetrics:
         """
         Performs one training step (generation) of the genetic programming algorithm.
 
@@ -189,9 +208,70 @@ class BooleanGP:
             0
         """
         self._epoch += 1
-        self.population += self.crossover_executor.apply(self.population)
+        self.forward()
+        return self.backward()
+
+    def forward(self):
+        child_populations = []
+        self.child_population_sizes = []
+        feature_mappings = [None] * self.population_size
+
+        for child in self.child_populations:
+            child.forward()
+            child_populations += child.population
+            child_population_size = len(child.population)
+            feature_mappings += [child.feature_mapping] * child_population_size
+            self.child_population_sizes.append(child_population_size)
+
+        next_generation, self.parent_rule_indices = self.crossover_executor.apply(
+            self.population + child_populations, feature_mappings
+        )
+        self.population += next_generation
+
         self.mutation_executor.apply(self.population)
-        scores = self._evaluate_population(train_data, train_labels, self.score_fn)
+
+    def get_index_from_helper(self, index):
+        for child_population_index, child_population_size in enumerate(
+            self.child_population_sizes
+        ):
+            if index >= child_population_size:
+                index -= child_population_size
+            else:
+                return child_population_index, index
+        raise RuntimeError("Unreachable code")
+
+    def process_helper_scores(self, scores):
+        normalized_scores = normalize(scores)
+        child_population_scores = [
+            np.zeros(child_population_size)
+            for child_population_size in self.child_population_sizes
+        ]
+
+        for index in self.parent_rule_indices:
+            if (
+                index >= self.population_size
+            ):  # index is not from the current population
+                child_population_index, remainder = self.get_index_from_helper(index)
+                child_population_scores[child_population_index][remainder] += (
+                    normalized_scores[index]
+                )
+
+        return child_population_scores
+
+    def backward(self, parent_scores=None):
+        scores = self._evaluate_population(
+            self.train_data, self.train_labels, self.score_fn
+        )
+        if parent_scores is not None:
+            scores += parent_scores
+
+        if len(self.child_populations):
+            child_population_scores = self.process_helper_scores(scores)
+            for child, child_scores in zip(
+                self.child_populations, child_population_scores
+            ):
+                child.backward(child_scores)
+
         return self._new_generation(scores)
 
     def _new_generation(self, scores: ndarray) -> StepMetrics:

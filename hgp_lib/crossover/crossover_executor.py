@@ -1,10 +1,10 @@
 import random
-from typing import Callable, List, Sequence
+from typing import Callable, List, Sequence, Tuple
 
 import numpy as np
 
 from ..rules import Rule, Literal
-from ..rules.utils import deep_swap
+from ..rules.utils import deep_swap, apply_feature_mapping
 from ..utils.validation import validate_callable, check_isinstance
 
 
@@ -97,18 +97,22 @@ class CrossoverExecutor:
         if num_tries > 1 and check_valid is None:
             raise ValueError("num_tries must be 1 if check_valid is None")
 
-    def apply(self, rules: List[Rule]) -> List[Rule]:
+    def apply(
+        self, rules: List[Rule], feature_mappings: List[dict]
+    ) -> Tuple[List[Rule], List[int]]:
         """
         Applies crossover to the provided list of rules and returns a list of children.
 
         Rules are randomly selected for crossover based on `crossover_p`, paired
         consecutively, and their subtrees are exchanged.
+        # TODO: Add documentation
 
         Args:
             rules (List[Rule]):
                 The collection of parents that will undergo crossover.
 
         Returns:
+            # TODO: Update documentation
             List[Rule]: The list of children produced by crossover operations.
 
         Examples:
@@ -148,11 +152,17 @@ class CrossoverExecutor:
             )
 
         children = []
+        parent_indices = []
         for i in range(0, partition_point, 2):
             i1 = idx_sorted[i]
             i2 = idx_sorted[i + 1]
-            children.extend(self.crossover(rules[i1], rules[i2]))
-        return children
+            parent_a = apply_feature_mapping(rules[i1], feature_mappings[i1])
+            parent_b = apply_feature_mapping(rules[i2], feature_mappings[i2])
+            for child in self.crossover(parent_a, parent_b):
+                parent_indices.append(i1)
+                parent_indices.append(i2)
+                children.append(child)
+        return children, parent_indices
 
     def crossover(self, parent_a: Rule, parent_b: Rule) -> Sequence[Rule]:
         """
@@ -160,7 +170,7 @@ class CrossoverExecutor:
 
         A random node is selected from each parent, and the subtrees rooted at those
         nodes are exchanged using `deep_swap`. When a validator is provided, each child
-        is validated individually and accepted children are collected until two pass
+        is validated individually and accepted children are collected until at least two pass
         validation or `num_tries` attempts are exhausted.
 
         Args:
@@ -200,6 +210,6 @@ class CrossoverExecutor:
                 accepted.append(child_a)
             if self.check_valid(child_b):
                 accepted.append(child_b)
-            if len(accepted) == 2:
+            if len(accepted) >= 2:
                 break
         return accepted
