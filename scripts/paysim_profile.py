@@ -23,9 +23,9 @@ from hgp_lib.mutations import (
 from hgp_lib.populations import PopulationGenerator, RandomStrategy
 from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.rules import Rule, Literal, And, Or
-from functools import partial
 
 from hgp_lib.selections import TournamentSelection, RouletteSelection
+from hgp_lib.utils.metrics import optimize_scorer_for_data
 
 
 def fast_f1_score(y_pred, y_true, sample_weight=None):
@@ -49,14 +49,6 @@ def fast_f1_score(y_pred, y_true, sample_weight=None):
 def preprocess_paysim_data(hdf_path: str):
     print(f"Loading data from {hdf_path}...")
 
-    feature_columns = [
-        "type",
-        "amount",
-        "oldbalanceOrg",
-        "newbalanceOrig",
-        "oldbalanceDest",
-        "newbalanceDest",
-    ]
     df: pd.DataFrame = pd.read_hdf(hdf_path)
     if "isFraud" in df.columns:
         target_column = "isFraud"
@@ -65,12 +57,12 @@ def preprocess_paysim_data(hdf_path: str):
     else:
         raise RuntimeError(df.columns)
 
-    data = df[feature_columns].copy()
     labels = df[target_column].values.copy()
+    data = df.drop([target_column], axis=1)
 
     del df
 
-    print(f"Loaded {len(data)} samples with {len(feature_columns)} features")
+    print(f"Loaded {len(data)} samples with {len(data.columns)} features")
     print(f"Fraud rate: {labels.mean():.4f} ({labels.sum()} fraud cases)")
 
     print("\nSplitting data...")
@@ -168,12 +160,6 @@ def print_timing_results(measurements: dict):
     print()
 
 
-def remove_duplicates(data, labels):
-    Xy = np.hstack((data, labels[:, None]))
-    Xy_unique, sample_weight = np.unique(Xy, axis=0, return_counts=True)
-    return Xy_unique[:, :-1], Xy_unique[:, -1], sample_weight
-
-
 def main():
     measurements = setup_timing()
     apply_timing_decorators()
@@ -193,15 +179,13 @@ def main():
         test_data_bin,
         test_labels,
     ) = preprocess_paysim_data(hdf_path)
-    train_data_bin, train_labels, sample_weight = remove_duplicates(
-        train_data_bin, train_labels
-    )
-    val_data_bin, val_labels, sample_weight_val = remove_duplicates(
-        val_data_bin, val_labels
-    )
 
-    train_score_fn = partial(fast_f1_score, sample_weight=sample_weight)
-    val_score_fn = partial(fast_f1_score, sample_weight=sample_weight_val)
+    train_score_fn, train_data_bin, train_labels = optimize_scorer_for_data(
+        fast_f1_score, train_data_bin, train_labels
+    )
+    val_score_fn, val_data_bin, val_labels = optimize_scorer_for_data(
+        fast_f1_score, val_data_bin, val_labels
+    )
     test_score_fn = fast_f1_score
 
     def is_rule_valid(rule: Rule) -> bool:

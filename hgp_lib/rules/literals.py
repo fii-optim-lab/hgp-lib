@@ -1,3 +1,5 @@
+from typing import Dict
+
 from .rules import Rule
 
 
@@ -56,9 +58,17 @@ class Literal(Rule):
         """
         return ~data[:, self.value] if self.negated else data[:, self.value]
 
-    def __str__(self) -> str:
+    def to_str(
+        self, feature_names: Dict[int, str] | None = None, indent: bool = -1
+    ) -> str:
         """
-        Returns a human-readable string representation of the literal.
+        Returns a human-readable string representation of the literal. The literal can be replaced with the feature
+        name if provided.
+
+        Args:
+            feature_names (Dict[int, str] | None): The feature names that can be used to replace literal values when
+                provided. Default: `None`.
+            indent (int): Not used. Default: `-1`.
 
         Returns:
             str: The literal as a string, prefixed with `~` if negated.
@@ -68,5 +78,10 @@ class Literal(Rule):
             '0'
             >>> str(Literal(value=0, negated=True))
             '~0'
+            >>> Literal(value=0, negated=True).to_str({0: "bad"})
+            '~bad'
         """
-        return f"~{self.value}" if self.negated else f"{self.value}"
+        value = self.value
+        if feature_names is not None:
+            value = feature_names[value]
+        return f"~{value}" if self.negated else f"{value}"

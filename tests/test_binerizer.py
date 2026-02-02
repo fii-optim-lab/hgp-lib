@@ -52,11 +52,11 @@ class TestStandardBinarizer(unittest.TestCase):
             np.testing.assert_array_equal(result["bool_col"], self.data["bool_col"])
 
             # Check categorical columns
-            expected_cat_cols = ["cat_col_A", "cat_col_B", "cat_col_C"]
+            expected_cat_cols = ["cat_col=B", "cat_col=B", "cat_col=C"]
             self.assertTrue(all(col in result.columns for col in expected_cat_cols))
 
             # Check numerical columns
-            expected_num_cols = ["num_col_bin_0", "num_col_bin_1"]
+            expected_num_cols = ["num_col < 2.500", "2.500 <= num_col"]
             self.assertTrue(all(col in result.columns for col in expected_num_cols))
 
             # Check all columns are boolean
@@ -75,11 +75,11 @@ class TestStandardBinarizer(unittest.TestCase):
 
             expected_columns = {
                 "bool_col",
-                "cat_col_A",
-                "cat_col_B",
-                "cat_col_C",
-                "num_col_bin_0",
-                "num_col_bin_1",
+                "cat_col=A",
+                "cat_col=B",
+                "cat_col=C",
+                "num_col < 2.500",
+                "2.500 <= num_col",
             }
             self.assertEqual(set(result.columns), expected_columns)
             self.assertTrue(all(result[col].dtype == bool for col in result.columns))
@@ -102,11 +102,11 @@ class TestStandardBinarizer(unittest.TestCase):
 
             expected_columns = {
                 "bool_col",
-                "cat_col_A",
-                "cat_col_B",
-                "cat_col_C",
-                "num_col_bin_0",
-                "num_col_bin_1",
+                "cat_col=A",
+                "cat_col=B",
+                "cat_col=C",
+                "num_col < 2.500",
+                "2.500 <= num_col",
             }
             self.assertEqual(set(result.columns), expected_columns)
 
@@ -127,9 +127,7 @@ class TestStandardBinarizer(unittest.TestCase):
             binarizer = StandardBinarizer(num_bins=2, column_strategy={"num_col": 3})
             result = binarizer.fit_transform(self.data)
 
-            num_col_bins = sum(
-                1 for col in result.columns if col.startswith("num_col_bin")
-            )
+            num_col_bins = sum(1 for col in result.columns if "num_col" in col)
             self.assertEqual(num_col_bins, 3)
 
     def test_edge_cases(self):
@@ -138,9 +136,7 @@ class TestStandardBinarizer(unittest.TestCase):
             data = pd.DataFrame({"num_col": [1.0, 1.0, 1.0, 1.0]})
             binarizer = StandardBinarizer(num_bins=3)
             result = binarizer.fit_transform(data)
-            self.assertEqual(
-                sum(1 for col in result.columns if col.startswith("num_col_bin")), 1
-            )
+            self.assertEqual(sum(1 for col in result.columns if "num_col" in col), 1)
 
         with self.subTest("Testing empty DataFrame"):
             data = pd.DataFrame(
