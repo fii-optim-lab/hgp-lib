@@ -20,7 +20,6 @@ class TrainerConfig:
         val_score_fn (Callable | None): Validation scorer; defaults to score_fn.
         val_every (int): Validate every N epochs.
         progress_bar (bool): Whether to show progress bar.
-        progress_desc (str): Description for progress bar.
 
     Examples:
         >>> import numpy as np
@@ -43,7 +42,6 @@ class TrainerConfig:
     val_score_fn: Callable[[ndarray, ndarray], float] | None = None
     val_every: int = 100
     progress_bar: bool = True
-    progress_desc: str = "Training"
 
 
 def validate_trainer_config(config: TrainerConfig, require_data: bool = True) -> None:

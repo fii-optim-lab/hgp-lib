@@ -57,11 +57,10 @@ def execute_single_run(
     fold_val_scores: List[float] = []
     fold_best_rules: List[Rule] = []
 
-    # Use enumerate with tqdm directly on the generator to avoid list creation
     fold_splits = skf.split(train_data, train_labels)
     if show_folds:
         fold_splits = tqdm(
-            fold_splits, total=config.n_folds, desc="  Folds", leave=False
+            fold_splits, total=config.n_folds, desc="Folds", leave=False
         )
 
     for train_idx, val_idx in fold_splits:
@@ -82,7 +81,6 @@ def execute_single_run(
             val_data=fold_val,
             val_labels=fold_val_labels,
             progress_bar=show_epochs,
-            progress_desc="    Epochs" if show_epochs else "Epochs",
         )
 
         trainer = GPTrainer(fold_trainer_config)

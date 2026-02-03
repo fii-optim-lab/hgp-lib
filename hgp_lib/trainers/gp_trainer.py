@@ -68,7 +68,6 @@ class GPTrainer:
         )
         self.val_every = config.val_every
         self.progress_bar = config.progress_bar
-        self.progress_desc = config.progress_desc
 
     @property
     def score_fn(self):
@@ -89,7 +88,7 @@ class GPTrainer:
 
         with tqdm(
             range(self.num_epochs),
-            desc=self.progress_desc,
+            desc="Epochs",
             disable=not self.progress_bar,
             leave=False,
         ) as tbar:
