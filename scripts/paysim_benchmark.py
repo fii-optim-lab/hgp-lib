@@ -93,6 +93,8 @@ def main():
         data=data,
         labels=labels,
         trainer_config=trainer_config,
+        num_runs=10,
+        n_folds=3,
     )
 
     print("\nBenchmark configuration:")
