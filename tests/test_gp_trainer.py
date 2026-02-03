@@ -46,11 +46,15 @@ class TestGPTrainer(unittest.TestCase):
         self.score_fn = accuracy
 
     def _make_gp_config(self, **kwargs):
-        """Helper to create BooleanGPConfig with test defaults."""
+        """Helper to create BooleanGPConfig with test defaults.
+
+        Note: optimize_scorer=False by default since test scorer doesn't support sample_weight.
+        """
         defaults = dict(
+            score_fn=self.score_fn,
             train_data=self.train_data,
             train_labels=self.train_labels,
-            score_fn=self.score_fn,
+            optimize_scorer=False,
         )
         defaults.update(kwargs)
         return BooleanGPConfig(**defaults)
@@ -343,6 +347,50 @@ class TestGPTrainer(unittest.TestCase):
             trainer.score(self.test_data, self.test_labels)
 
         self.assertIn("No best rule available", str(context.exception))
+
+    def test_optimize_scorer_true(self):
+        """Test that optimize_scorer=True works with a scorer supporting sample_weight."""
+
+        def accuracy_with_weight(predictions, labels, sample_weight=None):
+            if sample_weight is None:
+                return np.mean(predictions == labels)
+            correct = predictions == labels
+            return np.dot(correct, sample_weight) / sample_weight.sum()
+
+        gp_config = self._make_gp_config(
+            score_fn=accuracy_with_weight, optimize_scorer=True
+        )
+        config = self._make_trainer_config(gp_config=gp_config, num_epochs=5)
+        trainer = GPTrainer(config)
+
+        result = trainer.fit()
+        self.assertIsNotNone(result.best_rule)
+        self.assertIsInstance(result.best_score, float)
+
+    def test_optimize_scorer_true_with_validation(self):
+        """Test that optimize_scorer=True optimizes both train and validation scorers."""
+
+        def accuracy_with_weight(predictions, labels, sample_weight=None):
+            if sample_weight is None:
+                return np.mean(predictions == labels)
+            correct = predictions == labels
+            return np.dot(correct, sample_weight) / sample_weight.sum()
+
+        gp_config = self._make_gp_config(
+            score_fn=accuracy_with_weight, optimize_scorer=True
+        )
+        config = self._make_trainer_config(
+            gp_config=gp_config,
+            num_epochs=10,
+            val_data=self.val_data,
+            val_labels=self.val_labels,
+            val_every=5,
+        )
+        trainer = GPTrainer(config)
+
+        result = trainer.fit()
+        self.assertIsNotNone(result.val_history)
+        self.assertEqual(len(result.val_history.epochs), 2)
 
     def test_doctests(self):
         result = doctest.testmod(hgp_lib.trainers.gp_trainer, verbose=False)

@@ -53,6 +53,7 @@ class BooleanGP:
         ...     score_fn=accuracy,
         ...     train_data=train_data,
         ...     train_labels=train_labels,
+        ...     optimize_scorer=False,
         ... )
         >>> gp = BooleanGP(config)
         >>> metrics = gp.step()

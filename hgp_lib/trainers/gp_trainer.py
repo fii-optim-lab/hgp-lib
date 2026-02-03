@@ -37,9 +37,10 @@ class GPTrainer:
         >>> val_data = np.array([[True, True, False, False]])
         >>> val_labels = np.array([1])
         >>> gp_config = BooleanGPConfig(
+        ...     score_fn=accuracy,
         ...     train_data=train_data,
         ...     train_labels=train_labels,
-        ...     score_fn=accuracy,
+        ...     optimize_scorer=False,
         ... )
         >>> config = TrainerConfig(
         ...     gp_config=gp_config,

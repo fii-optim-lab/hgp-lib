@@ -53,7 +53,10 @@ class TestGPBenchmarker(unittest.TestCase):
         self.score_fn = accuracy
 
     def _make_gp_config(self, **kwargs):
-        """Helper to create BooleanGPConfig with test defaults."""
+        """Helper to create BooleanGPConfig with test defaults.
+
+        Note: optimize_scorer=False by default since test scorer doesn't support sample_weight.
+        """
         defaults = dict(
             score_fn=self.score_fn,
             optimize_scorer=False,

@@ -53,13 +53,17 @@ class TestBooleanGP(unittest.TestCase):
         )
 
     def _make_config(self, **kwargs):
-        """Helper to create BooleanGPConfig with test defaults."""
+        """Helper to create BooleanGPConfig with test defaults.
+
+        Note: optimize_scorer=False by default since test scorer doesn't support sample_weight.
+        """
         defaults = dict(
+            score_fn=self.score_fn,
             train_data=self.train_data,
             train_labels=self.train_labels,
-            score_fn=self.score_fn,
             population_generator=self.generator,
             mutation_executor=self.mutation_executor,
+            optimize_scorer=False,
         )
         defaults.update(kwargs)
         return BooleanGPConfig(**defaults)
@@ -356,6 +360,22 @@ class TestBooleanGP(unittest.TestCase):
 
         metrics = gp.step()
         self.assertIsNotNone(metrics.best)
+
+    def test_optimize_scorer_true(self):
+        """Test that optimize_scorer=True works with a scorer supporting sample_weight."""
+
+        def accuracy_with_weight(predictions, labels, sample_weight=None):
+            if sample_weight is None:
+                return np.mean(predictions == labels)
+            correct = predictions == labels
+            return np.dot(correct, sample_weight) / sample_weight.sum()
+
+        config = self._make_config(score_fn=accuracy_with_weight, optimize_scorer=True)
+        gp = BooleanGP(config)
+
+        metrics = gp.step()
+        self.assertIsNotNone(metrics.best)
+        self.assertIsInstance(metrics.best, float)
 
     def test_doctests(self):
         result = doctest.testmod(hgp_lib.algorithms.boolean_gp, verbose=False)
