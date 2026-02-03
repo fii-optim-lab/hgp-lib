@@ -5,7 +5,7 @@ from typing import List, Tuple
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from tqdm import tqdm
 
-from hgp_lib.benchmarkers.config import BenchmarkConfig
+from .config import BenchmarkConfig
 from hgp_lib.metrics import RunMetrics
 from hgp_lib.rules import Rule
 from hgp_lib.trainers import GPTrainer

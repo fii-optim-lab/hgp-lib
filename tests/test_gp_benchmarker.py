@@ -683,6 +683,12 @@ class TestGPBenchmarker(unittest.TestCase):
     def test_doctests(self):
         result = doctest.testmod(hgp_lib.benchmarkers.gp_benchmarker, verbose=False)
         self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
+        result = doctest.testmod(hgp_lib.benchmarkers.config, verbose=False)
+        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
+        result = doctest.testmod(hgp_lib.benchmarkers.results, verbose=False)
+        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
+        result = doctest.testmod(hgp_lib.benchmarkers.runner, verbose=False)
+        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 if __name__ == "__main__":

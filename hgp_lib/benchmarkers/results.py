@@ -18,6 +18,7 @@ def aggregate_results(run_metrics: List[RunMetrics]) -> BenchmarkMetrics:
     Examples:
         >>> import numpy as np
         >>> from hgp_lib.benchmarkers import GPBenchmarker
+        >>> from hgp_lib.benchmarkers.results import aggregate_results
         >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
         >>> labels = np.array([1, 0, 1, 0])
         >>> def score(p, l): return float((p == l).mean())
@@ -30,7 +31,7 @@ def aggregate_results(run_metrics: List[RunMetrics]) -> BenchmarkMetrics:
         ...      "seed": 1, "fold_train_scores": [0.8], "fold_val_scores": [0.85],
         ...      "best_fold_idx": 0, "best_rule": None},
         ... ]
-        >>> result = b._aggregate_results(mock_metrics)
+        >>> result = aggregate_results(mock_metrics)
         >>> round(result["mean_test_score"], 2)
         0.85
         >>> round(result["std_test_score"], 2)
