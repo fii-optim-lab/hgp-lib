@@ -80,8 +80,7 @@ class GPBenchmarker:
         run_metrics: List[RunMetrics] = []
 
         show_run_progress = (
-            self.config.show_run_progress
-            and self.config.trainer_config.progress_bar
+            self.config.show_run_progress and self.config.trainer_config.progress_bar
         )
 
         for run_id in tqdm(

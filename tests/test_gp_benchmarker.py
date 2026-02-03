@@ -273,11 +273,15 @@ class TestGPBenchmarker(unittest.TestCase):
 
     def test_reproducibility_with_seed(self):
         trainer_config = self._make_trainer_config(num_epochs=2)
-        config1 = self._make_config(trainer_config=trainer_config, n_jobs=1, base_seed=12345)
+        config1 = self._make_config(
+            trainer_config=trainer_config, n_jobs=1, base_seed=12345
+        )
         benchmarker1 = GPBenchmarker(config1)
         result1 = benchmarker1.fit()
 
-        config2 = self._make_config(trainer_config=trainer_config, n_jobs=1, base_seed=12345)
+        config2 = self._make_config(
+            trainer_config=trainer_config, n_jobs=1, base_seed=12345
+        )
         benchmarker2 = GPBenchmarker(config2)
         result2 = benchmarker2.fit()
 

@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from tqdm import tqdm
 
-from ..configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
+from ..configs import BenchmarkerConfig
 from ..metrics import RunMetrics
 from ..rules import Rule
 from ..trainers import GPTrainer
