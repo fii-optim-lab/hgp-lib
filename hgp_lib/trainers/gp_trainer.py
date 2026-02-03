@@ -7,6 +7,7 @@ from tqdm import tqdm
 from ..algorithms import BooleanGP
 from ..configs import TrainerConfig, validate_trainer_config
 from ..metrics import EpochMetrics, TrainerResult, TrainingHistory, ValidateBestMetrics
+from ..utils.metrics import optimize_scorer_for_data
 from ..utils.validation import check_X_y
 
 
@@ -59,20 +60,30 @@ class GPTrainer:
         self.config = config
         self.gp_algo = BooleanGP(config.gp_config)
         self.num_epochs = config.num_epochs
-        self.val_data = config.val_data
-        self.val_labels = config.val_labels
-        self.val_score_fn = (
-            config.val_score_fn
-            if config.val_score_fn is not None
-            else self.gp_algo.score_fn
-        )
         self.val_every = config.val_every
         self.progress_bar = config.progress_bar
 
+        base_val_score_fn = (
+            config.val_score_fn
+            if config.val_score_fn is not None
+            else config.gp_config.score_fn
+        )
+
+        if config.val_data is not None and config.gp_config.optimize_scorer:
+            self.val_score_fn, self.val_data, self.val_labels = (
+                optimize_scorer_for_data(
+                    base_val_score_fn, config.val_data, config.val_labels
+                )
+            )
+        else:
+            self.val_score_fn = base_val_score_fn
+            self.val_data = config.val_data
+            self.val_labels = config.val_labels
+
     @property
     def score_fn(self):
-        """Scoring function used for training (from the underlying BooleanGP)."""
-        return self.gp_algo.score_fn
+        """Original scoring function (not optimized, safe for any data size)."""
+        return self.config.gp_config.score_fn
 
     def fit(self) -> TrainerResult:
         """

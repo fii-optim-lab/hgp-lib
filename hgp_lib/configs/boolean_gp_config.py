@@ -26,9 +26,7 @@ class BooleanGPConfig:
         mutation_executor (MutationExecutor | None): Optional; default created from num_features.
         crossover_executor (CrossoverExecutor | None): Optional; default CrossoverExecutor().
         selection (BaseSelection | None): Optional; default RouletteSelection().
-        optimize_scorer (bool): Whether to optimize scorer per data (dedupe + sample weights).
-            When True, deduplicates data and uses sample weights, which is faster for large
-            datasets. Default False for BooleanGP, but True in BenchmarkerConfig.
+        optimize_scorer (bool): Whether to optimize scorer via data deduplication and sample weights.
         regeneration (bool): Whether to regenerate population on plateau.
         regeneration_patience (int): Epochs without improvement before regeneration.
         check_valid (Callable[[Rule], bool] | None): Optional rule validator for mutation/crossover.
@@ -43,7 +41,7 @@ class BooleanGPConfig:
         >>> config.train_data.shape
         (4, 2)
         >>> config.optimize_scorer
-        False
+        True
     """
 
     score_fn: Callable[[ndarray, ndarray], float]
@@ -53,7 +51,7 @@ class BooleanGPConfig:
     mutation_executor: MutationExecutor | None = None
     crossover_executor: CrossoverExecutor | None = None
     selection: BaseSelection | None = None
-    optimize_scorer: bool = False
+    optimize_scorer: bool = True
     regeneration: bool = False
     regeneration_patience: int = 100
     check_valid: Callable[[Rule], bool] | None = None

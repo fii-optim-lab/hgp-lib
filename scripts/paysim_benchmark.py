@@ -82,15 +82,8 @@ def main():
     data, labels, feature_names = load_and_binarize_paysim(hdf_path)
 
     # Configure GP and trainer settings
-    # - optimize_scorer=True: faster evaluation via data deduplication and sample weights
-    gp_config = BooleanGPConfig(
-        score_fn=f1_score,
-        optimize_scorer=True,  # Recommended for benchmarking (faster)
-    )
-    trainer_config = TrainerConfig(
-        gp_config=gp_config,
-        num_epochs=num_epochs,
-    )
+    gp_config = BooleanGPConfig(score_fn=f1_score)
+    trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=num_epochs)
 
     # Configure benchmarker
     # - 30 runs with different random seeds (default)

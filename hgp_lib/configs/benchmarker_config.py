@@ -29,19 +29,13 @@ class BenchmarkerConfig:
         show_fold_progress (bool): Show progress bar for folds within each run.
         show_epoch_progress (bool): Show progress bar for epochs within each fold.
 
-    Note:
-        The trainer_config.gp_config.optimize_scorer default is False for standalone
-        BooleanGP usage, but benchmarking typically benefits from optimization (faster
-        evaluation via data deduplication and sample weights). Set optimize_scorer=True
-        in your gp_config for better benchmarking performance.
-
     Examples:
         >>> import numpy as np
         >>> from hgp_lib.configs import BooleanGPConfig, TrainerConfig, BenchmarkerConfig
         >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
         >>> labels = np.array([1, 0, 1, 0])
         >>> def accuracy(p, l): return float((p == l).mean())
-        >>> gp_config = BooleanGPConfig(score_fn=accuracy, optimize_scorer=True)
+        >>> gp_config = BooleanGPConfig(score_fn=accuracy)
         >>> trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=10)
         >>> config = BenchmarkerConfig(
         ...     data=data, labels=labels, trainer_config=trainer_config, n_folds=2

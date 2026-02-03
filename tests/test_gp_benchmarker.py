@@ -384,10 +384,10 @@ class TestGPBenchmarker(unittest.TestCase):
         self.assertEqual(len(result.run_metrics), 1)
         self.assertIsNotNone(result.run_metrics[0].test_score)
 
-    def test_optimize_scorer_default_is_false_in_gp_config(self):
-        """Test that optimize_scorer defaults to False in BooleanGPConfig."""
+    def test_optimize_scorer_default_is_true_in_gp_config(self):
+        """Test that optimize_scorer defaults to True in BooleanGPConfig."""
         gp_config = BooleanGPConfig(score_fn=accuracy_with_sample_weight)
-        self.assertFalse(gp_config.optimize_scorer)
+        self.assertTrue(gp_config.optimize_scorer)
 
     def test_optimize_scorer_with_different_val_score_fn(self):
         """Test optimize_scorer with separate train and val score functions."""

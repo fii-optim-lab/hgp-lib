@@ -59,9 +59,7 @@ def execute_single_run(
 
     fold_splits = skf.split(train_data, train_labels)
     if show_folds:
-        fold_splits = tqdm(
-            fold_splits, total=config.n_folds, desc="Folds", leave=False
-        )
+        fold_splits = tqdm(fold_splits, total=config.n_folds, desc="Folds", leave=False)
 
     for train_idx, val_idx in fold_splits:
         fold_train = train_data[train_idx]
@@ -89,7 +87,7 @@ def execute_single_run(
         train_metrics = trainer.gp_algo.validate_best(
             fold_train,
             fold_train_labels,
-            score_fn=trainer.score_fn,
+            score_fn=trainer.gp_algo.score_fn,
             all_time_best=True,
         )
         val_metrics = trainer.gp_algo.validate_best(
