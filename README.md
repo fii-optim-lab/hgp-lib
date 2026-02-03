@@ -33,28 +33,33 @@ val_data = binarizer.transform(val_data)
 test_data = binarizer.transform(test_data)
 ```
 
+**Config-based API**: The library uses dataclass configs (`BooleanGPConfig`, `TrainerConfig`, `BenchmarkerConfig`) for all main components. When you pass training data in a config, **the number of features is derived from the data** (`train_data.shape[1]`), so you do not need to pass `num_literals` when using default population generator and mutation executor.
 
 ### Simple training
 
-The snippet below will run a training with default hyperparameters.
+The snippet below will run a training with default hyperparameters. Use `BooleanGPConfig` and `TrainerConfig` to configure the run.
 
 ```python
+from hgp_lib import BooleanGPConfig, TrainerConfig
 from hgp_lib.trainers import GPTrainer
-
 
 score_fn = ...  # My scoring function
 num_epochs = 1000
 
-trainer = GPTrainer(
-    num_epochs=num_epochs,  # Optional
-    score_fn=score_fn,  # Mandatory
-    train_data=train_data,  # Mandatory
-    train_labels=train_labels,  # Optional
-    val_data=val_data,  # Optional
-    val_labels=val_labels,  # Optional
+gp_config = BooleanGPConfig(
+    train_data=train_data,
+    train_labels=train_labels,
+    score_fn=score_fn,
 )
-trainer_metrics = trainer.fit()
-test_metrics = trainer.evaluate(test_data, test_labels)
+config = TrainerConfig(
+    gp_config=gp_config,
+    num_epochs=num_epochs,
+    val_data=val_data,
+    val_labels=val_labels,
+)
+trainer = GPTrainer(config)
+result = trainer.fit()
+test_metrics = trainer.score(test_data, test_labels)
 ```
 
 ### Hyperparameter configuration
@@ -83,12 +88,13 @@ def is_rule_valid(rule: Rule) -> bool:
     return True
 
 
-literal_mutations = create_standard_literal_mutations(train_data.shape[1])
-operator_mutations = create_standard_operator_mutations(train_data.shape[1])
+num_features = train_data.shape[1]  # Derive from data; no need to pass num_literals into config when using defaults
+literal_mutations = create_standard_literal_mutations(num_features)
+operator_mutations = create_standard_operator_mutations(num_features)
 
-random_strategy = RandomStrategy(num_literals=train_data.shape[1])
+random_strategy = RandomStrategy(num_literals=num_features)
 best_literal_strategy = BestLiteralStrategy(
-    num_literals=train_data.shape[1],
+    num_literals=num_features,
     score_fn=score_fn,
     train_data=train_data,
     train_labels=train_labels,
@@ -157,75 +163,81 @@ initial_population = generator.generate()
 
 ### Low level usage with fine control
 
+Use `BooleanGPConfig` to configure the algorithm. Training data is passed in the config; **the number of features (num_features) is derived from the data shape**, so you do not need to pass `num_literals` separately when using default population generator and mutation executor.
+
 ```python
+from hgp_lib import BooleanGPConfig
 from hgp_lib.algorithms import BooleanGP
 
-
-
-gp_algo = BooleanGP(
-    score_fn=score_fn,  # Mandatory
-    mutation_executor=mutation_executor,  # Mandatory
-    
-    population_generator=population_generator,  # Mandatory
-    crossover_executor=crossover_executor,  # Optional
-    selection=selection,  # Optional
-    
-    regeneration=regeneration,  # Optional
-    regeneration_patience=regeneration_patience,  # Optional
+gp_config = BooleanGPConfig(
+    train_data=train_data,
+    train_labels=train_labels,
+    score_fn=score_fn,
+    population_generator=population_generator,  # Optional; default uses num_features from data
+    mutation_executor=mutation_executor,  # Optional; default uses num_features from data
+    crossover_executor=crossover_executor,
+    selection=selection,
+    regeneration=regeneration,
+    regeneration_patience=regeneration_patience,
 )
+gp_algo = BooleanGP(gp_config)
 
 for i in range(num_epochs):
-    train_metrics = gp_algo.step(train_data, train_labels)
+    train_metrics = gp_algo.step()  # No arguments; uses data from config
     if i % 100 == 0:
         val_metrics = gp_algo.validate_population(val_data, val_labels)
-        print(f"Epoch {i} -> {val_metrics['best']}, Population average: {val_metrics['population_scores'].mean()}")
+        print(f"Epoch {i} -> {val_metrics.best}, Population average: {val_metrics.population_scores.mean()}")
 
 test_metrics = gp_algo.validate_population(test_data, test_labels, all_time_best=True)
-print(f"Test result: Best: {test_metrics['best']}, Population average: {test_metrics['population_scores'].mean()}")
+print(f"Test result: Best: {test_metrics.best}, Population average: {test_metrics.population_scores.mean()}")
 ```
 
 For lower level usage, consider inheriting from `BooleanGP` or `BooleanHGP` and overwriting `step`.
 
 ### Using a Boolean GP Trainer
 
+Build a `BooleanGPConfig` and wrap it in a `TrainerConfig`. The trainer accepts only `TrainerConfig`.
+
 ```python
+from hgp_lib import BooleanGPConfig, TrainerConfig
 from hgp_lib.trainers import GPTrainer
 
-
-trainer = GPTrainer(
-    score_fn=score_fn,  # Mandatory
-    num_epochs=num_epochs,  # Mandatory
-
-    train_data=train_data,  # Mandatory
-    train_labels=train_labels,  # Optional
-    val_data=val_data,  # Optional
-    val_labels=val_labels,  # Optional
-
-    population_generator=population_generator,  # Optional
-    mutation_executor=mutation_executor,  # Optional
-    crossover_executor=crossover_executor,  # Optional
-    selection=selection,  # Optional
-    
-    regeneration=regeneration,  # Optional
-    regeneration_patience=regeneration_patience,  # Optional
-    val_every=100,  # Optional
+gp_config = BooleanGPConfig(
+    train_data=train_data,
+    train_labels=train_labels,
+    score_fn=score_fn,
+    population_generator=population_generator,
+    mutation_executor=mutation_executor,
+    crossover_executor=crossover_executor,
+    selection=selection,
+    regeneration=regeneration,
+    regeneration_patience=regeneration_patience,
 )
-trainer_metrics = trainer.fit()
+config = TrainerConfig(
+    gp_config=gp_config,
+    num_epochs=num_epochs,
+    val_data=val_data,
+    val_labels=val_labels,
+    val_every=100,
+)
+trainer = GPTrainer(config)
+result = trainer.fit()
 test_metrics = trainer.score(test_data, test_labels)
+# result.train_history.best_scores(), result.train_history.mean_scores(), etc.
 ```
 
 
 ### Benchmarking Boolean GP
 
-The benchmarker runs multiple full runs (default 30), each with a stratified train/test split and k-fold CV on the training set. Results are aggregated across runs. Runs execute in parallel by default.
+The benchmarker runs multiple full runs (default 30), each with a stratified train/test split and k-fold CV on the training set. Results are aggregated across runs. Runs execute in parallel by default. The benchmarker accepts only a `BenchmarkerConfig`.
 
 **Scorer Optimization**: The benchmarker can automatically optimize scorers per fold by deduplicating data and using sample weights. This significantly speeds up scoring for datasets with many duplicate rows. To use this feature, pass a base scorer (not pre-optimized) that accepts a `sample_weight` parameter.
 
 ```python
+import numpy as np
+from hgp_lib import BenchmarkerConfig
 from hgp_lib.benchmarkers import GPBenchmarker
 
-
-# Define a scorer that supports sample_weight for optimization
 def f1_score(predictions, labels, sample_weight=None):
     if sample_weight is None:
         tp = (predictions & labels).sum()
@@ -238,37 +250,22 @@ def f1_score(predictions, labels, sample_weight=None):
         return 1.0 if pred_sum == label_sum == 0 else 0.0
     return 2 * tp / (pred_sum + label_sum)
 
-
-benchmarker = GPBenchmarker(
-    score_fn=f1_score,  # Mandatory (base scorer, not pre-optimized)
-    num_epochs=num_epochs,  # Mandatory
-    data=data,  # Mandatory (full dataset; split internally)
-    labels=labels,  # Mandatory
-
-    num_runs=30,  # Optional, number of benchmark runs
-    test_size=0.2,  # Optional, fraction for test set
-    n_folds=5,  # Optional, k for k-fold CV per run
-    n_jobs=-1,  # Optional, parallel jobs (-1 = all CPUs)
-    optimize_scorer=True,  # Optional, optimize scorer per fold (default: True)
-
-    population_generator=population_generator,  # Optional
-    mutation_executor=mutation_executor,  # Optional
-    crossover_executor=crossover_executor,  # Optional
-    selection=selection,  # Optional
-
-    regeneration=regeneration,  # Optional
-    regeneration_patience=regeneration_patience,  # Optional
-    val_every=100,  # Optional
-
-    progress_bar=True,  # Optional
-    show_run_progress=True,  # Optional
-    show_fold_progress=True,  # Optional (sequential only)
-    show_epoch_progress=True,  # Optional (sequential only)
+config = BenchmarkerConfig(
+    data=data,
+    labels=labels,
+    score_fn=f1_score,
+    num_epochs=num_epochs,
+    num_runs=30,
+    test_size=0.2,
+    n_folds=5,
+    n_jobs=-1,
+    optimize_scorer=True,
+    val_every=100,
 )
-benchmark_metrics = benchmarker.fit()
-# benchmark_metrics contains: run_metrics, mean_test_score, std_test_score,
-# mean_best_val_score, std_best_val_score, all_test_scores
-# Per-run test scores and best rules are in benchmark_metrics["run_metrics"]
+benchmarker = GPBenchmarker(config)
+result = benchmarker.fit()
+# result.run_metrics, result.mean_test_score, result.std_test_score,
+# result.mean_best_val_score, result.std_best_val_score, result.all_test_scores, result.all_best_rules
 ```
 
 **Important**: Do NOT pass pre-optimized scorers (e.g., from `optimize_scorer_for_data`) when using the benchmarker. Pre-optimized scorers have sample weights bound to the original data, which become invalid after train/test/fold splits. Either pass a base scorer with `optimize_scorer=True` (default), or use `optimize_scorer=False` for scorers without `sample_weight` support.

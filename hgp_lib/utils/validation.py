@@ -6,6 +6,16 @@ from ..rules import Rule
 
 
 def validate_callable(maybe_callable: Callable, error_message: str | None = None):
+    """
+    Validate that a value is callable.
+
+    Args:
+        maybe_callable: Value to check.
+        error_message: Optional custom error message.
+
+    Raises:
+        TypeError: If value is not callable.
+    """
     if not callable(maybe_callable):
         if error_message is None:
             error_message = f"score_fn must be callable, is {type(maybe_callable)}"
@@ -13,6 +23,16 @@ def validate_callable(maybe_callable: Callable, error_message: str | None = None
 
 
 def check_isinstance(value: Any, expected_type: Type | Tuple[Type, ...]):
+    """
+    Check that a value is an instance of expected type(s).
+
+    Args:
+        value: Value to check.
+        expected_type: Expected type or tuple of types.
+
+    Raises:
+        TypeError: If value is not an instance of expected type.
+    """
     if not isinstance(value, expected_type):
         name = "<unknown value>"
         # Search the name in the caller
@@ -33,6 +53,16 @@ def check_isinstance(value: Any, expected_type: Type | Tuple[Type, ...]):
 
 
 def validate_num_literals(num_literals: int):
+    """
+    Validate num_literals parameter.
+
+    Args:
+        num_literals: Number of literals (must be > 1).
+
+    Raises:
+        TypeError: If not an integer.
+        ValueError: If <= 1.
+    """
     check_isinstance(num_literals, int)
     if num_literals <= 1:
         raise ValueError(
@@ -41,6 +71,16 @@ def validate_num_literals(num_literals: int):
 
 
 def validate_operator_types(operator_types: Sequence[Type[Rule]]):
+    """
+    Validate operator_types parameter.
+
+    Args:
+        operator_types: Sequence of Rule subclasses.
+
+    Raises:
+        TypeError: If not a sequence or contains non-Rule types.
+        ValueError: If fewer than 2 types.
+    """
     check_isinstance(operator_types, Sequence)
     if len(operator_types) < 2:
         raise ValueError("operator_types must have at least two operator types")
@@ -85,50 +125,3 @@ def check_X_y(X: np.ndarray, y: np.ndarray):
         raise ValueError(f"X must be 2D array (samples, features), got shape {X.shape}")
     if y.ndim != 1:
         raise ValueError(f"y must be 1D array (samples), got shape {y.shape}")
-
-
-def validate_trainer_params(
-    score_fn: Callable,
-    num_epochs: int,
-    train_data: np.ndarray,
-    train_labels: np.ndarray,
-    val_every: int,
-    regeneration_patience: int,
-    val_score_fn: Callable | None,
-):
-    """
-    Validate common parameters shared by GPTrainer and GPBenchmarker.
-
-    This function consolidates validation logic for parameters that are used
-    by both the trainer and benchmarker classes.
-
-    Args:
-        score_fn (Callable): Scoring function (must be callable).
-        num_epochs (int): Number of training epochs (must be positive).
-        train_data (np.ndarray): Training data array (2D).
-        train_labels (np.ndarray): Training labels array (1D).
-        val_every (int): Validation frequency (must be positive).
-        regeneration_patience (int): Regeneration patience (must be positive).
-        val_score_fn (Callable | None): Optional validation scoring function.
-
-    Raises:
-        TypeError: If any parameter has an incorrect type.
-        ValueError: If any parameter has an invalid value.
-    """
-    validate_callable(score_fn)
-    check_isinstance(num_epochs, int)
-    if num_epochs < 1:
-        raise ValueError("num_epochs must be a positive integer")
-
-    check_X_y(train_data, train_labels)
-
-    if val_score_fn is not None:
-        validate_callable(val_score_fn)
-
-    check_isinstance(val_every, int)
-    if val_every < 1:
-        raise ValueError("val_every must be a positive integer")
-
-    check_isinstance(regeneration_patience, int)
-    if regeneration_patience < 1:
-        raise ValueError("regeneration_patience must be a positive integer")
