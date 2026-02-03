@@ -76,8 +76,8 @@ class BooleanGP:
             )
 
         self.score_fn = score_fn
-        self._train_data = train_data
-        self._train_labels = train_labels
+        self.train_data = train_data
+        self.train_labels = train_labels
         num_features = train_data.shape[1]
 
         population_generator = config.population_generator
@@ -139,7 +139,7 @@ class BooleanGP:
         self.population += self.crossover_executor.apply(self.population)
         self.mutation_executor.apply(self.population)
         scores = self._evaluate_population(
-            self._train_data, self._train_labels, self.score_fn
+            self.train_data, self.train_labels, self.score_fn
         )
         return self._new_generation(scores)
 
