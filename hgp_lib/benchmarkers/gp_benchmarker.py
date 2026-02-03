@@ -1,6 +1,6 @@
 import os
 import random
-from typing import Any, Callable, Dict, List
+from typing import Callable, List, NamedTuple
 
 import numpy as np
 from numpy import ndarray
@@ -23,10 +23,32 @@ from ..utils.validation import (
 )
 
 
+class BenchmarkConfig(NamedTuple):
+    data: ndarray
+    labels: ndarray
+    test_size: float
+    n_folds: int
+    num_epochs: int
+    score_fn: Callable[[ndarray, ndarray], float]
+    val_score_fn: Callable[[ndarray, ndarray], float]
+    optimize_scorer: bool
+    check_valid: Callable[[Rule], bool] | None
+    population_generator: PopulationGenerator | None
+    mutation_executor: MutationExecutor | None
+    crossover_executor: CrossoverExecutor | None
+    selection: BaseSelection | None
+    regeneration: bool
+    regeneration_patience: int
+    val_every: int
+    show_fold_progress: bool
+    show_epoch_progress: bool
+    progress_bar: bool
+
+
 def _execute_single_run(
     run_id: int,
     seed: int,
-    config: Dict[str, Any],
+    config: BenchmarkConfig,
 ) -> RunMetrics:
     """
     Execute one benchmark run: stratified train/test split, k-fold CV, select best fold, test.
@@ -38,13 +60,8 @@ def _execute_single_run(
             Index of the run (0-based).
         seed (int):
             Random seed for stratified split and k-fold.
-        config (Dict[str, Any]):
-            Configuration dictionary containing all parameters for the run.
-            Must include: data, labels, test_size, n_folds, num_epochs, score_fn,
-            val_score_fn, check_valid, population_generator, mutation_executor,
-            crossover_executor, selection, regeneration, regeneration_patience,
-            val_every, show_fold_progress, show_epoch_progress, progress_bar,
-            optimize_scorer.
+        config (BenchmarkConfig):
+            Configuration for the benchmark run.
 
     Returns:
         RunMetrics: Metrics for the run including fold scores, best rule, and validation score.
@@ -52,39 +69,22 @@ def _execute_single_run(
     Raises:
         RuntimeError: If no best rule is available after training a fold.
     """
-    data = config["data"]
-    labels = config["labels"]
-    test_size = config["test_size"]
-    n_folds = config["n_folds"]
-    num_epochs = config["num_epochs"]
-    score_fn = config["score_fn"]
-    val_score_fn = config["val_score_fn"]
-    check_valid = config["check_valid"]
-    population_generator = config["population_generator"]
-    mutation_executor = config["mutation_executor"]
-    crossover_executor = config["crossover_executor"]
-    selection = config["selection"]
-    regeneration = config["regeneration"]
-    regeneration_patience = config["regeneration_patience"]
-    val_every = config["val_every"]
-    optimize_scorer = config["optimize_scorer"]
-
-    # Compute effective progress bar flags once
-    show_folds = config["show_fold_progress"] and config["progress_bar"]
-    show_epochs = config["show_epoch_progress"] and config["progress_bar"]
+    # Compute effective progress bar flags
+    show_folds = config.show_fold_progress and config.progress_bar
+    show_epochs = config.show_epoch_progress and config.progress_bar
 
     np.random.seed(seed)
     random.seed(seed)
 
     train_data, test_data, train_labels, test_labels = train_test_split(
-        data,
-        labels,
-        test_size=test_size,
-        stratify=labels,
+        config.data,
+        config.labels,
+        test_size=config.test_size,
+        stratify=config.labels,
         random_state=seed,
     )
 
-    skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=seed)
+    skf = StratifiedKFold(n_splits=config.n_folds, shuffle=True, random_state=seed)
 
     fold_train_scores: List[float] = []
     fold_val_scores: List[float] = []
@@ -92,7 +92,9 @@ def _execute_single_run(
 
     fold_iterator = list(skf.split(train_data, train_labels))
     if show_folds:
-        fold_iterator = tqdm(fold_iterator, total=n_folds, desc="  Folds", leave=False)
+        fold_iterator = tqdm(
+            fold_iterator, total=config.n_folds, desc="  Folds", leave=False
+        )
 
     for train_idx, val_idx in fold_iterator:
         fold_train = train_data[train_idx]
@@ -101,28 +103,27 @@ def _execute_single_run(
         fold_val_labels = train_labels[val_idx]
 
         trainer = GPTrainer(
-            score_fn=score_fn,
-            num_epochs=num_epochs,
+            score_fn=config.score_fn,
+            num_epochs=config.num_epochs,
             train_data=fold_train,
             train_labels=fold_train_labels,
             val_data=fold_val,
             val_labels=fold_val_labels,
-            val_score_fn=val_score_fn,
-            check_valid=check_valid,
-            population_generator=population_generator,
-            mutation_executor=mutation_executor,
-            crossover_executor=crossover_executor,
-            selection=selection,
-            regeneration=regeneration,
-            regeneration_patience=regeneration_patience,
-            val_every=val_every,
+            val_score_fn=config.val_score_fn,
+            check_valid=config.check_valid,
+            population_generator=config.population_generator,
+            mutation_executor=config.mutation_executor,
+            crossover_executor=config.crossover_executor,
+            selection=config.selection,
+            regeneration=config.regeneration,
+            regeneration_patience=config.regeneration_patience,
+            val_every=config.val_every,
             progress_bar=show_epochs,
             progress_desc="    Epochs" if show_epochs else None,
-            optimize_scorer=optimize_scorer,
+            optimize_scorer=config.optimize_scorer,
         )
         trainer.fit()
 
-        # Use trainer's (potentially optimized) data and scorers for validation
         train_metrics = trainer.gp_algo.validate_best(
             trainer.train_data,
             trainer.train_labels,
@@ -150,13 +151,12 @@ def _execute_single_run(
     best_fold_val_score = fold_val_scores[best_fold_idx]
     best_rule = fold_best_rules[best_fold_idx]
 
-    # Optimize scorer for test data if requested
-    if optimize_scorer:
+    if config.optimize_scorer:
         test_score_fn, test_data_opt, test_labels_opt = optimize_scorer_for_data(
-            score_fn, test_data, test_labels
+            config.score_fn, test_data, test_labels
         )
     else:
-        test_score_fn = score_fn
+        test_score_fn = config.score_fn
         test_data_opt = test_data
         test_labels_opt = test_labels
 
@@ -431,12 +431,12 @@ class GPBenchmarker:
             return os.cpu_count() or 1
         return max(1, self.n_jobs)
 
-    def _build_config(self) -> Dict[str, Any]:
+    def _build_config(self) -> BenchmarkConfig:
         """
-        Build a picklable config dict for worker processes.
+        Build a picklable config for worker processes.
 
         Returns:
-            Dict[str, Any]: Configuration dictionary with all parameters needed
+            BenchmarkConfig: Configuration with all parameters needed
             by `_execute_single_run`.
 
         Examples:
@@ -447,41 +447,41 @@ class GPBenchmarker:
             >>> def score(p, l): return float((p == l).mean())
             >>> b = GPBenchmarker(score, 1, data, labels, n_folds=2, optimize_scorer=False)
             >>> config = b._build_config()
-            >>> config["n_folds"]
+            >>> config.n_folds
             2
-            >>> config["optimize_scorer"]
+            >>> config.optimize_scorer
             False
-            >>> config["score_fn"] is score
+            >>> config.score_fn is score
             True
         """
-        return {
-            "data": self.data,
-            "labels": self.labels,
-            "test_size": self.test_size,
-            "n_folds": self.n_folds,
-            "num_epochs": self.num_epochs,
-            "score_fn": self.score_fn,
-            "val_score_fn": self.val_score_fn,
-            "optimize_scorer": self.optimize_scorer,
-            "check_valid": self.check_valid,
-            "population_generator": self.population_generator,
-            "mutation_executor": self.mutation_executor,
-            "crossover_executor": self.crossover_executor,
-            "selection": self.selection,
-            "regeneration": self.regeneration,
-            "regeneration_patience": self.regeneration_patience,
-            "val_every": self.val_every,
-            "show_fold_progress": self.show_fold_progress,
-            "show_epoch_progress": self.show_epoch_progress,
-            "progress_bar": self.progress_bar,
-        }
+        return BenchmarkConfig(
+            data=self.data,
+            labels=self.labels,
+            test_size=self.test_size,
+            n_folds=self.n_folds,
+            num_epochs=self.num_epochs,
+            score_fn=self.score_fn,
+            val_score_fn=self.val_score_fn,
+            optimize_scorer=self.optimize_scorer,
+            check_valid=self.check_valid,
+            population_generator=self.population_generator,
+            mutation_executor=self.mutation_executor,
+            crossover_executor=self.crossover_executor,
+            selection=self.selection,
+            regeneration=self.regeneration,
+            regeneration_patience=self.regeneration_patience,
+            val_every=self.val_every,
+            show_fold_progress=self.show_fold_progress,
+            show_epoch_progress=self.show_epoch_progress,
+            progress_bar=self.progress_bar,
+        )
 
-    def _run_sequential(self, config: Dict[str, Any]) -> List[RunMetrics]:
+    def _run_sequential(self, config: BenchmarkConfig) -> List[RunMetrics]:
         """
         Run all benchmark runs sequentially with nested progress bars.
 
         Args:
-            config (Dict[str, Any]): Configuration dictionary for the run.
+            config (BenchmarkConfig): Configuration for the run.
 
         Returns:
             List[RunMetrics]: Metrics for each run.
