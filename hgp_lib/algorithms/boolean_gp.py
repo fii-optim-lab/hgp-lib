@@ -3,8 +3,13 @@ from typing import Callable, List
 from numpy import ndarray
 import numpy as np
 
-from hgp_lib.mutations import MutationExecutor
-from hgp_lib.populations import PopulationGenerator
+from hgp_lib.mutations import (
+    MutationExecutor,
+    create_standard_literal_mutations,
+    create_standard_operator_mutations,
+)
+from hgp_lib.populations import PopulationGenerator, RandomStrategy
+from hgp_lib.populations.sampling import SamplingStrategy
 from hgp_lib.rules import Rule
 from hgp_lib.utils.metrics import normalize
 from hgp_lib.utils.validation import check_isinstance, validate_callable
@@ -57,6 +62,15 @@ class BooleanGP:
         regeneration_patience (int, optional):
             Number of epochs without improvement before regenerating the population.
             Must be positive when `regeneration=True`. Default: `100`.
+        num_child_populations (int, optional):
+            Number of child populations to create for hierarchical GP.
+            Must be a non-negative integer. Default: `0`.
+        depth (int, optional):
+            Hierarchical depth controlling recursive child creation.
+            When depth=0, no children are created. Must be a non-negative integer. Default: `0`.
+        sampling_strategy (SamplingStrategy | None, optional):
+            Strategy for sampling data/features when creating child populations.
+            Required when depth > 0. Default: `None`.
 
     Attributes:
         child_populations (List[BooleanGP]):
@@ -64,6 +78,12 @@ class BooleanGP:
         feature_mapping (dict[int, int] | None):
             Mapping from this population's feature indices to the parent's indices.
             Used when this population operates on a feature subset. None for root populations.
+        num_child_populations (int):
+            Number of child populations configured for this instance.
+        depth (int):
+            Hierarchical depth for this instance.
+        sampling_strategy (SamplingStrategy | None):
+            The sampling strategy used for creating child populations.
 
     Examples:
         >>> import numpy as np
@@ -99,6 +119,56 @@ class BooleanGP:
         >>> metrics = gp.step()
         >>> metrics['epoch']
         0
+
+        Hierarchical GP Example:
+            >>> import numpy as np
+            >>> from hgp_lib.algorithms import BooleanGP
+            >>> from hgp_lib.mutations import (
+            ...     MutationExecutor, create_standard_literal_mutations, create_standard_operator_mutations
+            ... )
+            >>> from hgp_lib.populations import PopulationGenerator, RandomStrategy
+            >>> from hgp_lib.populations.sampling import FeatureSamplingStrategy
+            >>>
+            >>> def accuracy(predictions, labels):
+            ...     return np.mean(predictions == labels)
+            >>>
+            >>> # Create generator and mutation executor for 8 features
+            >>> generator = PopulationGenerator(
+            ...     strategies=[RandomStrategy(num_literals=8)],
+            ...     population_size=10
+            ... )
+            >>> mutation_executor = MutationExecutor(
+            ...     literal_mutations=create_standard_literal_mutations(8),
+            ...     operator_mutations=create_standard_operator_mutations(8)
+            ... )
+            >>>
+            >>> # Create sampling strategy for feature bagging
+            >>> sampling_strategy = FeatureSamplingStrategy(feature_fraction=1.0)
+            >>>
+            >>> train_data = np.random.rand(100, 8) > 0.5
+            >>> train_labels = np.random.randint(0, 2, 100)
+            >>>
+            >>> # Create hierarchical GP with 3 child populations at depth 1
+            >>> gp = BooleanGP(
+            ...     score_fn=accuracy,
+            ...     train_data=train_data,
+            ...     train_labels=train_labels,
+            ...     population_generator=generator,
+            ...     mutation_executor=mutation_executor,
+            ...     num_child_populations=3,
+            ...     depth=1,
+            ...     sampling_strategy=sampling_strategy
+            ... )
+            >>>
+            >>> # Verify child populations were created
+            >>> len(gp.child_populations)
+            3
+            >>> # Each child has a feature mapping
+            >>> all(child.feature_mapping is not None for child in gp.child_populations)
+            True
+            >>> # Children have depth 0 (no grandchildren)
+            >>> all(child.depth == 0 for child in gp.child_populations)
+            True
     """
 
     def __init__(
@@ -112,6 +182,9 @@ class BooleanGP:
         selection: BaseSelection | None = None,
         regeneration: bool = False,
         regeneration_patience: int = 100,
+        num_child_populations: int = 0,
+        depth: int = 0,
+        sampling_strategy: SamplingStrategy | None = None,
     ):
         # TODO: We should reconsider the ordering of the arguments for score fn. Pred, GT or GT, Pred?
         validate_callable(score_fn)
@@ -144,6 +217,18 @@ class BooleanGP:
         if regeneration and regeneration_patience < 1:
             raise ValueError("regeneration_patience must be a positive integer")
 
+        # Validate hierarchical parameters
+        check_isinstance(num_child_populations, int)
+        check_isinstance(depth, int)
+        if num_child_populations < 0:
+            raise ValueError("num_child_populations must be non-negative")
+        if depth < 0:
+            raise ValueError("depth must be non-negative")
+        if depth > 0 and sampling_strategy is None:
+            raise ValueError("sampling_strategy required when depth > 0")
+        if sampling_strategy is not None:
+            check_isinstance(sampling_strategy, SamplingStrategy)
+
         self.score_fn = score_fn
         self.population_generator = population_generator
         self.mutation_executor = mutation_executor
@@ -151,6 +236,11 @@ class BooleanGP:
         self.selection = selection
         self.regeneration = regeneration
         self.regeneration_patience = regeneration_patience
+
+        # Hierarchical parameters
+        self.num_child_populations = num_child_populations
+        self.depth = depth
+        self.sampling_strategy = sampling_strategy
 
         self.population = self.population_generator.generate()
         self.population_size = len(self.population)
@@ -166,6 +256,84 @@ class BooleanGP:
         self.feature_mapping: dict[int, int] | None = None
         self.child_population_sizes: List[int] = []
         self.parent_rule_indices: List[int] = []
+
+        # Create child populations if depth > 0
+        if depth > 0 and num_child_populations > 0:
+            self._create_child_populations()
+
+    def _create_child_populations(self) -> None:
+        """Create child populations using the sampling strategy.
+
+        For each child population:
+        1. Applies the sampling strategy to obtain sampled data and feature indices
+        2. Creates an adapted PopulationGenerator with the sampled feature count
+        3. Creates an adapted MutationExecutor with the sampled feature count
+        4. Instantiates a child BooleanGP with sampled data and depth-1
+        5. Sets the child's feature_mapping from the sampling result's feature_indices
+
+        The feature_mapping enables translation of child feature indices to parent
+        feature indices during crossover operations.
+
+        Raises:
+            RuntimeError: If called when sampling_strategy is None.
+        """
+        if self.sampling_strategy is None:
+            raise RuntimeError(
+                "Cannot create child populations without a sampling strategy"
+            )
+
+        num_features = self.train_data.shape[1]
+
+        for _ in range(self.num_child_populations):
+            # Sample data using the strategy
+            result = self.sampling_strategy.sample(
+                self.train_data,
+                self.train_labels,
+                num_features,
+                self.num_child_populations,
+            )
+
+            num_sampled_features = len(result.feature_indices)
+
+            # Create adapted generator with sampled feature count
+            child_generator = PopulationGenerator(
+                strategies=[RandomStrategy(num_literals=num_sampled_features)],
+                population_size=self.population_generator.population_size,
+            )
+
+            # Create adapted mutation executor with sampled feature count
+            child_mutation_executor = MutationExecutor(
+                literal_mutations=create_standard_literal_mutations(
+                    num_sampled_features
+                ),
+                operator_mutations=create_standard_operator_mutations(
+                    num_sampled_features
+                ),
+                mutation_p=self.mutation_executor.mutation_p,
+            )
+
+            # Create child BooleanGP with sampled data and depth-1
+            child = BooleanGP(
+                score_fn=self.score_fn,
+                train_data=result.data,
+                train_labels=result.labels,
+                population_generator=child_generator,
+                mutation_executor=child_mutation_executor,
+                crossover_executor=self.crossover_executor,
+                selection=self.selection,
+                regeneration=self.regeneration,
+                regeneration_patience=self.regeneration_patience,
+                num_child_populations=self.num_child_populations,
+                depth=self.depth - 1,
+                sampling_strategy=self.sampling_strategy,
+            )
+
+            # Set feature mapping: local index -> parent index
+            child.feature_mapping = {
+                i: int(result.feature_indices[i]) for i in range(num_sampled_features)
+            }
+
+            self.child_populations.append(child)
 
     def step(self) -> StepMetrics:
         """
@@ -329,7 +497,9 @@ class BooleanGP:
             if (
                 index >= self.population_size
             ):  # index is not from the current population
-                child_population_index, remainder = self.get_index_from_helper(index - self.population_size)
+                child_population_index, remainder = self.get_index_from_helper(
+                    index - self.population_size
+                )
                 child_population_scores[child_population_index][remainder] += (
                     normalized_scores[index]
                 )
@@ -541,15 +711,17 @@ class BooleanGP:
             ...     operator_mutations=create_standard_operator_mutations(4)
             ... )
             >>>
+            >>> train_data = np.array([[True, False, True, False], [False, True, False, True]])
+            >>> train_labels = np.array([1, 0])
             >>> gp = BooleanGP(
             ...     score_fn=accuracy,
+            ...     train_data=train_data,
+            ...     train_labels=train_labels,
             ...     population_generator=generator,
             ...     mutation_executor=mutation_executor
             ... )
             >>>
-            >>> train_data = np.array([[True, False, True, False], [False, True, False, True]])
-            >>> train_labels = np.array([1, 0])
-            >>> _ = gp.step(train_data, train_labels)
+            >>> _ = gp.step()
             >>> val_data = np.array([[True, True, False, False]])
             >>> val_labels = np.array([1])
             >>> metrics = gp.validate_best(val_data, val_labels)
@@ -624,16 +796,17 @@ class BooleanGP:
             ...     operator_mutations=create_standard_operator_mutations(4)
             ... )
             >>>
+            >>> train_data = np.array([[True, False, True, False], [False, True, False, True]])
+            >>> train_labels = np.array([1, 0])
             >>> gp = BooleanGP(
             ...     score_fn=accuracy,
+            ...     train_data=train_data,
+            ...     train_labels=train_labels,
             ...     population_generator=generator,
             ...     mutation_executor=mutation_executor
             ... )
             >>>
-            >>> train_data = np.array([[True, False, True, False], [False, True, False, True]])
-            >>> train_labels = np.array([1, 0])
-            >>> _ = gp.step(train_data, train_labels)
-            >>>
+            >>> _ = gp.step()
             >>> val_data = np.array([[True, True, False, False]])
             >>> val_labels = np.array([1])
             >>> metrics = gp.validate_population(val_data, val_labels)

@@ -189,6 +189,8 @@ class GPTrainer:
 
         self.gp_algo = BooleanGP(
             score_fn=score_fn,
+            train_data=train_data,
+            train_labels=train_labels,
             population_generator=population_generator,
             mutation_executor=mutation_executor,
             crossover_executor=crossover_executor,
@@ -220,7 +222,7 @@ class GPTrainer:
             leave=False,
         ) as tbar:
             for epoch in tbar:
-                train_metrics = self.gp_algo.step(self.train_data, self.train_labels)
+                train_metrics = self.gp_algo.step()
                 self._train_best_history.append(float(train_metrics["current_best"]))
 
                 if self.val_data is not None and (epoch + 1) % self.val_every == 0:
