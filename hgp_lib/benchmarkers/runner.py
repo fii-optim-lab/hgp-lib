@@ -36,7 +36,6 @@ def execute_single_run(
     Raises:
         RuntimeError: If no best rule is available after training a fold.
     """
-    # Compute effective progress bar flags
     show_folds = config.show_fold_progress and config.progress_bar
     show_epochs = config.show_epoch_progress and config.progress_bar
 
@@ -57,13 +56,13 @@ def execute_single_run(
     fold_val_scores: List[float] = []
     fold_best_rules: List[Rule] = []
 
-    fold_iterator = list(skf.split(train_data, train_labels))
-    if show_folds:
-        fold_iterator = tqdm(
-            fold_iterator, total=config.n_folds, desc="  Folds", leave=False
-        )
-
-    for train_idx, val_idx in fold_iterator:
+    for train_idx, val_idx in tqdm(
+        skf.split(train_data, train_labels),
+        total=config.n_folds,
+        desc="k-fold",
+        leave=False,
+        disable=not show_folds,
+    ):
         fold_train = train_data[train_idx]
         fold_val = train_data[val_idx]
         fold_train_labels = train_labels[train_idx]
