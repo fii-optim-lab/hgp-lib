@@ -11,7 +11,7 @@ from hgp_lib.mutations import (
 from hgp_lib.populations import PopulationGenerator, RandomStrategy
 from hgp_lib.populations.sampling import SamplingStrategy
 from hgp_lib.rules import Rule
-from hgp_lib.utils.metrics import normalize
+from hgp_lib.utils.metrics import normalize, optimize_scorer_for_data
 from hgp_lib.utils.validation import check_isinstance, validate_callable
 
 from hgp_lib.crossover import CrossoverExecutor
@@ -182,6 +182,7 @@ class BooleanGP:
         selection: BaseSelection | None = None,
         regeneration: bool = False,
         regeneration_patience: int = 100,
+        sample_weight: ndarray | None = None,
         num_child_populations: int = 0,
         depth: int = 0,
         sampling_strategy: SamplingStrategy | None = None,
@@ -203,8 +204,17 @@ class BooleanGP:
                 f"train_data rows ({train_data.shape[0]})"
             )
 
+        if sample_weight is not None:
+            check_isinstance(sample_weight, ndarray)
+            if len(sample_weight) != train_data.shape[0]:
+                raise ValueError(
+                    f"sample_weight length ({len(sample_weight)}) must match "
+                    f"train_data rows ({train_data.shape[0]})"
+                )
+
         self.train_data = train_data
         self.train_labels = train_labels
+        self.sample_weight = sample_weight
 
         if crossover_executor is not None:
             check_isinstance(crossover_executor, CrossoverExecutor)
@@ -254,6 +264,7 @@ class BooleanGP:
 
         self.child_populations: List["BooleanGP"] = []
         self.feature_mapping: dict[int, int] | None = None
+        self.instance_mapping: dict[int, int] | None = None
         self.child_population_sizes: List[int] = []
         self.parent_rule_indices: List[int] = []
 
@@ -268,11 +279,13 @@ class BooleanGP:
         1. Applies the sampling strategy to obtain sampled data and feature indices
         2. Creates an adapted PopulationGenerator with the sampled feature count
         3. Creates an adapted MutationExecutor with the sampled feature count
-        4. Instantiates a child BooleanGP with sampled data and depth-1
-        5. Sets the child's feature_mapping from the sampling result's feature_indices
+        4. Extracts sample_weight subset if instance sampling was used
+        5. Instantiates a child BooleanGP with sampled data and depth-1
+        6. Sets the child's feature_mapping and instance_mapping
 
         The feature_mapping enables translation of child feature indices to parent
-        feature indices during crossover operations.
+        feature indices during crossover operations. The instance_mapping tracks
+        which parent instances were sampled for this child.
 
         Raises:
             RuntimeError: If called when sampling_strategy is None.
@@ -312,6 +325,11 @@ class BooleanGP:
                 mutation_p=self.mutation_executor.mutation_p,
             )
 
+            # Extract sample_weight subset if instance sampling was used
+            child_sample_weight = None
+            if self.sample_weight is not None and result.instance_indices is not None:
+                child_sample_weight = self.sample_weight[result.instance_indices]
+
             # Create child BooleanGP with sampled data and depth-1
             child = BooleanGP(
                 score_fn=self.score_fn,
@@ -326,12 +344,20 @@ class BooleanGP:
                 num_child_populations=self.num_child_populations,
                 depth=self.depth - 1,
                 sampling_strategy=self.sampling_strategy,
+                sample_weight=child_sample_weight,
             )
 
             # Set feature mapping: local index -> parent index
             child.feature_mapping = {
                 i: int(result.feature_indices[i]) for i in range(num_sampled_features)
             }
+
+            # Set instance mapping if instance sampling was used
+            if result.instance_indices is not None:
+                child.instance_mapping = {
+                    i: int(result.instance_indices[i])
+                    for i in range(len(result.instance_indices))
+                }
 
             self.child_populations.append(child)
 
@@ -487,22 +513,28 @@ class BooleanGP:
                 has the same length as the corresponding child population and contains
                 accumulated normalized scores for rules that contributed to offspring.
         """
-        normalized_scores = normalize(scores)
+        # Normalize offspring scores (indices after population_size)
+        offspring_scores = scores[self.population_size:]
+        normalized_scores = normalize(offspring_scores) if len(offspring_scores) > 0 else offspring_scores
+        
         child_population_scores = [
             np.zeros(child_population_size)
             for child_population_size in self.child_population_sizes
         ]
 
-        for index in self.parent_rule_indices:
-            if (
-                index >= self.population_size
-            ):  # index is not from the current population
-                child_population_index, remainder = self.get_index_from_helper(
-                    index - self.population_size
-                )
-                child_population_scores[child_population_index][remainder] += (
-                    normalized_scores[index]
-                )
+        # For each offspring, propagate its score to parents from child populations
+        for offspring_idx in range(len(normalized_scores)):
+            parent1 = self.parent_rule_indices[2 * offspring_idx]
+            parent2 = self.parent_rule_indices[2 * offspring_idx + 1]
+            
+            for parent_idx in (parent1, parent2):
+                if parent_idx >= self.population_size:
+                    child_population_index, local_idx = self.get_index_from_helper(
+                        parent_idx - self.population_size
+                    )
+                    child_population_scores[child_population_index][local_idx] += (
+                        normalized_scores[offspring_idx]
+                    )
 
         return child_population_scores
 
@@ -533,8 +565,8 @@ class BooleanGP:
         scores = self._evaluate_population(
             self.train_data, self.train_labels, self.score_fn
         )
-        if parent_scores is not None:
-            scores += parent_scores
+        # if parent_scores is not None:
+        #     scores += parent_scores
 
         if len(self.child_populations):
             child_population_scores = self.process_helper_scores(scores)
@@ -609,6 +641,9 @@ class BooleanGP:
         Computes fitness scores for each rule by evaluating it on the data and applying
         the scoring function. This is done sequentially for each rule in the population.
 
+        When evaluating on training data (data == self.train_data), uses self.sample_weight
+        if available for weighted scoring.
+
         Args:
             data (ndarray):
                 Data to evaluate rules on. A 2D boolean array with instances on rows
@@ -616,7 +651,8 @@ class BooleanGP:
             labels (ndarray):
                 True labels for the data. A 1D integer array (0 or 1 for binary classification).
             score_fn (Callable[[ndarray, ndarray], float]):
-                Function to compute fitness scores. Signature: `score_fn(predictions, labels) -> float`.
+                Function to compute fitness scores. Signature: `score_fn(predictions, labels) -> float`
+                or `score_fn(predictions, labels, sample_weight=...) -> float`.
 
         Returns:
             ndarray: Array of fitness scores, one for each rule in the population.
@@ -624,10 +660,19 @@ class BooleanGP:
         Note:
             TODO: we should also support batched evaluation or free-threaded evaluation
         """
+        # Use sample_weight only when evaluating on training data
+        use_sample_weight = (
+            self.sample_weight is not None and data is self.train_data
+        )
+
         n = len(self.population)
         scores = np.zeros(n)
         for i in range(n):
-            scores[i] = score_fn(self.population[i].evaluate(data), labels)
+            predictions = self.population[i].evaluate(data)
+            if use_sample_weight:
+                scores[i] = score_fn(predictions, labels, sample_weight=self.sample_weight)
+            else:
+                scores[i] = score_fn(predictions, labels)
         return scores
 
     def _update_best(self, current_best: float, current_best_rule: Rule):

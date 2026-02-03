@@ -20,12 +20,12 @@ from hgp_lib.mutations import (
     create_standard_literal_mutations,
     create_standard_operator_mutations,
 )
-from hgp_lib.populations import PopulationGenerator, RandomStrategy
+from hgp_lib.populations import PopulationGenerator, RandomStrategy, FeatureSamplingStrategy, InstanceSamplingStrategy, CombinedSamplingStrategy
 from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.rules import Rule, Literal, And, Or
 
 from hgp_lib.selections import TournamentSelection, RouletteSelection
-from hgp_lib.utils.metrics import optimize_scorer_for_data
+from hgp_lib.utils.metrics import transform_duplicates_to_sample_weight
 
 
 def fast_f1_score(y_pred, y_true, sample_weight=None):
@@ -165,7 +165,7 @@ def main():
     apply_timing_decorators()
 
     hdf_path = "data/PaySim.hdf"
-    num_epochs = 1000
+    num_epochs = 4000
     population_size = 100
     max_rule_size = 50
     mutation_p = 0.05
@@ -180,12 +180,16 @@ def main():
         test_labels,
     ) = preprocess_paysim_data(hdf_path)
 
-    train_score_fn, train_data_bin, train_labels = optimize_scorer_for_data(
-        fast_f1_score, train_data_bin, train_labels
+    train_data_bin, train_labels, train_sample_weight = transform_duplicates_to_sample_weight(
+        train_data_bin, train_labels
     )
-    val_score_fn, val_data_bin, val_labels = optimize_scorer_for_data(
-        fast_f1_score, val_data_bin, val_labels
+    val_data_bin, val_labels, val_sample_weight = transform_duplicates_to_sample_weight(
+        val_data_bin, val_labels
     )
+
+    def val_score_fn(y_pred, y_true):
+        return fast_f1_score(y_pred, y_true, sample_weight=val_sample_weight)
+
     test_score_fn = fast_f1_score
 
     def is_rule_valid(rule: Rule) -> bool:
@@ -218,15 +222,23 @@ def main():
     )
 
     print("\nInitializing Boolean GP...")
+    sampling_strategy = CombinedSamplingStrategy(instance_fraction=3.0,
+                                                 feature_fraction=3.0,
+                                                 )
+
     gp_algo = BooleanGP(
-        score_fn=train_score_fn,
+        score_fn=fast_f1_score,
         train_data=train_data_bin,
         train_labels=train_labels,
         population_generator=population_generator,
         mutation_executor=mutation_executor,
         crossover_executor=crossover_executor,
         regeneration=True,
-        regeneration_patience=200,
+        regeneration_patience=300,
+        sample_weight=train_sample_weight,
+        num_child_populations=3,
+        depth=1,
+        sampling_strategy=sampling_strategy,
     )
 
     print(f"\nStarting training for {num_epochs} epochs...")

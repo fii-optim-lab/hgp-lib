@@ -52,7 +52,7 @@ class TestCrossoverExecutor(unittest.TestCase):
 
         random.seed(42)
         np.random.seed(42)
-        children = executor.apply(rules)
+        children, _ = executor.apply(rules, [None] * len(rules))
 
         # Should return children from crossover
         self.assertIsInstance(children, list)
@@ -70,7 +70,7 @@ class TestCrossoverExecutor(unittest.TestCase):
 
         random.seed(42)
         np.random.seed(42)
-        children = executor.apply(rules)
+        children, _ = executor.apply(rules, [None] * len(rules))
 
         # Original rules should be unchanged
         self.assertEqual([str(r) for r in rules], original_strs)
@@ -81,8 +81,9 @@ class TestCrossoverExecutor(unittest.TestCase):
     def test_apply_empty_list(self):
         """Test that apply handles empty list."""
         executor = CrossoverExecutor(crossover_p=1.0)
-        children = executor.apply([])
+        children, parent_indices = executor.apply([], [])
         self.assertEqual(children, [])
+        self.assertEqual(parent_indices, [])
 
     def test_crossover_subtree_swap(self):
         """Test actual subtree exchange between two parents."""
@@ -240,7 +241,7 @@ class TestCrossoverExecutor(unittest.TestCase):
         # Should round up to 4 if possible, but n=3 so rounds down to 2
         random.seed(42)
         np.random.seed(42)
-        children = executor.apply(rules)
+        children, _ = executor.apply(rules, [None] * len(rules))
 
         # Should return 2 children from 1 pair (partition_point rounds down to 2)
         self.assertIsInstance(children, list)
@@ -252,7 +253,7 @@ class TestCrossoverExecutor(unittest.TestCase):
         rules = [And([Literal(value=0), Literal(value=1)])]
 
         np.random.seed(42)
-        children = executor.apply(rules)
+        children, _ = executor.apply(rules, [None])
 
         # Single rule can't be paired, should return empty list
         self.assertEqual(len(children), 0)
@@ -268,7 +269,7 @@ class TestCrossoverExecutor(unittest.TestCase):
         ]
 
         np.random.seed(42)
-        children = executor.apply(rules)
+        children, _ = executor.apply(rules, [None] * len(rules))
 
         # With crossover_p=0.0, all random probabilities will exceed threshold,
         # so no rules should be selected for crossover
@@ -281,6 +282,63 @@ class TestCrossoverExecutor(unittest.TestCase):
     def test_utils_doctests(self):
         result = doctest.testmod(hgp_lib.rules.utils, verbose=False)
         self.assertEqual(result.failed, 0, f"Utils doctests failed: {result}")
+
+    def test_apply_returns_correct_parent_indices(self):
+        """Test that apply returns correct parent indices for each child."""
+        executor = CrossoverExecutor(crossover_p=1.0)
+        rules = [
+            And([Literal(value=0), Literal(value=1)]),
+            Or([Literal(value=2), Literal(value=3)]),
+            And([Literal(value=4), Literal(value=5)]),
+            Or([Literal(value=6), Literal(value=7)]),
+        ]
+
+        random.seed(42)
+        np.random.seed(42)
+        children, parent_indices = executor.apply(rules, [None] * len(rules))
+
+        # With 4 rules and crossover_p=1.0, we get 2 pairs -> 4 children
+        self.assertEqual(len(children), 4)
+        # Each child has 2 parent indices recorded
+        self.assertEqual(len(parent_indices), len(children) * 2)
+        # All parent indices should be valid
+        for idx in parent_indices:
+            self.assertGreaterEqual(idx, 0)
+            self.assertLess(idx, len(rules))
+
+    def test_apply_parent_indices_empty_when_no_crossover(self):
+        """Test that parent_indices is empty when no crossover occurs."""
+        executor = CrossoverExecutor(crossover_p=0.0)
+        rules = [
+            And([Literal(value=0), Literal(value=1)]),
+            Or([Literal(value=2), Literal(value=3)]),
+        ]
+
+        np.random.seed(42)
+        children, parent_indices = executor.apply(rules, [None] * len(rules))
+
+        self.assertEqual(len(children), 0)
+        self.assertEqual(len(parent_indices), 0)
+
+    def test_apply_parent_indices_track_pairs(self):
+        """Test that parent indices correctly track which rules were paired."""
+        executor = CrossoverExecutor(crossover_p=1.0)
+        rules = [
+            And([Literal(value=0), Literal(value=1)]),
+            Or([Literal(value=2), Literal(value=3)]),
+        ]
+
+        random.seed(42)
+        np.random.seed(42)
+        children, parent_indices = executor.apply(rules, [None] * len(rules))
+
+        # With 2 rules, we get 1 pair -> 2 children
+        self.assertEqual(len(children), 2)
+        # 2 children * 2 parents each = 4 indices
+        self.assertEqual(len(parent_indices), 4)
+        # Both parents (0 and 1) should appear in the indices
+        self.assertIn(0, parent_indices)
+        self.assertIn(1, parent_indices)
 
 
 if __name__ == "__main__":

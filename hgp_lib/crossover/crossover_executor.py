@@ -42,7 +42,7 @@ class CrossoverExecutor:
         ...     And([Literal(value=0), Literal(value=1)]),
         ...     Or([Literal(value=2), Literal(value=3)])
         ... ]
-        >>> children = executor.apply(rules)
+        >>> children, parent_indices = executor.apply(rules, [None, None])
         >>> len(children)
         2
     """
@@ -144,7 +144,7 @@ class CrossoverExecutor:
         """
         n = len(rules)
         if n == 0:
-            return []
+            return [], []
 
         if self.crossover_strategy == "random":
             probabilities = np.random.rand(n)
