@@ -1,20 +1,33 @@
+import inspect
 import warnings
 from functools import partial
-from typing import Callable
+from typing import Callable, Set
 
 import numpy as np
 from numpy import ndarray
 
 from hgp_lib.utils.validation import validate_callable
 
-import inspect
-
 
 # TODO: Add documentation
 # TODO: Add tests
 
+# Track scorers that have already been warned about missing sample_weight support
+_warned_scorers: Set[int] = set()
 
-def accepts_sample_weight(scorer):
+
+def accepts_sample_weight(scorer: Callable) -> bool:
+    """
+    Check if a scorer function accepts a sample_weight parameter.
+
+    First checks the function signature, then falls back to a runtime test.
+
+    Args:
+        scorer: The scoring function to check.
+
+    Returns:
+        True if the scorer accepts sample_weight, False otherwise.
+    """
     try:
         sig = inspect.signature(scorer)
         for param in sig.parameters.values():
@@ -33,7 +46,17 @@ def accepts_sample_weight(scorer):
         return False
 
 
-def transform_duplicates_to_sample_weight(data, labels):
+def transform_duplicates_to_sample_weight(data: ndarray, labels: ndarray):
+    """
+    Transform data by removing duplicates and computing sample weights.
+
+    Args:
+        data: Input data array (2D).
+        labels: Labels array (1D).
+
+    Returns:
+        Tuple of (unique_data, unique_labels, sample_weights).
+    """
     Xy = np.hstack((data, labels[:, None]))
     Xy_unique, sample_weight = np.unique(Xy, axis=0, return_counts=True)
     return Xy_unique[:, :-1], Xy_unique[:, -1], sample_weight
@@ -42,12 +65,33 @@ def transform_duplicates_to_sample_weight(data, labels):
 def optimize_scorer_for_data(
     scorer: Callable[[ndarray, ndarray], float], data: ndarray, labels: ndarray
 ):
+    """
+    Optimize a scorer for the given data by deduplicating and using sample weights.
+
+    If the scorer supports sample_weight, duplicates are removed and weights are
+    computed. Otherwise, a warning is issued (once per scorer) and the original
+    scorer/data are returned.
+
+    Args:
+        scorer: Scoring function (predictions, labels) -> float.
+        data: Input data array (2D).
+        labels: Labels array (1D).
+
+    Returns:
+        Tuple of (optimized_scorer, optimized_data, optimized_labels).
+    """
     validate_callable(scorer)
     if not accepts_sample_weight(scorer):
-        # TODO: Check best practices
-        warnings.warn(
-            'The scorer must accept "sample_weight" to be optimized by removing duplicates in the data'
-        )
+        # Only warn once per scorer function to avoid repeated warnings
+        scorer_id = id(scorer)
+        if scorer_id not in _warned_scorers:
+            _warned_scorers.add(scorer_id)
+            warnings.warn(
+                'The scorer must accept "sample_weight" to be optimized by '
+                "removing duplicates in the data. Scorer optimization is disabled "
+                "for this scorer.",
+                stacklevel=2,
+            )
     else:
         data, labels, sample_weight = transform_duplicates_to_sample_weight(
             data, labels

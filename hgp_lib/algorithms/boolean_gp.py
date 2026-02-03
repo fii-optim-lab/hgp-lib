@@ -81,10 +81,7 @@ class BooleanGP:
         population_generator = config.population_generator
         if population_generator is None:
             random_strategy = RandomStrategy(num_literals=num_features)
-            population_generator = PopulationGenerator(
-                strategies=[random_strategy],
-                population_size=100,
-            )
+            population_generator = PopulationGenerator(strategies=[random_strategy])
 
         mutation_executor = config.mutation_executor
         if mutation_executor is None:
