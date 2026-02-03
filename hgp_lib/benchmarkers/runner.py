@@ -86,7 +86,6 @@ def execute_single_run(
             regeneration_patience=config.regeneration_patience,
             val_every=config.val_every,
             progress_bar=show_epochs,
-            progress_desc="    Epochs" if show_epochs else None,
             optimize_scorer=config.optimize_scorer,
         )
         trainer.fit()
