@@ -67,10 +67,11 @@ def _execute_single_run(
     regeneration = config["regeneration"]
     regeneration_patience = config["regeneration_patience"]
     val_every = config["val_every"]
-    show_fold_progress = config["show_fold_progress"]
-    show_epoch_progress = config["show_epoch_progress"]
-    progress_bar = config["progress_bar"]
     optimize_scorer = config["optimize_scorer"]
+
+    # Compute effective progress bar flags once
+    show_folds = config["show_fold_progress"] and config["progress_bar"]
+    show_epochs = config["show_epoch_progress"] and config["progress_bar"]
 
     np.random.seed(seed)
     random.seed(seed)
@@ -89,14 +90,9 @@ def _execute_single_run(
     fold_val_scores: List[float] = []
     fold_best_rules: List[Rule] = []
 
-    fold_iterator = skf.split(train_data, train_labels)
-    if show_fold_progress and progress_bar:
-        fold_iterator = tqdm(
-            list(fold_iterator),
-            total=n_folds,
-            desc="  Folds",
-            leave=False,
-        )
+    fold_iterator = list(skf.split(train_data, train_labels))
+    if show_folds:
+        fold_iterator = tqdm(fold_iterator, total=n_folds, desc="  Folds", leave=False)
 
     for train_idx, val_idx in fold_iterator:
         fold_train = train_data[train_idx]
@@ -104,26 +100,14 @@ def _execute_single_run(
         fold_train_labels = train_labels[train_idx]
         fold_val_labels = train_labels[val_idx]
 
-        # Optimize scorers for this fold's data if requested
-        if optimize_scorer:
-            fold_score_fn, fold_train, fold_train_labels = optimize_scorer_for_data(
-                score_fn, fold_train, fold_train_labels
-            )
-            fold_val_score_fn, fold_val, fold_val_labels = optimize_scorer_for_data(
-                val_score_fn, fold_val, fold_val_labels
-            )
-        else:
-            fold_score_fn = score_fn
-            fold_val_score_fn = val_score_fn
-
         trainer = GPTrainer(
-            score_fn=fold_score_fn,
+            score_fn=score_fn,
             num_epochs=num_epochs,
             train_data=fold_train,
             train_labels=fold_train_labels,
             val_data=fold_val,
             val_labels=fold_val_labels,
-            val_score_fn=fold_val_score_fn,
+            val_score_fn=val_score_fn,
             check_valid=check_valid,
             population_generator=population_generator,
             mutation_executor=mutation_executor,
@@ -132,18 +116,24 @@ def _execute_single_run(
             regeneration=regeneration,
             regeneration_patience=regeneration_patience,
             val_every=val_every,
-            progress_bar=show_epoch_progress and progress_bar,
-            progress_desc="    Epochs"
-            if (show_epoch_progress and progress_bar)
-            else None,
+            progress_bar=show_epochs,
+            progress_desc="    Epochs" if show_epochs else None,
+            optimize_scorer=optimize_scorer,
         )
         trainer.fit()
 
+        # Use trainer's (potentially optimized) data and scorers for validation
         train_metrics = trainer.gp_algo.validate_best(
-            fold_train, fold_train_labels, score_fn=fold_score_fn, all_time_best=True
+            trainer.train_data,
+            trainer.train_labels,
+            score_fn=trainer.score_fn,
+            all_time_best=True,
         )
         val_metrics = trainer.gp_algo.validate_best(
-            fold_val, fold_val_labels, score_fn=fold_val_score_fn, all_time_best=True
+            trainer.val_data,
+            trainer.val_labels,
+            score_fn=trainer.val_score_fn,
+            all_time_best=True,
         )
 
         fold_train_scores.append(float(train_metrics["best"]))
@@ -498,15 +488,11 @@ class GPBenchmarker:
         """
         run_metrics: List[RunMetrics] = []
 
-        run_iterator = range(self.num_runs)
-        if self.progress_bar and self.show_run_progress:
-            run_iterator = tqdm(
-                run_iterator,
-                total=self.num_runs,
-                desc="Benchmark Runs",
-            )
-
-        for run_id in run_iterator:
+        for run_id in tqdm(
+            range(self.num_runs),
+            desc="Benchmark Runs",
+            disable=not (self.progress_bar and self.show_run_progress),
+        ):
             seed = self.base_seed + run_id
             metrics = _execute_single_run(run_id, seed, config)
             run_metrics.append(metrics)

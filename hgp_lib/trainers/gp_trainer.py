@@ -14,7 +14,8 @@ from ..mutations import (
 from ..populations import PopulationGenerator, RandomStrategy
 from ..rules import Rule
 from ..selections import BaseSelection, TournamentSelection
-from ..utils.validation import check_X_y, check_isinstance, validate_trainer_params
+from ..utils.metrics import optimize_scorer_for_data
+from ..utils.validation import check_X_y, validate_trainer_params
 
 
 class GPTrainer:
@@ -76,6 +77,11 @@ class GPTrainer:
         progress_desc (str | None, optional):
             Description for the progress bar. If `None`, uses "Training". Useful for
             nested progress bars (e.g. "    Epochs"). Default: `None`.
+        optimize_scorer (bool, optional):
+            Whether to optimize the scorer by removing duplicate rows and using sample
+            weights. This can significantly speed up scoring for datasets with many
+            duplicate rows. Requires the scorer to accept a `sample_weight` parameter.
+            Default: `False`.
 
     Examples:
         >>> import numpy as np
@@ -122,6 +128,7 @@ class GPTrainer:
         val_every: int = 100,
         progress_bar: bool = True,
         progress_desc: str | None = None,
+        optimize_scorer: bool = False,
     ):
         validate_trainer_params(
             score_fn=score_fn,
@@ -141,8 +148,22 @@ class GPTrainer:
         if val_data is not None:
             check_X_y(val_data, val_labels)
 
+        # Handle val_score_fn default
+        if val_score_fn is None:
+            val_score_fn = score_fn
+
+        # Optimize scorers by deduplicating data if requested
+        if optimize_scorer:
+            score_fn, train_data, train_labels = optimize_scorer_for_data(
+                score_fn, train_data, train_labels
+            )
+            if val_data is not None:
+                val_score_fn, val_data, val_labels = optimize_scorer_for_data(
+                    val_score_fn, val_data, val_labels
+                )
+
         self.score_fn = score_fn
-        self.val_score_fn = val_score_fn if val_score_fn is not None else score_fn
+        self.val_score_fn = val_score_fn
         self.num_epochs = num_epochs
         self.train_data = train_data
         self.train_labels = train_labels
@@ -260,14 +281,7 @@ class GPTrainer:
                 - `best` (float): Fitness score of the best rule on the test data.
                 - `best_rule` (Rule): The evaluated best rule.
         """
-        check_isinstance(test_data, ndarray)
-        check_isinstance(test_labels, ndarray)
-
-        if len(test_labels) != test_data.shape[0]:
-            raise ValueError(
-                f"test_labels length ({len(test_labels)}) must match "
-                f"test_data rows ({test_data.shape[0]})"
-            )
+        check_X_y(test_data, test_labels)
 
         score_fn = score_fn if score_fn is not None else self.score_fn
         return self.gp_algo.validate_best(
