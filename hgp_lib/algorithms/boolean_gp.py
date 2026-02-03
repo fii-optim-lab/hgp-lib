@@ -50,9 +50,9 @@ class BooleanGP:
         >>> train_data = np.array([[True, False, True, False], [False, True, False, True]])
         >>> train_labels = np.array([1, 0])
         >>> config = BooleanGPConfig(
+        ...     score_fn=accuracy,
         ...     train_data=train_data,
         ...     train_labels=train_labels,
-        ...     score_fn=accuracy,
         ... )
         >>> gp = BooleanGP(config)
         >>> metrics = gp.step()

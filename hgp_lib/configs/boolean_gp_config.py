@@ -17,14 +17,18 @@ class BooleanGPConfig:
     Configuration for BooleanGP.
 
     Attributes:
-        train_data (ndarray): Training data (2D boolean array).
-        train_labels (ndarray): Training labels (1D integer array).
         score_fn (Callable): Fitness function (predictions, labels) -> float.
+        train_data (ndarray | None): Training data (2D boolean array). Can be None when
+            used as a template in BenchmarkerConfig (data provided at benchmarker level).
+        train_labels (ndarray | None): Training labels (1D integer array). Can be None
+            when used as a template in BenchmarkerConfig.
         population_generator (PopulationGenerator | None): Optional; default created from num_features.
         mutation_executor (MutationExecutor | None): Optional; default created from num_features.
         crossover_executor (CrossoverExecutor | None): Optional; default CrossoverExecutor().
         selection (BaseSelection | None): Optional; default RouletteSelection().
         optimize_scorer (bool): Whether to optimize scorer per data (dedupe + sample weights).
+            When True, deduplicates data and uses sample weights, which is faster for large
+            datasets. Default False for BooleanGP, but True in BenchmarkerConfig.
         regeneration (bool): Whether to regenerate population on plateau.
         regeneration_patience (int): Epochs without improvement before regeneration.
         check_valid (Callable[[Rule], bool] | None): Optional rule validator for mutation/crossover.
@@ -35,16 +39,16 @@ class BooleanGPConfig:
         >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
         >>> labels = np.array([1, 0, 1, 0])
         >>> def accuracy(p, l): return float((p == l).mean())
-        >>> config = BooleanGPConfig(train_data=data, train_labels=labels, score_fn=accuracy)
+        >>> config = BooleanGPConfig(score_fn=accuracy, train_data=data, train_labels=labels)
         >>> config.train_data.shape
         (4, 2)
         >>> config.optimize_scorer
         False
     """
 
-    train_data: ndarray
-    train_labels: ndarray
     score_fn: Callable[[ndarray, ndarray], float]
+    train_data: ndarray | None = None
+    train_labels: ndarray | None = None
     population_generator: PopulationGenerator | None = None
     mutation_executor: MutationExecutor | None = None
     crossover_executor: CrossoverExecutor | None = None
@@ -55,12 +59,15 @@ class BooleanGPConfig:
     check_valid: Callable[[Rule], bool] | None = None
 
 
-def validate_gp_config(config: BooleanGPConfig) -> None:
+def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> None:
     """
     Validate BooleanGPConfig.
 
     Args:
         config (BooleanGPConfig): Configuration to validate.
+        require_data (bool): If True, validates that train_data and train_labels are
+            provided. Set to False when validating a template config (e.g., inside
+            BenchmarkerConfig where data is provided separately).
 
     Raises:
         TypeError: If any field has incorrect type.
@@ -73,10 +80,13 @@ def validate_gp_config(config: BooleanGPConfig) -> None:
         >>> data = np.array([[True, False], [False, True]])
         >>> labels = np.array([1, 0])
         >>> def accuracy(p, l): return float((p == l).mean())
-        >>> config = BooleanGPConfig(train_data=data, train_labels=labels, score_fn=accuracy)
+        >>> config = BooleanGPConfig(score_fn=accuracy, train_data=data, train_labels=labels)
         >>> validate_gp_config(config)  # No error
     """
-    check_X_y(config.train_data, config.train_labels)
+    if require_data:
+        if config.train_data is None or config.train_labels is None:
+            raise ValueError("train_data and train_labels are required")
+        check_X_y(config.train_data, config.train_labels)
     validate_callable(config.score_fn)
     check_isinstance(config.regeneration, bool)
     check_isinstance(config.regeneration_patience, int)

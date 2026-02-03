@@ -6,7 +6,7 @@ import numpy as np
 
 import hgp_lib
 from hgp_lib.benchmarkers import GPBenchmarker
-from hgp_lib.configs import BenchmarkerConfig
+from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.crossover import CrossoverExecutor
 from hgp_lib.mutations import (
     MutationExecutor,
@@ -52,17 +52,37 @@ class TestGPBenchmarker(unittest.TestCase):
         self.num_features = 4
         self.score_fn = accuracy
 
-    def _make_config(self, **kwargs):
+    def _make_gp_config(self, **kwargs):
+        """Helper to create BooleanGPConfig with test defaults."""
+        defaults = dict(
+            score_fn=self.score_fn,
+            optimize_scorer=False,
+        )
+        defaults.update(kwargs)
+        return BooleanGPConfig(**defaults)
+
+    def _make_trainer_config(self, gp_config=None, **kwargs):
+        """Helper to create TrainerConfig with test defaults."""
+        if gp_config is None:
+            gp_config = self._make_gp_config()
+        defaults = dict(
+            gp_config=gp_config,
+            num_epochs=5,
+            progress_bar=False,
+        )
+        defaults.update(kwargs)
+        return TrainerConfig(**defaults)
+
+    def _make_config(self, trainer_config=None, **kwargs):
         """Helper to create BenchmarkerConfig with test defaults."""
+        if trainer_config is None:
+            trainer_config = self._make_trainer_config()
         defaults = dict(
             data=self.data,
             labels=self.labels,
-            score_fn=self.score_fn,
-            num_epochs=5,
+            trainer_config=trainer_config,
             num_runs=2,
             n_folds=2,
-            progress_bar=False,
-            optimize_scorer=False,
         )
         defaults.update(kwargs)
         return BenchmarkerConfig(**defaults)
@@ -70,17 +90,21 @@ class TestGPBenchmarker(unittest.TestCase):
     def test_benchmarker_validation(self):
         with self.subTest("score_fn must be callable"):
             with self.assertRaises(TypeError):
-                config = self._make_config(score_fn="not callable")
+                gp_config = self._make_gp_config(score_fn="not callable")
+                trainer_config = self._make_trainer_config(gp_config=gp_config)
+                config = self._make_config(trainer_config=trainer_config)
                 GPBenchmarker(config)
 
         with self.subTest("num_epochs must be int"):
             with self.assertRaises(TypeError):
-                config = self._make_config(num_epochs=5.0)
+                trainer_config = self._make_trainer_config(num_epochs=5.0)
+                config = self._make_config(trainer_config=trainer_config)
                 GPBenchmarker(config)
 
         with self.subTest("num_epochs must be positive"):
             with self.assertRaises(ValueError):
-                config = self._make_config(num_epochs=0)
+                trainer_config = self._make_trainer_config(num_epochs=0)
+                config = self._make_config(trainer_config=trainer_config)
                 GPBenchmarker(config)
 
         with self.subTest("data must be ndarray"):
@@ -118,7 +142,9 @@ class TestGPBenchmarker(unittest.TestCase):
 
         with self.subTest("check_valid must be callable if provided"):
             with self.assertRaises(TypeError):
-                config = self._make_config(check_valid="not callable")
+                gp_config = self._make_gp_config(check_valid="not callable")
+                trainer_config = self._make_trainer_config(gp_config=gp_config)
+                config = self._make_config(trainer_config=trainer_config)
                 GPBenchmarker(config)
 
         with self.subTest("data must be 2D"):
@@ -135,22 +161,30 @@ class TestGPBenchmarker(unittest.TestCase):
             "population_generator must be PopulationGenerator if provided"
         ):
             with self.assertRaises(TypeError):
-                config = self._make_config(population_generator="not a generator")
+                gp_config = self._make_gp_config(population_generator="not a generator")
+                trainer_config = self._make_trainer_config(gp_config=gp_config)
+                config = self._make_config(trainer_config=trainer_config)
                 GPBenchmarker(config)
 
         with self.subTest("mutation_executor must be MutationExecutor if provided"):
             with self.assertRaises(TypeError):
-                config = self._make_config(mutation_executor="not an executor")
+                gp_config = self._make_gp_config(mutation_executor="not an executor")
+                trainer_config = self._make_trainer_config(gp_config=gp_config)
+                config = self._make_config(trainer_config=trainer_config)
                 GPBenchmarker(config)
 
         with self.subTest("crossover_executor must be CrossoverExecutor if provided"):
             with self.assertRaises(TypeError):
-                config = self._make_config(crossover_executor="not an executor")
+                gp_config = self._make_gp_config(crossover_executor="not an executor")
+                trainer_config = self._make_trainer_config(gp_config=gp_config)
+                config = self._make_config(trainer_config=trainer_config)
                 GPBenchmarker(config)
 
         with self.subTest("selection must be BaseSelection if provided"):
             with self.assertRaises(TypeError):
-                config = self._make_config(selection="not a selection")
+                gp_config = self._make_gp_config(selection="not a selection")
+                trainer_config = self._make_trainer_config(gp_config=gp_config)
+                config = self._make_config(trainer_config=trainer_config)
                 GPBenchmarker(config)
 
     def test_benchmarker_init(self):
@@ -158,7 +192,7 @@ class TestGPBenchmarker(unittest.TestCase):
         benchmarker = GPBenchmarker(config)
         self.assertEqual(benchmarker.config.num_runs, 2)
         self.assertEqual(benchmarker.config.n_folds, 2)
-        self.assertEqual(benchmarker.config.num_epochs, 5)
+        self.assertEqual(benchmarker.config.trainer_config.num_epochs, 5)
         self.assertEqual(benchmarker.config.test_size, 0.2)
         self.assertIsNone(benchmarker._run_metrics)
 
@@ -173,7 +207,8 @@ class TestGPBenchmarker(unittest.TestCase):
         self.assertTrue(benchmarker.config.show_epoch_progress)
 
     def test_fit_returns_benchmark_result(self):
-        config = self._make_config(num_epochs=3, n_jobs=1)
+        trainer_config = self._make_trainer_config(num_epochs=3)
+        config = self._make_config(trainer_config=trainer_config, n_jobs=1)
         benchmarker = GPBenchmarker(config)
         result = benchmarker.fit()
 
@@ -187,7 +222,8 @@ class TestGPBenchmarker(unittest.TestCase):
         self.assertEqual(len(result.all_test_scores), 2)
 
     def test_fit_run_metrics_structure(self):
-        config = self._make_config(num_epochs=3, num_runs=1, n_jobs=1)
+        trainer_config = self._make_trainer_config(num_epochs=3)
+        config = self._make_config(trainer_config=trainer_config, num_runs=1, n_jobs=1)
         benchmarker = GPBenchmarker(config)
         result = benchmarker.fit()
 
@@ -206,7 +242,8 @@ class TestGPBenchmarker(unittest.TestCase):
         self.assertIsInstance(run_metrics.best_rule, Rule)
 
     def test_fit_aggregation(self):
-        config = self._make_config(num_epochs=3, num_runs=3, n_jobs=1)
+        trainer_config = self._make_trainer_config(num_epochs=3)
+        config = self._make_config(trainer_config=trainer_config, num_runs=3, n_jobs=1)
         benchmarker = GPBenchmarker(config)
         result = benchmarker.fit()
 
@@ -219,25 +256,28 @@ class TestGPBenchmarker(unittest.TestCase):
         self.assertAlmostEqual(result.std_best_val_score, np.std(all_val))
 
     def test_fit_sequential_n_jobs_one(self):
-        config = self._make_config(num_epochs=2, n_jobs=1)
+        trainer_config = self._make_trainer_config(num_epochs=2)
+        config = self._make_config(trainer_config=trainer_config, n_jobs=1)
         benchmarker = GPBenchmarker(config)
         result = benchmarker.fit()
         self.assertEqual(len(result.run_metrics), 2)
         self.assertIsNotNone(benchmarker._run_metrics)
 
     def test_fit_parallel_n_jobs_two(self):
-        config = self._make_config(num_epochs=2, n_jobs=2)
+        trainer_config = self._make_trainer_config(num_epochs=2)
+        config = self._make_config(trainer_config=trainer_config, n_jobs=2)
         benchmarker = GPBenchmarker(config)
         result = benchmarker.fit()
         self.assertEqual(len(result.run_metrics), 2)
         self.assertIsNotNone(benchmarker._run_metrics)
 
     def test_reproducibility_with_seed(self):
-        config1 = self._make_config(num_epochs=2, n_jobs=1, base_seed=12345)
+        trainer_config = self._make_trainer_config(num_epochs=2)
+        config1 = self._make_config(trainer_config=trainer_config, n_jobs=1, base_seed=12345)
         benchmarker1 = GPBenchmarker(config1)
         result1 = benchmarker1.fit()
 
-        config2 = self._make_config(num_epochs=2, n_jobs=1, base_seed=12345)
+        config2 = self._make_config(trainer_config=trainer_config, n_jobs=1, base_seed=12345)
         benchmarker2 = GPBenchmarker(config2)
         result2 = benchmarker2.fit()
 
@@ -252,9 +292,9 @@ class TestGPBenchmarker(unittest.TestCase):
             strategies=[RandomStrategy(num_literals=self.num_features)],
             population_size=10,
         )
-        config = self._make_config(
-            num_epochs=2, num_runs=1, n_jobs=1, population_generator=generator
-        )
+        gp_config = self._make_gp_config(population_generator=generator)
+        trainer_config = self._make_trainer_config(gp_config=gp_config, num_epochs=2)
+        config = self._make_config(trainer_config=trainer_config, num_runs=1, n_jobs=1)
         benchmarker = GPBenchmarker(config)
         result = benchmarker.fit()
         self.assertEqual(len(result.run_metrics), 1)
@@ -265,39 +305,35 @@ class TestGPBenchmarker(unittest.TestCase):
             operator_mutations=create_standard_operator_mutations(self.num_features),
             mutation_p=0.1,
         )
-        config = self._make_config(
-            num_epochs=2, num_runs=1, n_jobs=1, mutation_executor=mutation_executor
-        )
+        gp_config = self._make_gp_config(mutation_executor=mutation_executor)
+        trainer_config = self._make_trainer_config(gp_config=gp_config, num_epochs=2)
+        config = self._make_config(trainer_config=trainer_config, num_runs=1, n_jobs=1)
         benchmarker = GPBenchmarker(config)
         result = benchmarker.fit()
         self.assertEqual(len(result.run_metrics), 1)
 
     def test_custom_crossover_executor(self):
         crossover_executor = CrossoverExecutor(crossover_p=0.5)
-        config = self._make_config(
-            num_epochs=2, num_runs=1, n_jobs=1, crossover_executor=crossover_executor
-        )
+        gp_config = self._make_gp_config(crossover_executor=crossover_executor)
+        trainer_config = self._make_trainer_config(gp_config=gp_config, num_epochs=2)
+        config = self._make_config(trainer_config=trainer_config, num_runs=1, n_jobs=1)
         benchmarker = GPBenchmarker(config)
         result = benchmarker.fit()
         self.assertEqual(len(result.run_metrics), 1)
 
     def test_custom_selection(self):
         selection = RouletteSelection()
-        config = self._make_config(
-            num_epochs=2, num_runs=1, n_jobs=1, selection=selection
-        )
+        gp_config = self._make_gp_config(selection=selection)
+        trainer_config = self._make_trainer_config(gp_config=gp_config, num_epochs=2)
+        config = self._make_config(trainer_config=trainer_config, num_runs=1, n_jobs=1)
         benchmarker = GPBenchmarker(config)
         result = benchmarker.fit()
         self.assertEqual(len(result.run_metrics), 1)
 
     def test_regeneration(self):
-        config = self._make_config(
-            num_epochs=2,
-            num_runs=1,
-            n_jobs=1,
-            regeneration=True,
-            regeneration_patience=50,
-        )
+        gp_config = self._make_gp_config(regeneration=True, regeneration_patience=50)
+        trainer_config = self._make_trainer_config(gp_config=gp_config, num_epochs=2)
+        config = self._make_config(trainer_config=trainer_config, num_runs=1, n_jobs=1)
         benchmarker = GPBenchmarker(config)
         result = benchmarker.fit()
         self.assertEqual(len(result.run_metrics), 1)
@@ -306,29 +342,29 @@ class TestGPBenchmarker(unittest.TestCase):
         def custom_val_score(predictions, labels):
             return np.sum(predictions & labels)
 
-        config = self._make_config(
-            num_epochs=2, num_runs=1, n_jobs=1, val_score_fn=custom_val_score
+        trainer_config = self._make_trainer_config(
+            num_epochs=2, val_score_fn=custom_val_score
         )
+        config = self._make_config(trainer_config=trainer_config, num_runs=1, n_jobs=1)
         benchmarker = GPBenchmarker(config)
         result = benchmarker.fit()
         self.assertEqual(len(result.run_metrics), 1)
 
     def test_progress_bar_disabled(self):
-        config = self._make_config(num_epochs=2, progress_bar=False)
+        trainer_config = self._make_trainer_config(num_epochs=2, progress_bar=False)
+        config = self._make_config(trainer_config=trainer_config)
         benchmarker = GPBenchmarker(config)
-        self.assertFalse(benchmarker.config.progress_bar)
+        self.assertFalse(benchmarker.config.trainer_config.progress_bar)
         result = benchmarker.fit()
         self.assertEqual(len(result.run_metrics), 2)
 
     def test_optimize_scorer_true_with_sample_weight(self):
         """Test that optimize_scorer=True works with a scorer supporting sample_weight."""
-        config = self._make_config(
-            score_fn=accuracy_with_sample_weight,
-            num_epochs=2,
-            num_runs=1,
-            n_jobs=1,
-            optimize_scorer=True,
+        gp_config = self._make_gp_config(
+            score_fn=accuracy_with_sample_weight, optimize_scorer=True
         )
+        trainer_config = self._make_trainer_config(gp_config=gp_config, num_epochs=2)
+        config = self._make_config(trainer_config=trainer_config, num_runs=1, n_jobs=1)
         benchmarker = GPBenchmarker(config)
         result = benchmarker.fit()
         self.assertEqual(len(result.run_metrics), 1)
@@ -336,47 +372,34 @@ class TestGPBenchmarker(unittest.TestCase):
 
     def test_optimize_scorer_false(self):
         """Test that optimize_scorer=False works without sample_weight support."""
-        config = self._make_config(
-            num_epochs=2, num_runs=1, n_jobs=1, optimize_scorer=False
-        )
+        gp_config = self._make_gp_config(optimize_scorer=False)
+        trainer_config = self._make_trainer_config(gp_config=gp_config, num_epochs=2)
+        config = self._make_config(trainer_config=trainer_config, num_runs=1, n_jobs=1)
         benchmarker = GPBenchmarker(config)
         result = benchmarker.fit()
         self.assertEqual(len(result.run_metrics), 1)
         self.assertIsNotNone(result.run_metrics[0].test_score)
 
-    def test_optimize_scorer_default_is_true(self):
-        """Test that optimize_scorer defaults to True."""
-        config = BenchmarkerConfig(
-            data=self.data,
-            labels=self.labels,
-            score_fn=accuracy_with_sample_weight,
-            num_epochs=2,
-            num_runs=1,
-            n_folds=2,
-            n_jobs=1,
-            progress_bar=False,
-        )
-        benchmarker = GPBenchmarker(config)
-        self.assertTrue(benchmarker.config.optimize_scorer)
+    def test_optimize_scorer_default_is_false_in_gp_config(self):
+        """Test that optimize_scorer defaults to False in BooleanGPConfig."""
+        gp_config = BooleanGPConfig(score_fn=accuracy_with_sample_weight)
+        self.assertFalse(gp_config.optimize_scorer)
 
     def test_optimize_scorer_with_different_val_score_fn(self):
         """Test optimize_scorer with separate train and val score functions."""
-        config = self._make_config(
-            score_fn=accuracy_with_sample_weight,
-            val_score_fn=accuracy_with_sample_weight,
-            num_epochs=2,
-            num_runs=1,
-            n_jobs=1,
-            optimize_scorer=True,
+        gp_config = self._make_gp_config(
+            score_fn=accuracy_with_sample_weight, optimize_scorer=True
         )
+        trainer_config = self._make_trainer_config(
+            gp_config=gp_config, num_epochs=2, val_score_fn=accuracy_with_sample_weight
+        )
+        config = self._make_config(trainer_config=trainer_config, num_runs=1, n_jobs=1)
         benchmarker = GPBenchmarker(config)
         result = benchmarker.fit()
         self.assertEqual(len(result.run_metrics), 1)
 
     def test_doctests(self):
         result = doctest.testmod(hgp_lib.benchmarkers.gp_benchmarker, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
-        result = doctest.testmod(hgp_lib.benchmarkers.config, verbose=False)
         self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
         result = doctest.testmod(hgp_lib.benchmarkers.results, verbose=False)
         self.assertEqual(result.failed, 0, f"Doctests failed: {result}")

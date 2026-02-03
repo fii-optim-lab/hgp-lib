@@ -28,7 +28,7 @@ class TrainerConfig:
         >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
         >>> labels = np.array([1, 0, 1, 0])
         >>> def accuracy(p, l): return float((p == l).mean())
-        >>> gp_config = BooleanGPConfig(train_data=data, train_labels=labels, score_fn=accuracy)
+        >>> gp_config = BooleanGPConfig(score_fn=accuracy, train_data=data, train_labels=labels)
         >>> config = TrainerConfig(gp_config=gp_config, num_epochs=10)
         >>> config.num_epochs
         10
@@ -46,12 +46,15 @@ class TrainerConfig:
     progress_desc: str = "Training"
 
 
-def validate_trainer_config(config: TrainerConfig) -> None:
+def validate_trainer_config(config: TrainerConfig, require_data: bool = True) -> None:
     """
     Validate TrainerConfig. Also validates the nested BooleanGPConfig.
 
     Args:
         config (TrainerConfig): Configuration to validate.
+        require_data (bool): If True, validates that train_data and train_labels are
+            provided in the nested gp_config. Set to False when validating a template
+            config inside BenchmarkerConfig.
 
     Raises:
         TypeError: If any field has incorrect type.
@@ -64,11 +67,11 @@ def validate_trainer_config(config: TrainerConfig) -> None:
         >>> data = np.array([[True, False], [False, True]])
         >>> labels = np.array([1, 0])
         >>> def accuracy(p, l): return float((p == l).mean())
-        >>> gp_config = BooleanGPConfig(train_data=data, train_labels=labels, score_fn=accuracy)
+        >>> gp_config = BooleanGPConfig(score_fn=accuracy, train_data=data, train_labels=labels)
         >>> config = TrainerConfig(gp_config=gp_config, num_epochs=10)
         >>> validate_trainer_config(config)  # No error
     """
-    validate_gp_config(config.gp_config)
+    validate_gp_config(config.gp_config, require_data=require_data)
     check_isinstance(config.num_epochs, int)
     if config.num_epochs < 1:
         raise ValueError("num_epochs must be a positive integer")

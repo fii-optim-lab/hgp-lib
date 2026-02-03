@@ -16,7 +16,7 @@ import gc
 import numpy as np
 import pandas as pd
 
-from hgp_lib import BenchmarkerConfig
+from hgp_lib import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.preprocessing import StandardBinarizer
 
@@ -81,26 +81,33 @@ def main():
 
     data, labels, feature_names = load_and_binarize_paysim(hdf_path)
 
-    # Configure benchmarker with defaults
-    # - 30 runs with different random seeds
-    # - 5-fold CV per run
-    # - 20% held out for test
-    # - Scorer optimization enabled (deduplicates data, uses sample weights)
+    # Configure GP and trainer settings
+    # - optimize_scorer=True: faster evaluation via data deduplication and sample weights
+    gp_config = BooleanGPConfig(
+        score_fn=f1_score,
+        optimize_scorer=True,  # Recommended for benchmarking (faster)
+    )
+    trainer_config = TrainerConfig(
+        gp_config=gp_config,
+        num_epochs=num_epochs,
+    )
+
+    # Configure benchmarker
+    # - 30 runs with different random seeds (default)
+    # - 5-fold CV per run (default)
+    # - 20% held out for test (default)
     config = BenchmarkerConfig(
         data=data,
         labels=labels,
-        score_fn=f1_score,
-        num_epochs=num_epochs,
-        # All other parameters use defaults:
-        # num_runs=30, n_folds=5, test_size=0.2, optimize_scorer=True
+        trainer_config=trainer_config,
     )
 
     print("\nBenchmark configuration:")
-    print(f"  Epochs per fold: {config.num_epochs}")
+    print(f"  Epochs per fold: {trainer_config.num_epochs}")
     print(f"  Runs: {config.num_runs}")
     print(f"  Folds per run: {config.n_folds}")
     print(f"  Test size: {config.test_size}")
-    print(f"  Scorer optimization: {config.optimize_scorer}")
+    print(f"  Scorer optimization: {gp_config.optimize_scorer}")
 
     benchmarker = GPBenchmarker(config)
 

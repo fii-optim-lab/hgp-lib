@@ -7,7 +7,6 @@ from tqdm.contrib.concurrent import process_map
 from ..configs import BenchmarkerConfig, validate_benchmarker_config
 from ..metrics import BenchmarkResult, RunMetrics
 
-from .config import BenchmarkConfig
 from .results import aggregate_results
 from .runner import execute_single_run, single_run_wrapper
 
@@ -17,20 +16,21 @@ class GPBenchmarker:
     Benchmarker for Boolean GP: runs multiple full runs with stratified train/test
     split and k-fold CV per run, then aggregates results.
 
-    Accepts only a BenchmarkerConfig. Each run uses a different random seed.
+    Accepts a BenchmarkerConfig containing the full dataset, a TrainerConfig template,
+    and benchmarker-specific settings. Each run uses a different random seed.
     Within each run, k-fold cross-validation is performed on the training set;
     the best rule is selected from the fold with the best validation score and
     evaluated on the held-out test set.
 
     Args:
-        config (BenchmarkerConfig): Configuration with data, labels, score_fn,
-            num_epochs, and optional GP components and progress flags.
+        config (BenchmarkerConfig): Configuration with data, labels, trainer_config
+            template, and benchmarker-specific options (num_runs, n_folds, etc.).
 
     Examples:
         Basic usage with scorer optimization::
 
             import numpy as np
-            from hgp_lib.configs import BenchmarkerConfig
+            from hgp_lib.configs import BooleanGPConfig, TrainerConfig, BenchmarkerConfig
             from hgp_lib.benchmarkers import GPBenchmarker
 
             def f1_score(predictions, labels, sample_weight=None):
@@ -45,12 +45,15 @@ class GPBenchmarker:
                     return 1.0 if pred_sum == label_sum == 0 else 0.0
                 return 2 * tp / (pred_sum + label_sum)
 
+            # Create template configs (data will be set per fold)
+            gp_config = BooleanGPConfig(score_fn=f1_score, optimize_scorer=True)
+            trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=100)
+
+            # Create benchmarker config
             config = BenchmarkerConfig(
                 data=data,
                 labels=labels,
-                score_fn=f1_score,
-                num_epochs=100,
-                optimize_scorer=True,
+                trainer_config=trainer_config,
             )
             benchmarker = GPBenchmarker(config)
             result = benchmarker.fit()
@@ -72,42 +75,22 @@ class GPBenchmarker:
             return os.cpu_count() or 1
         return max(1, self.config.n_jobs)
 
-    def _build_config(self) -> BenchmarkConfig:
-        """Build a picklable config for worker processes."""
-        # TODO: Do we really need to build this? Don't we have already a config? Can't we just upldate what's needed?
-        return BenchmarkConfig(
-            data=self.config.data,
-            labels=self.config.labels,
-            test_size=self.config.test_size,
-            n_folds=self.config.n_folds,
-            num_epochs=self.config.num_epochs,
-            score_fn=self.config.score_fn,
-            val_score_fn=self.config.val_score_fn or self.config.score_fn,
-            optimize_scorer=self.config.optimize_scorer,
-            check_valid=self.config.check_valid,
-            population_generator=self.config.population_generator,
-            mutation_executor=self.config.mutation_executor,
-            crossover_executor=self.config.crossover_executor,
-            selection=self.config.selection,
-            regeneration=self.config.regeneration,
-            regeneration_patience=self.config.regeneration_patience,
-            val_every=self.config.val_every,
-            show_fold_progress=self.config.show_fold_progress,
-            show_epoch_progress=self.config.show_epoch_progress,
-            progress_bar=self.config.progress_bar,
-        )
-
-    def _run_sequential(self, worker_config: BenchmarkConfig) -> List[RunMetrics]:
+    def _run_sequential(self) -> List[RunMetrics]:
         """Run all benchmark runs sequentially with nested progress bars."""
         run_metrics: List[RunMetrics] = []
+
+        show_run_progress = (
+            self.config.show_run_progress
+            and self.config.trainer_config.progress_bar
+        )
 
         for run_id in tqdm(
             range(self.config.num_runs),
             desc="Benchmark Runs",
-            disable=not (self.config.progress_bar and self.config.show_run_progress),
+            disable=not show_run_progress,
         ):
             seed = self.config.base_seed + run_id
-            metrics = execute_single_run(run_id, seed, worker_config)
+            metrics = execute_single_run(run_id, seed, self.config)
             run_metrics.append(metrics)
 
         return run_metrics
@@ -121,13 +104,16 @@ class GPBenchmarker:
                 mean_best_val_score, std_best_val_score, all_test_scores, all_best_rules.
         """
         effective_n_jobs = self._effective_n_jobs()
-        worker_config = self._build_config()
 
         if effective_n_jobs == 1:
-            run_metrics = self._run_sequential(worker_config)
+            run_metrics = self._run_sequential()
         else:
+            show_run_progress = (
+                self.config.show_run_progress
+                and self.config.trainer_config.progress_bar
+            )
             run_args = [
-                (run_id, self.config.base_seed + run_id, worker_config)
+                (run_id, self.config.base_seed + run_id, self.config)
                 for run_id in range(self.config.num_runs)
             ]
             run_metrics = process_map(
@@ -135,8 +121,7 @@ class GPBenchmarker:
                 run_args,
                 max_workers=effective_n_jobs,
                 desc="Benchmark Runs",
-                disable=not self.config.progress_bar
-                or not self.config.show_run_progress,
+                disable=not show_run_progress,
             )
 
         self._run_metrics = run_metrics
