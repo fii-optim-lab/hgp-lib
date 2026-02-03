@@ -16,7 +16,11 @@ from ..rules import Rule
 from ..selections import BaseSelection
 from ..trainers import GPTrainer
 from ..utils.metrics import optimize_scorer_for_data
-from ..utils.validation import check_isinstance, validate_callable
+from ..utils.validation import (
+    check_isinstance,
+    validate_callable,
+    validate_trainer_params,
+)
 
 
 def _execute_single_run(
@@ -336,10 +340,18 @@ class GPBenchmarker:
         show_fold_progress: bool = True,
         show_epoch_progress: bool = True,
     ):
-        validate_callable(score_fn)
-        check_isinstance(num_epochs, int)
-        check_isinstance(data, ndarray)
-        check_isinstance(labels, ndarray)
+        # Validate common trainer parameters
+        validate_trainer_params(
+            score_fn=score_fn,
+            num_epochs=num_epochs,
+            train_data=data,
+            train_labels=labels,
+            val_every=val_every,
+            regeneration_patience=regeneration_patience,
+            val_score_fn=val_score_fn,
+        )
+
+        # Validate benchmarker-specific parameters
         check_isinstance(num_runs, int)
         check_isinstance(test_size, float)
         check_isinstance(n_folds, int)
@@ -347,23 +359,10 @@ class GPBenchmarker:
         check_isinstance(base_seed, int)
         check_isinstance(optimize_scorer, bool)
         check_isinstance(regeneration, bool)
-        check_isinstance(regeneration_patience, int)
-        check_isinstance(val_every, int)
         check_isinstance(progress_bar, bool)
         check_isinstance(show_run_progress, bool)
         check_isinstance(show_fold_progress, bool)
         check_isinstance(show_epoch_progress, bool)
-
-        if num_epochs < 1:
-            raise ValueError("num_epochs must be a positive integer")
-        if len(labels) != data.shape[0]:
-            raise ValueError(
-                f"labels length ({len(labels)}) must match data rows ({data.shape[0]})"
-            )
-        if data.ndim != 2:
-            raise ValueError(f"data must be 2D, got {data.ndim}D")
-        if labels.ndim != 1:
-            raise ValueError(f"labels must be 1D, got {labels.ndim}D")
 
         if num_runs < 1:
             raise ValueError("num_runs must be a positive integer")
@@ -371,13 +370,7 @@ class GPBenchmarker:
             raise ValueError("test_size must be in (0, 1)")
         if n_folds < 2:
             raise ValueError("n_folds must be at least 2")
-        if val_every < 1:
-            raise ValueError("val_every must be a positive integer")
-        if regeneration_patience < 1:
-            raise ValueError("regeneration_patience must be a positive integer")
 
-        if val_score_fn is not None:
-            validate_callable(val_score_fn)
         if check_valid is not None:
             validate_callable(check_valid)
 

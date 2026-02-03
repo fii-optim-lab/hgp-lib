@@ -14,7 +14,7 @@ from ..mutations import (
 from ..populations import PopulationGenerator, RandomStrategy
 from ..rules import Rule
 from ..selections import BaseSelection, TournamentSelection
-from ..utils.validation import validate_callable, check_isinstance
+from ..utils.validation import check_X_y, check_isinstance, validate_trainer_params
 
 
 class GPTrainer:
@@ -123,19 +123,15 @@ class GPTrainer:
         progress_bar: bool = True,
         progress_desc: str | None = None,
     ):
-        validate_callable(score_fn)
-        check_isinstance(num_epochs, int)
-        check_isinstance(train_data, ndarray)
-        check_isinstance(train_labels, ndarray)
-
-        if num_epochs < 1:
-            raise ValueError("num_epochs must be a positive integer")
-
-        if len(train_labels) != train_data.shape[0]:
-            raise ValueError(
-                f"train_labels length ({len(train_labels)}) must match "
-                f"train_data rows ({train_data.shape[0]})"
-            )
+        validate_trainer_params(
+            score_fn=score_fn,
+            num_epochs=num_epochs,
+            train_data=train_data,
+            train_labels=train_labels,
+            val_every=val_every,
+            regeneration_patience=regeneration_patience,
+            val_score_fn=val_score_fn,
+        )
 
         if (val_data is None) != (val_labels is None):
             raise ValueError(
@@ -143,19 +139,7 @@ class GPTrainer:
             )
 
         if val_data is not None:
-            check_isinstance(val_data, ndarray)
-            check_isinstance(val_labels, ndarray)
-            if len(val_labels) != val_data.shape[0]:
-                raise ValueError(
-                    f"val_labels length ({len(val_labels)}) must match "
-                    f"val_data rows ({val_data.shape[0]})"
-                )
-
-        if val_score_fn is not None:
-            validate_callable(val_score_fn)
-
-        if val_every < 1:
-            raise ValueError("val_every must be a positive integer")
+            check_X_y(val_data, val_labels)
 
         self.score_fn = score_fn
         self.val_score_fn = val_score_fn if val_score_fn is not None else score_fn
