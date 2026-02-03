@@ -68,6 +68,8 @@ class BooleanGP:
         train_labels = config.train_labels
         score_fn = config.score_fn
 
+        self._original_score_fn = config.score_fn
+
         if config.optimize_scorer:
             score_fn, train_data, train_labels = optimize_scorer_for_data(
                 config.score_fn, config.train_data, config.train_labels
@@ -245,7 +247,9 @@ class BooleanGP:
         Args:
             data (ndarray): Validation/test data (2D boolean array).
             labels (ndarray): Validation/test labels (1D integer array).
-            score_fn (Callable | None): Optional; uses instance score_fn if None.
+            score_fn (Callable | None): Optional; uses original score_fn if None.
+                Note: Uses the original (non-optimized) scorer by default since
+                the optimized scorer has sample_weight bound to training data.
             all_time_best (bool): If True, evaluate all-time best rule; else current run's best.
 
         Returns:
@@ -258,7 +262,7 @@ class BooleanGP:
             raise RuntimeError("No best rule available. Run at least one step first.")
 
         best_rule = self.real_best_rule if all_time_best else self.best_rule
-        fn = self.score_fn if score_fn is None else score_fn
+        fn = self._original_score_fn if score_fn is None else score_fn
         best_score = float(fn(best_rule.evaluate(data), labels))
         return ValidateBestMetrics(best=best_score, best_rule=best_rule)
 
@@ -275,7 +279,9 @@ class BooleanGP:
         Args:
             data (ndarray): Validation/test data (2D boolean array).
             labels (ndarray): Validation/test labels (1D integer array).
-            score_fn (Callable | None): Optional; uses instance score_fn if None.
+            score_fn (Callable | None): Optional; uses original score_fn if None.
+                Note: Uses the original (non-optimized) scorer by default since
+                the optimized scorer has sample_weight bound to training data.
             all_time_best (bool): If True, evaluate all-time best rule; else current run's best.
 
         Returns:
@@ -288,7 +294,7 @@ class BooleanGP:
             raise RuntimeError("No best rule available. Run at least one step first.")
 
         best_rule = self.real_best_rule if all_time_best else self.best_rule
-        fn = self.score_fn if score_fn is None else score_fn
+        fn = self._original_score_fn if score_fn is None else score_fn
         best_score = float(fn(best_rule.evaluate(data), labels))
         population_scores = self._evaluate_population(data, labels, fn)
         return ValidatePopulationMetrics(

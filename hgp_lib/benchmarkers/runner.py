@@ -85,14 +85,14 @@ def execute_single_run(
         trainer.fit()
 
         train_metrics = trainer.gp_algo.validate_best(
-            fold_train,
-            fold_train_labels,
+            trainer.gp_algo.train_data,
+            trainer.gp_algo.train_labels,
             score_fn=trainer.gp_algo.score_fn,
             all_time_best=True,
         )
         val_metrics = trainer.gp_algo.validate_best(
-            fold_val,
-            fold_val_labels,
+            trainer.val_data,
+            trainer.val_labels,
             score_fn=trainer.val_score_fn,
             all_time_best=True,
         )
