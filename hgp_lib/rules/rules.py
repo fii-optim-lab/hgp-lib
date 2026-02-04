@@ -69,7 +69,7 @@ class Rule(ABC):
         Args:
             new_subrules (List[Rule]): The list of new subrules to add.
             copy (bool): If True, deep copies each new subrule. If False, moves them (assigns parent to self).
-                         Default: True.
+                Default: `True`.
         """
         # TODO: Check where this can be added to improve performance.
         if copy:

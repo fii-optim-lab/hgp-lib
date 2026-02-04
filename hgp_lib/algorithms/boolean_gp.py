@@ -135,6 +135,7 @@ class BooleanGP:
                 current_best, mean_score, std_score, population_scores, epoch,
                 best_not_improved_epochs, and regenerated.
         """
+        # TODO: Add doctests here.
         self._epoch += 1
         self.population += self.crossover_executor.apply(self.population)
         self.mutation_executor.apply(self.population)
@@ -213,6 +214,9 @@ class BooleanGP:
 
         Returns:
             ndarray: Array of fitness scores, one for each rule in the population.
+
+        Note:
+            TODO: we should also support batched evaluation or free-threaded evaluation.
         """
         n = len(self.population)
         scores = np.zeros(n)
@@ -220,9 +224,20 @@ class BooleanGP:
             scores[i] = score_fn(self.population[i].evaluate(data), labels)
         return scores
 
-    def _update_best(self, current_best: float, current_best_rule: Rule) -> None:
+    def _update_best(self, current_best: float, current_best_rule: Rule):
         """
         Updates the best rule tracking based on the current generation's best.
+
+        If the current best score is greater than or equal to the stored best score,
+        updates both the current run's best and the all-time best (if it's a new record).
+        Otherwise, increments the counter for epochs without improvement.
+
+        Args:
+            current_best (float):
+                The best fitness score from the current generation.
+            current_best_rule (Rule):
+                The rule that achieved the best score in the current generation.
+                This rule will be copied when stored.
         """
         if current_best >= self.best_score:
             self.best_not_improved_epochs = 0
@@ -250,7 +265,9 @@ class BooleanGP:
             score_fn (Callable | None): Optional; uses original score_fn if None.
                 Note: Uses the original (non-optimized) scorer by default since
                 the optimized scorer has sample_weight bound to training data.
+                Default: `None`.
             all_time_best (bool): If True, evaluate all-time best rule; else current run's best.
+                Default: `False`.
 
         Returns:
             ValidateBestMetrics: best (float) and best_rule (Rule).
@@ -258,6 +275,7 @@ class BooleanGP:
         Raises:
             RuntimeError: If no best rule is available (run at least one step first).
         """
+        # TODO: Add doctests here.
         if self.real_best_rule is None or self.best_rule is None:
             raise RuntimeError("No best rule available. Run at least one step first.")
 
@@ -282,7 +300,9 @@ class BooleanGP:
             score_fn (Callable | None): Optional; uses original score_fn if None.
                 Note: Uses the original (non-optimized) scorer by default since
                 the optimized scorer has sample_weight bound to training data.
+                Default: `None`.
             all_time_best (bool): If True, evaluate all-time best rule; else current run's best.
+                Default: `False`.
 
         Returns:
             ValidatePopulationMetrics: best, best_rule, and population_scores.
@@ -290,6 +310,7 @@ class BooleanGP:
         Raises:
             RuntimeError: If no best rule is available (run at least one step first).
         """
+        # TODO: Add doctests here.
         if self.real_best_rule is None or self.best_rule is None:
             raise RuntimeError("No best rule available. Run at least one step first.")
 

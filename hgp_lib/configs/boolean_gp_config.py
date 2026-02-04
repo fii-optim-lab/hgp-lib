@@ -44,6 +44,7 @@ class BooleanGPConfig:
         True
     """
 
+    # TODO: We should reconsider the ordering of the arguments for score fn. Pred, GT or GT, Pred?
     score_fn: Callable[[ndarray, ndarray], float]
     train_data: ndarray | None = None
     train_labels: ndarray | None = None
@@ -65,7 +66,7 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
         config (BooleanGPConfig): Configuration to validate.
         require_data (bool): If True, validates that train_data and train_labels are
             provided. Set to False when validating a template config (e.g., inside
-            BenchmarkerConfig where data is provided separately).
+            BenchmarkerConfig where data is provided separately). Default: `True`.
 
     Raises:
         TypeError: If any field has incorrect type.

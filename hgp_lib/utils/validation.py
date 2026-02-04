@@ -10,8 +10,8 @@ def validate_callable(maybe_callable: Callable, error_message: str | None = None
     Validate that a value is callable.
 
     Args:
-        maybe_callable: Value to check.
-        error_message: Optional custom error message.
+        maybe_callable (Callable): Value to check.
+        error_message (str | None): Optional custom error message. Default: `None`.
 
     Raises:
         TypeError: If value is not callable.
@@ -27,8 +27,8 @@ def check_isinstance(value: Any, expected_type: Type | Tuple[Type, ...]):
     Check that a value is an instance of expected type(s).
 
     Args:
-        value: Value to check.
-        expected_type: Expected type or tuple of types.
+        value (Any): Value to check.
+        expected_type (Type | Tuple[Type, ...]): Expected type or tuple of types.
 
     Raises:
         TypeError: If value is not an instance of expected type.
@@ -57,7 +57,7 @@ def validate_num_literals(num_literals: int):
     Validate num_literals parameter.
 
     Args:
-        num_literals: Number of literals (must be > 1).
+        num_literals (int): Number of literals (must be > 1).
 
     Raises:
         TypeError: If not an integer.
@@ -75,7 +75,7 @@ def validate_operator_types(operator_types: Sequence[Type[Rule]]):
     Validate operator_types parameter.
 
     Args:
-        operator_types: Sequence of Rule subclasses.
+        operator_types (Sequence[Type[Rule]]): Sequence of Rule subclasses.
 
     Raises:
         TypeError: If not a sequence or contains non-Rule types.

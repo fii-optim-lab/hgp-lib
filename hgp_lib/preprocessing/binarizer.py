@@ -20,7 +20,7 @@ class StandardBinarizer:
         * Decision tree-based approach for labeled data
 
     Attributes:
-        num_bins (int): Number of bins for numerical features. Default is 5.
+        num_bins (int): Number of bins for numerical features. Default: `5`.
         column_strategy (dict): Custom binning strategy for specific columns.
         categorical_values_ (dict): Stores unique values for each categorical column.
         numerical_bins_ (dict): Stores bin edges for each numerical column.
@@ -54,11 +54,11 @@ class StandardBinarizer:
         Initialize the StandardBinarizer.
 
         Args:
-            num_bins (int, optional): Number of bins for numerical features. Defaults to 5.
-            column_strategy (dict[str, int], optional): Custom binning strategy for specific columns.
-                Format: {column_name: num_bins}. Defaults to None.
-            precision (int | None): Number of decimals to be included in the column name for numerical columns.
-                Default: 3
+            num_bins (int): Number of bins for numerical features. Default: `5`.
+            column_strategy (dict[str, int] | None): Custom binning strategy for specific columns.
+                Format: {column_name: num_bins}. Default: `None`.
+            precision (int): Number of decimals to be included in the column name for numerical columns.
+                Default: `3`.
 
         Raises:
             ValueError: If num_bins is less than 2 or if column_strategy is invalid.
@@ -109,9 +109,9 @@ class StandardBinarizer:
         Get bin edges using decision tree splits.
 
         Args:
-            X (np.ndarray): Input feature to be binned
-            y (np.ndarray): Target values for supervised binning
-            n_bins (int): Number of bins to create
+            X (np.ndarray): Input feature to be binned.
+            y (np.ndarray): Target values for supervised binning.
+            n_bins (int): Number of bins to create.
 
         Returns:
             numpy.ndarray: Array of bin edges including -inf and inf
@@ -139,8 +139,8 @@ class StandardBinarizer:
         Get bin edges using quantile-based approach.
 
         Args:
-            X (array-like): Input feature to be binned
-            n_bins (int): Number of bins to create
+            X (np.ndarray): Input feature to be binned.
+            n_bins (int): Number of bins to create.
 
         Returns:
             numpy.ndarray: Array of bin edges including -inf and inf
@@ -167,8 +167,8 @@ class StandardBinarizer:
         Fit the binarizer and transform the input data.
 
         Args:
-            X (pandas.DataFrame): Input data to be transformed
-            y (array-like, optional): Target values for supervised binning of numerical features
+            X (pd.DataFrame): Input data to be transformed.
+            y (np.ndarray | None): Target values for supervised binning of numerical features. Default: `None`.
 
         Returns:
             pandas.DataFrame: Transformed binary data
@@ -243,7 +243,7 @@ class StandardBinarizer:
         Transform new data using the fitted binarizer.
 
         Args:
-            X (pandas.DataFrame): Input data to transform
+            X (pd.DataFrame): Input data to transform.
 
         Returns:
             pandas.DataFrame: Transformed binary data

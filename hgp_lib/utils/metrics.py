@@ -23,7 +23,7 @@ def accepts_sample_weight(scorer: Callable) -> bool:
     First checks the function signature, then falls back to a runtime test.
 
     Args:
-        scorer: The scoring function to check.
+        scorer (Callable): The scoring function to check.
 
     Returns:
         True if the scorer accepts sample_weight, False otherwise.
@@ -51,8 +51,8 @@ def transform_duplicates_to_sample_weight(data: ndarray, labels: ndarray):
     Transform data by removing duplicates and computing sample weights.
 
     Args:
-        data: Input data array (2D).
-        labels: Labels array (1D).
+        data (ndarray): Input data array (2D).
+        labels (ndarray): Labels array (1D).
 
     Returns:
         Tuple of (unique_data, unique_labels, sample_weights).
@@ -73,9 +73,9 @@ def optimize_scorer_for_data(
     scorer/data are returned.
 
     Args:
-        scorer: Scoring function (predictions, labels) -> float.
-        data: Input data array (2D).
-        labels: Labels array (1D).
+        scorer (Callable[[ndarray, ndarray], float]): Scoring function (predictions, labels) -> float.
+        data (ndarray): Input data array (2D).
+        labels (ndarray): Labels array (1D).
 
     Returns:
         Tuple of (optimized_scorer, optimized_data, optimized_labels).

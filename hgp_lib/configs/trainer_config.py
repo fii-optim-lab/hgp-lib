@@ -52,7 +52,7 @@ def validate_trainer_config(config: TrainerConfig, require_data: bool = True) ->
         config (TrainerConfig): Configuration to validate.
         require_data (bool): If True, validates that train_data and train_labels are
             provided in the nested gp_config. Set to False when validating a template
-            config inside BenchmarkerConfig.
+            config inside BenchmarkerConfig. Default: `True`.
 
     Raises:
         TypeError: If any field has incorrect type.

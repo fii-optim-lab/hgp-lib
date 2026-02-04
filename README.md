@@ -117,7 +117,7 @@ mutation_executor = MutationExecutor(
 )
 crossover_executor = CrossoverExecutor(
     crossover_p=crossover_p,  # Optional
-    crossover_strategy="best",  # Optional. Default: "random"
+    crossover_strategy="best",  # Optional. Default: `"random"`
     check_valid=is_rule_valid,  # Optional
     num_tries=2,  # Optional
 )

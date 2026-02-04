@@ -168,8 +168,8 @@ class GPTrainer:
         Args:
             test_data (ndarray): Test data (2D boolean array).
             test_labels (ndarray): Test labels (1D integer array).
-            score_fn (Callable | None): Optional; uses trainer's score_fn if None.
-            all_time_best (bool): If True, evaluate all-time best rule.
+            score_fn (Callable | None): Optional; uses trainer's score_fn if None. Default: `None`.
+            all_time_best (bool): If True, evaluate all-time best rule. Default: `True`.
 
         Returns:
             ValidateBestMetrics: best (float) and best_rule (Rule).

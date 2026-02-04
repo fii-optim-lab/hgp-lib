@@ -29,7 +29,7 @@ class TournamentSelection(BaseSelection):
         selection_p (float):
             The probability of selecting the best candidate in the tournament.
             Must be between `0.0` and `1.0`. Lower values reduce selection pressure.
-            Defaults to `0.4`.
+            Default: `0.4`.
 
     Raises:
         TypeError: If `tournament_size` is not an int or `selection_p` is not a float.

@@ -59,7 +59,11 @@ class GPBenchmarker:
             result = benchmarker.fit()
     """
 
+    # TODO: This should be a doctest instead of an example.
     def __init__(self, config: BenchmarkerConfig):
+        # TODO: We should also remove val_score_fn since we usually optimize the score_fn for validation.
+        # we don't need an additional parameter in configs for validation. We use the same scorer, but try to
+        # optimize it for validation.
         validate_benchmarker_config(config)
         self.config = config
         self._run_metrics: List[RunMetrics] | None = None
