@@ -207,8 +207,8 @@ class CrossoverExecutor:
         for _ in range(self.num_tries):
             child_a, child_b = parent_a.copy(), parent_b.copy()
 
-            node_a = select_crossover_point(child_a)
-            node_b = select_crossover_point(child_b)
+            node_a = select_crossover_point(child_a, operator_p=0.5)
+            node_b = select_crossover_point(child_b, operator_p=0.5)
 
             # flat_a, flat_b = child_a.flatten(), child_b.flatten()
             # node_a = random.choice(flat_a)
