@@ -3,7 +3,7 @@ from typing import Callable
 
 from numpy import ndarray
 
-from ..utils.validation import check_isinstance, check_X_y, validate_callable
+from ..utils.validation import check_isinstance, check_X_y
 from .boolean_gp_config import BooleanGPConfig, validate_gp_config
 
 
@@ -17,7 +17,6 @@ class TrainerConfig:
         num_epochs (int): Number of training epochs.
         val_data (ndarray | None): Validation data; optional.
         val_labels (ndarray | None): Validation labels; optional.
-        val_score_fn (Callable | None): Validation scorer; defaults to score_fn.
         val_every (int): Validate every N epochs.
         progress_bar (bool): Whether to show progress bar.
         progress_callback (Callable[[int], None] | None): Optional callback for progress updates.
@@ -43,7 +42,6 @@ class TrainerConfig:
     num_epochs: int
     val_data: ndarray | None = None
     val_labels: ndarray | None = None
-    val_score_fn: Callable[[ndarray, ndarray], float] | None = None
     val_every: int = 100
     progress_bar: bool = True
     progress_callback: Callable[[int], None] | None = None
@@ -88,5 +86,3 @@ def validate_trainer_config(config: TrainerConfig, require_data: bool = True) ->
         )
     if config.val_data is not None:
         check_X_y(config.val_data, config.val_labels)
-    if config.val_score_fn is not None:
-        validate_callable(config.val_score_fn)

@@ -65,27 +65,18 @@ class GPTrainer:
         self.progress_bar = config.progress_bar
         self.progress_callback = config.progress_callback
 
-        base_val_score_fn = (
-            config.val_score_fn
-            if config.val_score_fn is not None
-            else config.gp_config.score_fn
-        )
-
+        self.score_fn = self.gp_algo.score_fn  # Maybe optimized
+        self._original_score_fn = self.gp_algo._original_score_fn
         if config.val_data is not None and config.gp_config.optimize_scorer:
             self.val_score_fn, self.val_data, self.val_labels = (
                 optimize_scorer_for_data(
-                    base_val_score_fn, config.val_data, config.val_labels
+                    config.gp_config.score_fn, config.val_data, config.val_labels
                 )
             )
         else:
-            self.val_score_fn = base_val_score_fn
+            self.val_score_fn = config.gp_config.score_fn
             self.val_data = config.val_data
             self.val_labels = config.val_labels
-
-    @property
-    def score_fn(self):
-        """Original scoring function (not optimized, safe for any data size)."""
-        return self.config.gp_config.score_fn
 
     def fit(self) -> TrainerResult:
         """
@@ -179,14 +170,14 @@ class GPTrainer:
         Args:
             test_data (ndarray): Test data (2D boolean array).
             test_labels (ndarray): Test labels (1D integer array).
-            score_fn (Callable | None): Optional; uses trainer's score_fn if None. Default: `None`.
+            score_fn (Callable | None): Optional; uses trainer's _original_score_fn if None. Default: `None`.
             all_time_best (bool): If True, evaluate all-time best rule. Default: `True`.
 
         Returns:
             ValidateBestMetrics: best (float) and best_rule (Rule).
         """
         check_X_y(test_data, test_labels)
-        fn = score_fn if score_fn is not None else self.score_fn
+        fn = score_fn if score_fn is not None else self._original_score_fn
         return self.gp_algo.validate_best(
             test_data, test_labels, score_fn=fn, all_time_best=all_time_best
         )
