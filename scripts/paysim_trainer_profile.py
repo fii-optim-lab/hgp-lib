@@ -70,7 +70,16 @@ from timed_decorator.builder import create_timed_decorator, get_timed_decorator
 from hgp_lib import BooleanGPConfig, TrainerConfig
 from hgp_lib.algorithms import BooleanGP
 from hgp_lib.crossover import CrossoverExecutor
-from hgp_lib.mutations import AddLiteral, MutationExecutor
+from hgp_lib.mutations import (
+    AddLiteral,
+    DeleteMutation,
+    MutationExecutor,
+    NegateMutation,
+    PromoteLiteral,
+    RemoveIntermediateOperator,
+    ReplaceLiteral,
+    ReplaceOperator,
+)
 from hgp_lib.populations import (
     FeatureSamplingStrategy,
     PopulationGenerator,
@@ -285,13 +294,22 @@ def apply_timing_decorators() -> None:
 
     # Rule evaluation - these are the hot paths
     Literal.evaluate = decorator(Literal.evaluate)
+    Rule.flatten = decorator(Rule.flatten)
+    Rule.__len__ = decorator(Rule.__len__)
     And.evaluate = decorator(And.evaluate)
     Or.evaluate = decorator(Or.evaluate)
 
     np.random.randint = decorator(np.random.randint)
     random.choice = decorator(random.choice)
+    random.random = decorator(random.random)
 
     AddLiteral.apply = decorator(AddLiteral.apply)
+    PromoteLiteral.apply = decorator(PromoteLiteral.apply)
+    ReplaceLiteral.apply = decorator(ReplaceLiteral.apply)
+    NegateMutation.apply = decorator(NegateMutation.apply)
+    DeleteMutation.apply = decorator(DeleteMutation.apply)
+    ReplaceOperator.apply = decorator(ReplaceOperator.apply)
+    RemoveIntermediateOperator.apply = decorator(RemoveIntermediateOperator.apply)
 
     # Scoring function
     global f1_score

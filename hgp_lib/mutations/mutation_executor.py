@@ -149,6 +149,7 @@ class MutationExecutor:
         """
         for i in range(len(rules)):
             rule = rules[i]
+            # Check this!
             n_mutations = (np.random.rand(len(rule)) < self.mutation_p).sum()
             if n_mutations != 0:
                 rules[i] = self._mutate(rule, n_mutations)
@@ -156,6 +157,7 @@ class MutationExecutor:
     def _mutate(self, rule: Rule, n_mutations: int) -> Rule:
         for _ in range(n_mutations):
             new_rule = rule.copy()
+            # TODO: Check random choice of rule without flattening
             flattened = new_rule.flatten()
             for _ in range(self.num_tries):
                 selected = random.choice(flattened)

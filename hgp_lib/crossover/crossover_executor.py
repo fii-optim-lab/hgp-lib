@@ -156,28 +156,22 @@ class CrossoverExecutor:
             # self.crossover_strategy == "best"
             raise NotImplementedError()
 
-        idx_sorted = np.argsort(probabilities)
-        partition_point = np.argmax(probabilities[idx_sorted] > self.crossover_p)
-        if partition_point == 0 and probabilities[0] < self.crossover_p:
-            # partition_point is 0 if all probabilities are below the crossover probability
-            partition_point = n
-
-        if partition_point % 2 == 1:
-            partition_point = (
-                partition_point + 1 if partition_point + 1 < n else partition_point - 1
-            )
+        eligible_indices = np.flatnonzero(probabilities <= self.crossover_p)
+        np.random.shuffle(eligible_indices)
+        if len(eligible_indices) % 2 != 0:
+            eligible_indices = eligible_indices[:-1]
 
         children = []
         parent_indices = []
-        for i in range(0, partition_point, 2):
-            i1 = idx_sorted[i]
-            i2 = idx_sorted[i + 1]
+        for i in range(0, len(eligible_indices), 2):
+            i1 = eligible_indices[i]
+            i2 = eligible_indices[i + 1]
             parent_a = apply_feature_mapping(rules[i1], feature_mappings[i1])
             parent_b = apply_feature_mapping(rules[i2], feature_mappings[i2])
-            for child in self.crossover(parent_a, parent_b):
-                parent_indices.append(i1)
-                parent_indices.append(i2)
-                children.append(child)
+            ch = self.crossover(parent_a, parent_b)
+            children.extend(ch)
+            parent_indices.extend((i1, i2) * len(ch))
+
         return children, parent_indices
 
     def crossover(self, parent_a: Rule, parent_b: Rule) -> Sequence[Rule]:
@@ -213,6 +207,7 @@ class CrossoverExecutor:
         accepted = []
         for _ in range(self.num_tries):
             child_a, child_b = parent_a.copy(), parent_b.copy()
+            # TODO: Check random choice without flatten
             flat_a, flat_b = child_a.flatten(), child_b.flatten()
             node_a = random.choice(flat_a)
             node_b = random.choice(flat_b)
