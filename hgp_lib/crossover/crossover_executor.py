@@ -4,7 +4,7 @@ from typing import Callable, List, Sequence, Tuple
 import numpy as np
 
 from ..rules import Rule, Literal
-from ..rules.utils import deep_swap, apply_feature_mapping
+from ..rules.utils import deep_swap, apply_feature_mapping, select_crossover_point
 from ..utils.validation import validate_callable, check_isinstance
 
 
@@ -207,10 +207,12 @@ class CrossoverExecutor:
         accepted = []
         for _ in range(self.num_tries):
             child_a, child_b = parent_a.copy(), parent_b.copy()
-            # TODO: Check random choice without flatten
-            flat_a, flat_b = child_a.flatten(), child_b.flatten()
-            node_a = random.choice(flat_a)
-            node_b = random.choice(flat_b)
+
+            node_a = select_crossover_point(child_a)
+            node_b = select_crossover_point(child_b)
+            # flat_a, flat_b = child_a.flatten(), child_b.flatten()
+            # node_a = random.choice(flat_a)
+            # node_b = random.choice(flat_b)
 
             deep_swap(node_a, node_b)
 
