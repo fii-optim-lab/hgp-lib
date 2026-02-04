@@ -110,8 +110,13 @@ class BooleanGP:
 
         self.population = self.population_generator.generate()
         self.population_size = len(self.population)
-        # TODO Raise exception if top_k_transfer is greater than population_size
-        self._top_k = min(config.top_k_transfer, self.population_size)
+
+        if config.top_k_transfer > self.population_size:
+            raise ValueError(
+                f"top_k_transfer ({config.top_k_transfer}) must be less than"
+                f" or equal to population_size ({self.population_size})"
+            )
+        self._top_k = config.top_k_transfer
 
         self.best_score = -float("inf")
         self.best_rule: Rule | None = None
@@ -123,7 +128,7 @@ class BooleanGP:
         self.config = config
         self.child_populations: List["BooleanGP"] = []
         self.feature_mapping: dict[int, int] | None = None
-        self._transfer_sizes: List[int] = []
+        self._transfer_size: int = 0
         self.parent_rule_indices: List[int] = []
         self.last_scores: ndarray | None = None
 
@@ -214,7 +219,7 @@ class BooleanGP:
         feature mappings before crossover.
 
         This method updates:
-            - self._transfer_sizes: Number of rules transferred from each child
+            - self._transfer_size: Total number of rules transferred from children
             - self.parent_rule_indices: Indices tracking which parents contributed to children
             - self.population: Extended with new offspring from crossover
         """
@@ -223,13 +228,12 @@ class BooleanGP:
 
         crossover_pool = []
         feature_mappings = []
-        self._transfer_sizes = []
+        self._transfer_size = 0
 
         for child in self.child_populations:
-            top_k_rules = child._get_top_k_rules()
-            self._transfer_sizes.append(len(top_k_rules))
-            crossover_pool.extend(top_k_rules)
-            feature_mappings.extend([child.feature_mapping] * len(top_k_rules))
+            crossover_pool.extend(child._get_top_k_rules())
+            self._transfer_size += child._top_k
+            feature_mappings.extend([child.feature_mapping] * child._top_k)
 
         crossover_pool.extend(self.population)
         feature_mappings.extend([None] * len(self.population))
@@ -271,12 +275,14 @@ class BooleanGP:
 
         self.last_scores = scores[: self.population_size].copy()
 
+        children_metrics = []
+
         if self.child_populations:
             child_feedbacks = self._generate_child_feedback(scores)
             for child, feedback in zip(self.child_populations, child_feedbacks):
-                child.backward(feedback)
+                children_metrics.append(child.backward(feedback))
 
-        return self._new_generation(scores)
+        return self._new_generation(scores, children_metrics)
 
     def _get_top_k_rules(self) -> List[Rule]:
         """Select top-K rules for transfer to parent (indices 0.._top_k-1).
@@ -287,24 +293,19 @@ class BooleanGP:
         return self.population[: self._top_k]
 
     def _apply_feedback(self, scores: ndarray, parent_scores: ndarray) -> ndarray:
-        """Apply incoming feedback from parent to the first k scores (k = len(parent_scores))."""
-        k = min(len(parent_scores), self._top_k, len(scores))
-        if k == 0:
-            return scores
-        strength = self.config.feedback_strength
+        """Apply incoming feedback from parent to the first self._top_k scores."""
+        parent_scores *= self.config.feedback_strength
         if self.config.feedback_type == "multiplicative":
-            scores[:k] *= 1 + parent_scores[:k] * strength
+            scores[: self._top_k] *= 1 + parent_scores
         else:
-            scores[:k] += parent_scores[:k] * strength
+            scores[: self._top_k] += parent_scores
         return scores
 
     def _get_child_and_local_index(self, flat_idx: int) -> Tuple[int, int]:
         """Map flattened index (into transferred rules) to (child_idx, local_idx)."""
-        for child_idx, sz in enumerate(self._transfer_sizes):
-            if flat_idx < sz:
-                return child_idx, flat_idx
-            flat_idx -= sz
-        raise RuntimeError("flat_idx out of range for transfer_sizes")
+        child_idx = flat_idx // self._top_k
+        local_idx = flat_idx % self._top_k
+        return child_idx, local_idx
 
     def _generate_child_feedback(self, scores: ndarray) -> List[ndarray]:
         """Generate feedback signals for each child from offspring performance.
@@ -317,10 +318,8 @@ class BooleanGP:
         mean_score = float(np.mean(scores))
         max_score = float(np.max(scores))
         min_score = float(np.min(scores))
-        num_transferred = sum(self._transfer_sizes)
-        num_children = len(self.child_populations)
-        child_feedbacks = [np.zeros(sz) for sz in self._transfer_sizes]
-        child_counts = [np.zeros(sz) for sz in self._transfer_sizes]
+        child_feedbacks = [np.zeros(child._top_k) for child in self.child_populations]
+        child_counts = [np.zeros(child._top_k) for child in self.child_populations]
 
         num_offspring = len(scores) - self.population_size
         for offspring_idx in range(num_offspring):
@@ -328,7 +327,7 @@ class BooleanGP:
             parent1 = self.parent_rule_indices[2 * offspring_idx]
             parent2 = self.parent_rule_indices[2 * offspring_idx + 1]
             for parent_idx in (parent1, parent2):
-                if parent_idx < num_transferred:
+                if parent_idx < self._transfer_size:
                     child_idx, local_idx = self._get_child_and_local_index(parent_idx)
                     if offspring_score == mean_score:
                         signal = 0.0
@@ -351,12 +350,14 @@ class BooleanGP:
                     child_feedbacks[child_idx][local_idx] += signal
                     child_counts[child_idx][local_idx] += 1
 
-        for i in range(num_children):
-            mask = child_counts[i] > 0
-            child_feedbacks[i][mask] /= child_counts[i][mask]
+        for child in self.child_populations:
+            mask = child_counts[child] > 0
+            child_feedbacks[child][mask] /= child_counts[child][mask]
         return child_feedbacks
 
-    def _new_generation(self, scores: ndarray) -> StepMetrics:
+    def _new_generation(
+        self, scores: ndarray, children_metrics: List[StepMetrics]
+    ) -> StepMetrics:
         """
         Creates a new generation by selecting individuals and optionally regenerating the population.
 
@@ -398,6 +399,7 @@ class BooleanGP:
             epoch=self._epoch,
             best_not_improved_epochs=self.best_not_improved_epochs,
             regenerated=regenerated,
+            children_metrics=children_metrics,
         )
 
         if regenerated:
@@ -410,16 +412,9 @@ class BooleanGP:
             )
             # Non-root populations need reordering so top-K rules are at the front
             # for transfer to parent population during the next forward pass.
-            if self.current_depth > 0 and self._top_k > 0:
-                top_k_indices = np.argsort(selected_scores)[-self._top_k :][::-1]
-                top_k_set = set(top_k_indices)
-                reordered = [self.population[i] for i in top_k_indices]
-                reordered.extend(
-                    self.population[i]
-                    for i in range(len(self.population))
-                    if i not in top_k_set
-                )
-                self.population = reordered
+            if self.current_depth > 0:
+                sorted_indices = np.argsort(-selected_scores, self._top_k)
+                self.population = [self.population[i] for i in sorted_indices]
         return metrics
 
     def _evaluate_population(

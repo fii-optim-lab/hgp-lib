@@ -85,6 +85,7 @@ class StepMetrics:
         epoch (int): Current epoch number (0-indexed).
         best_not_improved_epochs (int): Epochs since last improvement.
         regenerated (bool): Whether population was regenerated this step.
+        children_metrics (List[StepMetrics]): Metrics for each child population.
     """
 
     best: float
@@ -98,6 +99,7 @@ class StepMetrics:
     epoch: int
     best_not_improved_epochs: int
     regenerated: bool
+    children_metrics: List["StepMetrics"]
 
 
 @dataclass
