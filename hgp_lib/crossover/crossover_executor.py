@@ -209,6 +209,7 @@ class CrossoverExecutor:
 
             node_a = select_crossover_point(child_a)
             node_b = select_crossover_point(child_b)
+
             # flat_a, flat_b = child_a.flatten(), child_b.flatten()
             # node_a = random.choice(flat_a)
             # node_b = random.choice(flat_b)

@@ -134,7 +134,7 @@ def f1_score(y_pred, y_true, sample_weight=None):
 # ==============================================================================
 
 
-def preprocess_paysim_data(hdf_path: str) -> Tuple:
+def preprocess_paysim_data(hdf_path: str, num_bins: int = 5) -> Tuple:
     """
     Load and preprocess PaySim data for training.
 
@@ -148,6 +148,7 @@ def preprocess_paysim_data(hdf_path: str) -> Tuple:
 
     Args:
         hdf_path: Path to the preprocessed PaySim HDF file
+        num_bins: Number of bins for binarization
 
     Returns:
         Tuple of (train_data, train_labels, val_data, val_labels,
@@ -192,9 +193,9 @@ def preprocess_paysim_data(hdf_path: str) -> Tuple:
     print(f"Test:  {len(test_data)} samples ({test_labels.sum()} fraud)")
 
     # Binarize features - converts continuous to boolean
-    # num_bins=5 means each feature becomes 5 boolean features (one per quantile bin)
-    print("\nBinarizing features...")
-    binarizer = StandardBinarizer(num_bins=5)
+    # Each feature becomes num_bins boolean features
+    print(f"\nBinarizing features (num_bins={num_bins})...")
+    binarizer = StandardBinarizer(num_bins=num_bins)
     train_data_bin = binarizer.fit_transform(train_data, train_labels)
 
     # Create feature name mapping for interpretable rule output
@@ -482,7 +483,7 @@ def main(args: argparse.Namespace) -> None:
         test_data,
         test_labels,
         feature_names,
-    ) = preprocess_paysim_data(args.data_path)
+    ) = preprocess_paysim_data(args.data_path, num_bins=args.num_bins)
 
     # Create validity checker
     is_valid = create_validity_checker(args.max_rule_size)
@@ -608,6 +609,12 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default="data/PaySim.hdf",
         help="Path to preprocessed PaySim HDF file",
+    )
+    data_group.add_argument(
+        "--num_bins",
+        type=int,
+        default=5,
+        help="Number of bins for feature binarization",
     )
 
     # Training arguments
