@@ -351,16 +351,29 @@ def print_timing_results(measurements: Dict, args: argparse.Namespace) -> None:
     # Calculate total time for percentage
     total_own_time = sum(v[2] for v in measurements.values()) / 1e9
 
-    table = PrettyTable(["Function", "Calls", "Own(s)", "Elapsed(s)", "Per-call(ms)"])
+    table = PrettyTable(
+        [
+            "Function",
+            "Calls",
+            "Own(s)",
+            "Elapsed(s)",
+            "Per-call(ms)",
+            "Per-call(elapsed_ms)",
+        ]
+    )
 
     for key, (counts, elapsed, own_time) in sorted_measurements:
-        own_time_s = own_time / 1e9
-        elapsed_s = elapsed / 1e9
+        own_time_s = round(own_time / 1e9, 4)
+        elapsed_s = round(elapsed / 1e9, 4)
+        per_call_ms = round(own_time / counts * 1000, 4)
+        per_call_elapsed_ms = round(elapsed / counts * 1000, 4)
         print(
-            f"Function {key} was called {counts} time(s) and took {own_time_s:.4f}s/{elapsed_s:.4f}s "
-            f"({own_time_s / counts:.4f}/{elapsed_s / counts:.4f} per call)"
+            f"Function {key} was called {counts} time(s) and took {own_time_s}s/{elapsed_s}s "
+            f"({per_call_ms}ms/{per_call_elapsed_ms}ms per call)"
         )
-        table.add_row([key, counts, own_time_s, elapsed_s, own_time_s / counts])
+        table.add_row(
+            [key, counts, own_time_s, elapsed_s, per_call_ms, per_call_elapsed_ms]
+        )
 
     print("-" * 80)
     print(f"TOTAL: {total_own_time:.4f}s")
