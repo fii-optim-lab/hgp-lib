@@ -1,4 +1,5 @@
-from typing import Callable
+from dataclasses import replace
+from typing import Callable, List
 
 import numpy as np
 from numpy import ndarray
@@ -7,9 +8,7 @@ from ..configs import BooleanGPConfig, validate_gp_config
 from ..crossover import CrossoverExecutor
 from ..metrics import StepMetrics, ValidateBestMetrics, ValidatePopulationMetrics
 from ..mutations import (
-    MutationExecutor,
-    create_standard_literal_mutations,
-    create_standard_operator_mutations,
+    create_mutation_executor,
 )
 from ..populations import PopulationGenerator, RandomStrategy
 from ..rules import Rule
@@ -61,14 +60,17 @@ class BooleanGP:
         0
     """
 
-    def __init__(self, config: BooleanGPConfig):
+    def __init__(self, config: BooleanGPConfig, current_depth: int = 0):
         validate_gp_config(config)
 
         train_data = config.train_data
         train_labels = config.train_labels
         score_fn = config.score_fn
+        # TODO: We should add in documentation that our score_fn follows the sklearn
+        #  standard of (predictions, labels) and sample_weight support is recommended for optimization.
 
         self._original_score_fn = config.score_fn
+        self.current_depth = current_depth
 
         if config.optimize_scorer:
             score_fn, train_data, train_labels = optimize_scorer_for_data(
@@ -82,17 +84,15 @@ class BooleanGP:
 
         population_generator = config.population_generator
         if population_generator is None:
+            # TODO: We should rethink a system that is easy to initialize for both the user and child populations:
+            # Maybe a common configuration for all strategies? This should be analyzed further
             random_strategy = RandomStrategy(num_literals=num_features)
             population_generator = PopulationGenerator(strategies=[random_strategy])
 
         mutation_executor = config.mutation_executor
         if mutation_executor is None:
-            literal_mutations = create_standard_literal_mutations(num_features)
-            operator_mutations = create_standard_operator_mutations(num_features)
-            mutation_executor = MutationExecutor(
-                literal_mutations=literal_mutations,
-                operator_mutations=operator_mutations,
-                check_valid=config.check_valid,
+            mutation_executor = create_mutation_executor(
+                num_literals=num_features, check_valid=config.check_valid
             )
 
         crossover_executor = config.crossover_executor
@@ -113,12 +113,65 @@ class BooleanGP:
         self.population = self.population_generator.generate()
         self.population_size = len(self.population)
 
+        if config.top_k_transfer > self.population_size:
+            raise ValueError(
+                f"top_k_transfer ({config.top_k_transfer}) must be less than"
+                f" or equal to population_size ({self.population_size})"
+            )
+        self._top_k = config.top_k_transfer
+
         self.best_score = -float("inf")
         self.best_rule: Rule | None = None
         self.best_not_improved_epochs = 0
         self.real_best_score = -float("inf")
         self.real_best_rule: Rule | None = None
         self._epoch = -1
+
+        self.config = config
+        self.child_populations: List["BooleanGP"] = []
+        self.feature_mapping: dict[int, int] | None = None
+        self._transfer_size: int = 0
+        self.parent_rule_indices: List[int] = []
+
+        if config.max_depth > current_depth and config.num_child_populations > 0:
+            self._create_child_populations()
+
+    def _create_child_populations(self) -> None:
+        """Create child populations using the sampling strategy."""
+        if self.config.sampling_strategy is None:
+            raise RuntimeError(
+                "Cannot create child populations without a sampling strategy"
+            )
+        num_features = self.train_data.shape[1]
+        for _ in range(self.config.num_child_populations):
+            result = self.config.sampling_strategy.sample(
+                self.train_data,
+                self.train_labels,
+                num_features,
+                self.config.num_child_populations,
+            )
+            num_sampled_features = len(result.feature_indices)
+            child_generator = PopulationGenerator(
+                strategies=[RandomStrategy(num_literals=num_sampled_features)],
+                population_size=self.population_generator.population_size,
+            )
+            child_mutation_executor = create_mutation_executor(
+                num_literals=num_sampled_features,
+                check_valid=self.config.check_valid,
+                mutation_p=self.mutation_executor.mutation_p,
+                num_tries=self.mutation_executor.num_tries,
+            )
+            child_config = replace(
+                self.config,
+                train_data=result.data,
+                train_labels=result.labels,
+                population_generator=child_generator,
+                mutation_executor=child_mutation_executor,
+            )
+            child = BooleanGP(child_config, current_depth=self.current_depth + 1)
+            child.feature_mapping = result.feature_mapping
+
+            self.child_populations.append(child)
 
     def step(self) -> StepMetrics:
         """
@@ -136,15 +189,199 @@ class BooleanGP:
                 best_not_improved_epochs, and regenerated.
         """
         # TODO: Add doctests here.
-        self._epoch += 1
-        self.population += self.crossover_executor.apply(self.population)
+        self.forward()
+        return self.backward()
+
+    def forward(self) -> None:
+        """
+        Performs the forward pass of the genetic programming algorithm.
+
+        The forward pass consists of:
+        1. Recursively calling forward() on all child populations
+        2. Collecting rules from child populations with their feature mappings
+        3. Applying crossover to create offspring (combining rules from current
+           and child populations)
+        4. Applying mutations to the expanded population
+
+        In hierarchical GP, child populations may operate on different feature
+        subsets. Their rules are translated to the parent's feature space via
+        feature mappings before crossover.
+
+        This method updates:
+            - self._transfer_size: Total number of rules transferred from children
+            - self.parent_rule_indices: Indices tracking which parents contributed to children
+            - self.population: Extended with new offspring from crossover
+        """
+        for child in self.child_populations:
+            child.forward()
+
+        crossover_pool = []
+        feature_mappings = []
+        self._transfer_size = 0
+
+        for child in self.child_populations:
+            crossover_pool.extend(child._get_top_k_rules())
+            self._transfer_size += child._top_k
+            feature_mappings.extend([child.feature_mapping] * child._top_k)
+
+        crossover_pool.extend(self.population)
+        feature_mappings.extend([None] * len(self.population))
+        offspring, self.parent_rule_indices = self.crossover_executor.apply(
+            crossover_pool, feature_mappings
+        )
+        self.population += offspring
         self.mutation_executor.apply(self.population)
+
+    def backward(self, parent_scores: ndarray | None = None) -> StepMetrics:
+        """
+        Performs the backward pass of the genetic programming algorithm.
+
+        The backward pass consists of:
+        1. Evaluating all rules in the population against training data
+        2. Adding any scores propagated from parent populations (in hierarchical GP)
+        3. Propagating scores to child populations based on their contributions
+        4. Recursively calling backward() on child populations
+        5. Creating the next generation via selection
+
+        In hierarchical GP, scores flow bidirectionally: parent populations receive
+        rules from children during crossover (forward), and children receive fitness
+        signals based on how well their contributed rules performed (backward).
+
+        Args:
+            parent_scores (ndarray | None): Optional scores propagated from a parent
+                population. These are added to the local evaluation scores. Used in
+                hierarchical GP to reward child rules that contributed to successful
+                offspring in the parent. Default: None.
+
+        Returns:
+            StepMetrics: Dictionary containing metrics about the generation step.
+        """
         scores = self._evaluate_population(
             self.train_data, self.train_labels, self.score_fn
         )
-        return self._new_generation(scores)
+        if parent_scores is not None:
+            self._apply_feedback(scores, parent_scores)
 
-    def _new_generation(self, scores: ndarray) -> StepMetrics:
+        children_metrics = []
+
+        if self.child_populations:
+            child_feedbacks = self._generate_child_feedback(scores)
+            for child, feedback in zip(self.child_populations, child_feedbacks):
+                children_metrics.append(child.backward(feedback))
+
+        return self._new_generation(scores, children_metrics)
+
+    def _get_top_k_rules(self) -> List[Rule]:
+        """Retrieve the top-K rules for transfer to the parent population.
+
+        Returns the first `_top_k` rules from the population, which are expected
+        to be the highest-scoring rules. After each generation (except the first),
+        non-root populations sort their rules by score in descending order during
+        `_new_generation()`, ensuring that indices 0 through `_top_k - 1` contain
+        the best-performing rules.
+
+        Note:
+            During the first epoch (before any `backward()` call completes), the
+            population has not yet been sorted by score. In this case, the returned
+            rules are simply the first `_top_k` rules from the initial population,
+            which are effectively random. This is acceptable since all populations
+            start with randomly generated rules.
+
+        Returns:
+            List[Rule]: The top-K rules from this population, to be used in the
+                parent's crossover pool during hierarchical GP.
+
+        Examples:
+            >>> import numpy as np
+            >>> from hgp_lib.algorithms import BooleanGP
+            >>> from hgp_lib.configs import BooleanGPConfig
+            >>> from hgp_lib.populations import FeatureSamplingStrategy
+            >>> from sklearn.metrics import accuracy_score
+            >>> data = np.random.rand(50, 10) > 0.5
+            >>> labels = np.random.randint(0, 2, 50)
+            >>> config = BooleanGPConfig(
+            ...     score_fn=accuracy_score,
+            ...     train_data=data,
+            ...     train_labels=labels,
+            ...     max_depth=1,
+            ...     num_child_populations=2,
+            ...     sampling_strategy=FeatureSamplingStrategy(),
+            ...     top_k_transfer=5,
+            ... )
+            >>> gp = BooleanGP(config)
+            >>> child = gp.child_populations[0]
+            >>> top_rules = child._get_top_k_rules()
+            >>> len(top_rules)
+            5
+        """
+        return self.population[: self._top_k]
+
+    def _apply_feedback(self, scores: ndarray, parent_scores: ndarray) -> ndarray:
+        """Apply incoming feedback from parent to the first self._top_k scores."""
+        parent_scores *= self.config.feedback_strength
+        if self.config.feedback_type == "multiplicative":
+            scores[: self._top_k] *= 1 + parent_scores
+        else:
+            scores[: self._top_k] += parent_scores
+        return scores
+
+    def _generate_child_feedback(self, scores: ndarray) -> ndarray:
+        """Generate feedback signals for each child from offspring performance.
+
+        Each parent that came from a child population receives a signal based on
+        how well the offspring it helped create performed. The signal is normalized
+        relative to the population's score distribution.
+
+        Args:
+            scores (ndarray): Fitness scores for all rules in the current population,
+                including both the original population and offspring from crossover.
+
+        Returns:
+            ndarray: A 2D array of shape (num_children, top_k) containing feedback
+                signals for each child population's transferred rules.
+        """
+        num_children = len(self.child_populations)
+
+        mean_s = float(np.mean(scores))
+        min_s = float(np.min(scores))
+        max_s = float(np.max(scores))
+
+        if max_s == min_s:
+            return np.zeros((num_children, self._top_k))
+
+        # Offspring are situated after the original parent population in the scores array
+        offspring_scores = scores[self.population_size :]
+        above = offspring_scores >= mean_s
+        signals = np.where(
+            above,
+            (offspring_scores - mean_s) / (max_s - mean_s),
+            (offspring_scores - mean_s) / (mean_s - min_s),
+        )
+        child_feedbacks = np.zeros((num_children, self._top_k))
+        child_counts = np.zeros((num_children, self._top_k))
+
+        # parent_rule_indices stores TWO indices per offspring (one for each parent).
+        # For offspring i, parent_rule_indices[2*i] and parent_rule_indices[2*i + 1]
+        # are the indices of its two parents in the crossover pool.
+        # Therefore, j // 2 maps from the parent_rule_indices position to the
+        # corresponding offspring index in offspring_scores.
+        for j, parent_idx in enumerate(self.parent_rule_indices):
+            if parent_idx < self._transfer_size:
+                # parent_idx < _transfer_size means this parent came from a child population
+                # Determine which child and which local rule index within that child
+                child_idx, local_idx = divmod(parent_idx, self._top_k)
+                offspring_idx = j // 2  # Two parent indices per offspring
+                child_feedbacks[child_idx, local_idx] += signals[offspring_idx]
+                child_counts[child_idx, local_idx] += 1
+
+        mask = child_counts > 0
+        child_feedbacks[mask] /= child_counts[mask]
+
+        return child_feedbacks
+
+    def _new_generation(
+        self, scores: ndarray, children_metrics: List[StepMetrics]
+    ) -> StepMetrics:
         """
         Creates a new generation by selecting individuals and optionally regenerating the population.
 
@@ -174,6 +411,7 @@ class BooleanGP:
         ):
             regenerated = True
 
+        self._epoch += 1
         metrics = StepMetrics(
             best=self.best_score,
             best_rule=self.best_rule,
@@ -186,6 +424,7 @@ class BooleanGP:
             epoch=self._epoch,
             best_not_improved_epochs=self.best_not_improved_epochs,
             regenerated=regenerated,
+            children_metrics=children_metrics,
         )
 
         if regenerated:
@@ -193,9 +432,15 @@ class BooleanGP:
             self.best_score = -float("inf")
             self.best_not_improved_epochs = 0
         else:
-            self.population = self.selection.select(
+            self.population, selected_scores = self.selection.select(
                 self.population, scores, self.population_size
             )
+            # Non-root populations need reordering so top-K rules are at the front
+            # for transfer to parent population during the next forward pass.
+            if self.current_depth > 0:  # top_k must be positive if current_depth > 0
+                # TODO: Test against argpartition for speed
+                sorted_indices = np.argsort(-selected_scores)
+                self.population = [self.population[i] for i in sorted_indices]
         return metrics
 
     def _evaluate_population(

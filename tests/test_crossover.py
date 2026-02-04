@@ -41,7 +41,7 @@ class TestCrossoverExecutor(unittest.TestCase):
                 CrossoverExecutor(check_valid=lambda r: True, num_tries=0)
 
     def test_apply_random_strategy(self):
-        """Test that apply selects rules and returns children."""
+        """Test that apply selects rules and returns children with parent indices."""
         executor = CrossoverExecutor(crossover_p=1.0)
         rules = [
             And([Literal(value=0), Literal(value=1)]),
@@ -52,15 +52,18 @@ class TestCrossoverExecutor(unittest.TestCase):
 
         random.seed(42)
         np.random.seed(42)
-        children = executor.apply(rules)
+        children, parent_indices = executor.apply(rules)
 
         # Should return children from crossover
         self.assertIsInstance(children, list)
+        self.assertIsInstance(parent_indices, list)
         # With crossover_p=1.0, all 4 rules should be selected -> 2 pairs -> 4 children
         self.assertEqual(len(children), 4)
+        # Each child has 2 parent indices recorded
+        self.assertEqual(len(parent_indices), 2 * len(children))
 
     def test_apply_returns_list(self):
-        """Test that apply returns a list and does not modify input."""
+        """Test that apply returns children and parent indices, and does not modify input."""
         executor = CrossoverExecutor(crossover_p=1.0)
         rules = [
             And([Literal(value=0), Literal(value=1)]),
@@ -70,19 +73,23 @@ class TestCrossoverExecutor(unittest.TestCase):
 
         random.seed(42)
         np.random.seed(42)
-        children = executor.apply(rules)
+        children, parent_indices = executor.apply(rules)
 
         # Original rules should be unchanged
         self.assertEqual([str(r) for r in rules], original_strs)
         # Children should be returned
         self.assertIsInstance(children, list)
         self.assertEqual(len(children), 2)
+        # Parent indices should be returned
+        self.assertIsInstance(parent_indices, list)
+        self.assertEqual(len(parent_indices), 2 * len(children))
 
     def test_apply_empty_list(self):
         """Test that apply handles empty list."""
         executor = CrossoverExecutor(crossover_p=1.0)
-        children = executor.apply([])
+        children, parent_indices = executor.apply([])
         self.assertEqual(children, [])
+        self.assertEqual(parent_indices, [])
 
     def test_crossover_subtree_swap(self):
         """Test actual subtree exchange between two parents."""
@@ -240,11 +247,12 @@ class TestCrossoverExecutor(unittest.TestCase):
         # Should round up to 4 if possible, but n=3 so rounds down to 2
         random.seed(42)
         np.random.seed(42)
-        children = executor.apply(rules)
+        children, parent_indices = executor.apply(rules)
 
         # Should return 2 children from 1 pair (partition_point rounds down to 2)
         self.assertIsInstance(children, list)
         self.assertEqual(len(children), 2)
+        self.assertEqual(len(parent_indices), 2 * len(children))
 
     def test_apply_single_rule(self):
         """Test that apply handles a single rule gracefully."""
@@ -252,10 +260,11 @@ class TestCrossoverExecutor(unittest.TestCase):
         rules = [And([Literal(value=0), Literal(value=1)])]
 
         np.random.seed(42)
-        children = executor.apply(rules)
+        children, parent_indices = executor.apply(rules)
 
         # Single rule can't be paired, should return empty list
         self.assertEqual(len(children), 0)
+        self.assertEqual(len(parent_indices), 0)
 
     def test_apply_crossover_p_zero(self):
         """Test that apply returns empty list when crossover_p=0.0 (no rules selected)."""
@@ -268,11 +277,12 @@ class TestCrossoverExecutor(unittest.TestCase):
         ]
 
         np.random.seed(42)
-        children = executor.apply(rules)
+        children, parent_indices = executor.apply(rules)
 
         # With crossover_p=0.0, all random probabilities will exceed threshold,
         # so no rules should be selected for crossover
         self.assertEqual(len(children), 0)
+        self.assertEqual(len(parent_indices), 0)
 
     def test_doctests(self):
         result = doctest.testmod(hgp_lib.crossover.crossover_executor, verbose=False)

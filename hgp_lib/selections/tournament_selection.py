@@ -1,6 +1,7 @@
-from typing import List, Sequence
+from typing import List, Sequence, Tuple
 
 import numpy as np
+from numpy import ndarray
 
 from .base_selection import BaseSelection
 from ..rules import Rule
@@ -43,8 +44,8 @@ class TournamentSelection(BaseSelection):
         >>> selection = TournamentSelection(tournament_size=3, selection_p=0.5)
         >>> rules = [Literal(value=i) for i in range(5)]
         >>> scores = [0.1, 0.9, 0.5, 0.3, 0.7]
-        >>> selected = selection.select(rules, scores, 3)
-        >>> len(selected)
+        >>> selected_rules, selected_scores = selection.select(rules, scores, 3)
+        >>> len(selected_rules)
         3
     """
 
@@ -74,7 +75,7 @@ class TournamentSelection(BaseSelection):
         rules: Sequence[Rule],
         scores: np.ndarray | Sequence[float],
         n_select: int,
-    ) -> List[Rule]:
+    ) -> Tuple[List[Rule], ndarray]:
         """
         Selects `n_select` rules using tournament selection.
 
@@ -96,7 +97,9 @@ class TournamentSelection(BaseSelection):
                 Number of rules to select.
 
         Returns:
-            List[Rule]: Copies of the selected rules. The same rule may appear multiple times.
+            Tuple[List[Rule], ndarray]: A tuple containing:
+                - List[Rule]: Copies of the selected rules. The same rule may appear multiple times.
+                - ndarray: The fitness scores of the selected rules.
 
         Examples:
             >>> import random
@@ -111,16 +114,16 @@ class TournamentSelection(BaseSelection):
             ...     Literal(value=2),
             ... ]
             >>> scores = [0.2, 0.8, 0.5]
-            >>> selected = selection.select(rules, scores, 2)
-            >>> len(selected)
+            >>> selected_rules, selected_scores = selection.select(rules, scores, 2)
+            >>> len(selected_rules)
             2
-            >>> all(isinstance(rule, Rule) for rule in selected)
+            >>> all(isinstance(rule, Rule) for rule in selected_rules)
             True
         """
         n = len(rules)
 
-        scores = np.asarray(scores)
-        sorted_order = np.argsort(-scores)
+        scores_array = np.asarray(scores)
+        sorted_order = np.argsort(-scores_array)
 
         # TODO: Measure this. Check if this can be precomputed.
         winning_seats = np.random.choice(
@@ -128,14 +131,16 @@ class TournamentSelection(BaseSelection):
         )
 
         selected_rules = []
+        selected_indices = []
 
         for i in range(n_select):
             tournament_indices = np.random.choice(
                 n, self.tournament_size, replace=False
             )
             tournament_indices.sort()
-            selected_rules.append(
-                rules[sorted_order[tournament_indices[winning_seats[i]]]].copy()
-            )
+            winner_idx = sorted_order[tournament_indices[winning_seats[i]]]
+            selected_rules.append(rules[winner_idx].copy())
+            selected_indices.append(winner_idx)
 
-        return selected_rules
+        selected_scores = scores_array[selected_indices]
+        return selected_rules, selected_scores
