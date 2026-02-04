@@ -301,11 +301,19 @@ def apply_timing_decorators() -> None:
 
     import hgp_lib
 
-    hgp_lib.rules.utils.select_crossover_point = decorator(hgp_lib.rules.utils.select_crossover_point)
-    hgp_lib.crossover.crossover_executor.select_crossover_point = decorator(hgp_lib.crossover.crossover_executor.select_crossover_point)
-    hgp_lib.rules.utils.replace_with_rule = decorator(hgp_lib.rules.utils.replace_with_rule)
+    hgp_lib.rules.utils.select_crossover_point = decorator(
+        hgp_lib.rules.utils.select_crossover_point
+    )
+    hgp_lib.crossover.crossover_executor.select_crossover_point = decorator(
+        hgp_lib.crossover.crossover_executor.select_crossover_point
+    )
+    hgp_lib.rules.utils.replace_with_rule = decorator(
+        hgp_lib.rules.utils.replace_with_rule
+    )
     hgp_lib.rules.utils.deep_swap = decorator(hgp_lib.rules.utils.deep_swap)
-    hgp_lib.crossover.crossover_executor.deep_swap = decorator(hgp_lib.crossover.crossover_executor.deep_swap)
+    hgp_lib.crossover.crossover_executor.deep_swap = decorator(
+        hgp_lib.crossover.crossover_executor.deep_swap
+    )
 
     np.random.randint = decorator(np.random.randint)
     random.choice = decorator(random.choice)
