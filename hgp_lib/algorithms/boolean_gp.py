@@ -65,12 +65,11 @@ class BooleanGP:
 
         train_data = config.train_data
         train_labels = config.train_labels
-        score_fn = config.score_fn
         # TODO: We should add in documentation that our score_fn follows the sklearn
         #  standard of (predictions, labels) and sample_weight support is recommended for optimization.
 
-        self._original_score_fn = config.score_fn
-        self.current_depth = current_depth
+        score_fn = config.score_fn
+        self._original_score_fn = score_fn
 
         if config.optimize_scorer:
             score_fn, train_data, train_labels = optimize_scorer_for_data(
@@ -80,6 +79,8 @@ class BooleanGP:
         self.score_fn = score_fn
         self.train_data = train_data
         self.train_labels = train_labels
+
+        self.current_depth = current_depth
         num_features = train_data.shape[1]
 
         population_generator = config.population_generator

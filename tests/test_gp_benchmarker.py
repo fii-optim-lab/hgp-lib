@@ -345,18 +345,6 @@ class TestGPBenchmarker(unittest.TestCase):
         result = benchmarker.fit()
         self.assertEqual(len(result.run_metrics), 1)
 
-    def test_val_score_fn(self):
-        def custom_val_score(predictions, labels):
-            return np.sum(predictions & labels)
-
-        trainer_config = self._make_trainer_config(
-            num_epochs=2, val_score_fn=custom_val_score
-        )
-        config = self._make_config(trainer_config=trainer_config, num_runs=1, n_jobs=1)
-        benchmarker = GPBenchmarker(config)
-        result = benchmarker.fit()
-        self.assertEqual(len(result.run_metrics), 1)
-
     def test_progress_bar_disabled(self):
         trainer_config = self._make_trainer_config(num_epochs=2, progress_bar=False)
         config = self._make_config(trainer_config=trainer_config)
@@ -391,19 +379,6 @@ class TestGPBenchmarker(unittest.TestCase):
         """Test that optimize_scorer defaults to True in BooleanGPConfig."""
         gp_config = BooleanGPConfig(score_fn=accuracy_with_sample_weight)
         self.assertTrue(gp_config.optimize_scorer)
-
-    def test_optimize_scorer_with_different_val_score_fn(self):
-        """Test optimize_scorer with separate train and val score functions."""
-        gp_config = self._make_gp_config(
-            score_fn=accuracy_with_sample_weight, optimize_scorer=True
-        )
-        trainer_config = self._make_trainer_config(
-            gp_config=gp_config, num_epochs=2, val_score_fn=accuracy_with_sample_weight
-        )
-        config = self._make_config(trainer_config=trainer_config, num_runs=1, n_jobs=1)
-        benchmarker = GPBenchmarker(config)
-        result = benchmarker.fit()
-        self.assertEqual(len(result.run_metrics), 1)
 
     def test_doctests(self):
         result = doctest.testmod(hgp_lib.benchmarkers.gp_benchmarker, verbose=False)

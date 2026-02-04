@@ -112,8 +112,6 @@ def main(args: argparse.Namespace):
         trainer_config=trainer_config,
         num_runs=args.num_runs,
         n_folds=args.n_folds,
-        show_fold_progress=False,
-        show_epoch_progress=False,
     )
 
     print("\nBenchmark configuration:")

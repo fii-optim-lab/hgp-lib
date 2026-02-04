@@ -1,6 +1,8 @@
 import random
 from dataclasses import replace
-from typing import List, Tuple
+from functools import partial
+from multiprocessing import Queue
+from typing import List, Optional, Tuple
 
 import numpy as np
 from sklearn.model_selection import StratifiedKFold, train_test_split
@@ -12,11 +14,14 @@ from ..rules import Rule
 from ..trainers import GPTrainer
 from ..utils.metrics import optimize_scorer_for_data
 
+from .progress import send_progress
+
 
 def execute_single_run(
     run_id: int,
     seed: int,
     config: BenchmarkerConfig,
+    progress_queue: Optional[Queue] = None,
 ) -> RunMetrics:
     """
     Execute one benchmark run: stratified train/test split, k-fold CV, select best fold, test.
@@ -27,6 +32,9 @@ def execute_single_run(
         run_id (int): Index of the run (0-based).
         seed (int): Random seed for stratified split and k-fold.
         config (BenchmarkerConfig): Configuration for the benchmark run.
+        progress_queue (Queue | None): Optional queue for sending progress updates
+            to the main process. When provided, local progress bars are disabled
+            and progress is sent via the queue instead. Default: `None`.
 
     Returns:
         RunMetrics: Metrics for the run including fold scores, best rule, and validation score.
@@ -37,8 +45,13 @@ def execute_single_run(
     trainer_template = config.trainer_config
     gp_template = trainer_template.gp_config
 
-    show_folds = config.show_fold_progress and trainer_template.progress_bar
-    show_epochs = config.show_epoch_progress and trainer_template.progress_bar
+    use_queue = progress_queue is not None
+    show_folds = (
+        config.show_fold_progress and trainer_template.progress_bar and not use_queue
+    )
+    show_epochs = (
+        config.show_epoch_progress and trainer_template.progress_bar and not use_queue
+    )
 
     np.random.seed(seed)
     random.seed(seed)
@@ -61,13 +74,16 @@ def execute_single_run(
     if show_folds:
         fold_splits = tqdm(fold_splits, total=config.n_folds, desc="Folds", leave=False)
 
+    epoch_callback = (
+        partial(send_progress, progress_queue, "epoch") if use_queue else None
+    )
+
     for train_idx, val_idx in fold_splits:
         fold_train = train_data[train_idx]
         fold_val = train_data[val_idx]
         fold_train_labels = train_labels[train_idx]
         fold_val_labels = train_labels[val_idx]
 
-        # Create fold-specific configs using replace()
         fold_gp_config = replace(
             gp_template,
             train_data=fold_train,
@@ -79,6 +95,7 @@ def execute_single_run(
             val_data=fold_val,
             val_labels=fold_val_labels,
             progress_bar=show_epochs,
+            progress_callback=epoch_callback,
         )
 
         trainer = GPTrainer(fold_trainer_config)
@@ -107,11 +124,12 @@ def execute_single_run(
             )
         fold_best_rules.append(trainer.gp_algo.real_best_rule.copy())
 
+        send_progress(progress_queue, "fold", 1)
+
     best_fold_idx = int(np.argmax(fold_val_scores))
     best_fold_val_score = fold_val_scores[best_fold_idx]
     best_rule = fold_best_rules[best_fold_idx]
 
-    # Evaluate on test set
     if gp_template.optimize_scorer:
         test_score_fn, test_data_opt, test_labels_opt = optimize_scorer_for_data(
             gp_template.score_fn, test_data, test_labels
@@ -123,6 +141,8 @@ def execute_single_run(
 
     test_predictions = best_rule.evaluate(test_data_opt)
     test_score = float(test_score_fn(test_predictions, test_labels_opt))
+
+    send_progress(progress_queue, "run", 1)
 
     return RunMetrics(
         run_id=run_id,
@@ -136,15 +156,17 @@ def execute_single_run(
     )
 
 
-def single_run_wrapper(args: Tuple[int, int, BenchmarkerConfig]) -> RunMetrics:
+def single_run_wrapper(
+    args: Tuple[int, int, BenchmarkerConfig, Optional[Queue]],
+) -> RunMetrics:
     """
-    Picklable wrapper for process_map.
+    Picklable wrapper for multiprocessing Pool.
 
     Args:
-        args (tuple): Tuple of (run_id, seed, config).
+        args (tuple): Tuple of (run_id, seed, config, progress_queue).
 
     Returns:
         RunMetrics: Metrics for the run.
     """
-    run_id, seed, config = args
-    return execute_single_run(run_id, seed, config)
+    run_id, seed, config, progress_queue = args
+    return execute_single_run(run_id, seed, config, progress_queue)

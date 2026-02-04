@@ -63,28 +63,20 @@ class GPTrainer:
         self.num_epochs = config.num_epochs
         self.val_every = config.val_every
         self.progress_bar = config.progress_bar
+        self.progress_callback = config.progress_callback
 
-        base_val_score_fn = (
-            config.val_score_fn
-            if config.val_score_fn is not None
-            else config.gp_config.score_fn
-        )
-
+        self.score_fn = self.gp_algo.score_fn  # Maybe optimized
+        self._original_score_fn = self.gp_algo._original_score_fn
         if config.val_data is not None and config.gp_config.optimize_scorer:
             self.val_score_fn, self.val_data, self.val_labels = (
                 optimize_scorer_for_data(
-                    base_val_score_fn, config.val_data, config.val_labels
+                    config.gp_config.score_fn, config.val_data, config.val_labels
                 )
             )
         else:
-            self.val_score_fn = base_val_score_fn
+            self.val_score_fn = config.gp_config.score_fn
             self.val_data = config.val_data
             self.val_labels = config.val_labels
-
-    @property
-    def score_fn(self):
-        """Original scoring function (not optimized, safe for any data size)."""
-        return self.config.gp_config.score_fn
 
     def fit(self) -> TrainerResult:
         """
@@ -117,6 +109,12 @@ class GPTrainer:
                     )
                 )
 
+                if (
+                    self.progress_callback is not None
+                    and (epoch + 1) % self.config.progress_update_interval == 0
+                ):
+                    self.progress_callback(self.config.progress_update_interval)
+
                 if self.val_data is not None and (epoch + 1) % self.val_every == 0:
                     val_metrics = self.gp_algo.validate_population(
                         self.val_data,
@@ -143,6 +141,11 @@ class GPTrainer:
                     }
                 )
 
+        # Send remaining epochs not covered by progress_update_interval
+        remaining_epochs = self.num_epochs % self.config.progress_update_interval
+        if remaining_epochs > 0 and self.progress_callback is not None:
+            self.progress_callback(remaining_epochs)
+
         train_history = TrainingHistory(epochs=train_epochs)
         val_history = TrainingHistory(epochs=val_epochs) if val_epochs else None
         best_rule = self.gp_algo.real_best_rule
@@ -168,14 +171,14 @@ class GPTrainer:
         Args:
             test_data (ndarray): Test data (2D boolean array).
             test_labels (ndarray): Test labels (1D integer array).
-            score_fn (Callable | None): Optional; uses trainer's score_fn if None. Default: `None`.
+            score_fn (Callable | None): Optional; uses trainer's _original_score_fn if None. Default: `None`.
             all_time_best (bool): If True, evaluate all-time best rule. Default: `True`.
 
         Returns:
             ValidateBestMetrics: best (float) and best_rule (Rule).
         """
         check_X_y(test_data, test_labels)
-        fn = score_fn if score_fn is not None else self.score_fn
+        fn = score_fn if score_fn is not None else self._original_score_fn
         return self.gp_algo.validate_best(
             test_data, test_labels, score_fn=fn, all_time_best=all_time_best
         )
