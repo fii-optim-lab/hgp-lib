@@ -63,6 +63,7 @@ class GPTrainer:
         self.num_epochs = config.num_epochs
         self.val_every = config.val_every
         self.progress_bar = config.progress_bar
+        self.progress_callback = config.progress_callback
 
         base_val_score_fn = (
             config.val_score_fn
@@ -117,24 +118,29 @@ class GPTrainer:
                     )
                 )
 
-                if self.val_data is not None and (epoch + 1) % self.val_every == 0:
-                    val_metrics = self.gp_algo.validate_population(
-                        self.val_data,
-                        self.val_labels,
-                        score_fn=self.val_score_fn,
-                    )
-                    val_best = val_metrics.best
-                    pop_scores = val_metrics.population_scores
-                    val_epochs.append(
-                        EpochMetrics(
-                            epoch=epoch,
-                            best_score=val_metrics.best,
-                            mean_score=float(np.mean(pop_scores)),
-                            std_score=float(np.std(pop_scores)),
-                            best_rule=val_metrics.best_rule,
-                            regenerated=False,
+                if (epoch + 1) % self.config.progress_update_interval == 0:
+                    if self.progress_callback is not None:
+                        self.progress_callback(self.config.progress_update_interval)
+
+                if (epoch + 1) % self.val_every == 0:
+                    if self.val_data is not None:
+                        val_metrics = self.gp_algo.validate_population(
+                            self.val_data,
+                            self.val_labels,
+                            score_fn=self.val_score_fn,
                         )
-                    )
+                        val_best = val_metrics.best
+                        pop_scores = val_metrics.population_scores
+                        val_epochs.append(
+                            EpochMetrics(
+                                epoch=epoch,
+                                best_score=val_metrics.best,
+                                mean_score=float(np.mean(pop_scores)),
+                                std_score=float(np.std(pop_scores)),
+                                best_rule=val_metrics.best_rule,
+                                regenerated=False,
+                            )
+                        )
 
                 tbar.set_postfix(
                     {
@@ -142,6 +148,11 @@ class GPTrainer:
                         "val_best": f"{val_best:.4f}",
                     }
                 )
+
+        # Send remaining epochs not covered by progress_update_interval
+        remaining_epochs = self.num_epochs % self.config.progress_update_interval
+        if remaining_epochs > 0 and self.progress_callback is not None:
+            self.progress_callback(remaining_epochs)
 
         train_history = TrainingHistory(epochs=train_epochs)
         val_history = TrainingHistory(epochs=val_epochs) if val_epochs else None

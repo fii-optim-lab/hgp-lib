@@ -20,6 +20,10 @@ class TrainerConfig:
         val_score_fn (Callable | None): Validation scorer; defaults to score_fn.
         val_every (int): Validate every N epochs.
         progress_bar (bool): Whether to show progress bar.
+        progress_callback (Callable[[int], None] | None): Optional callback for progress updates.
+            Called every `progress_update_interval` epochs with the number of epochs completed.
+            Useful for external progress tracking (e.g., multiprocessing progress bars).
+        progress_update_interval (int): How often to call progress_callback (in epochs).
 
     Examples:
         >>> import numpy as np
@@ -42,6 +46,8 @@ class TrainerConfig:
     val_score_fn: Callable[[ndarray, ndarray], float] | None = None
     val_every: int = 100
     progress_bar: bool = True
+    progress_callback: Callable[[int], None] | None = None
+    progress_update_interval: int = 100
 
 
 def validate_trainer_config(config: TrainerConfig, require_data: bool = True) -> None:
