@@ -160,7 +160,7 @@ class CrossoverExecutor:
 
         A random node is selected from each parent, and the subtrees rooted at those
         nodes are exchanged using `deep_swap`. When a validator is provided, each child
-        is validated individually and accepted children are collected until two pass
+        is validated individually and accepted children are collected until at least two pass
         validation or `num_tries` attempts are exhausted.
 
         Args:
@@ -200,6 +200,6 @@ class CrossoverExecutor:
                 accepted.append(child_a)
             if self.check_valid(child_b):
                 accepted.append(child_b)
-            if len(accepted) == 2:
+            if len(accepted) >= 2:
                 break
         return accepted
