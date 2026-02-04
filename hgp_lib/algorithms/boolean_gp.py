@@ -1,5 +1,5 @@
 from dataclasses import replace
-from typing import Callable, List, Tuple
+from typing import Callable, List
 
 import numpy as np
 from numpy import ndarray
@@ -301,58 +301,42 @@ class BooleanGP:
             scores[: self._top_k] += parent_scores
         return scores
 
-    def _get_child_and_local_index(self, flat_idx: int) -> Tuple[int, int]:
-        """Map flattened index (into transferred rules) to (child_idx, local_idx)."""
-        child_idx = flat_idx // self._top_k
-        local_idx = flat_idx % self._top_k
-        return child_idx, local_idx
-
-    def _generate_child_feedback(self, scores: ndarray) -> List[ndarray]:
+    def _generate_child_feedback(self, scores: ndarray) -> ndarray:
         """Generate feedback signals for each child from offspring performance.
 
-        Uses mean/max/min over the entire population (current + offspring) so the
-        signal is relative to the full evaluated set. Crossover pool order is
-        [child0 rules, child1 rules, ..., current population]; parent indices
-        below num_transferred refer to child rules.
+        Each parent that came from a child population receives a signal based on
+        how well the offspring it helped create performed.
         """
-        mean_score = float(np.mean(scores))
-        max_score = float(np.max(scores))
-        min_score = float(np.min(scores))
-        child_feedbacks = [np.zeros(child._top_k) for child in self.child_populations]
-        child_counts = [np.zeros(child._top_k) for child in self.child_populations]
+        mean_s = float(np.mean(scores))
+        min_s = float(np.min(scores))
+        max_s = float(np.max(scores))
 
-        num_offspring = len(scores) - self.population_size
-        for offspring_idx in range(num_offspring):
-            offspring_score = float(scores[self.population_size + offspring_idx])
-            parent1 = self.parent_rule_indices[2 * offspring_idx]
-            parent2 = self.parent_rule_indices[2 * offspring_idx + 1]
-            for parent_idx in (parent1, parent2):
-                if parent_idx < self._transfer_size:
-                    child_idx, local_idx = self._get_child_and_local_index(parent_idx)
-                    if offspring_score == mean_score:
-                        signal = 0.0
-                    elif offspring_score > mean_score:
-                        denom = (
-                            max_score - mean_score if max_score > mean_score else 1.0
-                        )
-                        signal = min(
-                            1.0,
-                            max(0.0, (offspring_score - mean_score) / denom),
-                        )
-                    else:
-                        denom = (
-                            mean_score - min_score if mean_score > min_score else 1.0
-                        )
-                        signal = max(
-                            -1.0,
-                            min(0.0, (offspring_score - mean_score) / denom),
-                        )
-                    child_feedbacks[child_idx][local_idx] += signal
-                    child_counts[child_idx][local_idx] += 1
+        offspring_scores = scores[self.population_size :]
 
-        for child in self.child_populations:
-            mask = child_counts[child] > 0
-            child_feedbacks[child][mask] /= child_counts[child][mask]
+        num_children = len(self.child_populations)
+
+        if max_s == min_s:
+            return np.zeros((num_children, self._top_k))
+
+        offspring_scores = scores[self.population_size :]
+        above = offspring_scores >= mean_s
+        signals = np.where(
+            above,
+            (offspring_scores - mean_s) / (max_s - mean_s),
+            (offspring_scores - mean_s) / (mean_s - min_s),
+        )
+        child_feedbacks = np.zeros((num_children, self._top_k))
+        child_counts = np.zeros((num_children, self._top_k))
+
+        for j, parent_idx in enumerate(self.parent_rule_indices):
+            if parent_idx < self._transfer_size:
+                child_idx, local_idx = divmod(parent_idx, self._top_k)
+                child_feedbacks[child_idx, local_idx] += signals[j // 2]
+                child_counts[child_idx, local_idx] += 1
+
+        mask = child_counts > 0
+        child_feedbacks[mask] /= child_counts[mask]
+
         return child_feedbacks
 
     def _new_generation(
