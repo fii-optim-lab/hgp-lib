@@ -24,14 +24,14 @@ class MutationExecutor:
         operator_mutations (Sequence[Mutation]):
             Mutations that can be applied to operator nodes. The sequence must be non-empty and
             each entry must declare `is_operator_mutation=True`.
-        mutation_p (float | None):
-            Probability of mutating each node inside a rule. Defaults to `0.1`.
+        mutation_p (float):
+            Probability of mutating each node inside a rule. Default: `0.1`.
         check_valid (Callable[[Rule], bool] | None):
             Optional validator executed after every successful mutation. When supplied, the
-            mutated rule is only kept if the predicate returns `True`. Defaults to `None`.
-        num_tries (int | None):
+            mutated rule is only kept if the predicate returns `True`. Default: `None`.
+        num_tries (int):
             Maximum number of attempts per node in case mutations raise `MutationError` or fail
-            validation. Must be `1` when no validator is provided. Defaults to `1`.
+            validation. Must be `1` when no validator is provided. Default: `1`.
 
     Examples:
         >>> import random

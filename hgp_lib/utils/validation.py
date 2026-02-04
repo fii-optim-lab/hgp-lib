@@ -6,6 +6,16 @@ from ..rules import Rule
 
 
 def validate_callable(maybe_callable: Callable, error_message: str | None = None):
+    """
+    Validate that a value is callable.
+
+    Args:
+        maybe_callable (Callable): Value to check.
+        error_message (str | None): Optional custom error message. Default: `None`.
+
+    Raises:
+        TypeError: If value is not callable.
+    """
     if not callable(maybe_callable):
         if error_message is None:
             error_message = f"score_fn must be callable, is {type(maybe_callable)}"
@@ -13,6 +23,16 @@ def validate_callable(maybe_callable: Callable, error_message: str | None = None
 
 
 def check_isinstance(value: Any, expected_type: Type | Tuple[Type, ...]):
+    """
+    Check that a value is an instance of expected type(s).
+
+    Args:
+        value (Any): Value to check.
+        expected_type (Type | Tuple[Type, ...]): Expected type or tuple of types.
+
+    Raises:
+        TypeError: If value is not an instance of expected type.
+    """
     if not isinstance(value, expected_type):
         name = "<unknown value>"
         # Search the name in the caller
@@ -33,6 +53,16 @@ def check_isinstance(value: Any, expected_type: Type | Tuple[Type, ...]):
 
 
 def validate_num_literals(num_literals: int):
+    """
+    Validate num_literals parameter.
+
+    Args:
+        num_literals (int): Number of literals (must be > 1).
+
+    Raises:
+        TypeError: If not an integer.
+        ValueError: If <= 1.
+    """
     check_isinstance(num_literals, int)
     if num_literals <= 1:
         raise ValueError(
@@ -41,6 +71,16 @@ def validate_num_literals(num_literals: int):
 
 
 def validate_operator_types(operator_types: Sequence[Type[Rule]]):
+    """
+    Validate operator_types parameter.
+
+    Args:
+        operator_types (Sequence[Type[Rule]]): Sequence of Rule subclasses.
+
+    Raises:
+        TypeError: If not a sequence or contains non-Rule types.
+        ValueError: If fewer than 2 types.
+    """
     check_isinstance(operator_types, Sequence)
     if len(operator_types) < 2:
         raise ValueError("operator_types must have at least two operator types")
@@ -83,3 +123,5 @@ def check_X_y(X: np.ndarray, y: np.ndarray):
         raise ValueError("X and y cannot be empty")
     if X.ndim != 2:
         raise ValueError(f"X must be 2D array (samples, features), got shape {X.shape}")
+    if y.ndim != 1:
+        raise ValueError(f"y must be 1D array (samples), got shape {y.shape}")

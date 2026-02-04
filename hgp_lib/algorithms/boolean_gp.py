@@ -1,16 +1,20 @@
 from typing import Callable
 
-from numpy import ndarray
 import numpy as np
+from numpy import ndarray
 
-from hgp_lib.mutations import MutationExecutor
-from hgp_lib.populations import PopulationGenerator
-from hgp_lib.rules import Rule
-from hgp_lib.utils.validation import check_isinstance, validate_callable
-
-from hgp_lib.crossover import CrossoverExecutor
-from hgp_lib.selections import BaseSelection, RouletteSelection
-from hgp_lib.metrics import StepMetrics, ValidateBestMetrics, ValidatePopulationMetrics
+from ..configs import BooleanGPConfig, validate_gp_config
+from ..crossover import CrossoverExecutor
+from ..metrics import StepMetrics, ValidateBestMetrics, ValidatePopulationMetrics
+from ..mutations import (
+    MutationExecutor,
+    create_standard_literal_mutations,
+    create_standard_operator_mutations,
+)
+from ..populations import PopulationGenerator, RandomStrategy
+from ..rules import Rule
+from ..selections import RouletteSelection
+from ..utils.metrics import optimize_scorer_for_data
 
 
 class BooleanGP:
@@ -25,96 +29,86 @@ class BooleanGP:
     real best rule (all-time best across regenerations). When enabled, regeneration
     resets the population if no improvement is observed for a specified number of epochs.
 
+    Training data and labels are provided via BooleanGPConfig. The number of features
+    (num_features) is derived from the data shape, simplifying PopulationGenerator and
+    MutationExecutor setup when defaults are used.
+
     Args:
-        score_fn (Callable[[ndarray, ndarray], float]):
-            Function that computes fitness scores. Signature: `score_fn(predictions, labels) -> float`.
-            Higher scores indicate better fitness. Must accept boolean predictions and integer labels.
-        population_generator (PopulationGenerator):
-            Generator that creates the initial population of rules.
-        mutation_executor (MutationExecutor):
-            Executor that applies mutations to the population.
-        crossover_executor (CrossoverExecutor | None, optional):
-            Executor that applies crossover operations. If `None`, a default `CrossoverExecutor`
-            is created. Default: `None`.
-        selection (BaseSelection | None, optional):
-            Selection strategy for choosing individuals for the next generation. If `None`,
-            a default `RouletteSelection` is created. Default: `None`.
-        regeneration (bool, optional):
-            Whether to regenerate the population when no improvement is observed.
-            Default: `False`.
-        regeneration_patience (int, optional):
-            Number of epochs without improvement before regenerating the population.
-            Must be positive when `regeneration=True`. Default: `100`.
+        config (BooleanGPConfig): Configuration containing train_data, train_labels,
+            score_fn, and optional components. If population_generator or
+            mutation_executor are None, they are created using num_features derived
+            from config.train_data.shape[1].
 
     Examples:
         >>> import numpy as np
+        >>> from hgp_lib.configs import BooleanGPConfig
         >>> from hgp_lib.algorithms import BooleanGP
-        >>> from hgp_lib.mutations import (
-        ...     MutationExecutor, create_standard_literal_mutations, create_standard_operator_mutations
-        ... )
-        >>> from hgp_lib.populations import PopulationGenerator, RandomStrategy
-        >>> from hgp_lib.rules import Literal
         >>>
         >>> def accuracy(predictions, labels):
         ...     return np.mean(predictions == labels)
         >>>
-        >>> generator = PopulationGenerator(
-        ...     strategies=[RandomStrategy(num_literals=4)],
-        ...     population_size=10
-        ... )
-        >>> mutation_executor = MutationExecutor(
-        ...     literal_mutations=create_standard_literal_mutations(4),
-        ...     operator_mutations=create_standard_operator_mutations(4)
-        ... )
-        >>>
-        >>> gp = BooleanGP(
-        ...     score_fn=accuracy,
-        ...     population_generator=generator,
-        ...     mutation_executor=mutation_executor
-        ... )
-        >>>
         >>> train_data = np.array([[True, False, True, False], [False, True, False, True]])
         >>> train_labels = np.array([1, 0])
-        >>> metrics = gp.step(train_data, train_labels)
-        >>> metrics['epoch']
+        >>> config = BooleanGPConfig(
+        ...     score_fn=accuracy,
+        ...     train_data=train_data,
+        ...     train_labels=train_labels,
+        ...     optimize_scorer=False,
+        ... )
+        >>> gp = BooleanGP(config)
+        >>> metrics = gp.step()
+        >>> metrics.epoch
         0
     """
 
-    def __init__(
-        self,
-        score_fn: Callable[[ndarray, ndarray], float],
-        population_generator: PopulationGenerator,
-        mutation_executor: MutationExecutor,
-        crossover_executor: CrossoverExecutor | None = None,
-        selection: BaseSelection | None = None,
-        regeneration: bool = False,
-        regeneration_patience: int = 100,
-    ):
-        # TODO: We should reconsider the ordering of the arguments for score fn. Pred, GT or GT, Pred?
-        validate_callable(score_fn)
-        check_isinstance(population_generator, PopulationGenerator)
-        check_isinstance(mutation_executor, MutationExecutor)
-        check_isinstance(regeneration, bool)
-        check_isinstance(regeneration_patience, int)
+    def __init__(self, config: BooleanGPConfig):
+        validate_gp_config(config)
 
-        if crossover_executor is not None:
-            check_isinstance(crossover_executor, CrossoverExecutor)
-        else:
-            crossover_executor = CrossoverExecutor()
-        if selection is not None:
-            check_isinstance(selection, BaseSelection)
-        else:
-            selection = RouletteSelection()
-        if regeneration and regeneration_patience < 1:
-            raise ValueError("regeneration_patience must be a positive integer")
+        train_data = config.train_data
+        train_labels = config.train_labels
+        score_fn = config.score_fn
+
+        self._original_score_fn = config.score_fn
+
+        if config.optimize_scorer:
+            score_fn, train_data, train_labels = optimize_scorer_for_data(
+                config.score_fn, config.train_data, config.train_labels
+            )
 
         self.score_fn = score_fn
+        self.train_data = train_data
+        self.train_labels = train_labels
+        num_features = train_data.shape[1]
+
+        population_generator = config.population_generator
+        if population_generator is None:
+            random_strategy = RandomStrategy(num_literals=num_features)
+            population_generator = PopulationGenerator(strategies=[random_strategy])
+
+        mutation_executor = config.mutation_executor
+        if mutation_executor is None:
+            literal_mutations = create_standard_literal_mutations(num_features)
+            operator_mutations = create_standard_operator_mutations(num_features)
+            mutation_executor = MutationExecutor(
+                literal_mutations=literal_mutations,
+                operator_mutations=operator_mutations,
+                check_valid=config.check_valid,
+            )
+
+        crossover_executor = config.crossover_executor
+        if crossover_executor is None:
+            crossover_executor = CrossoverExecutor(check_valid=config.check_valid)
+
+        selection = config.selection
+        if selection is None:
+            selection = RouletteSelection()
+
         self.population_generator = population_generator
         self.mutation_executor = mutation_executor
         self.crossover_executor = crossover_executor
         self.selection = selection
-        self.regeneration = regeneration
-        self.regeneration_patience = regeneration_patience
+        self.regeneration = config.regeneration
+        self.regeneration_patience = config.regeneration_patience
 
         self.population = self.population_generator.generate()
         self.population_size = len(self.population)
@@ -126,72 +120,28 @@ class BooleanGP:
         self.real_best_rule: Rule | None = None
         self._epoch = -1
 
-    def step(self, train_data: ndarray, train_labels: ndarray) -> StepMetrics:
+    def step(self) -> StepMetrics:
         """
         Performs one training step (generation) of the genetic programming algorithm.
 
-        Each step applies crossover to create offspring, mutates the population,
-        evaluates all rules, updates the best rule, and selects individuals for
-        the next generation. If regeneration is enabled and no improvement has
-        been observed for `regeneration_patience` epochs, the population is
-        regenerated.
-
-        Args:
-            train_data (ndarray):
-                Training data as a 2D boolean array with instances on rows and features on columns.
-            train_labels (ndarray):
-                Training labels as a 1D integer array (0 or 1 for binary classification).
+        Uses the training data and labels from the config. Each step applies crossover
+        to create offspring, mutates the population, evaluates all rules, updates the
+        best rule, and selects individuals for the next generation. If regeneration
+        is enabled and no improvement has been observed for `regeneration_patience`
+        epochs, the population is regenerated.
 
         Returns:
-            StepMetrics: Dictionary containing:
-                - `best` (float): Best fitness score in current run.
-                - `best_rule` (Rule): Best rule in current run.
-                - `real_best` (float): All-time best fitness score.
-                - `real_best_rule` (Rule): All-time best rule.
-                - `current_best` (float): Best score in current generation.
-                - `population_scores` (ndarray): Fitness scores for all rules.
-                - `epoch` (int): Current epoch number (0-indexed).
-                - `best_not_improved_epochs` (int): Epochs since last improvement.
-                - `regenerated` (bool): Whether population was regenerated this step.
-
-        Examples:
-            >>> import numpy as np
-            >>> from hgp_lib.algorithms import BooleanGP
-            >>> from hgp_lib.mutations import (
-            ...     MutationExecutor, create_standard_literal_mutations, create_standard_operator_mutations
-            ... )
-            >>> from hgp_lib.populations import PopulationGenerator, RandomStrategy
-            >>>
-            >>> def accuracy(predictions, labels):
-            ...     return np.mean(predictions == labels)
-            >>>
-            >>> generator = PopulationGenerator(
-            ...     strategies=[RandomStrategy(num_literals=4)],
-            ...     population_size=5
-            ... )
-            >>> mutation_executor = MutationExecutor(
-            ...     literal_mutations=create_standard_literal_mutations(4),
-            ...     operator_mutations=create_standard_operator_mutations(4)
-            ... )
-            >>>
-            >>> gp = BooleanGP(
-            ...     score_fn=accuracy,
-            ...     population_generator=generator,
-            ...     mutation_executor=mutation_executor
-            ... )
-            >>>
-            >>> train_data = np.array([[True, False, True, False], [False, True, False, True]])
-            >>> train_labels = np.array([1, 0])
-            >>> metrics = gp.step(train_data, train_labels)
-            >>> 'best' in metrics
-            True
-            >>> metrics['epoch']
-            0
+            StepMetrics: Dataclass containing best, best_rule, real_best, real_best_rule,
+                current_best, mean_score, std_score, population_scores, epoch,
+                best_not_improved_epochs, and regenerated.
         """
+        # TODO: Add doctests here.
         self._epoch += 1
         self.population += self.crossover_executor.apply(self.population)
         self.mutation_executor.apply(self.population)
-        scores = self._evaluate_population(train_data, train_labels, self.score_fn)
+        scores = self._evaluate_population(
+            self.train_data, self.train_labels, self.score_fn
+        )
         return self._new_generation(scores)
 
     def _new_generation(self, scores: ndarray) -> StepMetrics:
@@ -208,16 +158,16 @@ class BooleanGP:
                 length as `self.population`.
 
         Returns:
-            StepMetrics: Dictionary containing metrics about the generation step, including
-                whether regeneration occurred and the current best scores.
+            StepMetrics: Metrics about the generation step, including mean_score and std_score.
         """
-        best_idx = np.argmax(scores)
-        current_best = scores[best_idx]
+        best_idx = int(np.argmax(scores))
+        current_best = float(scores[best_idx])
+        mean_score = float(np.mean(scores))
+        std_score = float(np.std(scores))
 
         self._update_best(current_best, self.population[best_idx])
 
         regenerated = False
-
         if (
             self.regeneration
             and self.best_not_improved_epochs >= self.regeneration_patience
@@ -230,6 +180,8 @@ class BooleanGP:
             real_best=self.real_best_score,
             real_best_rule=self.real_best_rule,
             current_best=current_best,
+            mean_score=mean_score,
+            std_score=std_score,
             population_scores=scores,
             epoch=self._epoch,
             best_not_improved_epochs=self.best_not_improved_epochs,
@@ -255,23 +207,16 @@ class BooleanGP:
         """
         Evaluates all rules in the population against the given data.
 
-        Computes fitness scores for each rule by evaluating it on the data and applying
-        the scoring function. This is done sequentially for each rule in the population.
-
         Args:
-            data (ndarray):
-                Data to evaluate rules on. A 2D boolean array with instances on rows
-                and features on columns.
-            labels (ndarray):
-                True labels for the data. A 1D integer array (0 or 1 for binary classification).
-            score_fn (Callable[[ndarray, ndarray], float]):
-                Function to compute fitness scores. Signature: `score_fn(predictions, labels) -> float`.
+            data (ndarray): Data to evaluate rules on (2D boolean array).
+            labels (ndarray): True labels (1D integer array).
+            score_fn (Callable): Function to compute fitness scores.
 
         Returns:
             ndarray: Array of fitness scores, one for each rule in the population.
 
         Note:
-            TODO: we should also support batched evaluation or free-threaded evaluation
+            TODO: we should also support batched evaluation or free-threaded evaluation.
         """
         n = len(self.population)
         scores = np.zeros(n)
@@ -314,77 +259,30 @@ class BooleanGP:
         """
         Evaluates the best rule on validation or test data.
 
-        Computes the fitness score of either the current best rule or the all-time
-        best rule on the provided data. This is useful for validation during training
-        or final evaluation on test sets.
-
         Args:
-            data (ndarray):
-                Validation/test data as a 2D boolean array with instances on rows
-                and features on columns.
-            labels (ndarray):
-                Validation/test labels as a 1D integer array (0 or 1 for binary classification).
-            score_fn (Callable[[ndarray, ndarray], float] | None, optional):
-                Optional custom scoring function. If `None`, uses the instance's `score_fn`.
+            data (ndarray): Validation/test data (2D boolean array).
+            labels (ndarray): Validation/test labels (1D integer array).
+            score_fn (Callable | None): Optional; uses original score_fn if None.
+                Note: Uses the original (non-optimized) scorer by default since
+                the optimized scorer has sample_weight bound to training data.
                 Default: `None`.
-            all_time_best (bool, optional):
-                If `True`, evaluates the all-time best rule. If `False`, evaluates
-                the current run's best rule. Default: `False`.
+            all_time_best (bool): If True, evaluate all-time best rule; else current run's best.
+                Default: `False`.
 
         Returns:
-            ValidateBestMetrics: Dictionary containing:
-                - `best` (float): Fitness score of the best rule on the data.
-                - `best_rule` (Rule): The evaluated rule.
+            ValidateBestMetrics: best (float) and best_rule (Rule).
 
         Raises:
-            RuntimeError:
-                If no best rule is available (algorithm hasn't run any steps yet).
-
-        Examples:
-            >>> import numpy as np
-            >>> from hgp_lib.algorithms import BooleanGP
-            >>> from hgp_lib.mutations import (
-            ...     MutationExecutor, create_standard_literal_mutations, create_standard_operator_mutations
-            ... )
-            >>> from hgp_lib.populations import PopulationGenerator, RandomStrategy
-            >>>
-            >>> def accuracy(predictions, labels):
-            ...     return np.mean(predictions == labels)
-            >>>
-            >>> generator = PopulationGenerator(
-            ...     strategies=[RandomStrategy(num_literals=4)],
-            ...     population_size=5
-            ... )
-            >>> mutation_executor = MutationExecutor(
-            ...     literal_mutations=create_standard_literal_mutations(4),
-            ...     operator_mutations=create_standard_operator_mutations(4)
-            ... )
-            >>>
-            >>> gp = BooleanGP(
-            ...     score_fn=accuracy,
-            ...     population_generator=generator,
-            ...     mutation_executor=mutation_executor
-            ... )
-            >>>
-            >>> train_data = np.array([[True, False, True, False], [False, True, False, True]])
-            >>> train_labels = np.array([1, 0])
-            >>> _ = gp.step(train_data, train_labels)
-            >>> val_data = np.array([[True, True, False, False]])
-            >>> val_labels = np.array([1])
-            >>> metrics = gp.validate_best(val_data, val_labels)
-            >>> 'best' in metrics
-            True
-            >>> 'best_rule' in metrics
-            True
+            RuntimeError: If no best rule is available (run at least one step first).
         """
+        # TODO: Add doctests here.
         if self.real_best_rule is None or self.best_rule is None:
             raise RuntimeError("No best rule available. Run at least one step first.")
 
         best_rule = self.real_best_rule if all_time_best else self.best_rule
-        score_fn = self.score_fn if score_fn is None else score_fn
-        return ValidateBestMetrics(
-            best=score_fn(best_rule.evaluate(data), labels), best_rule=best_rule
-        )
+        fn = self._original_score_fn if score_fn is None else score_fn
+        best_score = float(fn(best_rule.evaluate(data), labels))
+        return ValidateBestMetrics(best=best_score, best_rule=best_rule)
 
     def validate_population(
         self,
@@ -396,79 +294,32 @@ class BooleanGP:
         """
         Evaluates the best rule and entire population on validation or test data.
 
-        Computes fitness scores for both the best rule and all rules in the current
-        population. This provides insight into both the best individual's performance
-        and the overall population quality.
-
         Args:
-            data (ndarray):
-                Validation/test data as a 2D boolean array with instances on rows
-                and features on columns.
-            labels (ndarray):
-                Validation/test labels as a 1D integer array (0 or 1 for binary classification).
-            score_fn (Callable[[ndarray, ndarray], float] | None, optional):
-                Optional custom scoring function. If `None`, uses the instance's `score_fn`.
+            data (ndarray): Validation/test data (2D boolean array).
+            labels (ndarray): Validation/test labels (1D integer array).
+            score_fn (Callable | None): Optional; uses original score_fn if None.
+                Note: Uses the original (non-optimized) scorer by default since
+                the optimized scorer has sample_weight bound to training data.
                 Default: `None`.
-            all_time_best (bool, optional):
-                If `True`, evaluates the all-time best rule. If `False`, evaluates
-                the current run's best rule. Default: `False`.
+            all_time_best (bool): If True, evaluate all-time best rule; else current run's best.
+                Default: `False`.
 
         Returns:
-            ValidatePopulationMetrics: Dictionary containing:
-                - `best` (float): Fitness score of the best rule on the data.
-                - `best_rule` (Rule): The evaluated best rule.
-                - `population_scores` (ndarray): Fitness scores for all rules in the population.
+            ValidatePopulationMetrics: best, best_rule, and population_scores.
 
         Raises:
-            RuntimeError:
-                If no best rule is available (algorithm hasn't run any steps yet).
-
-        Examples:
-            >>> import numpy as np
-            >>> from hgp_lib.algorithms import BooleanGP
-            >>> from hgp_lib.mutations import (
-            ...     MutationExecutor, create_standard_literal_mutations, create_standard_operator_mutations
-            ... )
-            >>> from hgp_lib.populations import PopulationGenerator, RandomStrategy
-            >>>
-            >>> def accuracy(predictions, labels):
-            ...     return np.mean(predictions == labels)
-            >>>
-            >>> generator = PopulationGenerator(
-            ...     strategies=[RandomStrategy(num_literals=4)],
-            ...     population_size=5
-            ... )
-            >>> mutation_executor = MutationExecutor(
-            ...     literal_mutations=create_standard_literal_mutations(4),
-            ...     operator_mutations=create_standard_operator_mutations(4)
-            ... )
-            >>>
-            >>> gp = BooleanGP(
-            ...     score_fn=accuracy,
-            ...     population_generator=generator,
-            ...     mutation_executor=mutation_executor
-            ... )
-            >>>
-            >>> train_data = np.array([[True, False, True, False], [False, True, False, True]])
-            >>> train_labels = np.array([1, 0])
-            >>> _ = gp.step(train_data, train_labels)
-            >>>
-            >>> val_data = np.array([[True, True, False, False]])
-            >>> val_labels = np.array([1])
-            >>> metrics = gp.validate_population(val_data, val_labels)
-            >>> 'best' in metrics
-            True
-            >>> 'population_scores' in metrics
-            True
-            >>> len(metrics['population_scores']) == len(gp.population)
-            True
+            RuntimeError: If no best rule is available (run at least one step first).
         """
+        # TODO: Add doctests here.
         if self.real_best_rule is None or self.best_rule is None:
             raise RuntimeError("No best rule available. Run at least one step first.")
+
         best_rule = self.real_best_rule if all_time_best else self.best_rule
-        score_fn = self.score_fn if score_fn is None else score_fn
+        fn = self._original_score_fn if score_fn is None else score_fn
+        best_score = float(fn(best_rule.evaluate(data), labels))
+        population_scores = self._evaluate_population(data, labels, fn)
         return ValidatePopulationMetrics(
-            best=score_fn(best_rule.evaluate(data), labels),
+            best=best_score,
             best_rule=best_rule,
-            population_scores=self._evaluate_population(data, labels, score_fn),
+            population_scores=population_scores,
         )

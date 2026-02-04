@@ -13,6 +13,7 @@ from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 from timed_decorator.builder import create_timed_decorator, get_timed_decorator
 
+from hgp_lib import BooleanGPConfig
 from hgp_lib.algorithms import BooleanGP
 from hgp_lib.crossover import CrossoverExecutor
 from hgp_lib.mutations import (
@@ -218,7 +219,9 @@ def main():
     )
 
     print("\nInitializing Boolean GP...")
-    gp_algo = BooleanGP(
+    gp_config = BooleanGPConfig(
+        train_data=train_data_bin,
+        train_labels=train_labels,
         score_fn=train_score_fn,
         population_generator=population_generator,
         mutation_executor=mutation_executor,
@@ -226,23 +229,24 @@ def main():
         regeneration=True,
         regeneration_patience=200,
     )
+    gp_algo = BooleanGP(gp_config)
 
     print(f"\nStarting training for {num_epochs} epochs...")
 
     with open("debug.txt", "w") as f:
         pass
-    val_best = 0
-    val_avg = 0
+    val_best = 0.0
+    val_avg = 0.0
     with tqdm(range(num_epochs), desc="Training") as tbar:
         for epoch in tbar:
-            train_metrics = gp_algo.step(train_data_bin, train_labels)
+            train_metrics = gp_algo.step()
 
             if (epoch + 1) % 10 == 0:
                 val_metrics = gp_algo.validate_population(
                     val_data_bin, val_labels, val_score_fn
                 )
-                val_best = val_metrics["best"]
-                val_avg = val_metrics["population_scores"].mean()
+                val_best = val_metrics.best
+                val_avg = val_metrics.population_scores.mean()
                 if (epoch + 1) % 50 == 0:
                     with open("debug.txt", "a") as f:
                         f.write(str(epoch) + "\n")
@@ -251,9 +255,9 @@ def main():
                         f.write("\n--------------------\n")
             tbar.set_postfix(
                 {
-                    "current_best": f"{train_metrics['current_best']:.4f}",
-                    "train_best": f"{train_metrics['best']:.4f}",
-                    "real_best": f"{train_metrics['real_best']:.4f}",
+                    "current_best": f"{train_metrics.current_best:.4f}",
+                    "train_best": f"{train_metrics.best:.4f}",
+                    "real_best": f"{train_metrics.real_best:.4f}",
                     "val_best": f"{val_best:.4f}",
                     "val_avg": f"{val_avg:.4f}",
                 }
@@ -264,8 +268,8 @@ def main():
     test_metrics = gp_algo.validate_population(
         test_data_bin, test_labels, test_score_fn, all_time_best=True
     )
-    print(f"Test best: {test_metrics['best']:.4f}")
-    print(f"Test population average: {test_metrics['population_scores'].mean():.4f}")
+    print(f"Test best: {test_metrics.best:.4f}")
+    print(f"Test population average: {test_metrics.population_scores.mean():.4f}")
 
     print_timing_results(measurements)
     print("\nTraining completed!")
