@@ -1,6 +1,7 @@
-from typing import List, Sequence
+from typing import List, Sequence, Tuple
 
 import numpy as np
+from numpy import ndarray
 
 from ..rules import Rule
 from .base_selection import BaseSelection
@@ -29,8 +30,8 @@ class RouletteSelection(BaseSelection):
         ...     Literal(value=2),
         ... ]
         >>> scores = [0.1, 0.5, 0.4]
-        >>> selected = selection.select(rules, scores, 2)
-        >>> len(selected)
+        >>> selected_rules, selected_scores = selection.select(rules, scores, 2)
+        >>> len(selected_rules)
         2
     """
 
@@ -39,7 +40,7 @@ class RouletteSelection(BaseSelection):
         rules: Sequence[Rule],
         scores: np.ndarray | Sequence[float],
         n_select: int,
-    ) -> List[Rule]:
+    ) -> Tuple[List[Rule], ndarray]:
         """
         Selects `n_select` rules using roulette wheel (fitness-proportionate) selection.
 
@@ -58,7 +59,9 @@ class RouletteSelection(BaseSelection):
                 Number of rules to select.
 
         Returns:
-            List[Rule]: Copies of the selected rules. The same rule may appear multiple times.
+            Tuple[List[Rule], ndarray]: A tuple containing:
+                - List[Rule]: Copies of the selected rules. The same rule may appear multiple times.
+                - ndarray: The fitness scores of the selected rules.
 
         Examples:
             >>> import random
@@ -73,16 +76,17 @@ class RouletteSelection(BaseSelection):
             ...     Literal(value=2),
             ... ]
             >>> scores = [0.1, 0.5, 0.4]
-            >>> selected = selection.select(rules, scores, 2)
-            >>> len(selected)
+            >>> selected_rules, selected_scores = selection.select(rules, scores, 2)
+            >>> len(selected_rules)
             2
-            >>> all(isinstance(rule, Rule) for rule in selected)
+            >>> all(isinstance(rule, Rule) for rule in selected_rules)
             True
         """
         if len(rules) == 0:
-            return []
+            return [], np.array([])
 
         scores_array = np.asarray(scores)
+        original_scores = scores_array.copy()
         min_score = np.min(scores_array)
         if min_score < 0:
             scores_array = scores_array - min_score
@@ -97,4 +101,6 @@ class RouletteSelection(BaseSelection):
             len(rules), size=n_select, p=probabilities, replace=True
         )
 
-        return [rules[i].copy() for i in selected_indices]
+        selected_rules = [rules[i].copy() for i in selected_indices]
+        selected_scores = original_scores[selected_indices]
+        return selected_rules, selected_scores

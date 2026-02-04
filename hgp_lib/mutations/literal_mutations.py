@@ -298,38 +298,3 @@ class PromoteLiteral(Mutation):
         ]
         rule.negated = negated[1]  # Operator negated flag
         rule.value = None  # Removing the value from the new operator
-
-
-def create_standard_literal_mutations(
-    num_literals: int, operator_types: Sequence[Type[Rule]] = (Or, And)
-) -> Tuple[Mutation, ...]:
-    """
-    Creates a standard set of literal-level mutations commonly used in rule evolution.
-
-    Args:
-        num_literals (int):
-            Total number of available literal values. Must be greater than `1`.
-        operator_types (Sequence[Type[Rule]]):
-            Sequence of operator classes (e.g., `(Or, And)`) used by `PromoteLiteral`. Default: `(Or, And)`.
-
-    Returns:
-        Tuple[Mutation, ...]:
-            A tuple of initialized mutation instances for literals. The tuple includes:
-            1. `DeleteMutation()` - removes a rule from its parent operator.
-            2. `NegateMutation()` - toggles the negation flag of a rule.
-            3. `ReplaceLiteral(num_literals)` - replaces a literal's value with a different random one.
-            4. `PromoteLiteral(num_literals, operator_types)` - converts a literal into an operator with two literals.
-
-    Examples:
-        >>> from hgp_lib.mutations import create_standard_literal_mutations
-        >>> from hgp_lib.rules import And, Or
-        >>> mutations = create_standard_literal_mutations(num_literals=4, operator_types=(Or, And))
-        >>> [type(mutation).__name__ for mutation in mutations]
-        ['DeleteMutation', 'NegateMutation', 'ReplaceLiteral', 'PromoteLiteral']
-    """
-    return (
-        DeleteMutation(),
-        NegateMutation(),
-        ReplaceLiteral(num_literals),
-        PromoteLiteral(num_literals, operator_types),
-    )
