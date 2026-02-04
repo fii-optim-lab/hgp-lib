@@ -1,6 +1,8 @@
 import random
 from typing import Tuple, Type, Sequence
 
+import numpy as np
+
 from .base_mutation import Mutation
 from .utils import MutationError
 from ..utils.validation import validate_num_literals, validate_operator_types
@@ -175,6 +177,7 @@ class AddLiteral(Mutation):
 
         validate_num_literals(num_literals)
 
+        self.num_literals = num_literals
         self.available_literals = set(range(num_literals))
 
     def apply(self, rule: Rule):
@@ -202,16 +205,13 @@ class AddLiteral(Mutation):
             >>> rule
             Or(0, 1, 2)
         """
-        # TODO: Check performance. Maybe a better implementation is needed.
-        available_literals = tuple(
-            self.available_literals.difference(
-                [s.value for s in rule.subrules if s.value is not None]
-            )
-        )
-        if len(available_literals) == 0:
+        existing_rules = {s.value for s in rule.subrules if s.value is not None}
+
+        if len(existing_rules) == self.num_literals:
             raise MutationError()
-        rule.subrules.append(
-            Literal(
-                None, rule, random.choice(available_literals), random.random() < 0.5
-            )
-        )
+
+        random_shot = np.random.randint(self.num_literals)
+        if random_shot in existing_rules:
+            random_shot = random.choice(tuple(self.available_literals - existing_rules))
+
+        rule.subrules.append(Literal(None, rule, random_shot, random.random() < 0.5))

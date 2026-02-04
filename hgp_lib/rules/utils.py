@@ -1,3 +1,4 @@
+import random
 from typing import Dict, Type
 
 from .rules import Rule
@@ -100,3 +101,59 @@ def apply_feature_mapping(rule: Rule, feature_mapping: Dict[int, int] | None) ->
     new_rule = rule.copy()
     new_rule.apply_feature_mapping(feature_mapping)
     return new_rule
+
+
+def select_crossover_point(rule: Rule, operator_p: float = 0.9) -> Rule:
+    """
+    Selects a random node from the rule tree using Koza-style biased sampling.
+    This method favors internal operator nodes (e.g., `And`, `Or`) over terminal
+    literal nodes (e.g., `Literal`) based on the specified probability, promoting
+    structural crossover over simple point mutation.
+    Args:
+        rule (Rule):
+            The root of the rule tree from which to select a node.
+        operator_p (float):
+            The probability of selecting an internal operator node. If the tree contains
+            both operators and literals, operators are chosen with this probability.
+            Default: `0.9`.
+    Returns:
+        Rule:
+            A reference to the selected node (either an operator or a literal).
+    Notes:
+        - Uses a two-way reservoir sampling algorithm to perform selection in a single
+          pass (O(N)) with constant memory overhead, avoiding the need to flatten the tree.
+        - If the tree consists of only one type of node (e.g., a single Literal),
+          that node is returned regardless of `func_prob`.
+    Examples:
+        >>> import random
+        >>> from hgp_lib.rules.utils import select_crossover_point
+        >>> from hgp_lib.rules import And, Or, Literal
+        >>> random.seed(42)
+        >>> rule = And([Literal(value=0), Or([Literal(value=1), Literal(value=2)])])
+        >>> selected = select_crossover_point(rule, operator_p=1.0)
+        >>> isinstance(selected, (And, Or))
+        True
+        >>> selected = select_crossover_point(rule, operator_p=0.0)
+        >>> isinstance(selected, Literal)
+        True
+    """
+    selected_operator = selected_literal = None
+    count_operator = count_literal = 0
+
+    stack = [rule]
+    while stack:
+        current = stack.pop()
+
+        if current.subrules:
+            count_operator += 1
+            if random.random() < (1.0 / count_operator):
+                selected_operator = current
+            stack.extend(current.subrules)
+        else:
+            count_literal += 1
+            if random.random() < (1.0 / count_literal):
+                selected_literal = current
+
+    if selected_operator and random.random() < operator_p:
+        return selected_operator
+    return selected_literal or selected_operator

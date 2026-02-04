@@ -94,7 +94,7 @@ class GPTrainer:
             range(self.num_epochs),
             desc="Epochs",
             disable=not self.progress_bar,
-            leave=False,
+            leave=True if self.progress_bar is None else False,
         ) as tbar:
             for epoch in tbar:
                 step_metrics = self.gp_algo.step()

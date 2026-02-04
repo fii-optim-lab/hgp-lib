@@ -79,26 +79,53 @@ class Rule(ABC):
                 s.parent = self
             self.subrules.extend(new_subrules)
 
-    def flatten(self) -> List["Rule"]:
+    def flatten(self):
         """
-        Recursively flattens the rule subtree into a single list of all `Rule` nodes  using a preorder traversal.
+        Iteratively flattens the rule subtree into a single list of all `Rule` nodes  using a queue.
 
         Returns:
-            List[Rule]: A flat list containing `self` followed by all descendant rules in preorder sequence.
+            List[Rule]: A flat list containing `self` followed by all descendant rules in right-to-left
+                preorder sequence.
 
         Examples:
             >>> from hgp_lib.rules import And, Or, Literal
             >>> rule = And([
             ...     Literal(value=0),
-            ...     Or([Literal(value=1, negated=True), Literal(value=2)]),
+            ...     Or([Literal(value=1, negated=True), Or([Literal(value=2), Literal(value=4)])]),
             ...     Literal(value=3)
             ... ])
             >>> rule.flatten()
-            [And(0, Or(~1, 2), 3), 0, Or(~1, 2), ~1, 2, 3]
+            [And(0, Or(~1, Or(2, 4)), 3), 0, Or(~1, Or(2, 4)), 3, ~1, Or(2, 4), 2, 4]
+        """
+        result = [self]
+        queue = [self]
+        while queue:
+            current = queue.pop()
+            result.extend(current.subrules)
+            queue.extend(current.subrules)
+        return result
+
+    def r_flatten(self) -> List["Rule"]:
+        """
+        Recursively flattens the rule subtree into a single list of all `Rule` nodes  using a preorder traversal.
+
+        Returns:
+            List[Rule]: A flat list containing `self` followed by all descendant rules in left-to-right
+                preorder sequence.
+
+        Examples:
+            >>> from hgp_lib.rules import And, Or, Literal
+            >>> rule = And([
+            ...     Literal(value=0),
+            ...     Or([Literal(value=1, negated=True), Or([Literal(value=2), Literal(value=4)])]),
+            ...     Literal(value=3)
+            ... ])
+            >>> rule.r_flatten()
+            [And(0, Or(~1, Or(2, 4)), 3), 0, Or(~1, Or(2, 4)), ~1, Or(2, 4), 2, 4, 3]
         """
         result = [self]
         for subrule in self.subrules:
-            result.extend(subrule.flatten())
+            result.extend(subrule.r_flatten())
         return result
 
     def __len__(self) -> int:

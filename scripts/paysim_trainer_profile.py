@@ -55,6 +55,7 @@ Adjust population and feature sampling:
 Requires preprocessed PaySim data in HDF format at data/PaySim.hdf
 """
 
+import random
 from functools import partial
 from prettytable import PrettyTable
 import argparse
@@ -69,7 +70,16 @@ from timed_decorator.builder import create_timed_decorator, get_timed_decorator
 from hgp_lib import BooleanGPConfig, TrainerConfig
 from hgp_lib.algorithms import BooleanGP
 from hgp_lib.crossover import CrossoverExecutor
-from hgp_lib.mutations import MutationExecutor
+from hgp_lib.mutations import (
+    AddLiteral,
+    DeleteMutation,
+    MutationExecutor,
+    NegateMutation,
+    PromoteLiteral,
+    RemoveIntermediateOperator,
+    ReplaceLiteral,
+    ReplaceOperator,
+)
 from hgp_lib.populations import (
     FeatureSamplingStrategy,
     PopulationGenerator,
@@ -124,7 +134,7 @@ def f1_score(y_pred, y_true, sample_weight=None):
 # ==============================================================================
 
 
-def preprocess_paysim_data(hdf_path: str) -> Tuple:
+def preprocess_paysim_data(hdf_path: str, num_bins: int = 5) -> Tuple:
     """
     Load and preprocess PaySim data for training.
 
@@ -138,6 +148,7 @@ def preprocess_paysim_data(hdf_path: str) -> Tuple:
 
     Args:
         hdf_path: Path to the preprocessed PaySim HDF file
+        num_bins: Number of bins for binarization
 
     Returns:
         Tuple of (train_data, train_labels, val_data, val_labels,
@@ -182,9 +193,9 @@ def preprocess_paysim_data(hdf_path: str) -> Tuple:
     print(f"Test:  {len(test_data)} samples ({test_labels.sum()} fraud)")
 
     # Binarize features - converts continuous to boolean
-    # num_bins=5 means each feature becomes 5 boolean features (one per quantile bin)
-    print("\nBinarizing features...")
-    binarizer = StandardBinarizer(num_bins=5)
+    # Each feature becomes num_bins boolean features
+    print(f"\nBinarizing features (num_bins={num_bins})...")
+    binarizer = StandardBinarizer(num_bins=num_bins)
     train_data_bin = binarizer.fit_transform(train_data, train_labels)
 
     # Create feature name mapping for interpretable rule output
@@ -284,8 +295,38 @@ def apply_timing_decorators() -> None:
 
     # Rule evaluation - these are the hot paths
     Literal.evaluate = decorator(Literal.evaluate)
+    Rule.flatten = decorator(Rule.flatten)
+    Rule.__len__ = decorator(Rule.__len__)
     And.evaluate = decorator(And.evaluate)
     Or.evaluate = decorator(Or.evaluate)
+
+    import hgp_lib
+
+    hgp_lib.rules.utils.select_crossover_point = decorator(
+        hgp_lib.rules.utils.select_crossover_point
+    )
+    hgp_lib.crossover.crossover_executor.select_crossover_point = decorator(
+        hgp_lib.crossover.crossover_executor.select_crossover_point
+    )
+    hgp_lib.rules.utils.replace_with_rule = decorator(
+        hgp_lib.rules.utils.replace_with_rule
+    )
+    hgp_lib.rules.utils.deep_swap = decorator(hgp_lib.rules.utils.deep_swap)
+    hgp_lib.crossover.crossover_executor.deep_swap = decorator(
+        hgp_lib.crossover.crossover_executor.deep_swap
+    )
+
+    np.random.randint = decorator(np.random.randint)
+    random.choice = decorator(random.choice)
+    random.random = decorator(random.random)
+
+    AddLiteral.apply = decorator(AddLiteral.apply)
+    PromoteLiteral.apply = decorator(PromoteLiteral.apply)
+    ReplaceLiteral.apply = decorator(ReplaceLiteral.apply)
+    NegateMutation.apply = decorator(NegateMutation.apply)
+    DeleteMutation.apply = decorator(DeleteMutation.apply)
+    ReplaceOperator.apply = decorator(ReplaceOperator.apply)
+    RemoveIntermediateOperator.apply = decorator(RemoveIntermediateOperator.apply)
 
     # Scoring function
     global f1_score
@@ -305,6 +346,7 @@ def apply_timing_decorators() -> None:
     # Genetic operators
     CrossoverExecutor.apply = decorator(CrossoverExecutor.apply)
     MutationExecutor.apply = decorator(MutationExecutor.apply)
+    MutationExecutor._mutate = decorator(MutationExecutor._mutate)
 
     # Selection strategies
     TournamentSelection.select = decorator(TournamentSelection.select)
@@ -441,7 +483,7 @@ def main(args: argparse.Namespace) -> None:
         test_data,
         test_labels,
         feature_names,
-    ) = preprocess_paysim_data(args.data_path)
+    ) = preprocess_paysim_data(args.data_path, num_bins=args.num_bins)
 
     # Create validity checker
     is_valid = create_validity_checker(args.max_rule_size)
@@ -567,6 +609,12 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default="data/PaySim.hdf",
         help="Path to preprocessed PaySim HDF file",
+    )
+    data_group.add_argument(
+        "--num_bins",
+        type=int,
+        default=5,
+        help="Number of bins for feature binarization",
     )
 
     # Training arguments
