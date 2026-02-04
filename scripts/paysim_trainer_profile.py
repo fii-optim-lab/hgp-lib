@@ -55,6 +55,7 @@ Adjust population and feature sampling:
 Requires preprocessed PaySim data in HDF format at data/PaySim.hdf
 """
 
+import random
 from functools import partial
 from prettytable import PrettyTable
 import argparse
@@ -69,7 +70,7 @@ from timed_decorator.builder import create_timed_decorator, get_timed_decorator
 from hgp_lib import BooleanGPConfig, TrainerConfig
 from hgp_lib.algorithms import BooleanGP
 from hgp_lib.crossover import CrossoverExecutor
-from hgp_lib.mutations import MutationExecutor
+from hgp_lib.mutations import AddLiteral, MutationExecutor
 from hgp_lib.populations import (
     FeatureSamplingStrategy,
     PopulationGenerator,
@@ -286,6 +287,11 @@ def apply_timing_decorators() -> None:
     Literal.evaluate = decorator(Literal.evaluate)
     And.evaluate = decorator(And.evaluate)
     Or.evaluate = decorator(Or.evaluate)
+
+    np.random.randint = decorator(np.random.randint)
+    random.choice = decorator(random.choice)
+
+    AddLiteral.apply = decorator(AddLiteral.apply)
 
     # Scoring function
     global f1_score
