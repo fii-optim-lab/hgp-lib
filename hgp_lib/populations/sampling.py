@@ -20,9 +20,22 @@ class SamplingResult:
     Attributes:
         data: Sampled training data as 2D boolean ndarray (instances x features).
         labels: Sampled labels as 1D integer ndarray.
-        feature_indices: Selected feature indices as 1D ndarray.
+        feature_indices: Selected feature indices from the parent's feature space as 1D ndarray.
+            For example, if the parent has 20 features and we sample [3, 7, 12], the child's
+            feature 0 corresponds to parent's feature 3, feature 1 to parent's 7, etc.
         instance_indices: Selected instance indices as 1D ndarray, or None for feature-only sampling.
-        feature_mapping: Mapping from parent feature indices to sampled feature indices, or None for instance-only sampling.
+        feature_mapping: Dictionary mapping child feature indices to parent feature indices.
+            Direction: child_index -> parent_index.
+
+            For example, if feature_indices is [3, 7, 12], then feature_mapping is:
+                {0: 3, 1: 7, 2: 12}
+
+            This mapping is used during crossover to translate rules evolved in the child's
+            reduced feature space back to the parent's full feature space. When a child rule
+            references feature 0, applying this mapping converts it to feature 3 in the
+            parent's space.
+
+            Set to None for instance-only sampling where all features are preserved.
     """
 
     data: ndarray

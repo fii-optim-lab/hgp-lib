@@ -66,6 +66,8 @@ class BooleanGP:
         train_data = config.train_data
         train_labels = config.train_labels
         score_fn = config.score_fn
+        # TODO: We should add in documentation that our score_fn follows the sklearn
+        #  standard of (predictions, labels) and sample_weight support is recommended for optimization.
 
         self._original_score_fn = config.score_fn
         self.current_depth = current_depth
@@ -130,7 +132,6 @@ class BooleanGP:
         self.feature_mapping: dict[int, int] | None = None
         self._transfer_size: int = 0
         self.parent_rule_indices: List[int] = []
-        self.last_scores: ndarray | None = None
 
         if config.max_depth > current_depth and config.num_child_populations > 0:
             self._create_child_populations()
@@ -188,7 +189,6 @@ class BooleanGP:
                 best_not_improved_epochs, and regenerated.
         """
         # TODO: Add doctests here.
-        self._epoch += 1
         self.forward()
         return self.backward()
 
@@ -262,8 +262,6 @@ class BooleanGP:
         if parent_scores is not None:
             self._apply_feedback(scores, parent_scores)
 
-        self.last_scores = scores[: self.population_size].copy()
-
         children_metrics = []
 
         if self.child_populations:
@@ -274,10 +272,47 @@ class BooleanGP:
         return self._new_generation(scores, children_metrics)
 
     def _get_top_k_rules(self) -> List[Rule]:
-        """Select top-K rules for transfer to parent (indices 0.._top_k-1).
-        The rules are already sorted by score in descending order.
-        During the first epoch, the rules are not sorted by score.
-        TODO: Add better documentation and doctests.
+        """Retrieve the top-K rules for transfer to the parent population.
+
+        Returns the first `_top_k` rules from the population, which are expected
+        to be the highest-scoring rules. After each generation (except the first),
+        non-root populations sort their rules by score in descending order during
+        `_new_generation()`, ensuring that indices 0 through `_top_k - 1` contain
+        the best-performing rules.
+
+        Note:
+            During the first epoch (before any `backward()` call completes), the
+            population has not yet been sorted by score. In this case, the returned
+            rules are simply the first `_top_k` rules from the initial population,
+            which are effectively random. This is acceptable since all populations
+            start with randomly generated rules.
+
+        Returns:
+            List[Rule]: The top-K rules from this population, to be used in the
+                parent's crossover pool during hierarchical GP.
+
+        Examples:
+            >>> import numpy as np
+            >>> from hgp_lib.algorithms import BooleanGP
+            >>> from hgp_lib.configs import BooleanGPConfig
+            >>> from hgp_lib.populations import FeatureSamplingStrategy
+            >>> from sklearn.metrics import accuracy_score
+            >>> data = np.random.rand(50, 10) > 0.5
+            >>> labels = np.random.randint(0, 2, 50)
+            >>> config = BooleanGPConfig(
+            ...     score_fn=accuracy_score,
+            ...     train_data=data,
+            ...     train_labels=labels,
+            ...     max_depth=1,
+            ...     num_child_populations=2,
+            ...     sampling_strategy=FeatureSamplingStrategy(),
+            ...     top_k_transfer=5,
+            ... )
+            >>> gp = BooleanGP(config)
+            >>> child = gp.child_populations[0]
+            >>> top_rules = child._get_top_k_rules()
+            >>> len(top_rules)
+            5
         """
         return self.population[: self._top_k]
 
@@ -294,7 +329,16 @@ class BooleanGP:
         """Generate feedback signals for each child from offspring performance.
 
         Each parent that came from a child population receives a signal based on
-        how well the offspring it helped create performed.
+        how well the offspring it helped create performed. The signal is normalized
+        relative to the population's score distribution.
+
+        Args:
+            scores (ndarray): Fitness scores for all rules in the current population,
+                including both the original population and offspring from crossover.
+
+        Returns:
+            ndarray: A 2D array of shape (num_children, top_k) containing feedback
+                signals for each child population's transferred rules.
         """
         num_children = len(self.child_populations)
 
@@ -305,6 +349,7 @@ class BooleanGP:
         if max_s == min_s:
             return np.zeros((num_children, self._top_k))
 
+        # Offspring are situated after the original parent population in the scores array
         offspring_scores = scores[self.population_size :]
         above = offspring_scores >= mean_s
         signals = np.where(
@@ -315,10 +360,18 @@ class BooleanGP:
         child_feedbacks = np.zeros((num_children, self._top_k))
         child_counts = np.zeros((num_children, self._top_k))
 
+        # parent_rule_indices stores TWO indices per offspring (one for each parent).
+        # For offspring i, parent_rule_indices[2*i] and parent_rule_indices[2*i + 1]
+        # are the indices of its two parents in the crossover pool.
+        # Therefore, j // 2 maps from the parent_rule_indices position to the
+        # corresponding offspring index in offspring_scores.
         for j, parent_idx in enumerate(self.parent_rule_indices):
             if parent_idx < self._transfer_size:
+                # parent_idx < _transfer_size means this parent came from a child population
+                # Determine which child and which local rule index within that child
                 child_idx, local_idx = divmod(parent_idx, self._top_k)
-                child_feedbacks[child_idx, local_idx] += signals[j // 2]
+                offspring_idx = j // 2  # Two parent indices per offspring
+                child_feedbacks[child_idx, local_idx] += signals[offspring_idx]
                 child_counts[child_idx, local_idx] += 1
 
         mask = child_counts > 0
@@ -358,6 +411,7 @@ class BooleanGP:
         ):
             regenerated = True
 
+        self._epoch += 1
         metrics = StepMetrics(
             best=self.best_score,
             best_rule=self.best_rule,
