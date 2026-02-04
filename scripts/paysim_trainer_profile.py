@@ -357,22 +357,22 @@ def print_timing_results(measurements: Dict, args: argparse.Namespace) -> None:
             "Calls",
             "Own(s)",
             "Elapsed(s)",
-            "Per-call(ms)",
-            "Per-call(elapsed_ms)",
+            "Per-call(s)",
+            "Per-call(elapsed_s)",
         ]
     )
 
     for key, (counts, elapsed, own_time) in sorted_measurements:
         own_time_s = round(own_time / 1e9, 4)
         elapsed_s = round(elapsed / 1e9, 4)
-        per_call_ms = round(own_time / counts * 1000, 4)
-        per_call_elapsed_ms = round(elapsed / counts * 1000, 4)
+        per_call_s = round(own_time / counts / 1e9, 4)
+        per_call_elapsed_s = round(elapsed / counts / 1e9, 4)
         print(
             f"Function {key} was called {counts} time(s) and took {own_time_s}s/{elapsed_s}s "
-            f"({per_call_ms}ms/{per_call_elapsed_ms}ms per call)"
+            f"({per_call_s}s/{per_call_elapsed_s}s per call)"
         )
         table.add_row(
-            [key, counts, own_time_s, elapsed_s, per_call_ms, per_call_elapsed_ms]
+            [key, counts, own_time_s, elapsed_s, per_call_s, per_call_elapsed_s]
         )
 
     print("-" * 80)
