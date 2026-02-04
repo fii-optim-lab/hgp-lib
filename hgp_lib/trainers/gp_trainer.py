@@ -109,29 +109,30 @@ class GPTrainer:
                     )
                 )
 
-                if (epoch + 1) % self.config.progress_update_interval == 0:
-                    if self.progress_callback is not None:
-                        self.progress_callback(self.config.progress_update_interval)
+                if (
+                    self.progress_callback is not None
+                    and (epoch + 1) % self.config.progress_update_interval == 0
+                ):
+                    self.progress_callback(self.config.progress_update_interval)
 
-                if (epoch + 1) % self.val_every == 0:
-                    if self.val_data is not None:
-                        val_metrics = self.gp_algo.validate_population(
-                            self.val_data,
-                            self.val_labels,
-                            score_fn=self.val_score_fn,
+                if self.val_data is not None and (epoch + 1) % self.val_every == 0:
+                    val_metrics = self.gp_algo.validate_population(
+                        self.val_data,
+                        self.val_labels,
+                        score_fn=self.val_score_fn,
+                    )
+                    val_best = val_metrics.best
+                    pop_scores = val_metrics.population_scores
+                    val_epochs.append(
+                        EpochMetrics(
+                            epoch=epoch,
+                            best_score=val_metrics.best,
+                            mean_score=float(np.mean(pop_scores)),
+                            std_score=float(np.std(pop_scores)),
+                            best_rule=val_metrics.best_rule,
+                            regenerated=False,
                         )
-                        val_best = val_metrics.best
-                        pop_scores = val_metrics.population_scores
-                        val_epochs.append(
-                            EpochMetrics(
-                                epoch=epoch,
-                                best_score=val_metrics.best,
-                                mean_score=float(np.mean(pop_scores)),
-                                std_score=float(np.std(pop_scores)),
-                                best_rule=val_metrics.best_rule,
-                                regenerated=False,
-                            )
-                        )
+                    )
 
                 tbar.set_postfix(
                     {
