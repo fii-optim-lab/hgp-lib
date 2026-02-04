@@ -11,6 +11,7 @@ Usage:
 Requires preprocessed PaySim data in HDF format at data/PaySim.hdf
 """
 
+import argparse
 import gc
 
 import numpy as np
@@ -18,7 +19,9 @@ import pandas as pd
 
 from hgp_lib import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.benchmarkers import GPBenchmarker
+from hgp_lib.populations import FeatureSamplingStrategy
 from hgp_lib.preprocessing import StandardBinarizer
+from hgp_lib.rules import Rule
 
 
 def f1_score(y_pred, y_true, sample_weight=None):
@@ -75,14 +78,28 @@ def load_and_binarize_paysim(hdf_path: str):
     return data_bin, labels, feature_names
 
 
-def main():
+def is_ok(rule: Rule):
+    return len(rule) <= 50
+
+
+def main(args: argparse.Namespace):
     hdf_path = "data/PaySim.hdf"
-    num_epochs = 1000
+    num_epochs = args.num_epochs
 
     data, labels, feature_names = load_and_binarize_paysim(hdf_path)
 
     # Configure GP and trainer settings
-    gp_config = BooleanGPConfig(score_fn=f1_score)
+    gp_config = BooleanGPConfig(
+        score_fn=f1_score,
+        check_valid=is_ok,
+    )
+    if args.max_depth > 0:
+        gp_config.num_child_populations = args.num_child_populations
+        gp_config.max_depth = args.max_depth
+        gp_config.sampling_strategy = FeatureSamplingStrategy(
+            feature_fraction=args.feature_fraction
+        )
+
     trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=num_epochs)
 
     # Configure benchmarker
@@ -93,8 +110,10 @@ def main():
         data=data,
         labels=labels,
         trainer_config=trainer_config,
-        num_runs=10,
-        n_folds=3,
+        num_runs=args.num_runs,
+        n_folds=args.n_folds,
+        show_fold_progress=False,
+        show_epoch_progress=False,
     )
 
     print("\nBenchmark configuration:")
@@ -112,6 +131,7 @@ def main():
     # Print results
     print("\n" + "=" * 60)
     print("BENCHMARK RESULTS")
+    print(f"  Arguments: {args}")
     print("=" * 60)
     print(
         f"Test F1 Score:  {result.mean_test_score:.4f} +/- {result.std_test_score:.4f}"
@@ -136,4 +156,12 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--num_epochs", type=int, default=1000)
+    parser.add_argument("--num_runs", type=int, default=10)
+    parser.add_argument("--n_folds", type=int, default=3)
+    parser.add_argument("--max_depth", type=int, default=0)
+    parser.add_argument("--num_child_populations", type=int, default=3)
+    parser.add_argument("--feature_fraction", type=float, default=0.33)
+    args = parser.parse_args()
+    main(args)
