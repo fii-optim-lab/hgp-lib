@@ -2,7 +2,6 @@ import random
 from typing import Tuple, Type, Sequence
 
 from .base_mutation import Mutation
-from .literal_mutations import DeleteMutation, NegateMutation
 from .utils import MutationError
 from ..utils.validation import validate_num_literals, validate_operator_types
 from ..rules import Rule, Or, And, Literal
@@ -216,43 +215,3 @@ class AddLiteral(Mutation):
                 None, rule, random.choice(available_literals), random.random() < 0.5
             )
         )
-
-
-def create_standard_operator_mutations(
-    num_literals: int, operator_types: Sequence[Type[Rule]] = (Or, And)
-) -> Tuple[Mutation, ...]:
-    """
-    Creates a standard set of operator-level mutations used for structural modifications of rule trees.
-
-    The returned tuple includes:
-
-    Args:
-        num_literals (int):
-            Total number of available literal values. Must be greater than `1`.
-        operator_types (Sequence[Type[Rule]]):
-            Sequence of operator classes (e.g., `(Or, And)`) used by `ReplaceOperator`. Default: `(Or, And)`.
-
-    Returns:
-        Tuple[Mutation, ...]:
-            A tuple of initialized operator-level mutation instances. The tuple includes:
-            1. `DeleteMutation()` - removes a rule from its parent operator.
-            2. `NegateMutation()` - toggles the negation flag of an operator.
-            3. `RemoveIntermediateOperator()` - removes an intermediate operator and promotes its children.
-            4. `ReplaceOperator(operator_types)` - replaces an operator with another type (e.g., `And` with `Or`).
-            5. `AddLiteral(num_literals)` - adds a new literal subrule to the operator.
-
-
-    Examples:
-        >>> from hgp_lib.mutations import create_standard_operator_mutations
-        >>> from hgp_lib.rules import And, Or
-        >>> mutations = create_standard_operator_mutations(num_literals=4, operator_types=(Or, And))
-        >>> [type(mutation).__name__ for mutation in mutations]
-        ['DeleteMutation', 'NegateMutation', 'RemoveIntermediateOperator', 'ReplaceOperator', 'AddLiteral']
-    """
-    return (
-        DeleteMutation(),
-        NegateMutation(),
-        RemoveIntermediateOperator(),
-        ReplaceOperator(operator_types),
-        AddLiteral(num_literals),
-    )

@@ -98,3 +98,32 @@ def optimize_scorer_for_data(
         )
         scorer = partial(scorer, sample_weight=sample_weight)
     return scorer, data, labels
+
+
+def normalize(scores: ndarray) -> ndarray:
+    """
+    Normalize scores to [0, 1] range.
+
+    Args:
+        scores (ndarray): 1D array of scores.
+
+    Returns:
+        ndarray: Scores scaled so that min maps to 0 and max to 1.
+            If all values are equal, returns array of ones.
+            Returns a copy; does not modify the input.
+
+    Examples:
+        >>> import numpy as np
+        >>> from hgp_lib.utils.metrics import normalize
+        >>> normalize(np.array([1.0, 2.0, 3.0]))
+        array([0. , 0.5, 1. ])
+        >>> normalize(np.array([0.5, 0.5]))
+        array([1., 1.])
+    """
+    if len(scores) == 0:
+        return scores.copy()
+    min_s = float(np.min(scores))
+    max_s = float(np.max(scores))
+    if max_s == min_s:
+        return np.ones_like(scores, dtype=float)
+    return (scores.astype(float) - min_s) / (max_s - min_s)

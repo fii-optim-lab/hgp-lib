@@ -66,7 +66,7 @@ test_metrics = trainer.score(test_data, test_labels)
 
 
 ```python
-from hgp_lib.mutations import MutationExecutor, create_standard_literal_mutations, create_standard_operator_mutations
+from hgp_lib.mutations import create_mutation_executor
 from hgp_lib.crossover import CrossoverExecutor
 from hgp_lib.selections import TournamentSelection, RouletteSelection, ParetoSelection
 from hgp_lib.populations import PopulationGenerator, RandomStrategy, BestLiteralStrategy
@@ -89,9 +89,6 @@ def is_rule_valid(rule: Rule) -> bool:
 
 
 num_features = train_data.shape[1]  # Derive from data; no need to pass num_literals into config when using defaults
-literal_mutations = create_standard_literal_mutations(num_features)
-operator_mutations = create_standard_operator_mutations(num_features)
-
 random_strategy = RandomStrategy(num_literals=num_features)
 best_literal_strategy = BestLiteralStrategy(
     num_literals=num_features,
@@ -108,9 +105,8 @@ population_generator = PopulationGenerator(
     weights=[0.8, 0.2]  # 80% Random, 20% Best Literal
 )
 
-mutation_executor = MutationExecutor(
-    literal_mutations=literal_mutations,  # Mandatory
-    operator_mutations=operator_mutations,  # Mandatory
+mutation_executor = create_mutation_executor(
+    num_literals=num_features, # Mandatory
     mutation_p=mutation_p,  # Optional
     check_valid=is_rule_valid,  # Optional
     num_tries=10,  # Optional

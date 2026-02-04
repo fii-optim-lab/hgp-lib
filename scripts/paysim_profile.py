@@ -18,8 +18,7 @@ from hgp_lib.algorithms import BooleanGP
 from hgp_lib.crossover import CrossoverExecutor
 from hgp_lib.mutations import (
     MutationExecutor,
-    create_standard_literal_mutations,
-    create_standard_operator_mutations,
+    create_mutation_executor,
 )
 from hgp_lib.populations import PopulationGenerator, RandomStrategy
 from hgp_lib.preprocessing import StandardBinarizer
@@ -195,21 +194,17 @@ def main():
         return True
 
     num_features = train_data_bin.shape[1]
-    literal_mutations = create_standard_literal_mutations(num_features)
-    operator_mutations = create_standard_operator_mutations(num_features)
+    mutation_executor = create_mutation_executor(
+        num_literals=num_features,
+        check_valid=is_rule_valid,
+        mutation_p=mutation_p,
+        num_tries=5,
+    )
 
     random_strategy = RandomStrategy(num_literals=num_features)
     population_generator = PopulationGenerator(
         strategies=[random_strategy],
         population_size=population_size,
-    )
-
-    mutation_executor = MutationExecutor(
-        literal_mutations=literal_mutations,
-        operator_mutations=operator_mutations,
-        mutation_p=mutation_p,
-        check_valid=is_rule_valid,
-        num_tries=5,
     )
 
     crossover_executor = CrossoverExecutor(

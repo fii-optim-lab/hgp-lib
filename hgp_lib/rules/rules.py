@@ -150,12 +150,11 @@ class Rule(ABC):
             new_indent = indent + 1
             separator = ",\n"
             tab = "\t"
-            rez = f"{type(self).__name__}(\n{
-                separator.join(
-                    tab * new_indent + s.to_str(feature_names, new_indent)
-                    for s in self.subrules
-                )
-            }\n{tab * indent})"
+            to_join = separator.join(
+                tab * new_indent + s.to_str(feature_names, new_indent)
+                for s in self.subrules
+            )
+            rez = f"{type(self).__name__}(\n{to_join}\n{tab * indent})"
 
         if self.negated:
             return "~" + rez
@@ -213,3 +212,36 @@ class Rule(ABC):
             Concrete subclasses (`And`, `Or`, `Literal`, etc.) must implement this.
         """
         pass
+
+    def apply_feature_mapping(self, feature_mapping: Dict[int, int]):
+        """
+        Applies a feature mapping to this rule and all its subrules in-place.
+
+        This method remaps feature indices used in literals according to the provided
+        mapping dictionary. It is used in hierarchical GP when child populations operate
+        on a subset of features (feature bagging) and need to be translated back to the
+        parent's feature space during crossover.
+
+        Args:
+            feature_mapping (Dict[int, int]):
+                A dictionary mapping old feature indices to new feature indices.
+                For literals, `self.value` is replaced with `feature_mapping[self.value]`.
+
+        Returns:
+            None: This method modifies the rule in-place.
+
+        Raises:
+            KeyError: If `self.value` is not found in `feature_mapping`.
+
+        Examples:
+            >>> from hgp_lib.rules import And, Literal
+            >>> rule = And([Literal(value=0), Literal(value=1)])
+            >>> rule.apply_feature_mapping({0: 5, 1: 10})
+            >>> str(rule)
+            'And(5, 10)'
+        """
+        if self.value is not None:
+            self.value = feature_mapping[self.value]
+        else:
+            for subrule in self.subrules:
+                subrule.apply_feature_mapping(feature_mapping)

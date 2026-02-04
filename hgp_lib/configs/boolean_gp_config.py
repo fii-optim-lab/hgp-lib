@@ -5,7 +5,7 @@ from numpy import ndarray
 
 from ..crossover import CrossoverExecutor
 from ..mutations import MutationExecutor
-from ..populations import PopulationGenerator
+from ..populations import PopulationGenerator, SamplingStrategy
 from ..rules import Rule
 from ..selections import BaseSelection
 from ..utils.validation import check_isinstance, check_X_y, validate_callable
@@ -30,6 +30,14 @@ class BooleanGPConfig:
         regeneration (bool): Whether to regenerate population on plateau.
         regeneration_patience (int): Epochs without improvement before regeneration.
         check_valid (Callable[[Rule], bool] | None): Optional rule validator for mutation/crossover.
+        num_child_populations (int): Number of child populations for hierarchical GP. Default: 0.
+        max_depth (int): Maximum hierarchical depth; 0 means no children. Default: 0.
+            Root population has current_depth=0, its children have current_depth=1, etc.
+        sampling_strategy (SamplingStrategy | None): Strategy for sampling data/features for children.
+            Required when max_depth > 0. Default: None.
+        top_k_transfer (int): Number of top rules to transfer from each child to parent. Default: 10.
+        feedback_type (str): How to apply parent feedback: "additive" or "multiplicative". Default: "multiplicative".
+        feedback_strength (float): Coefficient for feedback signal. Must be > 0. Default: 0.1.
 
     Examples:
         >>> import numpy as np
@@ -56,6 +64,13 @@ class BooleanGPConfig:
     regeneration: bool = False
     regeneration_patience: int = 100
     check_valid: Callable[[Rule], bool] | None = None
+    # Hierarchical GP
+    num_child_populations: int = 0
+    max_depth: int = 0
+    sampling_strategy: SamplingStrategy | None = None
+    top_k_transfer: int = 10
+    feedback_type: str = "multiplicative"
+    feedback_strength: float = 0.1
 
 
 def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> None:
@@ -101,3 +116,28 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
         check_isinstance(config.selection, BaseSelection)
     if config.check_valid is not None:
         validate_callable(config.check_valid)
+
+    # Hierarchical GP validation
+    check_isinstance(config.num_child_populations, int)
+    check_isinstance(config.max_depth, int)
+    if config.num_child_populations < 0:
+        raise ValueError("num_child_populations must be non-negative")
+    if config.max_depth < 0:
+        raise ValueError("max_depth must be non-negative")
+    if config.max_depth > 0 and config.sampling_strategy is None:
+        raise ValueError("sampling_strategy is required when max_depth > 0")
+    if config.max_depth > 0 and config.num_child_populations == 0:
+        raise ValueError("max_depth > 0 requires num_child_populations > 0")
+    if config.sampling_strategy is not None:
+        check_isinstance(config.sampling_strategy, SamplingStrategy)
+    check_isinstance(config.top_k_transfer, int)
+    if config.top_k_transfer < 1:
+        raise ValueError("top_k_transfer must be at least 1")
+    check_isinstance(config.feedback_type, str)
+    if config.feedback_type not in ("additive", "multiplicative"):
+        raise ValueError(
+            f"feedback_type must be 'additive' or 'multiplicative', got {config.feedback_type!r}"
+        )
+    check_isinstance(config.feedback_strength, (int, float))
+    if config.feedback_strength <= 0:
+        raise ValueError("feedback_strength must be > 0")

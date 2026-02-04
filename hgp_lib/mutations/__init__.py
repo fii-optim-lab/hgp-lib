@@ -4,22 +4,26 @@ from .literal_mutations import (
     NegateMutation,
     ReplaceLiteral,
     PromoteLiteral,
-    create_standard_literal_mutations,
 )
 from .operator_mutations import (
     RemoveIntermediateOperator,
     ReplaceOperator,
     AddLiteral,
-    create_standard_operator_mutations,
 )
 from .mutation_executor import MutationExecutor
 from .utils import MutationError
+from .mutation_factory import (
+    create_mutation_executor,
+    create_standard_literal_mutations,
+    create_standard_operator_mutations,
+)
 
 __all__ = [
     "MutationExecutor",
     "Mutation",
     "MutationError",
     # Factory methods
+    "create_mutation_executor",
     "create_standard_literal_mutations",
     "create_standard_operator_mutations",
     # Literal and operator mutations
