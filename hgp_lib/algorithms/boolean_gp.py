@@ -168,18 +168,7 @@ class BooleanGP:
                 mutation_executor=child_mutation_executor,
             )
             child = BooleanGP(child_config, current_depth=self.current_depth + 1)
-
-            # Feature mapping is only needed when features are subsampled (feature bagging).
-            # For instance-only sampling, all features are preserved, so no mapping is needed.
-            needs_feature_mapping = (
-                num_sampled_features != num_features
-                or not np.array_equal(result.feature_indices, np.arange(num_features))
-            )
-            if needs_feature_mapping:
-                child.feature_mapping = {
-                    i: int(result.feature_indices[i])
-                    for i in range(num_sampled_features)
-                }
+            child.feature_mapping = result.feature_mapping
 
             self.child_populations.append(child)
 

@@ -7,6 +7,7 @@ data and features when creating child populations in hierarchical GP.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from math import ceil
+from typing import Dict
 
 import numpy as np
 from numpy import ndarray
@@ -21,12 +22,14 @@ class SamplingResult:
         labels: Sampled labels as 1D integer ndarray.
         feature_indices: Selected feature indices as 1D ndarray.
         instance_indices: Selected instance indices as 1D ndarray, or None for feature-only sampling.
+        feature_mapping: Mapping from parent feature indices to sampled feature indices, or None for instance-only sampling.
     """
 
     data: ndarray
     labels: ndarray
     feature_indices: ndarray
     instance_indices: ndarray | None
+    feature_mapping: Dict[int, int] | None
 
 
 class SamplingStrategy(ABC):
@@ -149,6 +152,10 @@ class FeatureSamplingStrategy(SamplingStrategy):
             labels=labels,
             feature_indices=feature_indices,
             instance_indices=None,
+            feature_mapping={
+                position: feature_index
+                for position, feature_index in enumerate(feature_indices)
+            },
         )
 
 
@@ -240,6 +247,7 @@ class InstanceSamplingStrategy(SamplingStrategy):
             labels=sampled_labels,
             feature_indices=np.arange(num_features),
             instance_indices=instance_indices,
+            feature_mapping=None,
         )
 
 
@@ -359,4 +367,8 @@ class CombinedSamplingStrategy(SamplingStrategy):
             labels=sampled_labels,
             feature_indices=feature_indices,
             instance_indices=instance_indices,
+            feature_mapping={
+                position: feature_index
+                for position, feature_index in enumerate(feature_indices)
+            },
         )
