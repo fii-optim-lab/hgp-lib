@@ -307,13 +307,11 @@ class BooleanGP:
         Each parent that came from a child population receives a signal based on
         how well the offspring it helped create performed.
         """
+        num_children = len(self.child_populations)
+
         mean_s = float(np.mean(scores))
         min_s = float(np.min(scores))
         max_s = float(np.max(scores))
-
-        offspring_scores = scores[self.population_size :]
-
-        num_children = len(self.child_populations)
 
         if max_s == min_s:
             return np.zeros((num_children, self._top_k))
@@ -396,8 +394,9 @@ class BooleanGP:
             )
             # Non-root populations need reordering so top-K rules are at the front
             # for transfer to parent population during the next forward pass.
-            if self.current_depth > 0:
-                sorted_indices = np.argsort(-selected_scores, self._top_k)
+            if self.current_depth > 0:  # top_k must be positive if current_depth > 0
+                # TODO: Test against argpartition for speed
+                sorted_indices = np.argsort(-selected_scores)
                 self.population = [self.population[i] for i in sorted_indices]
         return metrics
 
