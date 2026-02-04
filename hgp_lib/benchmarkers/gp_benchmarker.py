@@ -1,12 +1,13 @@
+import multiprocessing
 import os
 from typing import List
 
 from tqdm import tqdm
-from tqdm.contrib.concurrent import process_map
 
 from ..configs import BenchmarkerConfig, validate_benchmarker_config
 from ..metrics import BenchmarkResult, RunMetrics
 
+from .progress import ProgressConfig, ProgressListener
 from .results import aggregate_results
 from .runner import execute_single_run, single_run_wrapper
 
@@ -61,9 +62,6 @@ class GPBenchmarker:
 
     # TODO: This should be a doctest instead of an example.
     def __init__(self, config: BenchmarkerConfig):
-        # TODO: We should also remove val_score_fn since we usually optimize the score_fn for validation.
-        # we don't need an additional parameter in configs for validation. We use the same scorer, but try to
-        # optimize it for validation.
         validate_benchmarker_config(config)
         self.config = config
         self._run_metrics: List[RunMetrics] | None = None
@@ -98,6 +96,46 @@ class GPBenchmarker:
 
         return run_metrics
 
+    def _run_parallel(self, n_jobs: int) -> List[RunMetrics]:
+        """Run all benchmark runs in parallel with centralized progress bars."""
+        show_progress = self.config.trainer_config.progress_bar
+
+        total_runs = self.config.num_runs
+        total_folds = total_runs * self.config.n_folds
+        total_epochs = total_folds * self.config.trainer_config.num_epochs
+
+        progress_config = ProgressConfig(
+            total_runs=total_runs,
+            total_folds=total_folds,
+            total_epochs=total_epochs,
+            show_run_progress=self.config.show_run_progress and show_progress,
+            show_fold_progress=self.config.show_fold_progress and show_progress,
+            show_epoch_progress=self.config.show_epoch_progress and show_progress,
+        )
+
+        manager = multiprocessing.Manager()
+        queue = manager.Queue()
+
+        listener = ProgressListener(queue, progress_config)
+        listener.start()
+
+        run_args = [
+            (run_id, self.config.base_seed + run_id, self.config, queue)
+            for run_id in range(self.config.num_runs)
+        ]
+
+        try:
+            with multiprocessing.Pool(processes=n_jobs) as pool:
+                run_metrics = pool.map(single_run_wrapper, run_args)
+            # Normal completion - wait for listener to finish processing
+            listener.join()
+        except Exception:
+            # Error occurred - force stop the listener to prevent hang
+            listener.stop()
+            raise
+
+        return run_metrics
+
     def fit(self) -> BenchmarkResult:
         """
         Run all benchmark runs (parallel or sequential) and aggregate results.
@@ -111,21 +149,7 @@ class GPBenchmarker:
         if effective_n_jobs == 1:
             run_metrics = self._run_sequential()
         else:
-            show_run_progress = (
-                self.config.show_run_progress
-                and self.config.trainer_config.progress_bar
-            )
-            run_args = [
-                (run_id, self.config.base_seed + run_id, self.config)
-                for run_id in range(self.config.num_runs)
-            ]
-            run_metrics = process_map(
-                single_run_wrapper,
-                run_args,
-                max_workers=effective_n_jobs,
-                desc="Benchmark Runs",
-                disable=not show_run_progress,
-            )
+            run_metrics = self._run_parallel(effective_n_jobs)
 
         self._run_metrics = run_metrics
         return aggregate_results(run_metrics)

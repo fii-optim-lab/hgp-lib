@@ -186,22 +186,6 @@ class TestGPTrainer(unittest.TestCase):
         self.assertEqual(result.val_history.epochs[0].epoch, 4)
         self.assertEqual(result.val_history.epochs[1].epoch, 9)
 
-    def test_fit_with_val_score_fn(self):
-        def custom_val_score(predictions, labels):
-            return np.sum(predictions & labels)
-
-        config = self._make_trainer_config(
-            num_epochs=10,
-            val_data=self.val_data,
-            val_labels=self.val_labels,
-            val_score_fn=custom_val_score,
-            val_every=5,
-        )
-        trainer = GPTrainer(config)
-
-        result = trainer.fit()
-        self.assertEqual(len(result.val_history.epochs), 2)
-
     def test_score_returns_validate_best_metrics(self):
         config = self._make_trainer_config(num_epochs=5)
         trainer = GPTrainer(config)
