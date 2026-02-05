@@ -12,7 +12,7 @@ from ..mutations import (
 )
 from ..populations import PopulationGenerator, RandomStrategy
 from ..rules import Rule
-from ..selections import RouletteSelection, TournamentSelection
+from ..selections import TournamentSelection
 from ..utils.metrics import optimize_scorer_for_data
 
 
