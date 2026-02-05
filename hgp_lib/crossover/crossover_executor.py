@@ -97,7 +97,7 @@ class CrossoverExecutor:
             raise ValueError("num_tries must be 1 if check_valid is None")
 
     def apply(
-        self, rules: List[Rule], feature_mappings: List[dict | None]
+        self, rules: List[Rule], feature_mappings: List[dict | None] | None = None
     ) -> Tuple[List[Rule], List[int]]:
         """
         Applies crossover to the provided list of rules and returns children with parent tracking.
@@ -114,11 +114,11 @@ class CrossoverExecutor:
             rules (List[Rule]):
                 The collection of parent rules that will undergo crossover. May include
                 rules from both the current population and child populations.
-            feature_mappings (List[dict | None]):
+            feature_mappings (List[dict | None]) | None:
                 A list of feature mapping dictionaries, one per rule. Each mapping translates
                 feature indices from a child population's space to the parent's space.
                 Use None for rules that don't need remapping (i.e., from the current population).
-
+                Default: `None`.
         Returns:
             Tuple[List[Rule], List[int]]: A tuple containing:
                 - List[Rule]: The children produced by crossover operations.
@@ -144,6 +144,9 @@ class CrossoverExecutor:
         n = len(rules)
         if n == 0:
             return [], []
+
+        if feature_mappings is None:
+            feature_mappings = [None] * len(rules)
 
         if self.crossover_strategy == "random":
             k = np.random.binomial(n, self.crossover_p)

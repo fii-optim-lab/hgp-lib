@@ -25,7 +25,7 @@ class BooleanGPConfig:
         population_generator (PopulationGenerator | None): Optional; default created from num_features.
         mutation_executor (MutationExecutor | None): Optional; default created from num_features.
         crossover_executor (CrossoverExecutor | None): Optional; default CrossoverExecutor().
-        selection (BaseSelection | None): Optional; default RouletteSelection().
+        selection (BaseSelection | None): Optional; default TournamentSelection().
         optimize_scorer (bool): Whether to optimize scorer via data deduplication and sample weights.
         regeneration (bool): Whether to regenerate population on plateau.
         regeneration_patience (int): Epochs without improvement before regeneration.

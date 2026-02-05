@@ -260,7 +260,9 @@ class TestCrossoverExecutor(unittest.TestCase):
         rules = [And([Literal(value=0), Literal(value=1)])]
 
         np.random.seed(42)
-        children, parent_indices = executor.apply(rules)
+        children, parent_indices = executor.apply(
+            rules,
+        )
 
         # Single rule can't be paired, should return empty list
         self.assertEqual(len(children), 0)
