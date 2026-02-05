@@ -6,6 +6,7 @@ import numpy as np
 from .base_mutation import Mutation
 from .utils import MutationError
 from ..rules import Rule, Literal
+from ..rules.utils import select_crossover_point
 from ..utils.validation import validate_callable, check_isinstance
 
 
@@ -162,8 +163,8 @@ class MutationExecutor:
 
         for mutation_i in range(n_mutations):
             for tries in range(self.num_tries):
-                # TODO: Check random choice of rule without flattening
-                selected = random.choice(new_rule.flatten())
+                selected = select_crossover_point(new_rule, operator_p=0.5)
+                # selected = random.choice(new_rule.flatten())
 
                 try:
                     random.choice(

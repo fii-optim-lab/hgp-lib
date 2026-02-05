@@ -209,10 +209,8 @@ class CrossoverExecutor:
 
             node_a = select_crossover_point(child_a, operator_p=0.5)
             node_b = select_crossover_point(child_b, operator_p=0.5)
-
-            # flat_a, flat_b = child_a.flatten(), child_b.flatten()
-            # node_a = random.choice(flat_a)
-            # node_b = random.choice(flat_b)
+            # node_a = random.choice(child_a.flatten())
+            # node_b = random.choice(child_b.flatten())
 
             deep_swap(node_a, node_b)
 
