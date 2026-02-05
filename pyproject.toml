@@ -25,7 +25,9 @@ dependencies = [
     "numpy",
     "pandas",
     "scikit-learn",
-    "tqdm"
+    "tqdm",
+    "optuna",
+    "optuna-dashboard"
 ]
 [tool.setuptools.packages.find]
 include = ["hgp_lib*"]
