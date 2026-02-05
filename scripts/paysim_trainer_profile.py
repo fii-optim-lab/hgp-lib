@@ -55,7 +55,6 @@ Adjust population and feature sampling:
 Requires preprocessed PaySim data in HDF format at data/PaySim.hdf
 """
 
-import random
 from functools import partial
 from prettytable import PrettyTable
 import argparse
@@ -317,9 +316,9 @@ def apply_timing_decorators() -> None:
         hgp_lib.crossover.crossover_executor.deep_swap
     )
 
-    np.random.randint = decorator(np.random.randint)
-    random.choice = decorator(random.choice)
-    random.random = decorator(random.random)
+    # np.random.randint = decorator(np.random.randint)
+    # random.choice = decorator(random.choice)
+    # random.random = decorator(random.random)
 
     AddLiteral.apply = decorator(AddLiteral.apply)
     PromoteLiteral.apply = decorator(PromoteLiteral.apply)
