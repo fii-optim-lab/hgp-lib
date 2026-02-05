@@ -85,7 +85,7 @@ from hgp_lib.populations import (
     RandomStrategy,
 )
 from hgp_lib.preprocessing import StandardBinarizer
-from hgp_lib.rules import And, Literal, Or, Rule
+from hgp_lib.rules import Rule
 from hgp_lib.selections import TournamentSelection
 from hgp_lib.trainers import GPTrainer
 
@@ -293,12 +293,12 @@ def apply_timing_decorators() -> None:
     decorator = get_timed_decorator("GPTimer")
 
     # Rule evaluation - these are the hot paths
-    Literal.evaluate = decorator(Literal.evaluate)
+    # Literal.evaluate = decorator(Literal.evaluate)
     Rule.flatten = decorator(Rule.flatten)
     # Rule.copy = decorator(Rule.copy)  # Overhead!
     # Rule.__len__ = decorator(Rule.__len__)  # Overhead!
-    And.evaluate = decorator(And.evaluate)
-    Or.evaluate = decorator(Or.evaluate)
+    # And.evaluate = decorator(And.evaluate)
+    # Or.evaluate = decorator(Or.evaluate)
 
     import hgp_lib
 
@@ -329,8 +329,8 @@ def apply_timing_decorators() -> None:
     RemoveIntermediateOperator.apply = decorator(RemoveIntermediateOperator.apply)
 
     # Scoring function
-    global f1_score
-    f1_score = decorator(f1_score)
+    # global f1_score
+    # f1_score = decorator(f1_score)
 
     # GP algorithm core
     BooleanGP.step = decorator(BooleanGP.step)

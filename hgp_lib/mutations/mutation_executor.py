@@ -39,7 +39,7 @@ class MutationExecutor:
         >>> import numpy as np
         >>> from hgp_lib.mutations import MutationExecutor, NegateMutation
         >>> from hgp_lib.rules import Literal, And
-        >>> random.seed(0); np.random.seed(0)
+        >>> random.seed(1); np.random.seed(0)
         >>> executor = MutationExecutor(
         ...     literal_mutations=[NegateMutation()],
         ...     operator_mutations=[NegateMutation()],

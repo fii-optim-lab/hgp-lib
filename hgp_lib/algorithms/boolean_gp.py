@@ -465,7 +465,7 @@ class BooleanGP:
             TODO: we should also support batched evaluation or free-threaded evaluation.
         """
         n = len(self.population)
-        scores = np.zeros(n)
+        scores = np.empty(n)
         for i in range(n):
             scores[i] = score_fn(self.population[i].evaluate(data), labels)
         return scores
