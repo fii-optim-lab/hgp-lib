@@ -97,7 +97,7 @@ class CrossoverExecutor:
             raise ValueError("num_tries must be 1 if check_valid is None")
 
     def apply(
-        self, rules: List[Rule], feature_mappings: List[dict | None] | None = None
+        self, rules: List[Rule], feature_mappings: List[dict | None]
     ) -> Tuple[List[Rule], List[int]]:
         """
         Applies crossover to the provided list of rules and returns children with parent tracking.
@@ -114,11 +114,10 @@ class CrossoverExecutor:
             rules (List[Rule]):
                 The collection of parent rules that will undergo crossover. May include
                 rules from both the current population and child populations.
-            feature_mappings (List[dict | None] | None):
+            feature_mappings (List[dict | None]):
                 A list of feature mapping dictionaries, one per rule. Each mapping translates
                 feature indices from a child population's space to the parent's space.
                 Use None for rules that don't need remapping (i.e., from the current population).
-                If None, no remapping is applied (equivalent to all None).
 
         Returns:
             Tuple[List[Rule], List[int]]: A tuple containing:
@@ -146,25 +145,17 @@ class CrossoverExecutor:
         if n == 0:
             return [], []
 
-        if feature_mappings is None:
-            feature_mappings = [None] * n
-
         if self.crossover_strategy == "random":
-            probabilities = np.random.rand(n)
+            k = np.random.binomial(n, self.crossover_p)
+            k -= k % 2
+            eligible_indices = np.random.permutation(n)[:k]
         else:
             # self.crossover_strategy == "best"
             raise NotImplementedError()
 
-        eligible_indices = np.flatnonzero(probabilities <= self.crossover_p)
-        np.random.shuffle(eligible_indices)
-        if len(eligible_indices) % 2 != 0:
-            eligible_indices = eligible_indices[:-1]
-
         children = []
         parent_indices = []
-        for i in range(0, len(eligible_indices), 2):
-            i1 = eligible_indices[i]
-            i2 = eligible_indices[i + 1]
+        for i1, i2 in eligible_indices.reshape(-1, 2):
             parent_a = apply_feature_mapping(rules[i1], feature_mappings[i1])
             parent_b = apply_feature_mapping(rules[i2], feature_mappings[i2])
             ch = self.crossover(parent_a, parent_b)

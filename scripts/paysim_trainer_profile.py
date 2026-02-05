@@ -345,6 +345,7 @@ def apply_timing_decorators() -> None:
 
     # Genetic operators
     CrossoverExecutor.apply = decorator(CrossoverExecutor.apply)
+    CrossoverExecutor.crossover = decorator(CrossoverExecutor.crossover)
     MutationExecutor.apply = decorator(MutationExecutor.apply)
     MutationExecutor._mutate = decorator(MutationExecutor._mutate)
 
