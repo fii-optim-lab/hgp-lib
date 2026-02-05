@@ -462,13 +462,11 @@ class BooleanGP:
             ndarray: Array of fitness scores, one for each rule in the population.
 
         Note:
-            TODO: we should also support batched evaluation or free-threaded evaluation.
+            TODO: we should also support batched evaluation or free-threaded evaluation if needed.
         """
-        n = len(self.population)
-        scores = np.empty(n)
-        for i in range(n):
-            scores[i] = score_fn(self.population[i].evaluate(data), labels)
-        return scores
+        return np.array(
+            [score_fn(rule.evaluate(data), labels) for rule in self.population]
+        )
 
     def _update_best(self, current_best: float, current_best_rule: Rule):
         """
