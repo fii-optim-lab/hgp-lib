@@ -146,7 +146,7 @@ class CrossoverExecutor:
             return [], []
 
         if feature_mappings is None:
-            feature_mappings = [None] * len(rules)
+            feature_mappings = [None] * n
 
         if self.crossover_strategy == "random":
             k = np.random.binomial(n, self.crossover_p)
