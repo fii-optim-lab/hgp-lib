@@ -100,7 +100,7 @@ class Rule(ABC):
         result = [self]
         queue = [self]
         while queue:
-            current = queue.pop()
+            current = queue.pop(0)
             result.extend(current.subrules)
             queue.extend(current.subrules)
         return result

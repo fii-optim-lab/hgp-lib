@@ -296,7 +296,8 @@ def apply_timing_decorators() -> None:
     # Rule evaluation - these are the hot paths
     Literal.evaluate = decorator(Literal.evaluate)
     Rule.flatten = decorator(Rule.flatten)
-    Rule.__len__ = decorator(Rule.__len__)
+    # Rule.copy = decorator(Rule.copy)  # Overhead!
+    # Rule.__len__ = decorator(Rule.__len__)  # Overhead!
     And.evaluate = decorator(And.evaluate)
     Or.evaluate = decorator(Or.evaluate)
 
