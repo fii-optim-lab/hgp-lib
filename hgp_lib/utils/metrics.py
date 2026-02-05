@@ -16,6 +16,52 @@ from hgp_lib.utils.validation import validate_callable
 _warned_scorers: Set[int] = set()
 
 
+def fast_f1_score(
+    y_pred: ndarray,
+    y_true: ndarray,
+    sample_weight: ndarray | None = None,
+) -> float:
+    """
+    Compute F1 score with optional sample weights.
+
+    This function supports the optimize_scorer feature of BooleanGP
+    by accepting sample_weight parameter. It's optimized for boolean arrays.
+
+    Args:
+        y_pred: Boolean predictions array.
+        y_true: True labels array.
+        sample_weight: Optional sample weights for weighted F1.
+
+    Returns:
+        F1 score as float in [0, 1].
+
+    Examples:
+        >>> import numpy as np
+        >>> from hgp_lib.utils.metrics import fast_f1_score
+        >>> y_pred = np.array([True, True, False, False])
+        >>> y_true = np.array([True, False, False, True])
+        >>> fast_f1_score(y_pred, y_true)
+        0.5
+    """
+    if sample_weight is None:
+        y_pred_sum = y_pred.sum()
+        y_true_sum = y_true.sum()
+    else:
+        y_pred_sum = np.dot(y_pred, sample_weight)
+        y_true_sum = np.dot(y_true, sample_weight)
+
+    if y_pred_sum == 0 or y_true_sum == 0:
+        if y_pred_sum == 0 and y_true_sum == 0:
+            return 1.0
+        return 0.0
+
+    if sample_weight is None:
+        return float(2 * (y_pred & y_true).sum() / (y_pred_sum + y_true_sum))
+    return float(
+        2 * np.dot((y_pred & y_true), sample_weight) / (y_pred_sum + y_true_sum)
+    )
+
+
 def accepts_sample_weight(scorer: Callable) -> bool:
     """
     Check if a scorer function accepts a sample_weight parameter.
