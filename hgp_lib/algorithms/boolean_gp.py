@@ -12,7 +12,7 @@ from ..mutations import (
 )
 from ..populations import PopulationGenerator, RandomStrategy
 from ..rules import Rule
-from ..selections import RouletteSelection
+from ..selections import TournamentSelection
 from ..utils.metrics import optimize_scorer_for_data
 
 
@@ -102,7 +102,7 @@ class BooleanGP:
 
         selection = config.selection
         if selection is None:
-            selection = RouletteSelection()
+            selection = TournamentSelection()
 
         self.population_generator = population_generator
         self.mutation_executor = mutation_executor
@@ -398,10 +398,11 @@ class BooleanGP:
         Returns:
             StepMetrics: Metrics about the generation step, including mean_score and std_score.
         """
-        best_idx = int(np.argmax(scores))
+        mean_score = np.mean(scores)
+        std_score = np.std(scores, mean=mean_score)
+
+        best_idx = np.argmax(scores)
         current_best = float(scores[best_idx])
-        mean_score = float(np.mean(scores))
-        std_score = float(np.std(scores))
 
         self._update_best(current_best, self.population[best_idx])
 
@@ -419,8 +420,8 @@ class BooleanGP:
             real_best=self.real_best_score,
             real_best_rule=self.real_best_rule,
             current_best=current_best,
-            mean_score=mean_score,
-            std_score=std_score,
+            mean_score=float(mean_score),
+            std_score=float(std_score),
             population_scores=scores,
             epoch=self._epoch,
             best_not_improved_epochs=self.best_not_improved_epochs,
@@ -462,13 +463,11 @@ class BooleanGP:
             ndarray: Array of fitness scores, one for each rule in the population.
 
         Note:
-            TODO: we should also support batched evaluation or free-threaded evaluation.
+            TODO: we should also support batched evaluation or free-threaded evaluation if needed.
         """
-        n = len(self.population)
-        scores = np.zeros(n)
-        for i in range(n):
-            scores[i] = score_fn(self.population[i].evaluate(data), labels)
-        return scores
+        return np.array(
+            [score_fn(rule.evaluate(data), labels) for rule in self.population]
+        )
 
     def _update_best(self, current_best: float, current_best_rule: Rule):
         """

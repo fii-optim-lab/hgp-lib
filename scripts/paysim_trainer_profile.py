@@ -55,7 +55,6 @@ Adjust population and feature sampling:
 Requires preprocessed PaySim data in HDF format at data/PaySim.hdf
 """
 
-import random
 from functools import partial
 from prettytable import PrettyTable
 import argparse
@@ -86,7 +85,7 @@ from hgp_lib.populations import (
     RandomStrategy,
 )
 from hgp_lib.preprocessing import StandardBinarizer
-from hgp_lib.rules import And, Literal, Or, Rule
+from hgp_lib.rules import Rule
 from hgp_lib.selections import TournamentSelection
 from hgp_lib.trainers import GPTrainer
 
@@ -294,11 +293,12 @@ def apply_timing_decorators() -> None:
     decorator = get_timed_decorator("GPTimer")
 
     # Rule evaluation - these are the hot paths
-    Literal.evaluate = decorator(Literal.evaluate)
+    # Literal.evaluate = decorator(Literal.evaluate)
     Rule.flatten = decorator(Rule.flatten)
-    Rule.__len__ = decorator(Rule.__len__)
-    And.evaluate = decorator(And.evaluate)
-    Or.evaluate = decorator(Or.evaluate)
+    # Rule.copy = decorator(Rule.copy)  # Overhead!
+    # Rule.__len__ = decorator(Rule.__len__)  # Overhead!
+    # And.evaluate = decorator(And.evaluate)
+    # Or.evaluate = decorator(Or.evaluate)
 
     import hgp_lib
 
@@ -316,9 +316,9 @@ def apply_timing_decorators() -> None:
         hgp_lib.crossover.crossover_executor.deep_swap
     )
 
-    np.random.randint = decorator(np.random.randint)
-    random.choice = decorator(random.choice)
-    random.random = decorator(random.random)
+    # np.random.randint = decorator(np.random.randint)
+    # random.choice = decorator(random.choice)
+    # random.random = decorator(random.random)
 
     AddLiteral.apply = decorator(AddLiteral.apply)
     PromoteLiteral.apply = decorator(PromoteLiteral.apply)
@@ -329,8 +329,8 @@ def apply_timing_decorators() -> None:
     RemoveIntermediateOperator.apply = decorator(RemoveIntermediateOperator.apply)
 
     # Scoring function
-    global f1_score
-    f1_score = decorator(f1_score)
+    # global f1_score
+    # f1_score = decorator(f1_score)
 
     # GP algorithm core
     BooleanGP.step = decorator(BooleanGP.step)
@@ -345,6 +345,7 @@ def apply_timing_decorators() -> None:
 
     # Genetic operators
     CrossoverExecutor.apply = decorator(CrossoverExecutor.apply)
+    CrossoverExecutor.crossover = decorator(CrossoverExecutor.crossover)
     MutationExecutor.apply = decorator(MutationExecutor.apply)
     MutationExecutor._mutate = decorator(MutationExecutor._mutate)
 

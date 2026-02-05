@@ -118,8 +118,7 @@ class CrossoverExecutor:
                 A list of feature mapping dictionaries, one per rule. Each mapping translates
                 feature indices from a child population's space to the parent's space.
                 Use None for rules that don't need remapping (i.e., from the current population).
-                If None, no remapping is applied (equivalent to all None).
-
+                Default: `None`.
         Returns:
             Tuple[List[Rule], List[int]]: A tuple containing:
                 - List[Rule]: The children produced by crossover operations.
@@ -150,21 +149,16 @@ class CrossoverExecutor:
             feature_mappings = [None] * n
 
         if self.crossover_strategy == "random":
-            probabilities = np.random.rand(n)
+            k = np.random.binomial(n, self.crossover_p)
+            k -= k % 2
+            eligible_indices = np.random.permutation(n)[:k]
         else:
             # self.crossover_strategy == "best"
             raise NotImplementedError()
 
-        eligible_indices = np.flatnonzero(probabilities <= self.crossover_p)
-        np.random.shuffle(eligible_indices)
-        if len(eligible_indices) % 2 != 0:
-            eligible_indices = eligible_indices[:-1]
-
         children = []
         parent_indices = []
-        for i in range(0, len(eligible_indices), 2):
-            i1 = eligible_indices[i]
-            i2 = eligible_indices[i + 1]
+        for i1, i2 in eligible_indices.reshape(-1, 2):
             parent_a = apply_feature_mapping(rules[i1], feature_mappings[i1])
             parent_b = apply_feature_mapping(rules[i2], feature_mappings[i2])
             ch = self.crossover(parent_a, parent_b)
@@ -209,10 +203,8 @@ class CrossoverExecutor:
 
             node_a = select_crossover_point(child_a, operator_p=0.5)
             node_b = select_crossover_point(child_b, operator_p=0.5)
-
-            # flat_a, flat_b = child_a.flatten(), child_b.flatten()
-            # node_a = random.choice(flat_a)
-            # node_b = random.choice(flat_b)
+            # node_a = random.choice(child_a.flatten())
+            # node_b = random.choice(child_b.flatten())
 
             deep_swap(node_a, node_b)
 

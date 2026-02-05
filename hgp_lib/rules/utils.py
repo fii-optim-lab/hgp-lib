@@ -1,6 +1,7 @@
 import random
 from typing import Dict, Type
 
+
 from .rules import Rule
 from .literals import Literal
 
@@ -156,4 +157,4 @@ def select_crossover_point(rule: Rule, operator_p: float = 0.9) -> Rule:
 
     if selected_operator and random.random() < operator_p:
         return selected_operator
-    return selected_literal or selected_operator
+    return selected_literal

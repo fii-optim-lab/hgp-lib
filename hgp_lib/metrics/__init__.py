@@ -10,7 +10,6 @@ from ..rules import Rule
 class EpochMetrics:
     """
     Metrics for a single training epoch.
-
     Attributes:
         epoch (int): Epoch number (0-indexed).
         best_score (float): Best fitness score in this epoch.
@@ -32,10 +31,8 @@ class EpochMetrics:
 class TrainingHistory:
     """
     Accumulated training metrics across epochs.
-
     Attributes:
         epochs (List[EpochMetrics]): Per-epoch metrics.
-
     Examples:
         >>> from hgp_lib.metrics import TrainingHistory, EpochMetrics
         >>> from hgp_lib.rules import Literal
@@ -72,7 +69,6 @@ class TrainingHistory:
 class StepMetrics:
     """
     Metrics returned by a single training step.
-
     Attributes:
         best (float): Best fitness score in current run.
         best_rule (Rule): Best rule in current run.
@@ -106,7 +102,6 @@ class StepMetrics:
 class ValidateBestMetrics:
     """
     Metrics returned by validate_best.
-
     Attributes:
         best (float): Fitness score of the best rule on the data.
         best_rule (Rule): The evaluated rule.
@@ -120,7 +115,6 @@ class ValidateBestMetrics:
 class ValidatePopulationMetrics:
     """
     Metrics returned by validate_population.
-
     Attributes:
         best (float): Fitness score of the best rule on the data.
         best_rule (Rule): The evaluated best rule.
@@ -136,7 +130,6 @@ class ValidatePopulationMetrics:
 class TrainerResult:
     """
     Metrics returned by the trainer after fitting.
-
     Attributes:
         train_history (TrainingHistory): Per-epoch training metrics.
         val_history (TrainingHistory | None): Per-validation-step metrics, or None if no validation.
@@ -154,7 +147,6 @@ class TrainerResult:
 class RunMetrics:
     """
     Metrics returned by a single benchmark run.
-
     Attributes:
         run_id (int): Index of the run (0-based).
         seed (int): Random seed used for this run.
@@ -180,7 +172,6 @@ class RunMetrics:
 class BenchmarkResult:
     """
     Metrics returned by the benchmarker after fitting.
-
     Attributes:
         run_metrics (List[RunMetrics]): Per-run details.
         mean_test_score (float): Mean test score across runs.

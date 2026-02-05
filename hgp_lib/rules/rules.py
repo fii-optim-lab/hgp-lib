@@ -100,7 +100,7 @@ class Rule(ABC):
         result = [self]
         queue = [self]
         while queue:
-            current = queue.pop()
+            current = queue.pop(0)
             result.extend(current.subrules)
             queue.extend(current.subrules)
         return result
@@ -144,7 +144,31 @@ class Rule(ABC):
             >>> len(And([Literal(value=1), Or([Literal(value=2), Literal(value=3)])]))
             5
         """
-        return 1 + sum([len(s) for s in self.subrules])
+        result = 1
+        queue = [self]
+        while queue:
+            current = queue.pop(0)
+            result += len(current.subrules)
+            queue.extend(current.subrules)
+        return result
+
+    def __len___r(self) -> int:
+        """
+        Returns the total number of nodes in this rule subtree, including the current rule and all its descendants.
+
+        Returns:
+            int: The total number of `Rule` nodes in this subtree.
+
+        Examples:
+            >>> from hgp_lib.rules import And, Or, Literal
+            >>> len(Literal(value=1))
+            1
+            >>> len(Or([Literal(value=2), Literal(value=3)]))
+            3
+            >>> len(And([Literal(value=1), Or([Literal(value=2), Literal(value=3)])]))
+            5
+        """
+        return 1 + sum([s.__len___r() for s in self.subrules])
 
     def to_str(
         self, feature_names: Dict[int, str] | None = None, indent: int = -1

@@ -18,6 +18,10 @@ from hgp_lib.mutations import (
 from hgp_lib.rules import Rule, Literal, Or, And
 
 
+def fake_select_crossover_point(rule, operator_p=0.9):
+    return rule.flatten()[0]
+
+
 class _IncrementLiteralMutation(Mutation):
     """Test helper mutation that increments literal values deterministically."""
 
@@ -443,9 +447,15 @@ class TestMutations(unittest.TestCase):
             And([Literal(value=0), Literal(value=1)]),
         ]
 
-        with patch(
-            "hgp_lib.mutations.mutation_executor.random.choice",
-            side_effect=lambda seq: seq[0],
+        with (
+            patch(
+                "hgp_lib.mutations.mutation_executor.random.choice",
+                side_effect=lambda seq: seq[0],
+            ),
+            patch(
+                "hgp_lib.mutations.mutation_executor.select_crossover_point",
+                side_effect=fake_select_crossover_point,
+            ),
         ):
             executor.apply(rules)
 
@@ -466,9 +476,15 @@ class TestMutations(unittest.TestCase):
         )
         rules = [Literal(value=2)]
 
-        with patch(
-            "hgp_lib.mutations.mutation_executor.random.choice",
-            side_effect=lambda seq: seq[0],
+        with (
+            patch(
+                "hgp_lib.mutations.mutation_executor.random.choice",
+                side_effect=lambda seq: seq[0],
+            ),
+            patch(
+                "hgp_lib.mutations.mutation_executor.select_crossover_point",
+                side_effect=fake_select_crossover_point,
+            ),
         ):
             executor.apply(rules)
 
@@ -489,9 +505,15 @@ class TestMutations(unittest.TestCase):
         )
         rules = [Literal(value=0)]
 
-        with patch(
-            "hgp_lib.mutations.mutation_executor.random.choice",
-            side_effect=lambda seq: seq[0],
+        with (
+            patch(
+                "hgp_lib.mutations.mutation_executor.random.choice",
+                side_effect=lambda seq: seq[0],
+            ),
+            patch(
+                "hgp_lib.mutations.mutation_executor.select_crossover_point",
+                side_effect=fake_select_crossover_point,
+            ),
         ):
             executor.apply(rules)
 

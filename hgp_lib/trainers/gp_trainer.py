@@ -14,16 +14,13 @@ from ..utils.validation import check_X_y
 class GPTrainer:
     """
     High-level trainer for Boolean Genetic Programming.
-
     Accepts a TrainerConfig containing a BooleanGPConfig and training options.
     Runs the training loop and optionally validates every val_every epochs.
     Returns a TrainerResult with TrainingHistory (per-epoch best/mean/std) and
     optional validation history.
-
     Args:
         config (TrainerConfig): Configuration with gp_config (BooleanGPConfig),
             num_epochs, optional val_data/val_labels, val_every, progress options.
-
     Examples:
         >>> import numpy as np
         >>> from hgp_lib.configs import BooleanGPConfig, TrainerConfig
@@ -81,7 +78,6 @@ class GPTrainer:
     def fit(self) -> TrainerResult:
         """
         Trains the Boolean GP model for the specified number of epochs.
-
         Returns:
             TrainerResult: train_history (TrainingHistory), val_history (TrainingHistory | None),
                 best_rule (Rule), best_score (float).
@@ -94,7 +90,7 @@ class GPTrainer:
             range(self.num_epochs),
             desc="Epochs",
             disable=not self.progress_bar,
-            leave=True if self.progress_bar is None else False,
+            leave=True if self.progress_callback is None else False,
         ) as tbar:
             for epoch in tbar:
                 step_metrics = self.gp_algo.step()
@@ -167,13 +163,11 @@ class GPTrainer:
     ) -> ValidateBestMetrics:
         """
         Evaluates the trained model on test data.
-
         Args:
             test_data (ndarray): Test data (2D boolean array).
             test_labels (ndarray): Test labels (1D integer array).
             score_fn (Callable | None): Optional; uses trainer's _original_score_fn if None. Default: `None`.
             all_time_best (bool): If True, evaluate all-time best rule. Default: `True`.
-
         Returns:
             ValidateBestMetrics: best (float) and best_rule (Rule).
         """

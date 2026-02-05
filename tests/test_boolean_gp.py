@@ -15,6 +15,7 @@ from hgp_lib.mutations import (
 )
 from hgp_lib.populations import PopulationGenerator, RandomStrategy
 from hgp_lib.rules import Rule
+from hgp_lib.selections import TournamentSelection
 
 
 class TestBooleanGP(unittest.TestCase):
@@ -128,9 +129,8 @@ class TestBooleanGP(unittest.TestCase):
         gp = BooleanGP(config)
 
         self.assertIsInstance(gp.crossover_executor, CrossoverExecutor)
-        from hgp_lib.selections import RouletteSelection
 
-        self.assertIsInstance(gp.selection, RouletteSelection)
+        self.assertIsInstance(gp.selection, TournamentSelection)
 
     def test_step_returns_metrics(self):
         config = self._make_config()
