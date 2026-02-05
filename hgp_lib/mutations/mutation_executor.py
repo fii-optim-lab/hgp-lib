@@ -150,8 +150,7 @@ class MutationExecutor:
         """
         for i in range(len(rules)):
             rule = rules[i]
-            # Check this! @fstg
-            n_mutations = (np.random.rand(len(rule)) < self.mutation_p).sum()
+            n_mutations = np.random.binomial(len(rule), self.mutation_p)
             if n_mutations != 0:
                 rules[i] = self._mutate(rule, n_mutations)
 
