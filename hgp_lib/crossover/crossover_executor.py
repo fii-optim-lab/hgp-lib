@@ -114,7 +114,7 @@ class CrossoverExecutor:
             rules (List[Rule]):
                 The collection of parent rules that will undergo crossover. May include
                 rules from both the current population and child populations.
-            feature_mappings (List[dict | None]) | None:
+            feature_mappings (List[dict | None] | None):
                 A list of feature mapping dictionaries, one per rule. Each mapping translates
                 feature indices from a child population's space to the parent's space.
                 Use None for rules that don't need remapping (i.e., from the current population).
