@@ -95,6 +95,14 @@ class GPTrainer:
         ) as tbar:
             for epoch in tbar:
                 step_metrics = self.gp_algo.step()
+
+                # Extract children scores for hierarchical GP
+                children_best_scores = None
+                if step_metrics.children_metrics:
+                    children_best_scores = [
+                        child.current_best for child in step_metrics.children_metrics
+                    ]
+
                 train_epochs.append(
                     EpochMetrics(
                         epoch=step_metrics.epoch,
@@ -103,6 +111,7 @@ class GPTrainer:
                         std_score=step_metrics.std_score,
                         best_rule=step_metrics.best_rule,
                         regenerated=step_metrics.regenerated,
+                        children_best_scores=children_best_scores,
                     )
                 )
 

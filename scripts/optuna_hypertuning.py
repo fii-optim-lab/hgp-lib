@@ -10,16 +10,21 @@ Usage:
     python scripts/optuna_hypertuning.py --data-path data/PaySim.hdf --n-trials 100
 
 View results:
-    optuna-dashboard sqlite:///optuna_study.db
+    optuna-dashboard sqlite:///optuna_study.db --artifact-dir ./artifacts
 """
 
 import argparse
 import logging
+import os
+import tempfile
+from pathlib import Path
 from typing import Any, Callable, Dict
 
+import matplotlib
 import numpy as np
 import optuna
 from numpy import ndarray
+from optuna.artifacts import FileSystemArtifactStore, upload_artifact
 
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
@@ -35,6 +40,15 @@ from hgp_lib.populations import (
 from hgp_lib.selections import RouletteSelection, TournamentSelection
 from hgp_lib.utils.benchmarking import load_data
 from hgp_lib.utils.metrics import fast_f1_score
+from hgp_lib.utils.trial_details import extract_trial_details, store_trial_details
+from hgp_lib.utils.visualization import (
+    plot_all_runs_progression,
+    plot_epoch_progression,
+    plot_hierarchical_progression,
+)
+
+# Use non-interactive backend for matplotlib (required for saving plots without display)
+matplotlib.use("Agg")
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -67,6 +81,12 @@ def create_argument_parser() -> argparse.ArgumentParser:
         help="Path for SQLite database",
     )
     parser.add_argument(
+        "--artifact-dir",
+        type=str,
+        default="./artifacts",
+        help="Directory for storing trial artifacts (plots)",
+    )
+    parser.add_argument(
         "--seed", type=int, default=42, help="Random seed for reproducibility"
     )
     parser.add_argument(
@@ -90,13 +110,13 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
         "mutation_probability", 0.001, 0.7
     )
     params["crossover_rate"] = trial.suggest_float("crossover_rate", 0.1, 0.9)
-    params["num_epochs"] = trial.suggest_int("num_epochs", 100, 10000, step=100)
+    params["num_epochs"] = trial.suggest_int("num_epochs", 100, 5000, step=100)
 
     params["selection_type"] = trial.suggest_categorical(
         "selection_type", ["roulette", "tournament"]
     )
     if params["selection_type"] == "tournament":
-        params["tournament_size"] = trial.suggest_int("tournament_size", 2, 20)
+        params["tournament_size"] = trial.suggest_int("tournament_size", 2, 30)
         params["selection_p"] = trial.suggest_float("selection_p", 0.1, 0.9)
 
     params["regeneration"] = trial.suggest_categorical("regeneration", [True, False])
@@ -109,7 +129,7 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
     params["num_child_populations"] = trial.suggest_int("num_child_populations", 0, 5)
 
     if params["num_child_populations"] > 0:
-        params["max_depth"] = trial.suggest_int("max_depth", 1, 3)
+        params["max_depth"] = trial.suggest_int("max_depth", 1, 2)
         params["top_k_transfer"] = trial.suggest_int("top_k_transfer", 5, 50)
         params["feedback_type"] = trial.suggest_categorical(
             "feedback_type", ["additive", "multiplicative"]
@@ -216,7 +236,11 @@ def build_config(
 
 
 def create_objective(
-    data: ndarray, labels: ndarray, n_jobs: int, verbose: bool = False
+    data: ndarray,
+    labels: ndarray,
+    n_jobs: int,
+    artifact_store: FileSystemArtifactStore,
+    verbose: bool = False,
 ) -> Callable[[optuna.Trial], float]:
     """Create the Optuna objective function."""
 
@@ -227,11 +251,12 @@ def create_objective(
             config = build_config(params, data, labels, fast_f1_score, n_jobs, verbose)
             result = GPBenchmarker(config).fit()
 
-            # Store metrics as user attributes (visible in dashboard)
-            trial.set_user_attr("mean_test_score", result.mean_test_score)
-            trial.set_user_attr("std_test_score", result.std_test_score)
-            trial.set_user_attr("std_val_score", result.std_best_val_score)
-            trial.set_user_attr("is_hierarchical", params["num_child_populations"] > 0)
+            # Extract and store detailed trial information
+            details = extract_trial_details(result)
+            store_trial_details(trial, details)
+
+            # Generate and save visualization artifacts
+            _save_trial_artifacts(trial, result, details, artifact_store)
 
             logger.info(
                 f"Trial {trial.number}: val={result.mean_best_val_score:.4f}, "
@@ -247,6 +272,110 @@ def create_objective(
     return objective
 
 
+def _save_trial_artifacts(
+    trial: optuna.Trial,
+    result,
+    details,
+    artifact_store: FileSystemArtifactStore,
+) -> None:
+    """
+    Generate and save visualization artifacts for a trial.
+
+    Handles edge cases gracefully:
+    - Skips artifact generation if training history is not available
+    - Skips hierarchical plot for non-hierarchical trials (is_hierarchical=False)
+    - Logs warnings instead of failing on artifact upload errors
+
+    Args:
+        trial: Optuna trial object.
+        result: BenchmarkResult containing run metrics.
+        details: TrialDetails with extracted trial information.
+        artifact_store: FileSystemArtifactStore for saving artifacts.
+    """
+    import matplotlib.pyplot as plt
+
+    # Validate best_run_idx is within bounds
+    if details.best_run_idx >= len(result.run_metrics):
+        logger.warning(
+            f"Trial {trial.number}: best_run_idx ({details.best_run_idx}) "
+            f"out of bounds, skipping artifacts"
+        )
+        return
+
+    best_run = result.run_metrics[details.best_run_idx]
+
+    # Create a temporary directory for saving plots
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # 1. Epoch progression plot (best run)
+        if best_run.train_history is not None:
+            try:
+                fig = plot_epoch_progression(
+                    best_run.train_history,
+                    best_run.val_history,
+                    title=f"Trial {trial.number}: F1 Score Progression (Best Run)",
+                )
+                epoch_path = os.path.join(tmpdir, "epoch_progression.png")
+                fig.savefig(epoch_path, dpi=150, bbox_inches="tight")
+                plt.close(fig)
+                upload_artifact(trial, epoch_path, artifact_store)
+            except Exception as e:
+                logger.warning(
+                    f"Trial {trial.number}: Failed to save epoch progression plot: {e}"
+                )
+
+        # 2. All runs overlay plot
+        runs_with_history = [
+            rm for rm in result.run_metrics if rm.val_history is not None
+        ]
+        if runs_with_history:
+            try:
+                fig = plot_all_runs_progression(
+                    result.run_metrics,
+                    details.best_run_idx,
+                )
+                all_runs_path = os.path.join(tmpdir, "all_runs_progression.png")
+                fig.savefig(all_runs_path, dpi=150, bbox_inches="tight")
+                plt.close(fig)
+                upload_artifact(trial, all_runs_path, artifact_store)
+            except Exception as e:
+                logger.warning(
+                    f"Trial {trial.number}: Failed to save all runs plot: {e}"
+                )
+
+        # 3. Hierarchical plot (only for hierarchical trials)
+        # Skip for non-hierarchical trials (is_hierarchical=False or num_children=0)
+        if not details.is_hierarchical or details.num_children == 0:
+            logger.debug(
+                f"Trial {trial.number}: Non-hierarchical trial, "
+                "skipping hierarchical plot"
+            )
+        elif best_run.train_history is not None:
+            # Verify children scores are actually available before plotting
+            has_children_scores = any(
+                epoch.children_best_scores is not None
+                for epoch in best_run.train_history.epochs
+            )
+            if has_children_scores:
+                try:
+                    fig = plot_hierarchical_progression(
+                        best_run.train_history,
+                        details.num_children,
+                    )
+                    hier_path = os.path.join(tmpdir, "hierarchical_progression.png")
+                    fig.savefig(hier_path, dpi=150, bbox_inches="tight")
+                    plt.close(fig)
+                    upload_artifact(trial, hier_path, artifact_store)
+                except Exception as e:
+                    logger.warning(
+                        f"Trial {trial.number}: Failed to save hierarchical plot: {e}"
+                    )
+            else:
+                logger.warning(
+                    f"Trial {trial.number}: Hierarchical trial but no children "
+                    "scores available, skipping hierarchical plot"
+                )
+
+
 def main() -> None:
     """Main entry point for the hyperparameter tuning script."""
     parser = create_argument_parser()
@@ -257,6 +386,12 @@ def main() -> None:
     logger.info("Loading data...")
     data, labels = load_data(args.data_path)
 
+    # Initialize artifact store
+    artifact_dir = Path(args.artifact_dir)
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    artifact_store = FileSystemArtifactStore(base_path=str(artifact_dir))
+    logger.info(f"Artifact store initialized at: {artifact_dir}")
+
     storage = f"sqlite:///{args.storage_path}"
     study = optuna.create_study(
         study_name=args.study_name,
@@ -266,7 +401,26 @@ def main() -> None:
         sampler=optuna.samplers.TPESampler(seed=args.seed),
     )
 
-    objective = create_objective(data, labels, args.n_jobs, args.verbose)
+    # Log info about existing trials (handle backward compatibility)
+    existing_trials = study.trials
+    if existing_trials:
+        trials_with_artifacts = sum(
+            1 for t in existing_trials
+            if t.user_attrs.get("is_hierarchical") is not None
+        )
+        logger.info(
+            f"Loaded existing study with {len(existing_trials)} trials "
+            f"({trials_with_artifacts} with detailed attributes)"
+        )
+        if trials_with_artifacts < len(existing_trials):
+            logger.info(
+                "Note: Some older trials may not have detailed attributes or artifacts. "
+                "These will be displayed with limited information in the dashboard."
+            )
+
+    objective = create_objective(
+        data, labels, args.n_jobs, artifact_store, args.verbose
+    )
 
     logger.info(f"Starting optimization with {args.n_trials} trials...")
     study.optimize(objective, n_trials=args.n_trials, show_progress_bar=True)
@@ -277,18 +431,36 @@ def main() -> None:
 
     best = study.best_trial
     print(f"\nBest validation score: {best.value:.4f}")
-    print(f"Best test score: {best.user_attrs.get('mean_test_score', 'N/A')}")
-    print(f"Is hierarchical: {best.user_attrs.get('is_hierarchical', 'N/A')}")
+
+    # Safely access user attributes (handle old trials without attributes)
+    best_test_score = best.user_attrs.get("best_run_test_score")
+    is_hierarchical = best.user_attrs.get("is_hierarchical")
+
+    if best_test_score is not None:
+        print(f"Best test score: {best_test_score:.4f}")
+    else:
+        print("Best test score: N/A (trial from older version)")
+
+    if is_hierarchical is not None:
+        print(f"Is hierarchical: {is_hierarchical}")
+    else:
+        print("Is hierarchical: N/A (trial from older version)")
 
     print("\nBest hyperparameters:")
     for key, value in best.params.items():
         print(f"  {key}: {value}")
 
     print(f"\nResults saved to: {args.storage_path}")
-    print(f"To view results: optuna-dashboard {storage}")
+    print(f"Artifacts saved to: {args.artifact_dir}")
+    print("\n" + "-" * 60)
+    print("To view results with artifacts in Optuna Dashboard:")
+    print(f"  optuna-dashboard {storage} --artifact-dir {args.artifact_dir}")
+    print("-" * 60)
 
 
 if __name__ == "__main__":
     main()
 
-# python scripts/optuna_hypertuning.py --data-path data/PaySim.hdf --n-trials 100 --study-name 3_tests_3_val_folds --verbose
+# Example usage:
+# python scripts/optuna_hypertuning.py --data-path data/PaySim.hdf --n-trials 100 --study-name 3_tests_3_val_folds --verbose --artifact-dir ./artifacts
+# optuna-dashboard sqlite:///optuna_study.db --artifact-dir ./artifacts

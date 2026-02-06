@@ -37,7 +37,8 @@ def execute_single_run(
             and progress is sent via the queue instead. Default: `None`.
 
     Returns:
-        RunMetrics: Metrics for the run including fold scores, best rule, and validation score.
+        RunMetrics: Metrics for the run including fold scores, best rule, validation score,
+            and training histories for all folds.
 
     Raises:
         RuntimeError: If no best rule is available after training a fold.
@@ -69,8 +70,10 @@ def execute_single_run(
     fold_train_scores: List[float] = []
     fold_val_scores: List[float] = []
     fold_best_rules: List[Rule] = []
+    fold_train_histories: List = []
+    fold_val_histories: List = []
 
-    fold_splits = skf.split(train_data, train_labels)
+    fold_splits = list(skf.split(train_data, train_labels))
     if show_folds:
         fold_splits = tqdm(fold_splits, total=config.n_folds, desc="Folds", leave=False)
 
@@ -99,7 +102,11 @@ def execute_single_run(
         )
 
         trainer = GPTrainer(fold_trainer_config)
-        trainer.fit()
+        trainer_result = trainer.fit()
+
+        # Store training histories for this fold
+        fold_train_histories.append(trainer_result.train_history)
+        fold_val_histories.append(trainer_result.val_history)
 
         train_metrics = trainer.gp_algo.validate_best(
             trainer.gp_algo.train_data,
@@ -153,6 +160,8 @@ def execute_single_run(
         best_fold_val_score=best_fold_val_score,
         test_score=test_score,
         best_rule=best_rule,
+        fold_train_histories=fold_train_histories,
+        fold_val_histories=fold_val_histories,
     )
 
 

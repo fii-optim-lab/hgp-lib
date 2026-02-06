@@ -17,6 +17,9 @@ class EpochMetrics:
         std_score (float): Standard deviation of population scores.
         best_rule (Rule): Best rule in this epoch.
         regenerated (bool): Whether population was regenerated this step.
+        children_best_scores (List[float] | None): Best scores from each child
+            population at this epoch. Only populated for hierarchical GP runs
+            where num_child_populations > 0. None for non-hierarchical runs.
     """
 
     epoch: int
@@ -25,6 +28,7 @@ class EpochMetrics:
     std_score: float
     best_rule: Rule
     regenerated: bool = False
+    children_best_scores: List[float] | None = None
 
 
 @dataclass
@@ -156,6 +160,11 @@ class RunMetrics:
         best_fold_val_score (float): Best validation score across folds.
         test_score (float): Test set score of the selected best rule.
         best_rule (Rule): The best rule selected from the best fold.
+        fold_train_histories (List[TrainingHistory] | None): Epoch-level training
+            metrics for each fold. None if not captured.
+        fold_val_histories (List[TrainingHistory | None] | None): Epoch-level
+            validation metrics for each fold. Inner None if no validation was
+            performed for that fold. Outer None if not captured.
     """
 
     run_id: int
@@ -166,6 +175,22 @@ class RunMetrics:
     best_fold_val_score: float
     test_score: float
     best_rule: Rule
+    fold_train_histories: List[TrainingHistory] | None = None
+    fold_val_histories: List[TrainingHistory | None] | None = None
+
+    @property
+    def train_history(self) -> TrainingHistory | None:
+        """Training history for the best fold."""
+        if self.fold_train_histories is None:
+            return None
+        return self.fold_train_histories[self.best_fold_idx]
+
+    @property
+    def val_history(self) -> TrainingHistory | None:
+        """Validation history for the best fold."""
+        if self.fold_val_histories is None:
+            return None
+        return self.fold_val_histories[self.best_fold_idx]
 
 
 @dataclass
