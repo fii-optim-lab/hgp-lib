@@ -125,22 +125,25 @@ class TournamentSelection(BaseSelection):
         scores_array = np.asarray(scores)
         sorted_order = np.argsort(-scores_array)
 
-        # TODO: Measure this. Check if this can be precomputed.
+        # TODO: n_select can be given from init. And winning_seats can be batch generated
         winning_seats = np.random.choice(
             self.tournament_size, size=n_select, p=self.probs
         )
 
-        selected_rules = []
-        selected_indices = []
+        # Vectorized tournament sampling: for each of n_select tournaments,
+        # pick tournament_size unique indices from [0, n) by selecting the
+        # tournament_size smallest random keys per row.
+        random_keys = np.random.random((n_select, n))
+        tournament_matrix = np.argpartition(
+            random_keys, self.tournament_size - 1, axis=1
+        )[:, : self.tournament_size]
+        tournament_matrix.sort(axis=1)
 
-        for i in range(n_select):
-            tournament_indices = np.random.choice(
-                n, self.tournament_size, replace=False
-            )
-            tournament_indices.sort()
-            winner_idx = sorted_order[tournament_indices[winning_seats[i]]]
-            selected_rules.append(rules[winner_idx].copy())
-            selected_indices.append(winner_idx)
+        # Select the winning rank from each tournament, then map to the
+        # original population index via sorted_order.
+        winner_ranks = tournament_matrix[np.arange(n_select), winning_seats]
+        winner_indices = sorted_order[winner_ranks]
 
-        selected_scores = scores_array[selected_indices]
+        selected_rules = [rules[idx].copy() for idx in winner_indices]
+        selected_scores = scores_array[winner_indices]
         return selected_rules, selected_scores
