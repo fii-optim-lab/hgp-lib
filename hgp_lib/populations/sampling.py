@@ -176,10 +176,9 @@ class FeatureSamplingStrategy(SamplingStrategy):
                     allocations.append(all_features[start:end])
                 else:
                     # Wrap around to ensure sample_count features
-                    indices = np.concatenate([
-                        all_features[start:],
-                        all_features[:end - num_features]
-                    ])
+                    indices = np.concatenate(
+                        [all_features[start:], all_features[: end - num_features]]
+                    )
                     allocations.append(indices)
             return allocations
 
@@ -220,13 +219,17 @@ class FeatureSamplingStrategy(SamplingStrategy):
         results = []
         for feature_indices in feature_allocations:
             sampled_data = data[:, feature_indices]
-            results.append(SamplingResult(
-                data=sampled_data,
-                labels=labels,
-                feature_indices=feature_indices,
-                instance_indices=None,
-                feature_mapping={i: int(idx) for i, idx in enumerate(feature_indices)},
-            ))
+            results.append(
+                SamplingResult(
+                    data=sampled_data,
+                    labels=labels,
+                    feature_indices=feature_indices,
+                    instance_indices=None,
+                    feature_mapping={
+                        i: int(idx) for i, idx in enumerate(feature_indices)
+                    },
+                )
+            )
         return results
 
 
@@ -318,10 +321,9 @@ class InstanceSamplingStrategy(SamplingStrategy):
                     allocations.append(all_instances[start:end])
                 else:
                     # Wrap around to ensure sample_count instances
-                    indices = np.concatenate([
-                        all_instances[start:],
-                        all_instances[:end - num_instances]
-                    ])
+                    indices = np.concatenate(
+                        [all_instances[start:], all_instances[: end - num_instances]]
+                    )
                     allocations.append(indices)
             return allocations
 
@@ -366,13 +368,15 @@ class InstanceSamplingStrategy(SamplingStrategy):
         for instance_indices in instance_allocations:
             sampled_data = data[instance_indices, :]
             sampled_labels = labels[instance_indices]
-            results.append(SamplingResult(
-                data=sampled_data,
-                labels=sampled_labels,
-                feature_indices=np.arange(num_features),
-                instance_indices=instance_indices,
-                feature_mapping=None,
-            ))
+            results.append(
+                SamplingResult(
+                    data=sampled_data,
+                    labels=sampled_labels,
+                    feature_indices=np.arange(num_features),
+                    instance_indices=instance_indices,
+                    feature_mapping=None,
+                )
+            )
         return results
 
 
@@ -482,10 +486,9 @@ class CombinedSamplingStrategy(SamplingStrategy):
                     allocations.append(all_items[start:end])
                 else:
                     # Wrap around to ensure sample_count items
-                    indices = np.concatenate([
-                        all_items[start:],
-                        all_items[:end - total]
-                    ])
+                    indices = np.concatenate(
+                        [all_items[start:], all_items[: end - total]]
+                    )
                     allocations.append(indices)
             return allocations
 
@@ -545,11 +548,13 @@ class CombinedSamplingStrategy(SamplingStrategy):
         for feat_idx, inst_idx in zip(feature_allocations, instance_allocations):
             sampled_data = data[np.ix_(inst_idx, feat_idx)]
             sampled_labels = labels[inst_idx]
-            results.append(SamplingResult(
-                data=sampled_data,
-                labels=sampled_labels,
-                feature_indices=feat_idx,
-                instance_indices=inst_idx,
-                feature_mapping={i: int(idx) for i, idx in enumerate(feat_idx)},
-            ))
+            results.append(
+                SamplingResult(
+                    data=sampled_data,
+                    labels=sampled_labels,
+                    feature_indices=feat_idx,
+                    instance_indices=inst_idx,
+                    feature_mapping={i: int(idx) for i, idx in enumerate(feat_idx)},
+                )
+            )
         return results

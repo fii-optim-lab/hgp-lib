@@ -38,7 +38,7 @@ class TestSamplingStrategies(unittest.TestCase):
 
         # Should return a list with 4 results (one per child)
         self.assertEqual(len(results), 4)
-        
+
         # Check first result - Expected: ceil(20/4) = 5 features per child
         result = results[0]
         self.assertEqual(len(result.feature_indices), 5)
@@ -55,7 +55,7 @@ class TestSamplingStrategies(unittest.TestCase):
 
         # Should return a list with 4 results
         self.assertEqual(len(results), 4)
-        
+
         # Expected: max(2, ceil(ceil(20/4) * 0.5)) = max(2, ceil(2.5)) = 3
         self.assertEqual(len(results[0].feature_indices), 3)
 
@@ -68,7 +68,7 @@ class TestSamplingStrategies(unittest.TestCase):
 
         # Should return a list with 4 results
         self.assertEqual(len(results), 4)
-        
+
         # Check first result - Expected: ceil(100/4) = 25 instances per child
         result = results[0]
         self.assertEqual(len(result.instance_indices), 25)
@@ -85,7 +85,7 @@ class TestSamplingStrategies(unittest.TestCase):
 
         # Should return a list with 4 results
         self.assertEqual(len(results), 4)
-        
+
         # Check first result
         # Features: ceil(20/4) = 5
         # Instances: ceil(100/4) = 25
@@ -418,7 +418,7 @@ class TestConfigValidation(unittest.TestCase):
 
 class TestBooleanGPSamplingIntegration(unittest.TestCase):
     """Tests for BooleanGP sampling integration.
-    
+
     These tests verify that BooleanGP correctly uses the sampling strategy
     and creates the expected number of child populations.
     """
@@ -430,14 +430,15 @@ class TestBooleanGPSamplingIntegration(unittest.TestCase):
 
     def test_correct_number_of_child_populations(self):
         """BooleanGP creates exactly num_child_populations children when max_depth > 0."""
+
         def check():
             num_features = np.random.randint(10, 31)
             num_instances = np.random.randint(20, 51)
             num_children = np.random.randint(1, 6)
-            
+
             data = np.random.rand(num_instances, num_features) > 0.5
             labels = np.random.randint(0, 2, num_instances)
-            
+
             config = BooleanGPConfig(
                 score_fn=accuracy,
                 train_data=data,
@@ -448,21 +449,22 @@ class TestBooleanGPSamplingIntegration(unittest.TestCase):
                 top_k_transfer=3,
             )
             gp = BooleanGP(config)
-            
+
             self.assertEqual(len(gp.child_populations), num_children)
-        
+
         self._run_randomized_test(check)
 
     def test_feature_mapping_correct_in_children(self):
         """Each child population has a correct feature_mapping."""
+
         def check():
             num_features = np.random.randint(10, 31)
             num_instances = np.random.randint(20, 51)
             num_children = np.random.randint(1, 6)
-            
+
             data = np.random.rand(num_instances, num_features) > 0.5
             labels = np.random.randint(0, 2, num_instances)
-            
+
             config = BooleanGPConfig(
                 score_fn=accuracy,
                 train_data=data,
@@ -473,33 +475,34 @@ class TestBooleanGPSamplingIntegration(unittest.TestCase):
                 top_k_transfer=3,
             )
             gp = BooleanGP(config)
-            
+
             for child in gp.child_populations:
                 # Feature sampling should have feature_mapping
                 self.assertIsNotNone(child.feature_mapping)
-                
+
                 # Keys should be 0 to num_child_features-1
                 num_child_features = child.train_data.shape[1]
                 expected_keys = set(range(num_child_features))
                 self.assertEqual(set(child.feature_mapping.keys()), expected_keys)
-                
+
                 # All mapped values should be valid parent feature indices
                 for child_idx, parent_idx in child.feature_mapping.items():
                     self.assertGreaterEqual(parent_idx, 0)
                     self.assertLess(parent_idx, num_features)
-        
+
         self._run_randomized_test(check)
 
     def test_instance_sampling_no_feature_mapping(self):
         """Instance-only sampling results in no feature_mapping."""
+
         def check():
             num_features = np.random.randint(10, 31)
             num_instances = np.random.randint(20, 51)
             num_children = np.random.randint(1, 6)
-            
+
             data = np.random.rand(num_instances, num_features) > 0.5
             labels = np.random.randint(0, 2, num_instances)
-            
+
             config = BooleanGPConfig(
                 score_fn=accuracy,
                 train_data=data,
@@ -510,13 +513,13 @@ class TestBooleanGPSamplingIntegration(unittest.TestCase):
                 top_k_transfer=3,
             )
             gp = BooleanGP(config)
-            
+
             for child in gp.child_populations:
                 # Instance sampling should NOT have feature_mapping
                 self.assertIsNone(child.feature_mapping)
                 # But should have same number of features
                 self.assertEqual(child.train_data.shape[1], num_features)
-        
+
         self._run_randomized_test(check)
 
 

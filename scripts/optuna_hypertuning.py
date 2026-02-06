@@ -114,9 +114,7 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
         params["feedback_type"] = trial.suggest_categorical(
             "feedback_type", ["additive", "multiplicative"]
         )
-        params["feedback_strength"] = trial.suggest_float(
-            "feedback_strength", 0.0, 1.0
-        )
+        params["feedback_strength"] = trial.suggest_float("feedback_strength", 0.0, 1.0)
 
         params["sampling_strategy_type"] = trial.suggest_categorical(
             "sampling_strategy_type", ["feature", "instance", "combined"]
