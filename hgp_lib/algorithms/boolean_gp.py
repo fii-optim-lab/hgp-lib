@@ -138,19 +138,28 @@ class BooleanGP:
             self._create_child_populations()
 
     def _create_child_populations(self) -> None:
-        """Create child populations using the sampling strategy."""
+        """Create child populations using the sampling strategy.
+
+        Calls sample() once for all children to ensure correct overlap/partitioning
+        behavior controlled by the replace parameter. Each SamplingResult in the
+        returned list is used to configure one child population.
+        """
         if self.config.sampling_strategy is None:
             raise RuntimeError(
                 "Cannot create child populations without a sampling strategy"
             )
         num_features = self.train_data.shape[1]
-        for _ in range(self.config.num_child_populations):
-            result = self.config.sampling_strategy.sample(
-                self.train_data,
-                self.train_labels,
-                num_features,
-                self.config.num_child_populations,
-            )
+
+        # Call sample() once for all children
+        results = self.config.sampling_strategy.sample(
+            self.train_data,
+            self.train_labels,
+            num_features,
+            self.config.num_child_populations,
+        )
+
+        # Iterate through results to create each child
+        for result in results:
             num_sampled_features = len(result.feature_indices)
             child_generator = PopulationGenerator(
                 strategies=[RandomStrategy(num_literals=num_sampled_features)],

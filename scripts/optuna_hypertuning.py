@@ -85,12 +85,12 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
     params = {}
 
     # Base GP parameters
-    params["population_size"] = trial.suggest_int("population_size", 50, 500, step=50)
+    params["population_size"] = trial.suggest_int("population_size", 50, 250, step=25)
     params["mutation_probability"] = trial.suggest_float(
-        "mutation_probability", 0.01, 0.5
+        "mutation_probability", 0.001, 0.7
     )
     params["crossover_rate"] = trial.suggest_float("crossover_rate", 0.1, 0.9)
-    params["num_epochs"] = trial.suggest_int("num_epochs", 100, 2000, step=100)
+    params["num_epochs"] = trial.suggest_int("num_epochs", 100, 10000, step=100)
 
     params["selection_type"] = trial.suggest_categorical(
         "selection_type", ["roulette", "tournament"]
@@ -102,7 +102,7 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
     params["regeneration"] = trial.suggest_categorical("regeneration", [True, False])
     if params["regeneration"]:
         params["regeneration_patience"] = trial.suggest_int(
-            "regeneration_patience", 10, 200
+            "regeneration_patience", 50, 500
         )
 
     # Hierarchical GP parameters (num_child_populations=0 means no hierarchy)
@@ -115,7 +115,7 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
             "feedback_type", ["additive", "multiplicative"]
         )
         params["feedback_strength"] = trial.suggest_float(
-            "feedback_strength", 0.01, 1.0
+            "feedback_strength", 0.0, 1.0
         )
 
         params["sampling_strategy_type"] = trial.suggest_categorical(
@@ -124,11 +124,11 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
 
         if params["sampling_strategy_type"] in ("feature", "combined"):
             params["feature_fraction"] = trial.suggest_float(
-                "feature_fraction", 0.5, 2.0
+                "feature_fraction", 0.1, 5.0
             )
         if params["sampling_strategy_type"] in ("instance", "combined"):
             params["instance_fraction"] = trial.suggest_float(
-                "instance_fraction", 0.5, 2.0
+                "instance_fraction", 0.1, 5.0
             )
 
     return params
@@ -208,8 +208,8 @@ def build_config(
         data=data,
         labels=labels,
         trainer_config=trainer_config,
-        num_runs=1,
-        n_folds=5,
+        num_runs=3,
+        n_folds=3,
         n_jobs=n_jobs,
         show_run_progress=verbose,
         show_fold_progress=verbose,
@@ -292,3 +292,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+# python scripts/optuna_hypertuning.py --data-path data/PaySim.hdf --n-trials 100 --study-name 3_tests_3_val_folds --verbose
