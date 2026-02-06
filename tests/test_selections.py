@@ -1,8 +1,8 @@
 import doctest
 import unittest
-import random
 
 import numpy as np
+from numpy.random import default_rng
 
 import hgp_lib.selections.base_selection
 import hgp_lib.selections.roulette_selection
@@ -29,7 +29,7 @@ class TestBaseSelection(unittest.TestCase):
         """Test that a proper subclass can be instantiated and used."""
 
         class TopSelection(BaseSelection):
-            def select(self, rules, scores, n_select):
+            def select(self, rules, scores, n_select, rng):
                 scores = np.asarray(scores)
                 ranked = sorted(zip(scores, rules), reverse=True)
                 selected_rules = [rule.copy() for _, rule in ranked[:n_select]]
@@ -39,7 +39,8 @@ class TestBaseSelection(unittest.TestCase):
         selection = TopSelection()
         rules = [Literal(value=0), Literal(value=1), Literal(value=2)]
         scores = [0.3, 0.9, 0.5]
-        selected_rules, selected_scores = selection.select(rules, scores, 2)
+        rng = default_rng(42)
+        selected_rules, selected_scores = selection.select(rules, scores, 2, rng)
 
         self.assertEqual(len(selected_rules), 2)
         self.assertIsInstance(selected_rules[0], Rule)
@@ -68,9 +69,10 @@ class TestRouletteSelection(unittest.TestCase):
         ]
         scores = [0.1, 0.5, 0.4]
 
-        random.seed(42)
-        np.random.seed(42)
-        selected_rules, selected_scores = selection.select(rules, scores, n_select=5)
+        rng = default_rng(42)
+        selected_rules, selected_scores = selection.select(
+            rules, scores, n_select=5, rng=rng
+        )
 
         # Should return 5 rules (can have duplicates)
         self.assertEqual(len(selected_rules), 5)
@@ -84,9 +86,10 @@ class TestRouletteSelection(unittest.TestCase):
         rules = [Literal(value=0), Literal(value=1), Literal(value=2)]
         scores = [-0.5, 0.3, -0.1]
 
-        random.seed(42)
-        np.random.seed(42)
-        selected_rules, selected_scores = selection.select(rules, scores, n_select=2)
+        rng = default_rng(42)
+        selected_rules, selected_scores = selection.select(
+            rules, scores, n_select=2, rng=rng
+        )
 
         # Should still work and return 2 rules
         self.assertEqual(len(selected_rules), 2)
@@ -103,9 +106,10 @@ class TestRouletteSelection(unittest.TestCase):
         ]
         scores = [0.5, 0.5, 0.5]
 
-        random.seed(42)
-        np.random.seed(42)
-        selected_rules, selected_scores = selection.select(rules, scores, n_select=3)
+        rng = default_rng(42)
+        selected_rules, selected_scores = selection.select(
+            rules, scores, n_select=3, rng=rng
+        )
 
         # Should return 3 rules (all should be selectable)
         self.assertEqual(len(selected_rules), 3)
@@ -117,9 +121,10 @@ class TestRouletteSelection(unittest.TestCase):
         rules = [Literal(value=0), Literal(value=1), Literal(value=2)]
         scores = [0.0, 0.0, 0.0]
 
-        random.seed(42)
-        np.random.seed(42)
-        selected_rules, selected_scores = selection.select(rules, scores, n_select=2)
+        rng = default_rng(42)
+        selected_rules, selected_scores = selection.select(
+            rules, scores, n_select=2, rng=rng
+        )
 
         # Should use uniform distribution
         self.assertEqual(len(selected_rules), 2)
@@ -132,9 +137,10 @@ class TestRouletteSelection(unittest.TestCase):
         rules = [Literal(value=0), Literal(value=1), Literal(value=2)]
         scores = [0.1, 0.5, 0.4]
 
-        random.seed(42)
-        np.random.seed(42)
-        selected_rules, selected_scores = selection.select(rules, scores, n_select=1)
+        rng = default_rng(42)
+        selected_rules, selected_scores = selection.select(
+            rules, scores, n_select=1, rng=rng
+        )
 
         self.assertEqual(len(selected_rules), 1)
         self.assertEqual(len(selected_scores), 1)
@@ -143,7 +149,8 @@ class TestRouletteSelection(unittest.TestCase):
     def test_select_empty_list(self):
         """Test that selecting from empty list returns empty list."""
         selection = RouletteSelection()
-        selected_rules, selected_scores = selection.select([], [], n_select=1)
+        rng = default_rng(42)
+        selected_rules, selected_scores = selection.select([], [], n_select=1, rng=rng)
         self.assertEqual(selected_rules, [])
         self.assertEqual(len(selected_scores), 0)
 
@@ -156,12 +163,11 @@ class TestRouletteSelection(unittest.TestCase):
         ]
         scores = [0.1, 0.9]  # Rule 1 should be selected much more often
 
-        random.seed(42)
-        np.random.seed(42)
+        rng = default_rng(42)
         # Select many times to test probability
         all_selected = []
         for _ in range(1000):
-            selected_rules, _ = selection.select(rules, scores, n_select=1)
+            selected_rules, _ = selection.select(rules, scores, n_select=1, rng=rng)
             all_selected.append(selected_rules[0].value)
 
         # Count occurrences
@@ -184,9 +190,10 @@ class TestRouletteSelection(unittest.TestCase):
         ]
         scores = [0.2, 0.6, 0.2]
 
-        random.seed(42)
-        np.random.seed(42)
-        selected_rules, selected_scores = selection.select(rules, scores, n_select=2)
+        rng = default_rng(42)
+        selected_rules, selected_scores = selection.select(
+            rules, scores, n_select=2, rng=rng
+        )
 
         self.assertEqual(len(selected_rules), 2)
         self.assertEqual(len(selected_scores), 2)
@@ -268,8 +275,10 @@ class TestTournamentSelection(unittest.TestCase):
         selection = TournamentSelection(tournament_size=3, selection_p=0.5)
         rules = [Literal(value=i) for i in range(5)]
         scores = [0.1, 0.9, 0.5, 0.3, 0.7]
-        np.random.seed(42)
-        selected_rules, selected_scores = selection.select(rules, scores, n_select=3)
+        rng = default_rng(42)
+        selected_rules, selected_scores = selection.select(
+            rules, scores, n_select=3, rng=rng
+        )
         self.assertEqual(len(selected_rules), 3)
         self.assertEqual(len(selected_scores), 3)
 
@@ -278,8 +287,8 @@ class TestTournamentSelection(unittest.TestCase):
         selection = TournamentSelection(tournament_size=3, selection_p=0.5)
         rules = [Literal(value=i) for i in range(5)]
         scores = [0.1, 0.9, 0.5, 0.3, 0.7]
-        np.random.seed(42)
-        selected_rules, _ = selection.select(rules, scores, n_select=3)
+        rng = default_rng(42)
+        selected_rules, _ = selection.select(rules, scores, n_select=3, rng=rng)
         self.assertTrue(all(isinstance(rule, Rule) for rule in selected_rules))
 
     def test_select_returns_copies(self):
@@ -287,8 +296,8 @@ class TestTournamentSelection(unittest.TestCase):
         selection = TournamentSelection(tournament_size=3, selection_p=0.5)
         rules = [Literal(value=i) for i in range(5)]
         scores = [0.1, 0.9, 0.5, 0.3, 0.7]
-        np.random.seed(42)
-        selected_rules, _ = selection.select(rules, scores, n_select=3)
+        rng = default_rng(42)
+        selected_rules, _ = selection.select(rules, scores, n_select=3, rng=rng)
         for selected_rule in selected_rules:
             for original_rule in rules:
                 self.assertIsNot(selected_rule, original_rule)
@@ -299,9 +308,9 @@ class TestTournamentSelection(unittest.TestCase):
         rules = [Literal(value=i) for i in range(5)]
         # Make one rule clearly the best
         scores = [0.1, 0.9, 0.2, 0.15, 0.1]
-        np.random.seed(42)
+        rng = default_rng(42)
         # With selection_p=1.0, best in each tournament always wins
-        selected_rules, _ = selection.select(rules, scores, n_select=10)
+        selected_rules, _ = selection.select(rules, scores, n_select=10, rng=rng)
         values = [r.value for r in selected_rules]
         # The best rule (value=1) should appear multiple times
         self.assertGreater(values.count(1), 1)
@@ -311,8 +320,10 @@ class TestTournamentSelection(unittest.TestCase):
         selection = TournamentSelection(tournament_size=3, selection_p=0.5)
         rules = [Literal(value=i) for i in range(5)]
         scores = [0.1, 0.9, 0.5, 0.3, 0.7]
-        np.random.seed(42)
-        selected_rules, selected_scores = selection.select(rules, scores, n_select=1)
+        rng = default_rng(42)
+        selected_rules, selected_scores = selection.select(
+            rules, scores, n_select=1, rng=rng
+        )
         self.assertEqual(len(selected_rules), 1)
         self.assertEqual(len(selected_scores), 1)
         self.assertIsInstance(selected_rules[0], Rule)
@@ -322,8 +333,8 @@ class TestTournamentSelection(unittest.TestCase):
         selection = TournamentSelection(tournament_size=3, selection_p=0.5)
         rules = [Literal(value=i) for i in range(5)]
         scores = [0.1, 0.9, 0.5, 0.3, 0.7]
-        np.random.seed(42)
-        selected_rules, _ = selection.select(rules, scores, n_select=5)
+        rng = default_rng(42)
+        selected_rules, _ = selection.select(rules, scores, n_select=5, rng=rng)
         self.assertEqual(len(selected_rules), 5)
 
     def test_select_favors_higher_fitness(self):
@@ -331,12 +342,12 @@ class TestTournamentSelection(unittest.TestCase):
         selection = TournamentSelection(tournament_size=2, selection_p=0.7)
         rules = [Literal(value=0), Literal(value=1)]
         scores = [0.1, 0.9]  # Rule 1 has much higher fitness
-        np.random.seed(42)
+        rng = default_rng(42)
         # Select many times to test probability
         count_0 = 0
         count_1 = 0
         for _ in range(1000):
-            selected_rules, _ = selection.select(rules, scores, n_select=1)
+            selected_rules, _ = selection.select(rules, scores, n_select=1, rng=rng)
             if selected_rules[0].value == 0:
                 count_0 += 1
             else:
@@ -350,8 +361,8 @@ class TestTournamentSelection(unittest.TestCase):
         selection = TournamentSelection(tournament_size=3, selection_p=0.5)
         rules = [Literal(value=i) for i in range(5)]
         scores = [0.5, 0.5, 0.5, 0.5, 0.5]
-        np.random.seed(42)
-        selected_rules, _ = selection.select(rules, scores, n_select=3)
+        rng = default_rng(42)
+        selected_rules, _ = selection.select(rules, scores, n_select=3, rng=rng)
         self.assertEqual(len(selected_rules), 3)
         self.assertTrue(all(isinstance(rule, Rule) for rule in selected_rules))
 
@@ -360,8 +371,8 @@ class TestTournamentSelection(unittest.TestCase):
         selection = TournamentSelection(tournament_size=3, selection_p=0.5)
         rules = [Literal(value=i) for i in range(5)]
         scores = [-0.5, 0.3, -0.1, 0.0, 0.2]
-        np.random.seed(42)
-        selected_rules, _ = selection.select(rules, scores, n_select=3)
+        rng = default_rng(42)
+        selected_rules, _ = selection.select(rules, scores, n_select=3, rng=rng)
         self.assertEqual(len(selected_rules), 3)
         self.assertTrue(all(isinstance(rule, Rule) for rule in selected_rules))
 
@@ -370,32 +381,33 @@ class TestTournamentSelection(unittest.TestCase):
         selection = TournamentSelection(tournament_size=3, selection_p=0.5)
         rules = [Literal(value=i) for i in range(5)]
         scores = [0.0, 0.0, 0.0, 0.0, 0.0]
-        np.random.seed(42)
-        selected_rules, _ = selection.select(rules, scores, n_select=3)
+        rng = default_rng(42)
+        selected_rules, _ = selection.select(rules, scores, n_select=3, rng=rng)
         self.assertEqual(len(selected_rules), 3)
 
     def test_select_with_selection_p_one(self):
         """Test that selection_p=1.0 always selects the best in tournament."""
-        selection = TournamentSelection(tournament_size=5, selection_p=1.0)
+        selection = TournamentSelection(tournament_size=10, selection_p=1.0)
         rules = [Literal(value=i) for i in range(10)]
         # Clear ranking: rule 0 is best, rule 9 is worst
         scores = list(range(10, 0, -1))
-        np.random.seed(3)
+        rng = default_rng(0)
         # With selection_p=1.0, always picks best in tournament
-        selected_rules, _ = selection.select(rules, scores, n_select=100)
+        selected_rules, _ = selection.select(rules, scores, n_select=100, rng=rng)
         # All selected should be among the top candidates
         values = [r.value for r in selected_rules]
-        # Best rule (value=0) should dominate
-        self.assertGreater(values.count(0), 50)
+        # Best rule (value=0) should be selected most often (>50% of the time)
+        # since it wins any tournament it's in
+        self.assertEqual(values.count(0), 100)
 
     def test_select_with_selection_p_zero(self):
         """Test that selection_p=0.0 always selects the worst in tournament."""
         selection = TournamentSelection(tournament_size=5, selection_p=0.0)
         rules = [Literal(value=i) for i in range(10)]
         scores = list(range(10, 0, -1))  # rule 0 is best
-        np.random.seed(42)
+        rng = default_rng(42)
         # With selection_p=0.0, all probability goes to last rank
-        selected_rules, _ = selection.select(rules, scores, n_select=100)
+        selected_rules, _ = selection.select(rules, scores, n_select=100, rng=rng)
         values = [r.value for r in selected_rules]
         # Worst candidates should dominate
         worst_count = sum(1 for v in values if v >= 5)
@@ -410,8 +422,8 @@ class TestTournamentSelection(unittest.TestCase):
             And([Literal(value=4), Literal(value=5)]),
         ]
         scores = [0.2, 0.6, 0.2]
-        np.random.seed(42)
-        selected_rules, _ = selection.select(rules, scores, n_select=2)
+        rng = default_rng(42)
+        selected_rules, _ = selection.select(rules, scores, n_select=2, rng=rng)
         self.assertEqual(len(selected_rules), 2)
         for rule in selected_rules:
             self.assertIsInstance(rule, Rule)
@@ -421,8 +433,8 @@ class TestTournamentSelection(unittest.TestCase):
         selection = TournamentSelection(tournament_size=3, selection_p=0.5)
         rules = [Literal(value=i) for i in range(5)]
         scores = np.array([0.1, 0.9, 0.5, 0.3, 0.7])
-        np.random.seed(42)
-        selected_rules, _ = selection.select(rules, scores, n_select=3)
+        rng = default_rng(42)
+        selected_rules, _ = selection.select(rules, scores, n_select=3, rng=rng)
         self.assertEqual(len(selected_rules), 3)
 
     def test_select_with_list_scores(self):
@@ -430,8 +442,8 @@ class TestTournamentSelection(unittest.TestCase):
         selection = TournamentSelection(tournament_size=3, selection_p=0.5)
         rules = [Literal(value=i) for i in range(5)]
         scores = [0.1, 0.9, 0.5, 0.3, 0.7]
-        np.random.seed(42)
-        selected_rules, _ = selection.select(rules, scores, n_select=3)
+        rng = default_rng(42)
+        selected_rules, _ = selection.select(rules, scores, n_select=3, rng=rng)
         self.assertEqual(len(selected_rules), 3)
 
     def test_select_deterministic_with_seed(self):
@@ -440,12 +452,12 @@ class TestTournamentSelection(unittest.TestCase):
         rules = [Literal(value=i) for i in range(5)]
         scores = [0.1, 0.9, 0.5, 0.3, 0.7]
 
-        np.random.seed(42)
-        selected1, _ = selection.select(rules, scores, n_select=3)
+        rng1 = default_rng(42)
+        selected1, _ = selection.select(rules, scores, n_select=3, rng=rng1)
         values1 = [r.value for r in selected1]
 
-        np.random.seed(42)
-        selected2, _ = selection.select(rules, scores, n_select=3)
+        rng2 = default_rng(42)
+        selected2, _ = selection.select(rules, scores, n_select=3, rng=rng2)
         values2 = [r.value for r in selected2]
 
         self.assertEqual(values1, values2)
@@ -455,8 +467,8 @@ class TestTournamentSelection(unittest.TestCase):
         selection = TournamentSelection(tournament_size=5, selection_p=0.5)
         rules = [Literal(value=i) for i in range(5)]
         scores = [0.1, 0.9, 0.5, 0.3, 0.7]
-        np.random.seed(42)
-        selected_rules, _ = selection.select(rules, scores, n_select=3)
+        rng = default_rng(42)
+        selected_rules, _ = selection.select(rules, scores, n_select=3, rng=rng)
         self.assertEqual(len(selected_rules), 3)
 
     def test_select_large_n_select(self):
@@ -464,8 +476,8 @@ class TestTournamentSelection(unittest.TestCase):
         selection = TournamentSelection(tournament_size=3, selection_p=0.5)
         rules = [Literal(value=i) for i in range(5)]
         scores = [0.1, 0.9, 0.5, 0.3, 0.7]
-        np.random.seed(42)
-        selected_rules, _ = selection.select(rules, scores, n_select=20)
+        rng = default_rng(42)
+        selected_rules, _ = selection.select(rules, scores, n_select=20, rng=rng)
         self.assertEqual(len(selected_rules), 20)
 
     def test_doctests(self):

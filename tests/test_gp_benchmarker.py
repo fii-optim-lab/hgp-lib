@@ -1,6 +1,5 @@
 import doctest
 import unittest
-import random
 
 import numpy as np
 
@@ -33,8 +32,7 @@ def accuracy_with_sample_weight(predictions, labels, sample_weight=None):
 
 class TestGPBenchmarker(unittest.TestCase):
     def setUp(self):
-        random.seed(42)
-        np.random.seed(42)
+        self.test_seed = 42
 
         self.data = np.array(
             [

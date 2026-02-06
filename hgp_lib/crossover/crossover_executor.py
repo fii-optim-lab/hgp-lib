@@ -1,6 +1,6 @@
 from typing import Callable, List, Sequence, Tuple
 
-import numpy as np
+from numpy.random import Generator
 
 from ..rules import Rule, Literal
 from ..rules.utils import deep_swap, apply_feature_mapping, select_crossover_point
@@ -31,17 +31,17 @@ class CrossoverExecutor:
             Must be `1` when no validator is provided. Default: `1`.
 
     Examples:
-        >>> import random
         >>> import numpy as np
+        >>> from numpy.random import default_rng
         >>> from hgp_lib.crossover import CrossoverExecutor
         >>> from hgp_lib.rules import And, Or, Literal
-        >>> random.seed(42); np.random.seed(42)
+        >>> rng = default_rng(42)
         >>> executor = CrossoverExecutor(crossover_p=1.0)
         >>> rules = [
         ...     And([Literal(value=0), Literal(value=1)]),
         ...     Or([Literal(value=2), Literal(value=3)])
         ... ]
-        >>> children, parent_indices = executor.apply(rules, [None, None])
+        >>> children, parent_indices = executor.apply(rules, [None, None], rng)
         >>> len(children)
         2
     """
@@ -97,7 +97,10 @@ class CrossoverExecutor:
             raise ValueError("num_tries must be 1 if check_valid is None")
 
     def apply(
-        self, rules: List[Rule], feature_mappings: List[dict | None] | None = None
+        self,
+        rules: List[Rule],
+        feature_mappings: List[dict | None] | None,
+        rng: Generator,
     ) -> Tuple[List[Rule], List[int]]:
         """
         Applies crossover to the provided list of rules and returns children with parent tracking.
@@ -118,7 +121,9 @@ class CrossoverExecutor:
                 A list of feature mapping dictionaries, one per rule. Each mapping translates
                 feature indices from a child population's space to the parent's space.
                 Use None for rules that don't need remapping (i.e., from the current population).
-                Default: `None`.
+            rng (Generator):
+                NumPy random Generator for reproducible randomness.
+
         Returns:
             Tuple[List[Rule], List[int]]: A tuple containing:
                 - List[Rule]: The children produced by crossover operations.
@@ -127,17 +132,17 @@ class CrossoverExecutor:
                   is 2 * number of children).
 
         Examples:
-            >>> import random
             >>> import numpy as np
+            >>> from numpy.random import default_rng
             >>> from hgp_lib.crossover import CrossoverExecutor
             >>> from hgp_lib.rules import And, Or, Literal
-            >>> random.seed(42); np.random.seed(42)
+            >>> rng = default_rng(42)
             >>> executor = CrossoverExecutor(crossover_p=1.0)
             >>> rules = [
             ...     And([Literal(value=0), Literal(value=1)]),
             ...     Or([Literal(value=2), Literal(value=3)])
             ... ]
-            >>> children, parent_indices = executor.apply(rules, [None, None])
+            >>> children, parent_indices = executor.apply(rules, [None, None], rng)
             >>> len(children)
             2
         """
@@ -149,9 +154,9 @@ class CrossoverExecutor:
             feature_mappings = [None] * n
 
         if self.crossover_strategy == "random":
-            k = np.random.binomial(n, self.crossover_p)
+            k = rng.binomial(n, self.crossover_p)
             k -= k % 2
-            eligible_indices = np.random.permutation(n)[:k]
+            eligible_indices = rng.permutation(n)[:k]
         else:
             # self.crossover_strategy == "best"
             raise NotImplementedError()
@@ -161,13 +166,15 @@ class CrossoverExecutor:
         for i1, i2 in eligible_indices.reshape(-1, 2):
             parent_a = apply_feature_mapping(rules[i1], feature_mappings[i1])
             parent_b = apply_feature_mapping(rules[i2], feature_mappings[i2])
-            ch = self.crossover(parent_a, parent_b)
+            ch = self.crossover(parent_a, parent_b, rng)
             children.extend(ch)
             parent_indices.extend((i1, i2) * len(ch))
 
         return children, parent_indices
 
-    def crossover(self, parent_a: Rule, parent_b: Rule) -> Sequence[Rule]:
+    def crossover(
+        self, parent_a: Rule, parent_b: Rule, rng: Generator
+    ) -> Sequence[Rule]:
         """
         Performs subtree crossover between two parent rules.
 
@@ -179,6 +186,7 @@ class CrossoverExecutor:
         Args:
             parent_a (Rule): First parent rule.
             parent_b (Rule): Second parent rule.
+            rng (Generator): NumPy random Generator for reproducible randomness.
 
         Returns:
             Sequence[Rule]: Children with exchanged subtrees. Returns two children when
@@ -186,14 +194,14 @@ class CrossoverExecutor:
                 is used.
 
         Examples:
-            >>> import random
+            >>> from numpy.random import default_rng
             >>> from hgp_lib.crossover import CrossoverExecutor
             >>> from hgp_lib.rules import And, Or, Literal
-            >>> random.seed(0)
+            >>> rng = default_rng(0)
             >>> executor = CrossoverExecutor()
             >>> parent_a = And([Literal(value=0), Literal(value=1)])
             >>> parent_b = Or([Literal(value=2), Literal(value=3)])
-            >>> child_a, child_b = executor.crossover(parent_a, parent_b)
+            >>> child_a, child_b = executor.crossover(parent_a, parent_b, rng)
             >>> parent_a is child_a
             False
         """
@@ -201,10 +209,10 @@ class CrossoverExecutor:
         for _ in range(self.num_tries):
             child_a, child_b = parent_a.copy(), parent_b.copy()
 
-            node_a = select_crossover_point(child_a, operator_p=0.5)
-            node_b = select_crossover_point(child_b, operator_p=0.5)
-            # node_a = random.choice(child_a.flatten())
-            # node_b = random.choice(child_b.flatten())
+            node_a = select_crossover_point(child_a, operator_p=0.5, rng=rng)
+            node_b = select_crossover_point(child_b, operator_p=0.5, rng=rng)
+            # node_a = rng.choice(child_a.flatten())
+            # node_b = rng.choice(child_b.flatten())
 
             deep_swap(node_a, node_b)
 

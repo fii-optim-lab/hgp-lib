@@ -3,6 +3,7 @@ from typing import Callable, List
 
 import numpy as np
 from numpy import ndarray
+from numpy.random import Generator, default_rng
 
 from ..configs import BooleanGPConfig, validate_gp_config
 from ..crossover import CrossoverExecutor
@@ -80,6 +81,8 @@ class BooleanGP:
         self.train_data = train_data
         self.train_labels = train_labels
 
+        self.rng: Generator = default_rng(config.seed)
+
         self.current_depth = current_depth
         num_features = train_data.shape[1]
 
@@ -111,7 +114,7 @@ class BooleanGP:
         self.regeneration = config.regeneration
         self.regeneration_patience = config.regeneration_patience
 
-        self.population = self.population_generator.generate()
+        self.population = self.population_generator.generate(self.rng)
         self.population_size = len(self.population)
 
         if config.top_k_transfer > self.population_size:
@@ -144,12 +147,19 @@ class BooleanGP:
                 "Cannot create child populations without a sampling strategy"
             )
         num_features = self.train_data.shape[1]
-        for _ in range(self.config.num_child_populations):
+
+        child_seeds = self.rng.bit_generator.seed_seq.spawn(
+            self.config.num_child_populations
+        )
+
+        for child_seed in child_seeds:
+            sampling_rng = default_rng(child_seed.spawn(1)[0])
             result = self.config.sampling_strategy.sample(
                 self.train_data,
                 self.train_labels,
                 num_features,
                 self.config.num_child_populations,
+                sampling_rng,
             )
             num_sampled_features = len(result.feature_indices)
             child_generator = PopulationGenerator(
@@ -168,6 +178,7 @@ class BooleanGP:
                 train_labels=result.labels,
                 population_generator=child_generator,
                 mutation_executor=child_mutation_executor,
+                seed=child_seed,
             )
             child = BooleanGP(child_config, current_depth=self.current_depth + 1)
             child.feature_mapping = result.feature_mapping
@@ -228,10 +239,10 @@ class BooleanGP:
         crossover_pool.extend(self.population)
         feature_mappings.extend([None] * len(self.population))
         offspring, self.parent_rule_indices = self.crossover_executor.apply(
-            crossover_pool, feature_mappings
+            crossover_pool, feature_mappings, self.rng
         )
         self.population += offspring
-        self.mutation_executor.apply(self.population)
+        self.mutation_executor.apply(self.population, self.rng)
 
     def backward(self, parent_scores: ndarray | None = None) -> StepMetrics:
         """
@@ -430,12 +441,12 @@ class BooleanGP:
         )
 
         if regenerated:
-            self.population = self.population_generator.generate()
+            self.population = self.population_generator.generate(self.rng)
             self.best_score = -float("inf")
             self.best_not_improved_epochs = 0
         else:
             self.population, selected_scores = self.selection.select(
-                self.population, scores, self.population_size
+                self.population, scores, self.population_size, self.rng
             )
             # Non-root populations need reordering so top-K rules are at the front
             # for transfer to parent population during the next forward pass.

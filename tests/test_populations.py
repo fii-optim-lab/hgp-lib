@@ -1,6 +1,7 @@
 import unittest
-import random
+
 import numpy as np
+from numpy.random import default_rng
 
 from hgp_lib.populations import PopulationGenerator, RandomStrategy, BestLiteralStrategy
 from hgp_lib.rules import And, Or, Literal
@@ -8,9 +9,8 @@ from hgp_lib.rules import And, Or, Literal
 
 class TestPopulations(unittest.TestCase):
     def setUp(self):
-        # Seed random generators for reproducibility
-        random.seed(42)
-        np.random.seed(42)
+        self.test_seed = 42
+        self.rng = default_rng(self.test_seed)
 
         # Prepare dummy data
         self.train_data = np.array(
@@ -44,7 +44,8 @@ class TestPopulations(unittest.TestCase):
         strategy = RandomStrategy(
             num_literals=self.num_literals, operator_types=(And, Or)
         )
-        rules = strategy.generate(n=1)
+        rng = default_rng(42)
+        rules = strategy.generate(n=1, rng=rng)
         self.assertEqual(len(rules), 1)
         rule = rules[0]
 
@@ -60,14 +61,16 @@ class TestPopulations(unittest.TestCase):
         strategy = RandomStrategy(
             num_literals=self.num_literals, operator_types=(And, Or)
         )
-        self.assertEqual(strategy.generate(n=0), [])
-        self.assertEqual(strategy.generate(n=-5), [])
+        rng = default_rng(42)
+        self.assertEqual(strategy.generate(n=0, rng=rng), [])
+        self.assertEqual(strategy.generate(n=-5, rng=rng), [])
 
     def test_random_strategy_generate_batch(self):
         strategy = RandomStrategy(
             num_literals=self.num_literals, operator_types=(And, Or)
         )
-        rules = strategy.generate(n=10)
+        rng = default_rng(42)
+        rules = strategy.generate(n=10, rng=rng)
         self.assertEqual(len(rules), 10)
         for rule in rules:
             self.assertIsInstance(rule, (And, Or))
@@ -117,7 +120,8 @@ class TestPopulations(unittest.TestCase):
             feature_size=None,
         )
 
-        rules = strategy.generate(n=1)
+        rng = default_rng(42)
+        rules = strategy.generate(n=1, rng=rng)
         rule = rules[0]
 
         self.assertIsInstance(rule, Literal)
@@ -132,7 +136,8 @@ class TestPopulations(unittest.TestCase):
             sample_size=2,
             feature_size=2,
         )
-        rules_subset = strategy_subset.generate(n=1)
+        rng = default_rng(42)
+        rules_subset = strategy_subset.generate(n=1, rng=rng)
         rule_subset = rules_subset[0]
         self.assertIsInstance(rule_subset, Literal)
 
@@ -232,7 +237,8 @@ class TestPopulations(unittest.TestCase):
         gen = PopulationGenerator(
             strategies=[s1, s2], population_size=50, weights=[0.5, 0.5]
         )
-        population = gen.generate()
+        rng = default_rng(42)
+        population = gen.generate(rng=rng)
 
         self.assertEqual(len(population), 50)
 
@@ -254,13 +260,15 @@ class TestPopulations(unittest.TestCase):
         gen_random = PopulationGenerator(
             strategies=[s1, s2], population_size=20, weights=[1.0, 0.0]
         )
-        pop_random = gen_random.generate()
+        rng = default_rng(42)
+        pop_random = gen_random.generate(rng=rng)
         self.assertTrue(all(isinstance(r, (And, Or)) for r in pop_random))
 
         gen_best = PopulationGenerator(
             strategies=[s1, s2], population_size=20, weights=[0.0, 1.0]
         )
-        pop_best = gen_best.generate()
+        rng = default_rng(42)
+        pop_best = gen_best.generate(rng=rng)
         self.assertTrue(all(isinstance(r, Literal) for r in pop_best))
 
     def test_population_generator_numpy_weights(self):
@@ -270,8 +278,9 @@ class TestPopulations(unittest.TestCase):
         generator = PopulationGenerator(
             strategies=[s1, s2], population_size=10, weights=np.array([0.7, 0.3])
         )
-        self.assertEqual(generator.counts.sum(), 10)
-        self.assertEqual(len(generator.counts), 2)
+        # Access internal _pvals to verify weights are normalized
+        self.assertAlmostEqual(generator._pvals.sum(), 1.0)
+        self.assertEqual(len(generator._pvals), 2)
 
         with self.assertRaises(ValueError):
             PopulationGenerator(

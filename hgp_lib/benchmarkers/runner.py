@@ -1,10 +1,10 @@
-import random
 from dataclasses import replace
 from functools import partial
 from multiprocessing import Queue
 from typing import List, Optional, Tuple
 
 import numpy as np
+from numpy.random import default_rng
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from tqdm import tqdm
 
@@ -53,8 +53,7 @@ def execute_single_run(
         config.show_epoch_progress and trainer_template.progress_bar and not use_queue
     )
 
-    np.random.seed(seed)
-    random.seed(seed)
+    rng = default_rng(seed)
 
     train_data, test_data, train_labels, test_labels = train_test_split(
         config.data,
@@ -78,7 +77,9 @@ def execute_single_run(
         partial(send_progress, progress_queue, "epoch") if use_queue else None
     )
 
-    for train_idx, val_idx in fold_splits:
+    fold_seeds = rng.bit_generator.seed_seq.spawn(config.n_folds)
+
+    for fold_idx, (train_idx, val_idx) in enumerate(fold_splits):
         fold_train = train_data[train_idx]
         fold_val = train_data[val_idx]
         fold_train_labels = train_labels[train_idx]
@@ -88,6 +89,7 @@ def execute_single_run(
             gp_template,
             train_data=fold_train,
             train_labels=fold_train_labels,
+            seed=fold_seeds[fold_idx],
         )
         fold_trainer_config = replace(
             trainer_template,

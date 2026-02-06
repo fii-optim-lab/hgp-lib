@@ -1,6 +1,6 @@
-import random
 from typing import Dict, Type
 
+from numpy.random import Generator
 
 from .rules import Rule
 from .literals import Literal
@@ -37,7 +37,15 @@ def replace_with_rule(target: Rule, rule: Rule) -> None:
     """
     target.__class__ = rule.__class__
     target.value = rule.value
-    target.subrules = [s.copy(target) for s in rule.subrules]
+
+    # target.subrules = [s.copy(target) for s in rule.subrules]
+    # Rule is already copied once
+
+    # Do I need to delete the existing target.subrules?
+    for s in rule.subrules:
+        s.parent = target
+    target.subrules = rule.subrules
+
     target.negated = rule.negated
 
 
@@ -104,12 +112,15 @@ def apply_feature_mapping(rule: Rule, feature_mapping: Dict[int, int] | None) ->
     return new_rule
 
 
-def select_crossover_point(rule: Rule, operator_p: float = 0.9) -> Rule:
+def select_crossover_point(
+    rule: Rule, operator_p: float = 0.9, *, rng: Generator
+) -> Rule:
     """
     Selects a random node from the rule tree using Koza-style biased sampling.
     This method favors internal operator nodes (e.g., `And`, `Or`) over terminal
     literal nodes (e.g., `Literal`) based on the specified probability, promoting
     structural crossover over simple point mutation.
+
     Args:
         rule (Rule):
             The root of the rule tree from which to select a node.
@@ -117,24 +128,29 @@ def select_crossover_point(rule: Rule, operator_p: float = 0.9) -> Rule:
             The probability of selecting an internal operator node. If the tree contains
             both operators and literals, operators are chosen with this probability.
             Default: `0.9`.
+        rng (Generator):
+            NumPy random Generator for reproducible randomness.
+
     Returns:
         Rule:
             A reference to the selected node (either an operator or a literal).
+
     Notes:
         - Uses a two-way reservoir sampling algorithm to perform selection in a single
           pass (O(N)) with constant memory overhead, avoiding the need to flatten the tree.
         - If the tree consists of only one type of node (e.g., a single Literal),
           that node is returned regardless of `func_prob`.
+
     Examples:
-        >>> import random
+        >>> from numpy.random import default_rng
         >>> from hgp_lib.rules.utils import select_crossover_point
         >>> from hgp_lib.rules import And, Or, Literal
-        >>> random.seed(42)
+        >>> rng = default_rng(42)
         >>> rule = And([Literal(value=0), Or([Literal(value=1), Literal(value=2)])])
-        >>> selected = select_crossover_point(rule, operator_p=1.0)
+        >>> selected = select_crossover_point(rule, operator_p=1.0, rng=rng)
         >>> isinstance(selected, (And, Or))
         True
-        >>> selected = select_crossover_point(rule, operator_p=0.0)
+        >>> selected = select_crossover_point(rule, operator_p=0.0, rng=rng)
         >>> isinstance(selected, Literal)
         True
     """
@@ -147,14 +163,14 @@ def select_crossover_point(rule: Rule, operator_p: float = 0.9) -> Rule:
 
         if current.subrules:
             count_operator += 1
-            if random.random() < (1.0 / count_operator):
+            if rng.random() < (1.0 / count_operator):
                 selected_operator = current
             stack.extend(current.subrules)
         else:
             count_literal += 1
-            if random.random() < (1.0 / count_literal):
+            if rng.random() < (1.0 / count_literal):
                 selected_literal = current
 
-    if selected_operator and random.random() < operator_p:
+    if selected_operator and rng.random() < operator_p:
         return selected_operator
     return selected_literal

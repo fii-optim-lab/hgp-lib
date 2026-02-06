@@ -1,6 +1,5 @@
 import doctest
 import unittest
-import random
 
 import numpy as np
 
@@ -20,8 +19,7 @@ from hgp_lib.selections import TournamentSelection
 
 class TestBooleanGP(unittest.TestCase):
     def setUp(self):
-        random.seed(42)
-        np.random.seed(42)
+        self.test_seed = 42
 
         self.train_data = np.array(
             [
@@ -65,6 +63,7 @@ class TestBooleanGP(unittest.TestCase):
             population_generator=self.generator,
             mutation_executor=self.mutation_executor,
             optimize_scorer=False,
+            seed=self.test_seed,
         )
         defaults.update(kwargs)
         return BooleanGPConfig(**defaults)

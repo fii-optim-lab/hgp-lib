@@ -2,6 +2,7 @@ from typing import List, Sequence, Tuple
 
 import numpy as np
 from numpy import ndarray
+from numpy.random import Generator
 
 from .base_selection import BaseSelection
 from ..rules import Rule
@@ -38,13 +39,14 @@ class TournamentSelection(BaseSelection):
 
     Examples:
         >>> import numpy as np
+        >>> from numpy.random import default_rng
         >>> from hgp_lib.selections import TournamentSelection
         >>> from hgp_lib.rules import Literal
-        >>> np.random.seed(42)
+        >>> rng = default_rng(42)
         >>> selection = TournamentSelection(tournament_size=3, selection_p=0.5)
         >>> rules = [Literal(value=i) for i in range(5)]
         >>> scores = [0.1, 0.9, 0.5, 0.3, 0.7]
-        >>> selected_rules, selected_scores = selection.select(rules, scores, 3)
+        >>> selected_rules, selected_scores = selection.select(rules, scores, 3, rng)
         >>> len(selected_rules)
         3
     """
@@ -75,6 +77,7 @@ class TournamentSelection(BaseSelection):
         rules: Sequence[Rule],
         scores: np.ndarray | Sequence[float],
         n_select: int,
+        rng: Generator,
     ) -> Tuple[List[Rule], ndarray]:
         """
         Selects `n_select` rules using tournament selection.
@@ -95,6 +98,8 @@ class TournamentSelection(BaseSelection):
                 fitness. Must have the same length as `rules`.
             n_select (int):
                 Number of rules to select.
+            rng (Generator):
+                NumPy random Generator for reproducible randomness.
 
         Returns:
             Tuple[List[Rule], ndarray]: A tuple containing:
@@ -102,11 +107,11 @@ class TournamentSelection(BaseSelection):
                 - ndarray: The fitness scores of the selected rules.
 
         Examples:
-            >>> import random
             >>> import numpy as np
+            >>> from numpy.random import default_rng
             >>> from hgp_lib.selections import TournamentSelection
             >>> from hgp_lib.rules import Literal
-            >>> random.seed(42); np.random.seed(42)
+            >>> rng = default_rng(42)
             >>> selection = TournamentSelection(tournament_size=3, selection_p=0.5)
             >>> rules = [
             ...     Literal(value=0),
@@ -114,7 +119,7 @@ class TournamentSelection(BaseSelection):
             ...     Literal(value=2),
             ... ]
             >>> scores = [0.2, 0.8, 0.5]
-            >>> selected_rules, selected_scores = selection.select(rules, scores, 2)
+            >>> selected_rules, selected_scores = selection.select(rules, scores, 2, rng)
             >>> len(selected_rules)
             2
             >>> all(isinstance(rule, Rule) for rule in selected_rules)
@@ -126,17 +131,13 @@ class TournamentSelection(BaseSelection):
         sorted_order = np.argsort(-scores_array)
 
         # TODO: Measure this. Check if this can be precomputed.
-        winning_seats = np.random.choice(
-            self.tournament_size, size=n_select, p=self.probs
-        )
+        winning_seats = rng.choice(self.tournament_size, size=n_select, p=self.probs)
 
         selected_rules = []
         selected_indices = []
 
         for i in range(n_select):
-            tournament_indices = np.random.choice(
-                n, self.tournament_size, replace=False
-            )
+            tournament_indices = rng.choice(n, self.tournament_size, replace=False)
             tournament_indices.sort()
             winner_idx = sorted_order[tournament_indices[winning_seats[i]]]
             selected_rules.append(rules[winner_idx].copy())

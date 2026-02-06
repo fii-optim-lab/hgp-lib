@@ -2,6 +2,8 @@ import doctest
 import unittest
 from unittest.mock import patch
 
+from numpy.random import default_rng, Generator
+
 import hgp_lib
 from hgp_lib.mutations import (
     Mutation,
@@ -18,7 +20,7 @@ from hgp_lib.mutations import (
 from hgp_lib.rules import Rule, Literal, Or, And
 
 
-def fake_select_crossover_point(rule, operator_p=0.9):
+def fake_select_crossover_point(rule, operator_p=0.9, *, rng):
     return rule.flatten()[0]
 
 
@@ -28,7 +30,7 @@ class _IncrementLiteralMutation(Mutation):
     def __init__(self):
         super().__init__(True, False)
 
-    def apply(self, rule: Rule):
+    def apply(self, rule: Rule, rng: Generator):
         rule.value += 1
 
 
@@ -38,7 +40,7 @@ class _ToggleOperatorMutation(Mutation):
     def __init__(self):
         super().__init__(False, True)
 
-    def apply(self, rule: Rule):
+    def apply(self, rule: Rule, rng: Generator):
         rule.negated = not rule.negated
 
 
@@ -97,30 +99,31 @@ class TestMutations(unittest.TestCase):
             ]
         )
         mutation = DeleteMutation()
+        rng = default_rng(42)
 
         self.assertTrue(mutation.is_literal_mutation)
         self.assertTrue(mutation.is_operator_mutation)
 
         with self.subTest("Normal behavior"):
             copy = rule.copy()
-            mutation.apply(copy.subrules[0])
+            mutation.apply(copy.subrules[0], rng)
             self.assertEqual(str(copy), "Or(1, 2)")
 
             copy = rule.copy()
-            mutation.apply(copy.subrules[1])
+            mutation.apply(copy.subrules[1], rng)
             self.assertEqual(str(copy), "Or(And(0, 1), 2)")
 
-            mutation.apply(copy.subrules[0].subrules[0])
+            mutation.apply(copy.subrules[0].subrules[0], rng)
             self.assertEqual(str(copy), "Or(2, 1)")
 
         with self.subTest("Mutation fails if invalid"):
             with self.assertRaises(MutationError):
-                mutation.apply(rule)
+                mutation.apply(rule, rng)
             self.assertEqual(str(rule), "Or(And(0, 1), 1, 2)")
 
-            mutation.apply(rule.subrules[1])
+            mutation.apply(rule.subrules[1], rng)
             with self.assertRaises(MutationError):
-                mutation.apply(rule.subrules[1])
+                mutation.apply(rule.subrules[1], rng)
             self.assertEqual(str(rule), "Or(And(0, 1), 2)")
 
     def test_negate_mutation(self):
@@ -137,23 +140,24 @@ class TestMutations(unittest.TestCase):
             ]
         )
         mutation = NegateMutation()
+        rng = default_rng(42)
 
         self.assertTrue(mutation.is_literal_mutation)
         self.assertTrue(mutation.is_operator_mutation)
 
-        mutation.apply(rule.subrules[2])
+        mutation.apply(rule.subrules[2], rng)
         self.assertEqual(str(rule), "Or(And(0, 1), 1, ~2)")
         self.assertTrue(rule.subrules[2].negated)
 
-        mutation.apply(rule.subrules[2])
+        mutation.apply(rule.subrules[2], rng)
         self.assertEqual(str(rule), "Or(And(0, 1), 1, 2)")
         self.assertFalse(rule.subrules[2].negated)
 
-        mutation.apply(rule)
+        mutation.apply(rule, rng)
         self.assertEqual(str(rule), "~Or(And(0, 1), 1, 2)")
         self.assertTrue(rule.negated)
 
-        mutation.apply(rule)
+        mutation.apply(rule, rng)
         self.assertEqual(str(rule), "Or(And(0, 1), 1, 2)")
         self.assertFalse(rule.negated)
 
@@ -183,19 +187,20 @@ class TestMutations(unittest.TestCase):
             ]
         )
         mutation = ReplaceLiteral(2)
+        rng = default_rng(42)
 
         self.assertTrue(mutation.is_literal_mutation)
         self.assertFalse(mutation.is_operator_mutation)
 
-        mutation.apply(rule.subrules[1])
+        mutation.apply(rule.subrules[1], rng)
         self.assertEqual(rule.subrules[1].value, 0)
 
-        mutation.apply(rule.subrules[1])
+        mutation.apply(rule.subrules[1], rng)
         self.assertEqual(rule.subrules[1].value, 1)
 
         mutation = ReplaceLiteral(5)
         old_value = rule.subrules[0].subrules[0].value
-        mutation.apply(rule.subrules[0].subrules[0])
+        mutation.apply(rule.subrules[0].subrules[0], rng)
         self.assertNotEqual(rule.subrules[0].subrules[0].value, old_value)
         self.assertGreaterEqual(rule.subrules[0].subrules[0].value, 0)
         self.assertLess(rule.subrules[0].subrules[0].value, 5)
@@ -226,12 +231,13 @@ class TestMutations(unittest.TestCase):
                 mutation = PromoteLiteral(2, [Or, 1])
 
         mutation = PromoteLiteral(2, [Or, And])
+        rng = default_rng(42)
 
         self.assertTrue(mutation.is_literal_mutation)
         self.assertFalse(mutation.is_operator_mutation)
 
         rule = Literal(value=0)
-        mutation.apply(rule)
+        mutation.apply(rule, rng)
         self.assertEqual(len(rule), 3)
         self.assertIn(type(rule), [Or, And])
         self.assertIsNone(rule.value)
@@ -240,6 +246,7 @@ class TestMutations(unittest.TestCase):
 
     def test_remove_intermediate_operator(self):
         mutation = RemoveIntermediateOperator()
+        rng = default_rng(42)
         rule = And(
             [
                 Or([Literal(value=0), Literal(value=1)]),
@@ -259,13 +266,13 @@ class TestMutations(unittest.TestCase):
 
         with self.subTest("Mutation fails if invalid"):
             with self.assertRaises(MutationError):
-                mutation.apply(rule)
+                mutation.apply(rule, rng)
             self.assertEqual(str(rule), rule_str)
 
-        mutation.apply(rule.subrules[0])
+        mutation.apply(rule.subrules[0], rng)
         self.assertEqual(str(rule), "And(And(2, 3), 4, 0, 1)")
 
-        mutation.apply(rule.subrules[0])
+        mutation.apply(rule.subrules[0], rng)
         self.assertEqual(str(rule), "And(4, 0, 1, 2, 3)")
 
     def test_replace_operator(self):
@@ -284,6 +291,7 @@ class TestMutations(unittest.TestCase):
                 mutation = ReplaceOperator([Or, 1])
 
         mutation = ReplaceOperator()
+        rng = default_rng(42)
 
         self.assertFalse(mutation.is_literal_mutation)
         self.assertTrue(mutation.is_operator_mutation)
@@ -296,11 +304,11 @@ class TestMutations(unittest.TestCase):
             negated=True,
         )
 
-        mutation.apply(rule)
+        mutation.apply(rule, rng)
         self.assertEqual(type(rule), And)
         self.assertTrue(rule.negated)
 
-        mutation.apply(rule)
+        mutation.apply(rule, rng)
         self.assertEqual(type(rule), Or)
         self.assertTrue(rule.negated)
 
@@ -319,6 +327,7 @@ class TestMutations(unittest.TestCase):
                 mutation = AddLiteral(-1)
 
         mutation = AddLiteral(5)
+        rng = default_rng(42)
 
         self.assertFalse(mutation.is_literal_mutation)
         self.assertTrue(mutation.is_operator_mutation)
@@ -341,18 +350,18 @@ class TestMutations(unittest.TestCase):
 
         copy = rule.copy()
         with self.assertRaises(MutationError):
-            mutation.apply(rule)
+            mutation.apply(rule, rng)
         self.assertEqual(str(rule), str(copy))
 
-        mutation.apply(rule.subrules[0])
-        mutation.apply(rule.subrules[0])
-        mutation.apply(rule.subrules[0])
+        mutation.apply(rule.subrules[0], rng)
+        mutation.apply(rule.subrules[0], rng)
+        mutation.apply(rule.subrules[0], rng)
 
         self.assertEqual({0, 1, 2, 3, 4}, {x.value for x in rule.subrules[0].subrules})
 
         copy = rule.copy()
         with self.assertRaises(MutationError):
-            mutation.apply(rule.subrules[0])
+            mutation.apply(rule.subrules[0], rng)
         self.assertEqual(str(rule), str(copy))
 
     def test_mutation_executor_validation(self):
@@ -447,18 +456,16 @@ class TestMutations(unittest.TestCase):
             And([Literal(value=0), Literal(value=1)]),
         ]
 
-        with (
-            patch(
-                "hgp_lib.mutations.mutation_executor.random.choice",
-                side_effect=lambda seq: seq[0],
-            ),
-            patch(
-                "hgp_lib.mutations.mutation_executor.select_crossover_point",
-                side_effect=fake_select_crossover_point,
-            ),
-        ):
-            executor.apply(rules)
+        rng = default_rng(42)
 
+        with patch(
+            "hgp_lib.mutations.mutation_executor.select_crossover_point",
+            side_effect=fake_select_crossover_point,
+        ):
+            executor.apply(rules, rng=rng)
+
+        # With mutation_p=1.0, both rules should be mutated
+        # The literal gets incremented, the operator gets toggled
         self.assertEqual(rules[0].value, 1)
         self.assertTrue(rules[1].negated)
         self.assertEqual(str(rules[1]), "~And(0, 1)")
@@ -476,18 +483,15 @@ class TestMutations(unittest.TestCase):
         )
         rules = [Literal(value=2)]
 
-        with (
-            patch(
-                "hgp_lib.mutations.mutation_executor.random.choice",
-                side_effect=lambda seq: seq[0],
-            ),
-            patch(
-                "hgp_lib.mutations.mutation_executor.select_crossover_point",
-                side_effect=fake_select_crossover_point,
-            ),
-        ):
-            executor.apply(rules)
+        rng = default_rng(42)
 
+        with patch(
+            "hgp_lib.mutations.mutation_executor.select_crossover_point",
+            side_effect=fake_select_crossover_point,
+        ):
+            executor.apply(rules, rng=rng)
+
+        # Incrementing 2 -> 3 (odd) fails validation, so rule should revert
         self.assertEqual(rules[0].value, 2)
 
     def test_mutation_executor_handles_mutation_error(self):
@@ -495,7 +499,7 @@ class TestMutations(unittest.TestCase):
             def __init__(self):
                 super().__init__(True, False)
 
-            def apply(self, rule: Rule):
+            def apply(self, rule: Rule, rng: Generator):
                 raise MutationError("fail")
 
         executor = MutationExecutor(
@@ -505,18 +509,15 @@ class TestMutations(unittest.TestCase):
         )
         rules = [Literal(value=0)]
 
-        with (
-            patch(
-                "hgp_lib.mutations.mutation_executor.random.choice",
-                side_effect=lambda seq: seq[0],
-            ),
-            patch(
-                "hgp_lib.mutations.mutation_executor.select_crossover_point",
-                side_effect=fake_select_crossover_point,
-            ),
-        ):
-            executor.apply(rules)
+        rng = default_rng(42)
 
+        with patch(
+            "hgp_lib.mutations.mutation_executor.select_crossover_point",
+            side_effect=fake_select_crossover_point,
+        ):
+            executor.apply(rules, rng=rng)
+
+        # Mutation fails, so rule should remain unchanged
         self.assertEqual(rules[0].value, 0)
 
     def test_doctests(self):

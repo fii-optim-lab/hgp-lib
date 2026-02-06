@@ -3,6 +3,7 @@
 import unittest
 
 import numpy as np
+from numpy.random import default_rng
 
 from hgp_lib.algorithms import BooleanGP
 from hgp_lib.configs import BooleanGPConfig
@@ -25,15 +26,17 @@ class TestSamplingStrategies(unittest.TestCase):
     """Tests for sampling strategies used in hierarchical GP."""
 
     def setUp(self):
-        np.random.seed(42)
-        self.data = np.random.rand(100, 20) > 0.5
-        self.labels = np.random.randint(0, 2, 100)
+        self.test_seed = 42
+        rng = default_rng(self.test_seed)
+        self.data = rng.random((100, 20)) > 0.5
+        self.labels = rng.integers(0, 2, 100)
 
     def test_feature_sampling_basic(self):
         """Test that FeatureSamplingStrategy samples correct number of features."""
         strategy = FeatureSamplingStrategy(feature_fraction=1.0)
+        rng = default_rng(42)
         result = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=4
+            self.data, self.labels, num_features=20, num_children=4, rng=rng
         )
 
         # Expected: ceil(20/4) = 5 features per child
@@ -45,8 +48,9 @@ class TestSamplingStrategies(unittest.TestCase):
     def test_feature_sampling_with_fraction(self):
         """Test FeatureSamplingStrategy with different fractions."""
         strategy = FeatureSamplingStrategy(feature_fraction=0.5)
+        rng = default_rng(42)
         result = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=4
+            self.data, self.labels, num_features=20, num_children=4, rng=rng
         )
 
         # Expected: max(2, ceil(ceil(20/4) * 0.5)) = max(2, ceil(2.5)) = 3
@@ -55,8 +59,9 @@ class TestSamplingStrategies(unittest.TestCase):
     def test_instance_sampling_basic(self):
         """Test that InstanceSamplingStrategy samples correct number of instances."""
         strategy = InstanceSamplingStrategy(instance_fraction=1.0)
+        rng = default_rng(42)
         result = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=4
+            self.data, self.labels, num_features=20, num_children=4, rng=rng
         )
 
         # Expected: ceil(100/4) = 25 instances per child
@@ -68,8 +73,9 @@ class TestSamplingStrategies(unittest.TestCase):
     def test_combined_sampling(self):
         """Test CombinedSamplingStrategy samples both dimensions."""
         strategy = CombinedSamplingStrategy(feature_fraction=1.0, instance_fraction=1.0)
+        rng = default_rng(42)
         result = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=4
+            self.data, self.labels, num_features=20, num_children=4, rng=rng
         )
 
         # Features: ceil(20/4) = 5
@@ -83,9 +89,10 @@ class TestChildPopulationCreation(unittest.TestCase):
     """Tests for child population creation in BooleanGP."""
 
     def setUp(self):
-        np.random.seed(42)
-        self.data = np.random.rand(50, 10) > 0.5
-        self.labels = np.random.randint(0, 2, 50)
+        self.test_seed = 42
+        rng = default_rng(self.test_seed)
+        self.data = rng.random((50, 10)) > 0.5
+        self.labels = rng.integers(0, 2, 50)
 
     def test_no_children_when_max_depth_zero(self):
         """Test that no child populations are created when max_depth=0."""
@@ -96,6 +103,7 @@ class TestChildPopulationCreation(unittest.TestCase):
             max_depth=0,
             num_child_populations=3,
             sampling_strategy=FeatureSamplingStrategy(),
+            seed=self.test_seed,
         )
         gp = BooleanGP(config)
 
@@ -112,6 +120,7 @@ class TestChildPopulationCreation(unittest.TestCase):
             num_child_populations=2,
             sampling_strategy=FeatureSamplingStrategy(feature_fraction=1.0),
             top_k_transfer=5,
+            seed=self.test_seed,
         )
         gp = BooleanGP(config)
 
@@ -135,6 +144,7 @@ class TestChildPopulationCreation(unittest.TestCase):
             num_child_populations=2,
             sampling_strategy=InstanceSamplingStrategy(instance_fraction=1.0),
             top_k_transfer=5,
+            seed=self.test_seed,
         )
         gp = BooleanGP(config)
 
@@ -158,6 +168,7 @@ class TestChildPopulationCreation(unittest.TestCase):
             num_child_populations=2,
             sampling_strategy=FeatureSamplingStrategy(feature_fraction=1.0),
             top_k_transfer=3,
+            seed=self.test_seed,
         )
         gp = BooleanGP(config)
 
@@ -179,7 +190,7 @@ class TestHierarchicalTraining(unittest.TestCase):
     """Integration tests for hierarchical GP training flow."""
 
     def setUp(self):
-        np.random.seed(42)
+        self.test_seed = 42
         # Create simple linearly separable data
         self.data = np.zeros((100, 10), dtype=bool)
         self.labels = np.zeros(100, dtype=int)
@@ -198,6 +209,7 @@ class TestHierarchicalTraining(unittest.TestCase):
             sampling_strategy=FeatureSamplingStrategy(feature_fraction=1.0),
             top_k_transfer=5,
             optimize_scorer=False,
+            seed=self.test_seed,
         )
         gp = BooleanGP(config)
 
@@ -225,6 +237,7 @@ class TestHierarchicalTraining(unittest.TestCase):
             sampling_strategy=FeatureSamplingStrategy(feature_fraction=1.0),
             top_k_transfer=5,
             optimize_scorer=False,
+            seed=self.test_seed,
         )
         gp = BooleanGP(config)
 
@@ -248,6 +261,7 @@ class TestHierarchicalTraining(unittest.TestCase):
             sampling_strategy=InstanceSamplingStrategy(instance_fraction=1.0),
             top_k_transfer=5,
             optimize_scorer=False,
+            seed=self.test_seed,
         )
         gp = BooleanGP(config)
 
@@ -268,6 +282,7 @@ class TestHierarchicalTraining(unittest.TestCase):
             ),
             top_k_transfer=5,
             optimize_scorer=False,
+            seed=self.test_seed,
         )
         gp = BooleanGP(config)
 
@@ -285,6 +300,7 @@ class TestHierarchicalTraining(unittest.TestCase):
             sampling_strategy=FeatureSamplingStrategy(feature_fraction=1.0),
             top_k_transfer=3,
             optimize_scorer=False,
+            seed=self.test_seed,
         )
         gp = BooleanGP(config)
 
@@ -303,9 +319,10 @@ class TestFeedbackMechanism(unittest.TestCase):
     """Tests for the feedback mechanism between parent and child populations."""
 
     def setUp(self):
-        np.random.seed(42)
-        self.data = np.random.rand(50, 10) > 0.5
-        self.labels = np.random.randint(0, 2, 50)
+        self.test_seed = 42
+        rng = default_rng(self.test_seed)
+        self.data = rng.random((50, 10)) > 0.5
+        self.labels = rng.integers(0, 2, 50)
 
     def test_multiplicative_feedback(self):
         """Test that multiplicative feedback modifies scores correctly."""
@@ -320,6 +337,7 @@ class TestFeedbackMechanism(unittest.TestCase):
             feedback_type="multiplicative",
             feedback_strength=0.1,
             optimize_scorer=False,
+            seed=self.test_seed,
         )
         gp = BooleanGP(config)
 
@@ -340,6 +358,7 @@ class TestFeedbackMechanism(unittest.TestCase):
             feedback_type="additive",
             feedback_strength=0.1,
             optimize_scorer=False,
+            seed=self.test_seed,
         )
         gp = BooleanGP(config)
 
@@ -351,8 +370,10 @@ class TestConfigValidation(unittest.TestCase):
     """Tests for hierarchical GP configuration validation."""
 
     def setUp(self):
-        self.data = np.random.rand(50, 10) > 0.5
-        self.labels = np.random.randint(0, 2, 50)
+        self.test_seed = 42
+        rng = default_rng(self.test_seed)
+        self.data = rng.random((50, 10)) > 0.5
+        self.labels = rng.integers(0, 2, 50)
 
     def test_max_depth_without_sampling_strategy_raises(self):
         """Test that max_depth > 0 without sampling_strategy raises ValueError."""
@@ -363,6 +384,7 @@ class TestConfigValidation(unittest.TestCase):
             max_depth=1,
             num_child_populations=2,
             sampling_strategy=None,  # Missing!
+            seed=self.test_seed,
         )
         # Validation happens in BooleanGP.__init__(), not in config creation
         with self.assertRaises(ValueError) as ctx:
@@ -378,6 +400,7 @@ class TestConfigValidation(unittest.TestCase):
             max_depth=1,
             num_child_populations=0,  # No children!
             sampling_strategy=FeatureSamplingStrategy(),
+            seed=self.test_seed,
         )
         # Validation happens in BooleanGP.__init__(), not in config creation
         with self.assertRaises(ValueError) as ctx:
@@ -394,6 +417,7 @@ class TestConfigValidation(unittest.TestCase):
             num_child_populations=2,
             sampling_strategy=FeatureSamplingStrategy(),
             top_k_transfer=1000,  # Way too large
+            seed=self.test_seed,
         )
         with self.assertRaises(ValueError) as ctx:
             BooleanGP(config)

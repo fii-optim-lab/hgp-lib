@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List
+
+from numpy.random import Generator
+
 from ..rules import Rule
 
 
@@ -12,12 +15,13 @@ class PopulationStrategy(ABC):
     """
 
     @abstractmethod
-    def generate(self, n: int) -> List[Rule]:
+    def generate(self, n: int, rng: Generator) -> List[Rule]:
         """
         Generates n rules according to the strategy.
 
         Args:
             n (int): Number of rules to generate.
+            rng (Generator): NumPy random Generator for reproducible randomness.
 
         Returns:
             List[Rule]: A list of newly generated rule instances.

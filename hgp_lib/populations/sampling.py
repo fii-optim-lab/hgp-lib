@@ -11,6 +11,7 @@ from typing import Dict
 
 import numpy as np
 from numpy import ndarray
+from numpy.random import Generator
 
 
 # TODO: Add tests for this module
@@ -69,6 +70,7 @@ class SamplingStrategy(ABC):
         labels: ndarray,
         num_features: int,
         num_children: int,
+        rng: Generator,
     ) -> SamplingResult:
         """Sample data and/or features from the training set.
 
@@ -77,6 +79,7 @@ class SamplingStrategy(ABC):
             labels: Training labels as 1D integer array.
             num_features: Total number of features in the data.
             num_children: Number of child populations being created.
+            rng: NumPy random Generator for reproducible randomness.
 
         Returns:
             SamplingResult containing sampled data, labels, and index mappings.
@@ -134,6 +137,7 @@ class FeatureSamplingStrategy(SamplingStrategy):
         labels: ndarray,
         num_features: int,
         num_children: int,
+        rng: Generator,
     ) -> SamplingResult:
         """Sample a subset of features from the training data.
 
@@ -142,6 +146,7 @@ class FeatureSamplingStrategy(SamplingStrategy):
             labels: Training labels as 1D integer array.
             num_features: Total number of features in the data.
             num_children: Number of child populations being created.
+            rng: NumPy random Generator for reproducible randomness.
 
         Returns:
             SamplingResult with sampled feature columns, all instances preserved,
@@ -155,7 +160,7 @@ class FeatureSamplingStrategy(SamplingStrategy):
         if not use_replace:
             sample_count = min(sample_count, num_features)
 
-        feature_indices = np.random.choice(
+        feature_indices = rng.choice(
             num_features,
             size=sample_count,
             replace=use_replace,
@@ -225,6 +230,7 @@ class InstanceSamplingStrategy(SamplingStrategy):
         labels: ndarray,
         num_features: int,
         num_children: int,
+        rng: Generator,
     ) -> SamplingResult:
         """Sample a subset of instances from the training data.
 
@@ -233,6 +239,7 @@ class InstanceSamplingStrategy(SamplingStrategy):
             labels: Training labels as 1D integer array.
             num_features: Total number of features in the data.
             num_children: Number of child populations being created.
+            rng: NumPy random Generator for reproducible randomness.
 
         Returns:
             SamplingResult with sampled instance rows, all features preserved,
@@ -249,7 +256,7 @@ class InstanceSamplingStrategy(SamplingStrategy):
         if not use_replace:
             sample_count = min(sample_count, num_instances)
 
-        instance_indices = np.random.choice(
+        instance_indices = rng.choice(
             num_instances,
             size=sample_count,
             replace=use_replace,
@@ -329,6 +336,7 @@ class CombinedSamplingStrategy(SamplingStrategy):
         labels: ndarray,
         num_features: int,
         num_children: int,
+        rng: Generator,
     ) -> SamplingResult:
         """Sample both features and instances from the training data.
 
@@ -337,6 +345,7 @@ class CombinedSamplingStrategy(SamplingStrategy):
             labels: Training labels as 1D integer array.
             num_features: Total number of features in the data.
             num_children: Number of child populations being created.
+            rng: NumPy random Generator for reproducible randomness.
 
         Returns:
             SamplingResult with both feature and instance subsets applied,
@@ -353,7 +362,7 @@ class CombinedSamplingStrategy(SamplingStrategy):
         if not feature_replace:
             feature_count = min(feature_count, num_features)
 
-        feature_indices = np.random.choice(
+        feature_indices = rng.choice(
             num_features,
             size=feature_count,
             replace=feature_replace,
@@ -368,7 +377,7 @@ class CombinedSamplingStrategy(SamplingStrategy):
         if not instance_replace:
             instance_count = min(instance_count, num_instances)
 
-        instance_indices = np.random.choice(
+        instance_indices = rng.choice(
             num_instances,
             size=instance_count,
             replace=instance_replace,

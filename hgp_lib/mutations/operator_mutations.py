@@ -1,7 +1,6 @@
-import random
 from typing import Tuple, Type, Sequence
 
-import numpy as np
+from numpy.random import Generator
 
 from .base_mutation import Mutation
 from .utils import MutationError
@@ -24,8 +23,10 @@ class RemoveIntermediateOperator(Mutation):
         - The parent's subrule list is updated inplace, preserving the relative order of existing subrules.
 
     Examples:
+        >>> from numpy.random import default_rng
         >>> from hgp_lib.mutations import RemoveIntermediateOperator
         >>> from hgp_lib.rules import And, Or, Literal
+        >>> rng = default_rng(42)
         >>> rule = And([
         ...     Literal(value=0),
         ...     Or([
@@ -35,7 +36,7 @@ class RemoveIntermediateOperator(Mutation):
         ...     Literal(value=3)
         ... ])
         >>> mutation = RemoveIntermediateOperator()
-        >>> mutation.apply(rule.subrules[1])
+        >>> mutation.apply(rule.subrules[1], rng)
         >>> rule
         And(0, 3, 1, 2)
     """
@@ -43,7 +44,7 @@ class RemoveIntermediateOperator(Mutation):
     def __init__(self):
         super().__init__(is_literal_mutation=False, is_operator_mutation=True)
 
-    def apply(self, rule: Rule):
+    def apply(self, rule: Rule, rng: Generator):
         """
         Applies an inplace structural mutation that removes the specified operator and attaches its subrules directly
         to the parent operator.
@@ -51,6 +52,8 @@ class RemoveIntermediateOperator(Mutation):
         Args:
             rule (Rule):
                 The operator rule to remove.
+            rng (Generator):
+                NumPy random Generator (unused in this mutation, but required by interface).
 
         Raises:
             MutationError:
@@ -60,8 +63,10 @@ class RemoveIntermediateOperator(Mutation):
                 normal operation.
 
         Examples:
+            >>> from numpy.random import default_rng
             >>> from hgp_lib.mutations import RemoveIntermediateOperator
             >>> from hgp_lib.rules import Or, And, Literal
+            >>> rng = default_rng(42)
             >>> rule = Or([
             ...     Literal(value=1),
             ...     And([
@@ -71,7 +76,7 @@ class RemoveIntermediateOperator(Mutation):
             ...     Literal(value=4)
             ... ])
             >>> mutation = RemoveIntermediateOperator()
-            >>> mutation.apply(rule.subrules[1])
+            >>> mutation.apply(rule.subrules[1], rng)
             >>> rule
             Or(1, 4, 2, 3)
         """
@@ -105,11 +110,13 @@ class ReplaceOperator(Mutation):
         - The replacement operator is always different from the current operator type.
 
     Examples:
+        >>> from numpy.random import default_rng
         >>> from hgp_lib.mutations import ReplaceOperator
         >>> from hgp_lib.rules import And, Or, Literal
+        >>> rng = default_rng(42)
         >>> rule = And([Literal(value=0), Literal(value=1)])
         >>> mutation = ReplaceOperator(operator_types=(Or, And))
-        >>> mutation.apply(rule)
+        >>> mutation.apply(rule, rng)
         >>> rule
         Or(0, 1)
     """
@@ -119,7 +126,7 @@ class ReplaceOperator(Mutation):
         validate_operator_types(operator_types)
         self.operator_types: Tuple[Type[Rule]] = tuple(operator_types)
 
-    def apply(self, rule: Rule):
+    def apply(self, rule: Rule, rng: Generator):
         """
         Applies an inplace operator replacement mutation to the given `Rule`, changing its type to a different operator
         from the available set.
@@ -127,13 +134,17 @@ class ReplaceOperator(Mutation):
         Args:
             rule (Rule):
                 The operator rule to replace. Must be an instance of one of the `operator_types`.
+            rng (Generator):
+                NumPy random Generator for reproducible randomness.
 
         Examples:
+            >>> from numpy.random import default_rng
             >>> from hgp_lib.mutations import ReplaceOperator
             >>> from hgp_lib.rules import And, Or, Literal
+            >>> rng = default_rng(42)
             >>> rule = Or([Literal(value=2), Literal(value=3)])
             >>> mutation = ReplaceOperator()
-            >>> mutation.apply(rule)
+            >>> mutation.apply(rule, rng)
             >>> rule
             And(2, 3)
         """
@@ -142,7 +153,7 @@ class ReplaceOperator(Mutation):
             for operator_type in self.operator_types
             if not isinstance(rule, operator_type)
         ]
-        rule.__class__ = random.choice(other_operators)
+        rule.__class__ = other_operators[rng.integers(len(other_operators))]
 
 
 class AddLiteral(Mutation):
@@ -162,11 +173,13 @@ class AddLiteral(Mutation):
         - The mutation operates inplace, modifying the operator's list of subrules directly.
 
     Examples:
+        >>> from numpy.random import default_rng
         >>> from hgp_lib.mutations import AddLiteral
         >>> from hgp_lib.rules import And, Literal
+        >>> rng = default_rng(42)
         >>> rule = And([Literal(value=0), Literal(value=1)])
         >>> mutation = AddLiteral(num_literals=3)
-        >>> mutation.apply(rule)
+        >>> mutation.apply(rule, rng)
         >>> rule.subrules[2].negated=True  # Setting negated to have deterministic output
         >>> rule
         And(0, 1, ~2)
@@ -180,7 +193,7 @@ class AddLiteral(Mutation):
         self.num_literals = num_literals
         self.available_literals = set(range(num_literals))
 
-    def apply(self, rule: Rule):
+    def apply(self, rule: Rule, rng: Generator):
         """
         Adds a new literal subrule to the given operator node. The new literal's value is selected randomly from the
         remaining available literals not already present in the operator.
@@ -188,17 +201,21 @@ class AddLiteral(Mutation):
         Args:
             rule (Rule):
                 The operator rule to which the new literal will be added.
+            rng (Generator):
+                NumPy random Generator for reproducible randomness.
 
         Raises:
             MutationError:
                 If no new literal values are available for addition.
 
         Examples:
+            >>> from numpy.random import default_rng
             >>> from hgp_lib.mutations import AddLiteral
             >>> from hgp_lib.rules import Or, Literal
+            >>> rng = default_rng(42)
             >>> mutation = AddLiteral(num_literals=3)
             >>> rule = Or([Literal(value=0), Literal(value=1)])
-            >>> mutation.apply(rule)
+            >>> mutation.apply(rule, rng)
             >>> rule.subrules[2].negated=False  # Setting negated to have deterministic output
             >>> rule.subrules[2]
             2
@@ -210,8 +227,9 @@ class AddLiteral(Mutation):
         if len(existing_rules) == self.num_literals:
             raise MutationError()
 
-        random_shot = np.random.randint(self.num_literals)
+        random_shot = rng.integers(self.num_literals)
         if random_shot in existing_rules:
-            random_shot = random.choice(tuple(self.available_literals - existing_rules))
+            available = tuple(self.available_literals - existing_rules)
+            random_shot = available[rng.integers(len(available))]
 
-        rule.subrules.append(Literal(None, rule, random_shot, random.random() < 0.5))
+        rule.subrules.append(Literal(None, rule, random_shot, rng.random() < 0.5))

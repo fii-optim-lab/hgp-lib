@@ -3,6 +3,7 @@ from typing import List, Sequence, Tuple
 
 import numpy as np
 from numpy import ndarray
+from numpy.random import Generator
 
 from ..rules import Rule
 
@@ -18,8 +19,9 @@ class BaseSelection(ABC):
         >>> from hgp_lib.selections import BaseSelection
         >>> from hgp_lib.rules import Literal
         >>> import numpy as np
+        >>> from numpy.random import default_rng
         >>> class TopSelection(BaseSelection):
-        ...     def select(self, rules, scores, n_select):
+        ...     def select(self, rules, scores, n_select, rng=None):
         ...         scores = np.asarray(scores)
         ...         ranked = sorted(zip(scores, rules), reverse=True)
         ...         selected_rules = [rule.copy() for _, rule in ranked[:n_select]]
@@ -29,7 +31,8 @@ class BaseSelection(ABC):
         >>> selection = TopSelection()
         >>> rules = [Literal(value=0), Literal(value=1)]
         >>> scores = [0.5, 0.8]
-        >>> selected_rules, selected_scores = selection.select(rules, scores, 1)
+        >>> rng = default_rng(42)
+        >>> selected_rules, selected_scores = selection.select(rules, scores, 1, rng)
         >>> len(selected_rules)
         1
         >>> selected_rules
@@ -42,6 +45,7 @@ class BaseSelection(ABC):
         rules: Sequence[Rule],
         scores: np.ndarray | Sequence[float],
         n_select: int,
+        rng: Generator,
     ) -> Tuple[List[Rule], ndarray]:
         """
         Selects `n_select` rules from the population based on their fitness scores.
@@ -57,6 +61,8 @@ class BaseSelection(ABC):
                 better fitness. Must have the same length as `rules`.
             n_select (int):
                 Number of rules to select. Must be between 1 and `len(rules)` (inclusive).
+            rng (Generator):
+                NumPy random Generator for reproducible randomness.
 
         Returns:
             Tuple[List[Rule], ndarray]: A tuple containing:
@@ -67,8 +73,9 @@ class BaseSelection(ABC):
             >>> from hgp_lib.selections import BaseSelection
             >>> from hgp_lib.rules import Literal
             >>> import numpy as np
+            >>> from numpy.random import default_rng
             >>> class TopSelection(BaseSelection):
-            ...     def select(self, rules, scores, n_select):
+            ...     def select(self, rules, scores, n_select, rng):
             ...         scores = np.asarray(scores)
             ...         ranked = sorted(zip(scores, rules), reverse=True)
             ...         selected_rules = [rule.copy() for _, rule in ranked[:n_select]]
@@ -78,7 +85,8 @@ class BaseSelection(ABC):
             >>> selection = TopSelection()
             >>> rules = [Literal(value=0), Literal(value=1), Literal(value=2)]
             >>> scores = [0.3, 0.9, 0.5]
-            >>> selected_rules, selected_scores = selection.select(rules, scores, 2)
+            >>> rng = default_rng(42)
+            >>> selected_rules, selected_scores = selection.select(rules, scores, 2, rng)
             >>> len(selected_rules)
             2
             >>> selected_rules

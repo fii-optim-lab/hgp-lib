@@ -1,8 +1,7 @@
 import doctest
 import unittest
-import random
 
-import numpy as np
+from numpy.random import default_rng
 
 import hgp_lib.crossover.crossover_executor
 import hgp_lib.rules.utils
@@ -50,9 +49,8 @@ class TestCrossoverExecutor(unittest.TestCase):
             Or([Literal(value=6), Literal(value=7)]),
         ]
 
-        random.seed(42)
-        np.random.seed(42)
-        children, parent_indices = executor.apply(rules)
+        rng = default_rng(42)
+        children, parent_indices = executor.apply(rules, feature_mappings=None, rng=rng)
 
         # Should return children from crossover
         self.assertIsInstance(children, list)
@@ -71,9 +69,8 @@ class TestCrossoverExecutor(unittest.TestCase):
         ]
         original_strs = [str(r) for r in rules]
 
-        random.seed(42)
-        np.random.seed(42)
-        children, parent_indices = executor.apply(rules)
+        rng = default_rng(42)
+        children, parent_indices = executor.apply(rules, feature_mappings=None, rng=rng)
 
         # Original rules should be unchanged
         self.assertEqual([str(r) for r in rules], original_strs)
@@ -87,7 +84,8 @@ class TestCrossoverExecutor(unittest.TestCase):
     def test_apply_empty_list(self):
         """Test that apply handles empty list."""
         executor = CrossoverExecutor(crossover_p=1.0)
-        children, parent_indices = executor.apply([])
+        rng = default_rng(42)
+        children, parent_indices = executor.apply([], feature_mappings=None, rng=rng)
         self.assertEqual(children, [])
         self.assertEqual(parent_indices, [])
 
@@ -98,8 +96,8 @@ class TestCrossoverExecutor(unittest.TestCase):
         parent_a = And([Literal(value=0), Literal(value=1)])
         parent_b = Or([Literal(value=2), Literal(value=3)])
 
-        random.seed(42)
-        children = executor.crossover(parent_a, parent_b)
+        rng = default_rng(42)
+        children = executor.crossover(parent_a, parent_b, rng=rng)
 
         # Should return two children
         self.assertEqual(len(children), 2)
@@ -130,8 +128,8 @@ class TestCrossoverExecutor(unittest.TestCase):
         parent_a = And([Literal(value=0), Literal(value=1)])
         parent_b = Or([Literal(value=2), Literal(value=3)])
 
-        random.seed(0)
-        children = executor.crossover(parent_a, parent_b)
+        rng = default_rng(0)
+        children = executor.crossover(parent_a, parent_b, rng=rng)
 
         # Validator should have been called multiple times
         self.assertGreater(call_count[0], 0)
@@ -152,8 +150,8 @@ class TestCrossoverExecutor(unittest.TestCase):
         parent_a = And([Literal(value=0), Literal(value=1)])
         parent_b = Or([Literal(value=2), Literal(value=3)])
 
-        random.seed(0)
-        children = executor.crossover(parent_a, parent_b)
+        rng = default_rng(0)
+        children = executor.crossover(parent_a, parent_b, rng=rng)
 
         # No children should pass validation
         self.assertEqual(len(children), 0)
@@ -176,8 +174,8 @@ class TestCrossoverExecutor(unittest.TestCase):
         parent_a = And([Literal(value=0), Literal(value=1)])
         parent_b = Or([Literal(value=2), Literal(value=3)])
 
-        random.seed(0)
-        children = executor.crossover(parent_a, parent_b)
+        rng = default_rng(0)
+        children = executor.crossover(parent_a, parent_b, rng=rng)
 
         # Only one child should pass (call 2 passes, call 3 fails)
         self.assertEqual(len(children), 1)
@@ -209,8 +207,8 @@ class TestCrossoverExecutor(unittest.TestCase):
             ]
         )
 
-        random.seed(123)
-        children = executor.crossover(parent_a, parent_b)
+        rng = default_rng(123)
+        children = executor.crossover(parent_a, parent_b, rng=rng)
 
         # Should get two children
         self.assertEqual(len(children), 2)
@@ -230,8 +228,8 @@ class TestCrossoverExecutor(unittest.TestCase):
         parent_b = Or([Literal(value=2), Literal(value=3)])
 
         for seed in range(10):
-            random.seed(seed)
-            children = executor.crossover(parent_a, parent_b)
+            rng = default_rng(seed)
+            children = executor.crossover(parent_a, parent_b, rng=rng)
             self.assertEqual(len(children), 2, f"Failed with seed {seed}")
 
     def test_apply_handles_odd_selected_rules(self):
@@ -245,9 +243,8 @@ class TestCrossoverExecutor(unittest.TestCase):
 
         # With 3 rules and crossover_p=1.0, all are selected but we need pairs
         # Should round up to 4 if possible, but n=3 so rounds down to 2
-        random.seed(42)
-        np.random.seed(42)
-        children, parent_indices = executor.apply(rules)
+        rng = default_rng(42)
+        children, parent_indices = executor.apply(rules, feature_mappings=None, rng=rng)
 
         # Should return 2 children from 1 pair (partition_point rounds down to 2)
         self.assertIsInstance(children, list)
@@ -259,10 +256,8 @@ class TestCrossoverExecutor(unittest.TestCase):
         executor = CrossoverExecutor(crossover_p=1.0)
         rules = [And([Literal(value=0), Literal(value=1)])]
 
-        np.random.seed(42)
-        children, parent_indices = executor.apply(
-            rules,
-        )
+        rng = default_rng(42)
+        children, parent_indices = executor.apply(rules, feature_mappings=None, rng=rng)
 
         # Single rule can't be paired, should return empty list
         self.assertEqual(len(children), 0)
@@ -278,8 +273,8 @@ class TestCrossoverExecutor(unittest.TestCase):
             Or([Literal(value=6), Literal(value=7)]),
         ]
 
-        np.random.seed(42)
-        children, parent_indices = executor.apply(rules)
+        rng = default_rng(42)
+        children, parent_indices = executor.apply(rules, feature_mappings=None, rng=rng)
 
         # With crossover_p=0.0, all random probabilities will exceed threshold,
         # so no rules should be selected for crossover

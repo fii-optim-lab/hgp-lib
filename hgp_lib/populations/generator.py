@@ -1,6 +1,7 @@
 from typing import Sequence, List
 
 import numpy as np
+from numpy.random import Generator
 
 from .base_strategy import PopulationStrategy
 from ..rules import Rule
@@ -18,10 +19,12 @@ class PopulationGenerator:
             If `None`, all strategies are selected with equal probability. Default: `None`.
 
     Examples:
+        >>> from numpy.random import default_rng
         >>> from hgp_lib.populations import PopulationGenerator, RandomStrategy
+        >>> rng = default_rng(42)
         >>> strategy = RandomStrategy(num_literals=5)
         >>> generator = PopulationGenerator(strategies=[strategy], population_size=10)
-        >>> population = generator.generate()
+        >>> population = generator.generate(rng)
         >>> len(population)
         10
     """
@@ -57,9 +60,9 @@ class PopulationGenerator:
         self.strategies = strategies
         self.population_size = population_size
 
-        self.counts = self._init_counts(weights)
+        self._pvals = self._init_pvals(weights)
 
-    def _init_counts(self, weights: Sequence[float] | np.ndarray | None) -> np.ndarray:
+    def _init_pvals(self, weights: Sequence[float] | np.ndarray | None) -> np.ndarray:
         if weights is not None:
             if isinstance(weights, np.ndarray):
                 weights = weights.tolist()
@@ -79,18 +82,21 @@ class PopulationGenerator:
             else [1.0 / len(self.strategies)] * len(self.strategies)
         )
         sum_weights = sum(pvals)
-        pvals = [w / sum_weights for w in pvals]
-        return np.random.multinomial(self.population_size, pvals)
+        return np.array([w / sum_weights for w in pvals])
 
-    def generate(self) -> List[Rule]:
+    def generate(self, rng: Generator) -> List[Rule]:
         """
         Generates the full population of rules.
+
+        Args:
+            rng (Generator): NumPy random Generator for reproducible randomness.
 
         Returns:
             List[Rule]: A list containing `population_size` generated rules.
         """
+        counts = rng.multinomial(self.population_size, self._pvals)
         population = []
-        for strategy, count in zip(self.strategies, self.counts):
+        for strategy, count in zip(self.strategies, counts):
             if count > 0:
-                population.extend(strategy.generate(count))
+                population.extend(strategy.generate(count, rng))
         return population

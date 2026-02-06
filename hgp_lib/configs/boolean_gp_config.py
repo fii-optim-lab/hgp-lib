@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 from numpy import ndarray
+from numpy.random import SeedSequence
 
 from ..crossover import CrossoverExecutor
 from ..mutations import MutationExecutor
@@ -38,6 +39,9 @@ class BooleanGPConfig:
         top_k_transfer (int): Number of top rules to transfer from each child to parent. Default: 10.
         feedback_type (str): How to apply parent feedback: "additive" or "multiplicative". Default: "multiplicative".
         feedback_strength (float): Coefficient for feedback signal. Must be > 0. Default: 0.1.
+        seed (int | SeedSequence | None): Seed for reproducible randomness.
+            Can be an int, a SeedSequence (for spawned children), or None for random seed.
+            Default: None.
 
     Examples:
         >>> import numpy as np
@@ -71,6 +75,8 @@ class BooleanGPConfig:
     top_k_transfer: int = 10
     feedback_type: str = "multiplicative"
     feedback_strength: float = 0.1
+    # Random state
+    seed: int | SeedSequence | None = None
 
 
 def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> None:
@@ -141,3 +147,5 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
     check_isinstance(config.feedback_strength, (int, float))
     if config.feedback_strength <= 0:
         raise ValueError("feedback_strength must be > 0")
+    if config.seed is not None:
+        check_isinstance(config.seed, (int, SeedSequence))

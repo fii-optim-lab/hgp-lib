@@ -1,6 +1,8 @@
 from math import ceil
 from typing import Sequence, Type, Callable, List
+
 import numpy as np
+from numpy.random import Generator
 
 from .base_strategy import PopulationStrategy
 from ..rules import Rule, Literal, And, Or
@@ -21,10 +23,12 @@ class RandomStrategy(PopulationStrategy):
         operator_types (Sequence[Type[Rule]]): A sequence of allowed operator types (e.g., `(Or, And)`). Default: `(Or, And)`.
 
     Examples:
+        >>> from numpy.random import default_rng
         >>> from hgp_lib.populations import RandomStrategy
         >>> from hgp_lib.rules import And, Or
         >>> strategy = RandomStrategy(num_literals=5, operator_types=(And, Or))
-        >>> rules = strategy.generate(n=1)
+        >>> rng = default_rng(42)
+        >>> rules = strategy.generate(n=1, rng=rng)
         >>> rule = rules[0]
         >>> isinstance(rule, (And, Or))
         True
@@ -41,12 +45,13 @@ class RandomStrategy(PopulationStrategy):
         self.num_literals = num_literals
         self.operator_types = operator_types
 
-    def generate(self, n: int) -> List[Rule]:
+    def generate(self, n: int, rng: Generator) -> List[Rule]:
         """
         Generates n rules with a random operator and two random literals.
 
         Args:
             n (int): Number of rules to generate.
+            rng (Generator): NumPy random Generator for reproducible randomness.
 
         Returns:
             List[Rule]: A list of randomly generated operator rules, each containing two literal subrules.
@@ -56,11 +61,11 @@ class RandomStrategy(PopulationStrategy):
 
         rules = []
 
-        op_indices = np.random.randint(0, len(self.operator_types), size=n)
-        idx1s = np.random.randint(0, self.num_literals, size=n)
-        idx2s = np.random.randint(0, self.num_literals - 1, size=n)
+        op_indices = rng.integers(0, len(self.operator_types), size=n)
+        idx1s = rng.integers(0, self.num_literals, size=n)
+        idx2s = rng.integers(0, self.num_literals - 1, size=n)
         idx2s += idx2s >= idx1s  # Avoid duplicate indices.
-        negations = np.random.randint(0, 2, size=(n, 3)).astype(bool)
+        negations = rng.integers(0, 2, size=(n, 3)).astype(bool)
 
         for i in range(n):
             operator_class = self.operator_types[op_indices[i]]
@@ -104,6 +109,7 @@ class BestLiteralStrategy(PopulationStrategy):
 
     Examples:
         >>> import numpy as np
+        >>> from numpy.random import default_rng
         >>> from hgp_lib.populations import BestLiteralStrategy
         >>> from hgp_lib.rules import Literal
         >>> data = np.array([[True, False], [False, True], [True, True]])
@@ -118,7 +124,8 @@ class BestLiteralStrategy(PopulationStrategy):
         ...     sample_size=2,
         ...     feature_size=None
         ... )
-        >>> rules = strategy.generate(n=1)
+        >>> rng = default_rng(42)
+        >>> rules = strategy.generate(n=1, rng=rng)
         >>> rule = rules[0]
         >>> isinstance(rule, Literal)
         True
@@ -165,12 +172,13 @@ class BestLiteralStrategy(PopulationStrategy):
             return size
         raise TypeError(f"size must be int, float or None, got {type(size)}")
 
-    def generate(self, n: int) -> List[Rule]:
+    def generate(self, n: int, rng: Generator) -> List[Rule]:
         """
         Generates n literal rules that perform best on random data/feature subsets.
 
         Args:
             n (int): Number of rules to generate.
+            rng (Generator): NumPy random Generator for reproducible randomness.
 
         Returns:
             List[Rule]: A list of Literal instances.
@@ -182,14 +190,14 @@ class BestLiteralStrategy(PopulationStrategy):
             if self._sample_count == total_samples:
                 row_indices = slice(None)
             else:
-                row_indices = np.random.choice(
+                row_indices = rng.choice(
                     total_samples, self._sample_count, replace=False
                 )
 
             if self._feature_count == self.num_literals:
                 feature_indices = range(self.num_literals)
             else:
-                feature_indices = np.random.choice(
+                feature_indices = rng.choice(
                     self.num_literals, self._feature_count, replace=False
                 )
 

@@ -2,6 +2,7 @@ from typing import List, Sequence, Tuple
 
 import numpy as np
 from numpy import ndarray
+from numpy.random import Generator
 
 from ..rules import Rule
 from .base_selection import BaseSelection
@@ -18,11 +19,11 @@ class RouletteSelection(BaseSelection):
     in the result.
 
     Examples:
-        >>> import random
         >>> import numpy as np
+        >>> from numpy.random import default_rng
         >>> from hgp_lib.selections import RouletteSelection
         >>> from hgp_lib.rules import Literal
-        >>> random.seed(42); np.random.seed(42)
+        >>> rng = default_rng(42)
         >>> selection = RouletteSelection()
         >>> rules = [
         ...     Literal(value=0),
@@ -30,7 +31,7 @@ class RouletteSelection(BaseSelection):
         ...     Literal(value=2),
         ... ]
         >>> scores = [0.1, 0.5, 0.4]
-        >>> selected_rules, selected_scores = selection.select(rules, scores, 2)
+        >>> selected_rules, selected_scores = selection.select(rules, scores, 2, rng)
         >>> len(selected_rules)
         2
     """
@@ -40,6 +41,7 @@ class RouletteSelection(BaseSelection):
         rules: Sequence[Rule],
         scores: np.ndarray | Sequence[float],
         n_select: int,
+        rng: Generator,
     ) -> Tuple[List[Rule], ndarray]:
         """
         Selects `n_select` rules using roulette wheel (fitness-proportionate) selection.
@@ -57,6 +59,8 @@ class RouletteSelection(BaseSelection):
                 fitness. Must have the same length as `rules`.
             n_select (int):
                 Number of rules to select.
+            rng (Generator):
+                NumPy random Generator for reproducible randomness.
 
         Returns:
             Tuple[List[Rule], ndarray]: A tuple containing:
@@ -64,11 +68,11 @@ class RouletteSelection(BaseSelection):
                 - ndarray: The fitness scores of the selected rules.
 
         Examples:
-            >>> import random
             >>> import numpy as np
+            >>> from numpy.random import default_rng
             >>> from hgp_lib.selections import RouletteSelection
             >>> from hgp_lib.rules import Literal
-            >>> random.seed(42); np.random.seed(42)
+            >>> rng = default_rng(42)
             >>> selection = RouletteSelection()
             >>> rules = [
             ...     Literal(value=0),
@@ -76,7 +80,7 @@ class RouletteSelection(BaseSelection):
             ...     Literal(value=2),
             ... ]
             >>> scores = [0.1, 0.5, 0.4]
-            >>> selected_rules, selected_scores = selection.select(rules, scores, 2)
+            >>> selected_rules, selected_scores = selection.select(rules, scores, 2, rng)
             >>> len(selected_rules)
             2
             >>> all(isinstance(rule, Rule) for rule in selected_rules)
@@ -97,7 +101,7 @@ class RouletteSelection(BaseSelection):
         else:
             probabilities = scores_array / total
 
-        selected_indices = np.random.choice(
+        selected_indices = rng.choice(
             len(rules), size=n_select, p=probabilities, replace=True
         )
 

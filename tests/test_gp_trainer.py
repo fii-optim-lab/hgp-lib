@@ -1,6 +1,5 @@
 import doctest
 import unittest
-import random
 
 import numpy as np
 
@@ -20,8 +19,7 @@ from hgp_lib.rules import Rule
 
 class TestGPTrainer(unittest.TestCase):
     def setUp(self):
-        random.seed(42)
-        np.random.seed(42)
+        self.test_seed = 42
 
         self.train_data = np.array(
             [
@@ -55,6 +53,7 @@ class TestGPTrainer(unittest.TestCase):
             train_data=self.train_data,
             train_labels=self.train_labels,
             optimize_scorer=False,
+            seed=self.test_seed,
         )
         defaults.update(kwargs)
         return BooleanGPConfig(**defaults)

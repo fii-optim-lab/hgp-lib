@@ -1,7 +1,6 @@
-import random
 from typing import Callable, Sequence, Tuple, List
 
-import numpy as np
+from numpy.random import Generator
 
 from .base_mutation import Mutation
 from .utils import MutationError
@@ -35,22 +34,22 @@ class MutationExecutor:
             validation. Must be `1` when no validator is provided. Default: `1`.
 
     Examples:
-        >>> import random
         >>> import numpy as np
+        >>> from numpy.random import default_rng
         >>> from hgp_lib.mutations import MutationExecutor, NegateMutation
         >>> from hgp_lib.rules import Literal, And
-        >>> random.seed(1); np.random.seed(0)
+        >>> rng = default_rng(0)
         >>> executor = MutationExecutor(
         ...     literal_mutations=[NegateMutation()],
         ...     operator_mutations=[NegateMutation()],
         ...     mutation_p=1.0,
         ... )
-        >>> rules = [Literal(value=0), And([Literal(value=0), Literal(value=1)])]
-        >>> executor.apply(rules)
+        >>> rules = [Literal(value=0), And([Literal(value=0), Literal(value=1), Literal(value=2)])]
+        >>> executor.apply(rules, rng)
         >>> str(rules[0])
         '~0'
         >>> str(rules[1])
-        '~And(~0, ~1)'
+        'And(0, ~1, ~2)'
     """
 
     def __init__(
@@ -121,7 +120,7 @@ class MutationExecutor:
         if num_tries > 1 and check_valid is None:
             raise ValueError("num_tries must be 1 if check_valid is None")
 
-    def apply(self, rules: List[Rule]):
+    def apply(self, rules: List[Rule], rng: Generator):
         """
         Mutates the provided list of rules in place.
 
@@ -131,30 +130,32 @@ class MutationExecutor:
             rules (List[Rule]):
                 The mutable collection of rules that will be potentially replaced by mutated
                 versions depending on `mutation_p`.
+            rng (Generator):
+                NumPy random Generator for reproducible randomness.
 
         Examples:
-            >>> import random
             >>> import numpy as np
+            >>> from numpy.random import default_rng
             >>> from hgp_lib.mutations import MutationExecutor, NegateMutation
             >>> from hgp_lib.rules import Literal
-            >>> random.seed(1); np.random.seed(1)
+            >>> rng = default_rng(1)
             >>> executor = MutationExecutor(
             ...     literal_mutations=[NegateMutation()],
             ...     operator_mutations=[NegateMutation()],
             ...     mutation_p=1.0,
             ... )
             >>> rules = [Literal(value=0)]
-            >>> executor.apply(rules)
+            >>> executor.apply(rules, rng)
             >>> str(rules[0])
             '~0'
         """
         for i in range(len(rules)):
             rule = rules[i]
-            n_mutations = np.random.binomial(len(rule), self.mutation_p)
+            n_mutations = rng.binomial(len(rule), self.mutation_p)
             if n_mutations != 0:
-                rules[i] = self._mutate(rule, n_mutations)
+                rules[i] = self._mutate(rule, n_mutations, rng)
 
-    def _mutate(self, rule: Rule, n_mutations: int) -> Rule:
+    def _mutate(self, rule: Rule, n_mutations: int, rng: Generator) -> Rule:
         new_rule = rule.copy()
 
         last_mutation = n_mutations - 1
@@ -162,15 +163,16 @@ class MutationExecutor:
 
         for mutation_i in range(n_mutations):
             for tries in range(self.num_tries):
-                selected = select_crossover_point(new_rule, operator_p=0.5)
-                # selected = random.choice(new_rule.flatten())
+                selected = select_crossover_point(new_rule, operator_p=0.5, rng=rng)
+                # selected = rng.choice(new_rule.flatten())
 
+                mutations = (
+                    self.literal_mutations
+                    if isinstance(selected, Literal)
+                    else self.operator_mutations
+                )
                 try:
-                    random.choice(
-                        self.literal_mutations
-                        if isinstance(selected, Literal)
-                        else self.operator_mutations
-                    ).apply(selected)
+                    mutations[rng.integers(len(mutations))].apply(selected, rng)
                 except MutationError:
                     continue
 

@@ -1,7 +1,6 @@
-import random
 from typing import Sequence, Type, Tuple
 
-import numpy as np
+from numpy.random import Generator
 
 from .base_mutation import Mutation
 from .utils import MutationError
@@ -29,12 +28,14 @@ class DeleteMutation(Mutation):
           parent operator is also removed.
 
     Examples:
+        >>> from numpy.random import default_rng
         >>> from hgp_lib.mutations import DeleteMutation
         >>> from hgp_lib.rules import And, Literal
+        >>> rng = default_rng(42)
         >>> parent = And([Literal(value=0), Literal(value=1), Literal(value=2)])
         >>> to_delete = parent.subrules[1]
         >>> mutation = DeleteMutation()
-        >>> mutation.apply(to_delete)
+        >>> mutation.apply(to_delete, rng)
         >>> parent
         And(0, 2)
     """
@@ -42,7 +43,7 @@ class DeleteMutation(Mutation):
     def __init__(self):
         super().__init__(is_literal_mutation=True, is_operator_mutation=True)
 
-    def apply(self, rule: Rule):
+    def apply(self, rule: Rule, rng: Generator):
         """
         Applies an inplace deletion mutation to the given `Rule`. Removes the target `rule` from its parent's list of
         subrules, provided that doing so does not violate tree integrity constraints.
@@ -50,6 +51,8 @@ class DeleteMutation(Mutation):
         Args:
             rule (Rule):
                 The rule node to delete from its parent.
+            rng (Generator):
+                NumPy random Generator (unused in this mutation, but required by interface).
 
         Raises:
             MutationError:
@@ -60,8 +63,10 @@ class DeleteMutation(Mutation):
                 normal operation.
 
         Examples:
+            >>> from numpy.random import default_rng
             >>> from hgp_lib.mutations import DeleteMutation
             >>> from hgp_lib.rules import Or, Literal
+            >>> rng = default_rng(42)
             >>> parent = Or([
             ...     Literal(value=1),
             ...     Literal(value=2),
@@ -73,7 +78,7 @@ class DeleteMutation(Mutation):
             >>> parent
             Or(1, 2, Or(3, 4))
             >>> mutation = DeleteMutation()
-            >>> mutation.apply(parent.subrules[2])
+            >>> mutation.apply(parent.subrules[2], rng)
             >>> parent
             Or(1, 2)
         """
@@ -112,18 +117,20 @@ class NegateMutation(Mutation):
         is_operator_mutation (bool): `True`.
 
     Examples:
+        >>> from numpy.random import default_rng
         >>> from hgp_lib.mutations import NegateMutation
         >>> from hgp_lib.rules import Literal, And
+        >>> rng = default_rng(42)
         >>> mutation = NegateMutation()
         >>> rule = Literal(value=1)
-        >>> mutation.apply(rule)
+        >>> mutation.apply(rule, rng)
         >>> rule
         ~1
-        >>> mutation.apply(rule)
+        >>> mutation.apply(rule, rng)
         >>> rule
         1
         >>> rule = And([Literal(value=0), Literal(value=1)])
-        >>> mutation.apply(rule)
+        >>> mutation.apply(rule, rng)
         >>> rule
         ~And(0, 1)
     """
@@ -131,23 +138,27 @@ class NegateMutation(Mutation):
     def __init__(self):
         super().__init__(is_literal_mutation=True, is_operator_mutation=True)
 
-    def apply(self, rule: Rule):
+    def apply(self, rule: Rule, rng: Generator):
         """
         Applies an inplace negation mutation to the given `Rule`. Toggles the rule's `negated` flag.
 
         Args:
             rule (Rule):
                 The rule node whose negation flag will be flipped.
+            rng (Generator):
+                NumPy random Generator (unused in this mutation, but required by interface).
 
         Examples:
+            >>> from numpy.random import default_rng
             >>> from hgp_lib.mutations import NegateMutation
             >>> from hgp_lib.rules import Literal
+            >>> rng = default_rng(42)
             >>> rule = Literal(value=0)
             >>> mutation = NegateMutation()
-            >>> mutation.apply(rule)
+            >>> mutation.apply(rule, rng)
             >>> rule
             ~0
-            >>> mutation.apply(rule)
+            >>> mutation.apply(rule, rng)
             >>> rule
             0
         """
@@ -172,11 +183,13 @@ class ReplaceLiteral(Mutation):
         - The mutation operates inplace and modifies only the literal's `value`.
 
     Examples:
+        >>> from numpy.random import default_rng
         >>> from hgp_lib.mutations import ReplaceLiteral
         >>> from hgp_lib.rules import Literal
+        >>> rng = default_rng(42)
         >>> mutation = ReplaceLiteral(num_literals=2)
         >>> rule = Literal(value=0)
-        >>> mutation.apply(rule)
+        >>> mutation.apply(rule, rng)
         >>> rule
         1
     """
@@ -188,7 +201,7 @@ class ReplaceLiteral(Mutation):
 
         self.num_literals = num_literals
 
-    def apply(self, rule: Rule):
+    def apply(self, rule: Rule, rng: Generator):
         """
         Applies an inplace literal replacement mutation to the given `Rule`. Randomly assigns a new literal value
         different from the current one.
@@ -196,17 +209,21 @@ class ReplaceLiteral(Mutation):
         Args:
             rule (Rule):
                 The literal rule whose value will be replaced.
+            rng (Generator):
+                NumPy random Generator for reproducible randomness.
 
         Examples:
+            >>> from numpy.random import default_rng
             >>> from hgp_lib.mutations import ReplaceLiteral
             >>> from hgp_lib.rules import Literal
+            >>> rng = default_rng(42)
             >>> mutation = ReplaceLiteral(num_literals=4)
             >>> rule = Literal(value=1)
-            >>> mutation.apply(rule)
-            >>> rule.value != 1
+            >>> mutation.apply(rule, rng)
+            >>> bool(rule.value != 1)
             True
         """
-        new_value = np.random.randint(self.num_literals)
+        new_value = rng.integers(self.num_literals)
         if new_value == rule.value:
             new_value = (new_value + 1) % self.num_literals
         rule.value = new_value
@@ -233,11 +250,13 @@ class PromoteLiteral(Mutation):
         - The `value` attribute of the promoted node is cleared (`None`) since it becomes an operator.
 
     Examples:
+        >>> from numpy.random import default_rng
         >>> from hgp_lib.mutations import PromoteLiteral
         >>> from hgp_lib.rules import Literal, And, Or
+        >>> rng = default_rng(42)
         >>> mutation = PromoteLiteral(num_literals=4)
         >>> rule = Literal(value=1, negated=False)
-        >>> mutation.apply(rule)
+        >>> mutation.apply(rule, rng)
         >>> len(rule)
         3
         >>> isinstance(rule, Or) or isinstance(rule, And)
@@ -257,7 +276,7 @@ class PromoteLiteral(Mutation):
         self.num_literals = num_literals
         self.operator_types: Tuple[Type[Rule], ...] = tuple(operator_types)
 
-    def apply(self, rule: Rule):
+    def apply(self, rule: Rule, rng: Generator):
         """
         Promotes a literal node into a randomly chosen operator (`And` or `Or`), creating two new literal subrules:
         one representing the old literal and another newly generated literal with a different value.
@@ -265,17 +284,21 @@ class PromoteLiteral(Mutation):
         Args:
             rule (Rule):
                 The literal rule to promote.
+            rng (Generator):
+                NumPy random Generator for reproducible randomness.
 
         Notes:
             - The transformation occurs inplace by reassigning `rule.__class__`.
             - The mutation randomizes negation for both the operator and the new literal.
 
         Examples:
+            >>> from numpy.random import default_rng
             >>> from hgp_lib.mutations import PromoteLiteral
             >>> from hgp_lib.rules import Literal
+            >>> rng = default_rng(42)
             >>> mutation = PromoteLiteral(num_literals=3)
             >>> rule = Literal(value=0, negated=True)
-            >>> mutation.apply(rule)
+            >>> mutation.apply(rule, rng)
             >>> len(rule)
             3
             >>> isinstance(rule, Or) or isinstance(rule, And)
@@ -283,13 +306,11 @@ class PromoteLiteral(Mutation):
             >>> rule.subrules[0]
             ~0
         """
-        rule.__class__ = random.choice(self.operator_types)  # Efficient class change
+        rule.__class__ = self.operator_types[rng.integers(len(self.operator_types))]  # Efficient class change
         negated = (
-            np.random.rand(2) < 0.5
+            rng.random(2) < 0.5
         )  # Creating negated flag for the new operator and the new literal
-        new_value = np.random.randint(
-            self.num_literals
-        )  # Creating value for new literal
+        new_value = rng.integers(self.num_literals)  # Creating value for new literal
         if new_value == rule.value:
             new_value = (new_value + 1) % self.num_literals
         rule.subrules = [
