@@ -37,7 +37,13 @@ def replace_with_rule(target: Rule, rule: Rule) -> None:
     """
     target.__class__ = rule.__class__
     target.value = rule.value
-    target.subrules = [s.copy(target) for s in rule.subrules]
+
+    # We don't need full copy, rule was already copied once
+    for s in rule.subrules:
+        s.parent = target
+    target.subrules = rule.subrules
+    # Should we delete the original subrules from target?
+
     target.negated = rule.negated
 
 

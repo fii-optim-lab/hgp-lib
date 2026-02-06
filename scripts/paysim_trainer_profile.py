@@ -128,6 +128,10 @@ def f1_score(y_pred, y_true, sample_weight=None):
     return 2 * tp / (y_pred_sum + y_true_sum)
 
 
+def is_valid(rule: Rule, max_rule_size: int) -> bool:
+    return len(rule) <= max_rule_size
+
+
 # ==============================================================================
 # DATA PREPROCESSING
 # ==============================================================================
@@ -331,6 +335,8 @@ def apply_timing_decorators() -> None:
     # Scoring function
     # global f1_score
     # f1_score = decorator(f1_score)
+    global is_valid
+    is_valid = decorator(is_valid)
 
     # GP algorithm core
     BooleanGP.step = decorator(BooleanGP.step)
@@ -428,10 +434,6 @@ def print_timing_results(measurements: Dict, args: argparse.Namespace) -> None:
 # ==============================================================================
 # RULE VALIDITY CHECK
 # ==============================================================================
-
-
-def is_valid(rule: Rule, max_rule_size: int) -> bool:
-    return len(rule) <= max_rule_size
 
 
 def create_validity_checker(max_rule_size: int):
