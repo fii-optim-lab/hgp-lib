@@ -440,8 +440,7 @@ class BooleanGP:
             # Non-root populations need reordering so top-K rules are at the front
             # for transfer to parent population during the next forward pass.
             if self.current_depth > 0:  # top_k must be positive if current_depth > 0
-                # TODO: Test against argpartition for speed
-                sorted_indices = np.argsort(-selected_scores)
+                sorted_indices = np.argpartition(-selected_scores, self._top_k)
                 self.population = [self.population[i] for i in sorted_indices]
         return metrics
 
