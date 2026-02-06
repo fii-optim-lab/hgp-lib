@@ -73,9 +73,10 @@ class GPBenchmarker:
         Returns:
             int: The number of parallel workers to use (always >= 1).
         """
-        if self.config.n_jobs < 0:
-            return os.cpu_count() or 1
-        return max(1, self.config.n_jobs)
+        n_jobs = self.config.n_jobs
+        if n_jobs < 0:
+            n_jobs = os.cpu_count() or 1
+        return max(1, min(n_jobs, self.config.num_runs))
 
     def _run_sequential(self) -> List[RunMetrics]:
         """Run all benchmark runs sequentially with nested progress bars."""
@@ -90,8 +91,9 @@ class GPBenchmarker:
             desc="Benchmark Runs",
             disable=not show_run_progress,
         ):
-            seed = self.config.base_seed + run_id
-            metrics = execute_single_run(run_id, seed, self.config)
+            metrics = execute_single_run(
+                run_id, self.config.base_seed + run_id, self.config
+            )
             run_metrics.append(metrics)
 
         return run_metrics
