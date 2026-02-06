@@ -82,14 +82,13 @@ class GPBenchmarker:
         """Run all benchmark runs sequentially with nested progress bars."""
         run_metrics: List[RunMetrics] = []
 
-        show_run_progress = (
-            self.config.show_run_progress and self.config.trainer_config.progress_bar
-        )
+        if self.config.show_run_progress:
+            self.config.trainer_config.leave_progress_bar = False
 
         for run_id in tqdm(
             range(self.config.num_runs),
             desc="Benchmark Runs",
-            disable=not show_run_progress,
+            disable=not self.config.show_run_progress,
         ):
             metrics = execute_single_run(
                 run_id, self.config.base_seed + run_id, self.config
