@@ -133,9 +133,9 @@ class TournamentSelection(BaseSelection):
         # pick tournament_size unique indices from [0, n) by selecting the
         # tournament_size smallest random keys per row.
         random_keys = np.random.random((n_select, n))
-        tournament_matrix = np.argpartition(random_keys, self.tournament_size, axis=1)[
-            :, : self.tournament_size
-        ]
+        tournament_matrix = np.argpartition(
+            random_keys, self.tournament_size - 1, axis=1
+        )[:, : self.tournament_size]
         tournament_matrix.sort(axis=1)
 
         # Select the winning rank from each tournament, then map to the

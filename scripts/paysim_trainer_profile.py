@@ -348,6 +348,7 @@ def apply_timing_decorators() -> None:
     CrossoverExecutor.crossover = decorator(CrossoverExecutor.crossover)
     MutationExecutor.apply = decorator(MutationExecutor.apply)
     MutationExecutor._mutate = decorator(MutationExecutor._mutate)
+    FeatureSamplingStrategy.sample = decorator(FeatureSamplingStrategy.sample)
 
     # Selection strategies
     TournamentSelection.select = decorator(TournamentSelection.select)
