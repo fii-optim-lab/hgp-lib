@@ -125,6 +125,7 @@ class TournamentSelection(BaseSelection):
         scores_array = np.asarray(scores)
         sorted_order = np.argsort(-scores_array)
 
+        # TODO: n_select can be given from init. And winning_seats can be batch generated
         winning_seats = np.random.choice(
             self.tournament_size, size=n_select, p=self.probs
         )
