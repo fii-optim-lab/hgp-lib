@@ -3,7 +3,7 @@ from typing import Callable
 
 from numpy import ndarray
 
-from ..utils.validation import check_isinstance, check_X_y
+from ..utils.validation import check_isinstance, check_X_y, validate_callable
 from .boolean_gp_config import BooleanGPConfig, validate_gp_config
 
 
@@ -19,6 +19,7 @@ class TrainerConfig:
         val_labels (ndarray | None): Validation labels; optional.
         val_every (int): Validate every N epochs.
         progress_bar (bool): Whether to show progress bar.
+        leave_progress_bar (bool): Whether to show progress bar.
         progress_callback (Callable[[int], None] | None): Optional callback for progress updates.
             Called every `progress_update_interval` epochs with the number of epochs completed.
             Useful for external progress tracking (e.g., multiprocessing progress bars).
@@ -44,6 +45,7 @@ class TrainerConfig:
     val_labels: ndarray | None = None
     val_every: int = 100
     progress_bar: bool = True
+    leave_progress_bar: bool = True
     progress_callback: Callable[[int], None] | None = None
     progress_update_interval: int = 100
 
@@ -86,3 +88,12 @@ def validate_trainer_config(config: TrainerConfig, require_data: bool = True) ->
         )
     if config.val_data is not None:
         check_X_y(config.val_data, config.val_labels)
+    check_isinstance(config.progress_bar, bool)
+    check_isinstance(config.leave_progress_bar, bool)
+    if config.progress_callback is not None:
+        validate_callable(
+            config.progress_callback, "progress_callback must be callable"
+        )
+    check_isinstance(config.progress_update_interval, int)
+    if config.progress_update_interval < 1:
+        raise ValueError("progress_update_interval must be a positive integer")

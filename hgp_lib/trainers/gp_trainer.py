@@ -60,6 +60,7 @@ class GPTrainer:
         self.num_epochs = config.num_epochs
         self.val_every = config.val_every
         self.progress_bar = config.progress_bar
+        self.leave_progress_bar = config.leave_progress_bar
         self.progress_callback = config.progress_callback
 
         self.score_fn = self.gp_algo.score_fn  # Maybe optimized
@@ -90,7 +91,7 @@ class GPTrainer:
             range(self.num_epochs),
             desc="Epochs",
             disable=not self.progress_bar,
-            leave=True if self.progress_callback is None else False,
+            leave=self.leave_progress_bar,
         ) as tbar:
             for epoch in tbar:
                 step_metrics = self.gp_algo.step()
