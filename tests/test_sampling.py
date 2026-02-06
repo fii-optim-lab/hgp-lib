@@ -297,8 +297,11 @@ class TestSamplingRandomized(unittest.TestCase):
             num_features = np.random.randint(4, 51)
             num_instances = np.random.randint(4, 101)
             num_children = np.random.randint(1, 11)
-            feature_fraction = np.random.uniform(0.1, 2.0)
             replace = np.random.choice([True, False])
+            # When replace=False, fraction must be <= 1.0 to avoid sample > population
+            feature_fraction = (
+                np.random.uniform(0.1, 2.0) if replace else np.random.uniform(0.1, 1.0)
+            )
 
             data = np.random.rand(num_instances, num_features) > 0.5
             labels = np.random.randint(0, 2, num_instances)
@@ -321,8 +324,11 @@ class TestSamplingRandomized(unittest.TestCase):
             num_features = np.random.randint(4, 51)
             num_instances = np.random.randint(4, 101)
             num_children = np.random.randint(1, 11)
-            instance_fraction = np.random.uniform(0.1, 2.0)
             replace = np.random.choice([True, False])
+            # When replace=False, fraction must be <= 1.0 to avoid sample > population
+            instance_fraction = (
+                np.random.uniform(0.1, 2.0) if replace else np.random.uniform(0.1, 1.0)
+            )
 
             data = np.random.rand(num_instances, num_features) > 0.5
             labels = np.random.randint(0, 2, num_instances)
@@ -345,9 +351,14 @@ class TestSamplingRandomized(unittest.TestCase):
             num_features = np.random.randint(4, 51)
             num_instances = np.random.randint(4, 101)
             num_children = np.random.randint(1, 11)
-            feature_fraction = np.random.uniform(0.1, 2.0)
-            instance_fraction = np.random.uniform(0.1, 2.0)
             replace = np.random.choice([True, False])
+            # When replace=False, fractions must be <= 1.0 to avoid sample > population
+            feature_fraction = (
+                np.random.uniform(0.1, 2.0) if replace else np.random.uniform(0.1, 1.0)
+            )
+            instance_fraction = (
+                np.random.uniform(0.1, 2.0) if replace else np.random.uniform(0.1, 1.0)
+            )
 
             data = np.random.rand(num_instances, num_features) > 0.5
             labels = np.random.randint(0, 2, num_instances)
@@ -372,8 +383,10 @@ class TestSamplingRandomized(unittest.TestCase):
             num_features = np.random.randint(4, 51)
             num_instances = np.random.randint(4, 101)
             num_children = np.random.randint(1, 11)
-            feature_fraction = np.random.uniform(0.1, 2.0)
             replace = np.random.choice([True, False])
+            feature_fraction = (
+                np.random.uniform(0.1, 2.0) if replace else np.random.uniform(0.1, 1.0)
+            )
 
             data = np.random.rand(num_instances, num_features) > 0.5
             labels = np.random.randint(0, 2, num_instances)
@@ -403,9 +416,13 @@ class TestSamplingRandomized(unittest.TestCase):
             num_features = np.random.randint(4, 51)
             num_instances = np.random.randint(4, 101)
             num_children = np.random.randint(1, 11)
-            feature_fraction = np.random.uniform(0.1, 2.0)
-            instance_fraction = np.random.uniform(0.1, 2.0)
             replace = np.random.choice([True, False])
+            feature_fraction = (
+                np.random.uniform(0.1, 2.0) if replace else np.random.uniform(0.1, 1.0)
+            )
+            instance_fraction = (
+                np.random.uniform(0.1, 2.0) if replace else np.random.uniform(0.1, 1.0)
+            )
 
             data = np.random.rand(num_instances, num_features) > 0.5
             labels = np.random.randint(0, 2, num_instances)

@@ -207,9 +207,8 @@ class FeatureSamplingStrategy(SamplingStrategy):
         # When fraction > 1.0, overlap is mandatory; otherwise use the replace parameter
         allow_overlap = self.replace or self.feature_fraction > 1.0
 
-        # Ensure sample_count doesn't exceed num_features when sampling without replacement
-        if not allow_overlap:
-            sample_count = min(sample_count, num_features)
+        # Ensure sample_count doesn't exceed num_features (can't sample more unique items than exist)
+        sample_count = min(sample_count, num_features)
 
         # Allocate features for all children
         feature_allocations = self._allocate_features(
@@ -355,9 +354,8 @@ class InstanceSamplingStrategy(SamplingStrategy):
         # When fraction > 1.0, overlap is mandatory; otherwise use the replace parameter
         allow_overlap = self.replace or self.instance_fraction > 1.0
 
-        # Ensure sample_count doesn't exceed num_instances when sampling without replacement
-        if not allow_overlap:
-            sample_count = min(sample_count, num_instances)
+        # Ensure sample_count doesn't exceed num_instances (can't sample more unique items than exist)
+        sample_count = min(sample_count, num_instances)
 
         # Allocate instances for all children
         instance_allocations = self._allocate_instances(
@@ -529,11 +527,9 @@ class CombinedSamplingStrategy(SamplingStrategy):
         feature_overlap = self.replace or self.feature_fraction > 1.0
         instance_overlap = self.replace or self.instance_fraction > 1.0
 
-        # Ensure sample_count doesn't exceed total when sampling without replacement
-        if not feature_overlap:
-            feature_count = min(feature_count, num_features)
-        if not instance_overlap:
-            instance_count = min(instance_count, num_instances)
+        # Ensure sample_count doesn't exceed total (can't sample more unique items than exist)
+        feature_count = min(feature_count, num_features)
+        instance_count = min(instance_count, num_instances)
 
         # Allocate features and instances for all children
         feature_allocations = self._allocate(
