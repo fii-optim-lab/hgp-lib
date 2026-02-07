@@ -103,14 +103,14 @@ class SamplingStrategy(ABC):
         return np.random.permutation(n)[: k * num_children].reshape(num_children, k)
 
     @staticmethod
-    def create_sampling_result(data, labels, feature_indices, instance_indices):
+    def create_sampling_result(data, labels, feature_indices: ndarray | None, instance_indices: ndarray | None):
         if instance_indices is not None:
             data = data[instance_indices]
             labels = labels[instance_indices]
         feature_mapping = None
         if feature_indices is not None:
             feature_mapping = {i: int(idx) for i, idx in enumerate(feature_indices)}
-            data = data[:feature_indices]
+            data = data[:, feature_indices]
 
         return SamplingResult(
             data=data,

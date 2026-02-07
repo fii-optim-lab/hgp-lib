@@ -153,12 +153,9 @@ class BooleanGP:
                 "Cannot create child populations without a sampling strategy"
             )
 
-        num_features = self.train_data.shape[1]
-
         results = self.config.sampling_strategy.sample(
             self.train_data,
             self.train_labels,
-            num_features,
             self.config.num_child_populations,
         )
 

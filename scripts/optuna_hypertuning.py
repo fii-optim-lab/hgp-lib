@@ -17,6 +17,7 @@ import argparse
 import logging
 import os
 import tempfile
+import traceback
 from pathlib import Path
 from typing import Any, Callable, Dict
 
@@ -105,11 +106,11 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
     params = {}
 
     # Base GP parameters
-    params["population_size"] = trial.suggest_int("population_size", 50, 250, step=25)
+    params["population_size"] = trial.suggest_int("population_size", 50, 200, step=25)
     params["mutation_probability"] = trial.suggest_float(
-        "mutation_probability", 0.001, 0.7
+        "mutation_probability", 0.001, 0.5, step=0.001
     )
-    params["crossover_rate"] = trial.suggest_float("crossover_rate", 0.1, 0.9)
+    params["crossover_rate"] = trial.suggest_float("crossover_rate", 0.1, 0.95, step=0.01)
     params["num_epochs"] = trial.suggest_int("num_epochs", 100, 5000, step=100)
 
     params["selection_type"] = trial.suggest_categorical(
@@ -117,37 +118,49 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
     )
     if params["selection_type"] == "tournament":
         params["tournament_size"] = trial.suggest_int("tournament_size", 2, 30)
-        params["selection_p"] = trial.suggest_float("selection_p", 0.1, 0.9)
+        params["selection_p"] = trial.suggest_float("selection_p", 0.1, 0.9, step=0.05)
 
     params["regeneration"] = trial.suggest_categorical("regeneration", [True, False])
     if params["regeneration"]:
         params["regeneration_patience"] = trial.suggest_int(
-            "regeneration_patience", 50, 500
+            "regeneration_patience", 50, params["num_epochs"] - 50, step=50
         )
 
     # Hierarchical GP parameters (num_child_populations=0 means no hierarchy)
     params["num_child_populations"] = trial.suggest_int("num_child_populations", 0, 5)
 
     if params["num_child_populations"] > 0:
-        params["max_depth"] = trial.suggest_int("max_depth", 1, 2)
+        params["max_depth"] = 1
         params["top_k_transfer"] = trial.suggest_int("top_k_transfer", 5, 50)
         params["feedback_type"] = trial.suggest_categorical(
             "feedback_type", ["additive", "multiplicative"]
         )
-        params["feedback_strength"] = trial.suggest_float("feedback_strength", 0.0, 1.0)
+        params["feedback_strength"] = trial.suggest_float("feedback_strength", 0.0, 1.0, step=0.001)
 
         params["sampling_strategy_type"] = trial.suggest_categorical(
             "sampling_strategy_type", ["feature", "instance", "combined"]
         )
+        params["use_replace"] = trial.suggest_categorical("use_replace", [True, False])
 
-        if params["sampling_strategy_type"] in ("feature", "combined"):
-            params["feature_fraction"] = trial.suggest_float(
-                "feature_fraction", 0.1, 5.0
-            )
-        if params["sampling_strategy_type"] in ("instance", "combined"):
-            params["instance_fraction"] = trial.suggest_float(
-                "instance_fraction", 0.1, 5.0
-            )
+        if not params["use_replace"]:
+            max_fraction = 1.0 / params["num_child_populations"]
+            if params["sampling_strategy_type"] in ("feature", "combined"):
+                params["feature_fraction"] = trial.suggest_float(
+                    "feature_fraction", 0.1, max_fraction
+                )
+            if params["sampling_strategy_type"] in ("instance", "combined"):
+                params["instance_fraction"] = trial.suggest_float(
+                    "instance_fraction", 0.1, max_fraction
+                )
+        else:
+            if params["sampling_strategy_type"] in ("feature", "combined"):
+                params["feature_fraction"] = trial.suggest_float(
+                    "feature_fraction", 0.1, 1.0
+                )
+            if params["sampling_strategy_type"] in ("instance", "combined"):
+                params["instance_fraction"] = trial.suggest_float(
+                    "instance_fraction", 0.1, 1.0
+                )
 
     return params
 
@@ -186,19 +199,21 @@ def build_config(
     # Sampling strategy for hierarchical GP
     sampling_strategy = None
     if params.get("num_child_populations", 0) > 0:
+        use_replace = params.get("use_replace", False)
         strategy_type = params.get("sampling_strategy_type", "feature")
         if strategy_type == "feature":
             sampling_strategy = FeatureSamplingStrategy(
-                feature_fraction=params.get("feature_fraction", 1.0)
+                feature_fraction=params.get("feature_fraction", 1.0), replace=use_replace
             )
         elif strategy_type == "instance":
             sampling_strategy = InstanceSamplingStrategy(
-                instance_fraction=params.get("instance_fraction", 1.0)
+                sample_fraction=params.get("instance_fraction", 1.0), replace=use_replace
             )
         else:
             sampling_strategy = CombinedSamplingStrategy(
                 feature_fraction=params.get("feature_fraction", 1.0),
-                instance_fraction=params.get("instance_fraction", 1.0),
+                sample_fraction=params.get("instance_fraction", 1.0),
+                replace=use_replace,
             )
 
     # Build configs
@@ -266,7 +281,7 @@ def create_objective(
             return result.mean_best_val_score
 
         except Exception as e:
-            logger.error(f"Trial {trial.number} failed: {e}")
+            logger.error(f"Trial {trial.number} failed: {traceback.format_exc()}")
             raise optuna.TrialPruned()
 
     return objective
