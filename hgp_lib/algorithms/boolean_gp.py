@@ -160,13 +160,13 @@ class BooleanGP:
         )
 
         for result in results:
-            num_sampled_features = len(result.feature_indices)
+            num_features = result.data.shape[1]
             child_generator = PopulationGenerator(
-                strategies=[RandomStrategy(num_literals=num_sampled_features)],
+                strategies=[RandomStrategy(num_literals=num_features)],
                 population_size=self.population_generator.population_size,
             )
             child_mutation_executor = create_mutation_executor(
-                num_literals=num_sampled_features,
+                num_literals=num_features,
                 check_valid=self.config.check_valid,
                 mutation_p=self.mutation_executor.mutation_p,
                 num_tries=self.mutation_executor.num_tries,

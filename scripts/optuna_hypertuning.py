@@ -334,7 +334,7 @@ def _save_trial_artifacts(
                 plt.close(fig)
                 upload_artifact(trial, epoch_path, artifact_store)
             except Exception as e:
-                logger.warning(
+                logger.error(
                     f"Trial {trial.number}: Failed to save epoch progression plot: {e}"
                 )
 

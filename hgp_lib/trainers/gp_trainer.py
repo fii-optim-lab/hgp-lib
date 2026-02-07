@@ -132,7 +132,7 @@ class GPTrainer:
                     val_epochs.append(
                         EpochMetrics(
                             epoch=epoch,
-                            best_score=val_metrics.best,
+                            best_score=val_best,
                             mean_score=float(np.mean(pop_scores)),
                             std_score=float(np.std(pop_scores)),
                             best_rule=val_metrics.best_rule,

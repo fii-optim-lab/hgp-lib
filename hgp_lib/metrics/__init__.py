@@ -23,7 +23,7 @@ class EpochMetrics:
     """
 
     epoch: int
-    best_score: float
+    best_score: float  # TODO: Rename to current_best
     mean_score: float
     std_score: float
     best_rule: Rule
