@@ -167,7 +167,7 @@ class FeatureSamplingStrategy(SamplingStrategy):
     """
 
     def __init__(self, feature_fraction: float = 1.0, replace: bool = False):
-        super().__init__(feature_fraction, replace)
+        super().__init__(feature_fraction=feature_fraction, replace=replace)
 
     def sample(
         self,
