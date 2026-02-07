@@ -73,7 +73,7 @@ def execute_single_run(
     fold_train_histories: List = []
     fold_val_histories: List = []
 
-    fold_splits = list(skf.split(train_data, train_labels))
+    fold_splits = skf.split(train_data, train_labels)
     if show_folds:
         fold_splits = tqdm(fold_splits, total=config.n_folds, desc="Folds", leave=False)
 
@@ -103,8 +103,6 @@ def execute_single_run(
 
         trainer = GPTrainer(fold_trainer_config)
         trainer_result = trainer.fit()
-
-        # Store training histories for this fold
         fold_train_histories.append(trainer_result.train_history)
         fold_val_histories.append(trainer_result.val_history)
 

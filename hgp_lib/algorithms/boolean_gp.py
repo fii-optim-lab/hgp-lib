@@ -67,6 +67,7 @@ class BooleanGP:
         train_labels = config.train_labels
         # TODO: We should add in documentation that our score_fn follows the sklearn
         #  standard of (predictions, labels) and sample_weight support is recommended for optimization.
+        # Careful! the sklearn pattern is labels, predictions!
 
         score_fn = config.score_fn
         self._original_score_fn = score_fn
@@ -134,6 +135,8 @@ class BooleanGP:
         self._transfer_size: int = 0
         self.parent_rule_indices: List[int] = []
 
+        # TODO: We should always have num_child_populations > 0 if max_depth si greater than 0.
+        # Check if this is true and add the check.
         if config.max_depth > current_depth and config.num_child_populations > 0:
             self._create_child_populations()
 
@@ -145,12 +148,13 @@ class BooleanGP:
         returned list is used to configure one child population.
         """
         if self.config.sampling_strategy is None:
+            # TODO: We should have checked this in the validate function for the config.
             raise RuntimeError(
                 "Cannot create child populations without a sampling strategy"
             )
+
         num_features = self.train_data.shape[1]
 
-        # Call sample() once for all children
         results = self.config.sampling_strategy.sample(
             self.train_data,
             self.train_labels,
@@ -158,7 +162,6 @@ class BooleanGP:
             self.config.num_child_populations,
         )
 
-        # Iterate through results to create each child
         for result in results:
             num_sampled_features = len(result.feature_indices)
             child_generator = PopulationGenerator(
