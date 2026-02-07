@@ -405,7 +405,8 @@ def main() -> None:
     existing_trials = study.trials
     if existing_trials:
         trials_with_artifacts = sum(
-            1 for t in existing_trials
+            1
+            for t in existing_trials
             if t.user_attrs.get("is_hierarchical") is not None
         )
         logger.info(
