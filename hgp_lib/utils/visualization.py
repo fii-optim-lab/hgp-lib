@@ -78,7 +78,6 @@ def plot_epoch_progression(
     return fig
 
 
-
 def plot_all_runs_progression(
     run_metrics: List[RunMetrics],
     best_run_idx: int,
@@ -188,9 +187,8 @@ def plot_hierarchical_progression(
     for child_idx in range(num_children):
         child_scores = []
         for epoch_metrics in train_history.epochs:
-            if (
-                epoch_metrics.children_best_scores is not None
-                and child_idx < len(epoch_metrics.children_best_scores)
+            if epoch_metrics.children_best_scores is not None and child_idx < len(
+                epoch_metrics.children_best_scores
             ):
                 child_scores.append(epoch_metrics.children_best_scores[child_idx])
             else:

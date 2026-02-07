@@ -110,7 +110,9 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
     params["mutation_probability"] = trial.suggest_float(
         "mutation_probability", 0.001, 0.5, step=0.001
     )
-    params["crossover_rate"] = trial.suggest_float("crossover_rate", 0.1, 0.95, step=0.01)
+    params["crossover_rate"] = trial.suggest_float(
+        "crossover_rate", 0.1, 0.95, step=0.01
+    )
     params["num_epochs"] = trial.suggest_int("num_epochs", 100, 5000, step=100)
 
     params["selection_type"] = trial.suggest_categorical(
@@ -135,7 +137,9 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
         params["feedback_type"] = trial.suggest_categorical(
             "feedback_type", ["additive", "multiplicative"]
         )
-        params["feedback_strength"] = trial.suggest_float("feedback_strength", 0.0, 1.0, step=0.001)
+        params["feedback_strength"] = trial.suggest_float(
+            "feedback_strength", 0.0, 1.0, step=0.001
+        )
 
         params["sampling_strategy_type"] = trial.suggest_categorical(
             "sampling_strategy_type", ["feature", "instance", "combined"]
@@ -203,11 +207,13 @@ def build_config(
         strategy_type = params.get("sampling_strategy_type", "feature")
         if strategy_type == "feature":
             sampling_strategy = FeatureSamplingStrategy(
-                feature_fraction=params.get("feature_fraction", 1.0), replace=use_replace
+                feature_fraction=params.get("feature_fraction", 1.0),
+                replace=use_replace,
             )
         elif strategy_type == "instance":
             sampling_strategy = InstanceSamplingStrategy(
-                sample_fraction=params.get("instance_fraction", 1.0), replace=use_replace
+                sample_fraction=params.get("instance_fraction", 1.0),
+                replace=use_replace,
             )
         else:
             sampling_strategy = CombinedSamplingStrategy(
@@ -280,7 +286,7 @@ def create_objective(
 
             return result.mean_best_val_score
 
-        except Exception as e:
+        except Exception:
             logger.error(f"Trial {trial.number} failed: {traceback.format_exc()}")
             raise optuna.TrialPruned()
 

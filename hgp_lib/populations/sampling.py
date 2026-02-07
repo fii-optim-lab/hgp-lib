@@ -103,7 +103,9 @@ class SamplingStrategy(ABC):
         return np.random.permutation(n)[: k * num_children].reshape(num_children, k)
 
     @staticmethod
-    def create_sampling_result(data, labels, feature_indices: ndarray | None, instance_indices: ndarray | None):
+    def create_sampling_result(
+        data, labels, feature_indices: ndarray | None, instance_indices: ndarray | None
+    ):
         if instance_indices is not None:
             data = data[instance_indices]
             labels = labels[instance_indices]

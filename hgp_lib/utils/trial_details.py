@@ -11,7 +11,6 @@ from typing import Dict, List
 import numpy as np
 
 from hgp_lib.metrics import BenchmarkResult, RunMetrics
-from hgp_lib.rules import Rule
 
 
 @dataclass
