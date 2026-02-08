@@ -153,7 +153,7 @@ class GPTrainer:
             self.progress_callback(remaining_epochs)
 
         train_history = TrainingHistory(epochs=train_epochs)
-        val_history = TrainingHistory(epochs=val_epochs) if val_epochs else None
+        val_history = TrainingHistory(epochs=val_epochs)
         best_rule = self.gp_algo.real_best_rule
         best_score = self.gp_algo.real_best_score
 

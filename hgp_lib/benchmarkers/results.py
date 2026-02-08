@@ -23,9 +23,9 @@ def aggregate_results(run_metrics: List[RunMetrics]) -> BenchmarkResult:
         >>> rule = Literal(value=0)
         >>> metrics = [
         ...     RunMetrics(run_id=0, seed=0, fold_train_scores=[0.7], fold_val_scores=[0.75],
-        ...                best_fold_idx=0, test_score=0.8, best_fold_val_score=0.75, best_rule=rule),
+        ...                best_fold_idx=0, test_score=0.8, best_fold_val_score=0.75, best_rule=rule, feature_names={}),
         ...     RunMetrics(run_id=1, seed=1, fold_train_scores=[0.8], fold_val_scores=[0.85],
-        ...                best_fold_idx=0, test_score=0.9, best_fold_val_score=0.85, best_rule=rule),
+        ...                best_fold_idx=0, test_score=0.9, best_fold_val_score=0.85, best_rule=rule, feature_names={}),
         ... ]
         >>> result = aggregate_results(metrics)
         >>> round(result.mean_test_score, 2)
@@ -36,6 +36,7 @@ def aggregate_results(run_metrics: List[RunMetrics]) -> BenchmarkResult:
     test_scores = [m.test_score for m in run_metrics]
     best_val_scores = [m.best_fold_val_score for m in run_metrics]
     all_best_rules = [m.best_rule for m in run_metrics]
+    feature_names_per_run = [m.feature_names for m in run_metrics]
 
     return BenchmarkResult(
         run_metrics=run_metrics,
@@ -45,4 +46,5 @@ def aggregate_results(run_metrics: List[RunMetrics]) -> BenchmarkResult:
         std_best_val_score=float(np.std(best_val_scores)),
         all_test_scores=test_scores,
         all_best_rules=all_best_rules,
+        feature_names_per_run=feature_names_per_run,
     )
