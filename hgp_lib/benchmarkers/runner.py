@@ -51,7 +51,7 @@ def execute_single_run(
     Returns:
         RunMetrics: Contains `run_id`, `seed`, `fold_train_scores`,
             `fold_val_scores`, `best_fold_idx`, `best_fold_val_score`,
-            `test_score`, `best_rule`, and `feature_names`.
+            `test_score`, `best_rule`, `feature_names`, `fold_train_histories`, `fold_val_histories`.
             See `RunMetrics` for detailed field descriptions.
 
     Raises:
@@ -84,6 +84,8 @@ def execute_single_run(
     fold_train_scores: List[float] = []
     fold_val_scores: List[float] = []
     fold_best_rules: List[Rule] = []
+    fold_train_histories: List = []
+    fold_val_histories: List = []
 
     fold_splits = skf.split(train_data, train_labels)
     if show_folds:
@@ -125,7 +127,9 @@ def execute_single_run(
         )
 
         trainer = GPTrainer(fold_trainer_config)
-        trainer.fit()
+        trainer_result = trainer.fit()
+        fold_train_histories.append(trainer_result.train_history)
+        fold_val_histories.append(trainer_result.val_history)
 
         train_metrics = trainer.gp_algo.validate_best(
             trainer.gp_algo.train_data,
@@ -184,6 +188,8 @@ def execute_single_run(
         best_fold_val_score=best_fold_val_score,
         test_score=test_score,
         best_rule=best_rule,
+        fold_train_histories=fold_train_histories,
+        fold_val_histories=fold_val_histories,
         feature_names=feature_names,
     )
 

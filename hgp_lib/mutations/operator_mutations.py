@@ -213,5 +213,4 @@ class AddLiteral(Mutation):
         random_shot = np.random.randint(self.num_literals)
         if random_shot in existing_rules:
             random_shot = random.choice(tuple(self.available_literals - existing_rules))
-
         rule.subrules.append(Literal(None, rule, random_shot, random.random() < 0.5))

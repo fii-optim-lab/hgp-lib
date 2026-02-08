@@ -7,10 +7,12 @@ data and features when creating child populations in hierarchical GP.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from math import ceil
-from typing import Dict
+from typing import Dict, List
 
 import numpy as np
 from numpy import ndarray
+
+from hgp_lib.utils.validation import check_isinstance
 
 
 # TODO: Add tests for this module
@@ -54,6 +56,9 @@ class SamplingStrategy(ABC):
     Sampling strategies define how to select subsets of data and/or features
     for child populations in hierarchical GP.
 
+    Args:
+        # TODO: Write documentation about feature_fraction, sample_fraction, and replace
+
     Attributes:
         MIN_FEATURES: Minimum number of features required in sampled result.
         MIN_INSTANCES: Minimum number of instances required in sampled result.
@@ -62,24 +67,78 @@ class SamplingStrategy(ABC):
     MIN_FEATURES = 2
     MIN_INSTANCES = 2
 
+    def __init__(
+        self,
+        feature_fraction: float = 1.0,
+        sample_fraction: float = 1.0,
+        replace: bool = False,
+    ):
+        check_isinstance(feature_fraction, float)
+        check_isinstance(sample_fraction, float)
+        check_isinstance(replace, bool)
+
+        if feature_fraction <= 0 or feature_fraction > 1:
+            raise ValueError(
+                f"feature_fraction must be in (0, 1], is {feature_fraction}"
+            )
+        if sample_fraction <= 0 or sample_fraction > 1:
+            raise ValueError(f"sample_fraction must be in (0, 1], is {sample_fraction}")
+
+        self.feature_fraction = feature_fraction
+        self.sample_fraction = sample_fraction
+        self.replace = replace
+
+        self.add_feature_mapping = feature_fraction != 1.0
+
+    def allocate_indices_to_children(self, k: int, n: int, num_children: int):
+        # TODO: Write documentation
+        if self.replace:
+            return [
+                np.random.choice(n, size=k, replace=False) for _ in range(num_children)
+            ]
+        if k * num_children > n:
+            raise RuntimeError(
+                f"Can't allocate {k} indices to {num_children} children from total {n} when replace is False"
+            )
+        return np.random.permutation(n)[: k * num_children].reshape(num_children, k)
+
+    @staticmethod
+    def create_sampling_result(
+        data, labels, feature_indices: ndarray | None, instance_indices: ndarray | None
+    ):
+        if instance_indices is not None:
+            data = data[instance_indices]
+            labels = labels[instance_indices]
+        feature_mapping = None
+        if feature_indices is not None:
+            feature_mapping = {i: int(idx) for i, idx in enumerate(feature_indices)}
+            data = data[:, feature_indices]
+
+        return SamplingResult(
+            data=data,
+            labels=labels,
+            feature_mapping=feature_mapping,
+            # TODO: Do we really need feature indices and instance indices here
+            feature_indices=feature_indices,
+            instance_indices=instance_indices,
+        )
+
     @abstractmethod
     def sample(
         self,
         data: ndarray,
         labels: ndarray,
-        num_features: int,
         num_children: int,
-    ) -> SamplingResult:
-        """Sample data and/or features from the training set.
+    ) -> List[SamplingResult]:
+        """Sample data and/or features for child populations.
 
         Args:
             data: Training data as 2D boolean array (instances x features).
             labels: Training labels as 1D integer array.
-            num_features: Total number of features in the data.
-            num_children: Number of child populations being created.
+            num_children: Number of child populations to create.
 
         Returns:
-            SamplingResult containing sampled data, labels, and index mappings.
+            List of SamplingResult, one per child (exactly `num_children` elements).
         """
         pass
 
@@ -87,184 +146,118 @@ class SamplingStrategy(ABC):
 class FeatureSamplingStrategy(SamplingStrategy):
     """Samples a subset of features from the training data.
 
-    The number of features sampled is calculated as:
-        base_count = ceil(num_features / num_children)
-        sample_count = max(MIN_FEATURES, ceil(base_count * feature_fraction))
+    # TODO: Write documentation
 
-    Replacement behavior:
-        - When feature_fraction > 1.0: always samples WITH replacement
-        - When feature_fraction <= 1.0: uses the `replace` parameter (default: False)
+    Overlap behavior (controlled by `replace` parameter):
+        - replace=False: No overlap between children (partitioning) - each feature
+          appears in at most one child population
+        - replace=True: Overlap allowed - features can appear in multiple children
 
-    Args:
-        feature_fraction: Multiplier for base sample count. Default: 1.0.
-            - 1.0: Each child gets ~(num_features / num_children) features
-            - >1.0: More features per child, with replacement (overlap)
-            - <1.0: Fewer features per child
-        replace: Whether to sample with replacement when feature_fraction <= 1.0.
-            Default: False. Ignored when feature_fraction > 1.0 (always True).
+    Within each child, features are always unique (no duplicates within a single child).
 
     Examples:
         >>> import numpy as np
-        >>> strategy = FeatureSamplingStrategy(feature_fraction=1.0)
+        >>> np.random.seed(42)
+        >>> strategy = FeatureSamplingStrategy(feature_fraction=0.5)
         >>> data = np.random.rand(100, 10) > 0.5
         >>> labels = np.random.randint(0, 2, 100)
-        >>> result = strategy.sample(data, labels, num_features=10, num_children=3)
-        >>> len(result.feature_indices)  # ~ceil(10/3) = 4 features
-        4
+        >>> results = strategy.sample(data, labels, num_features=10, num_children=3)
+        >>> len(results)
+        3
+        >>> len(results[0].feature_indices)
+        5
     """
 
     def __init__(self, feature_fraction: float = 1.0, replace: bool = False):
-        """Initialize FeatureSamplingStrategy.
-
-        Args:
-            feature_fraction: Multiplier for base sample count. Must be > 0.
-            replace: Whether to sample with replacement when feature_fraction <= 1.0.
-
-        Raises:
-            ValueError: If feature_fraction is <= 0.
-        """
-        if feature_fraction <= 0:
-            raise ValueError("feature_fraction must be > 0")
-        self.feature_fraction = feature_fraction
-        self.replace = replace
+        super().__init__(feature_fraction=feature_fraction, replace=replace)
 
     def sample(
         self,
         data: ndarray,
         labels: ndarray,
-        num_features: int,
         num_children: int,
-    ) -> SamplingResult:
-        """Sample a subset of features from the training data.
+    ) -> List[SamplingResult]:
+        """Sample features for child populations.
 
         Args:
             data: Training data as 2D boolean array (instances x features).
             labels: Training labels as 1D integer array.
-            num_features: Total number of features in the data.
-            num_children: Number of child populations being created.
+            num_children: Number of child populations to create.
 
         Returns:
-            SamplingResult with sampled feature columns, all instances preserved,
-            and instance_indices set to None.
+            List of SamplingResult, one per child, with sampled feature columns,
+            all instances preserved, and instance_indices set to None.
         """
-        base_count = ceil(num_features / num_children)
-        sample_count = max(self.MIN_FEATURES, ceil(base_count * self.feature_fraction))
-
-        # When fraction > 1.0, replacement is mandatory; otherwise use the parameter
-        use_replace = True if self.feature_fraction > 1.0 else self.replace
-        if not use_replace:
-            sample_count = min(sample_count, num_features)
-
-        feature_indices = np.random.choice(
-            num_features,
-            size=sample_count,
-            replace=use_replace,
+        num_features = data.shape[1]
+        features_per_child = ceil(num_features * self.feature_fraction)
+        if features_per_child < self.MIN_FEATURES:
+            raise ValueError(
+                f"Cannot sample less than {self.MIN_FEATURES} features. "
+                f"There are only {num_features} features and feature_fraction is {self.feature_fraction}!"
+            )
+        feature_allocation = self.allocate_indices_to_children(
+            features_per_child, num_features, num_children
         )
 
-        sampled_data = data[:, feature_indices]
-
-        return SamplingResult(
-            data=sampled_data,
-            labels=labels,
-            feature_indices=feature_indices,
-            instance_indices=None,
-            feature_mapping={
-                position: feature_index
-                for position, feature_index in enumerate(feature_indices)
-            },
-        )
+        return [
+            self.create_sampling_result(data, labels, feature_indices, None)
+            for feature_indices in feature_allocation
+        ]
 
 
 class InstanceSamplingStrategy(SamplingStrategy):
     """Samples a subset of instances from the training data.
 
-    The number of instances sampled is calculated as:
-        base_count = ceil(num_instances / num_children)
-        sample_count = max(MIN_INSTANCES, ceil(base_count * instance_fraction))
-
-    Replacement behavior:
-        - When instance_fraction > 1.0: always samples WITH replacement
-        - When instance_fraction <= 1.0: uses the `replace` parameter (default: False)
-
-    Args:
-        instance_fraction: Multiplier for base sample count. Default: 1.0.
-            - 1.0: Each child gets ~(num_instances / num_children) instances
-            - >1.0: More instances per child, with replacement (overlap)
-            - <1.0: Fewer instances per child
-        replace: Whether to sample with replacement when instance_fraction <= 1.0.
-            Default: False. Ignored when instance_fraction > 1.0 (always True).
+    # TODO: Write documentation
 
     Examples:
         >>> import numpy as np
-        >>> strategy = InstanceSamplingStrategy(instance_fraction=1.0)
+        >>> np.random.seed(42)
+        >>> strategy = InstanceSamplingStrategy(instance_fraction=0.8)
         >>> data = np.random.rand(100, 10) > 0.5
         >>> labels = np.random.randint(0, 2, 100)
-        >>> result = strategy.sample(data, labels, num_features=10, num_children=3)
-        >>> len(result.instance_indices)  # ~ceil(100/3) = 34 instances
-        34
+        >>> results = strategy.sample(data, labels, num_features=10, num_children=3)
+        >>> len(results)
+        3
+        >>> len(results[0].instance_indices)
+        80
     """
 
-    def __init__(self, instance_fraction: float = 1.0, replace: bool = False):
-        """Initialize InstanceSamplingStrategy.
-
-        Args:
-            instance_fraction: Multiplier for base sample count. Must be > 0.
-            replace: Whether to sample with replacement when instance_fraction <= 1.0.
-
-        Raises:
-            ValueError: If instance_fraction is <= 0.
-        """
-        if instance_fraction <= 0:
-            raise ValueError("instance_fraction must be > 0")
-        self.instance_fraction = instance_fraction
-        self.replace = replace
+    def __init__(self, sample_fraction: float = 1.0, replace: bool = False):
+        super().__init__(sample_fraction=sample_fraction, replace=replace)
 
     def sample(
         self,
         data: ndarray,
         labels: ndarray,
-        num_features: int,
         num_children: int,
-    ) -> SamplingResult:
-        """Sample a subset of instances from the training data.
+    ) -> List[SamplingResult]:
+        """Sample instances for child populations.
 
         Args:
             data: Training data as 2D boolean array (instances x features).
             labels: Training labels as 1D integer array.
-            num_features: Total number of features in the data.
-            num_children: Number of child populations being created.
+            num_children: Number of child populations to create.
 
         Returns:
-            SamplingResult with sampled instance rows, all features preserved,
-            and feature_indices containing all original indices.
+            List of SamplingResult, one per child, with sampled instance rows,
+            all features preserved, and feature_mapping set to None.
         """
         num_instances = len(data)
-        base_count = ceil(num_instances / num_children)
-        sample_count = max(
-            self.MIN_INSTANCES, ceil(base_count * self.instance_fraction)
+        samples_per_child = ceil(num_instances * self.sample_fraction)
+        if samples_per_child < self.MIN_INSTANCES:
+            raise ValueError(
+                f"Cannot sample less than {self.MIN_INSTANCES} instances. "
+                f"There are only {num_instances} instances and sample_fraction is {self.sample_fraction}!"
+            )
+        sample_allocation = self.allocate_indices_to_children(
+            samples_per_child, num_instances, num_children
         )
 
-        # When fraction > 1.0, replacement is mandatory; otherwise use the parameter
-        use_replace = True if self.instance_fraction > 1.0 else self.replace
-        if not use_replace:
-            sample_count = min(sample_count, num_instances)
-
-        instance_indices = np.random.choice(
-            num_instances,
-            size=sample_count,
-            replace=use_replace,
-        )
-
-        sampled_data = data[instance_indices, :]
-        sampled_labels = labels[instance_indices]
-
-        return SamplingResult(
-            data=sampled_data,
-            labels=sampled_labels,
-            feature_indices=np.arange(num_features),
-            instance_indices=instance_indices,
-            feature_mapping=None,
-        )
+        return [
+            self.create_sampling_result(data, labels, None, sample_indices)
+            for sample_indices in sample_allocation
+        ]
 
 
 class CombinedSamplingStrategy(SamplingStrategy):
@@ -273,118 +266,74 @@ class CombinedSamplingStrategy(SamplingStrategy):
     Applies both feature sampling and instance sampling to create
     child populations with reduced feature and instance sets.
 
-    The number of features sampled is calculated as:
-        base_count = ceil(num_features / num_children)
-        sample_count = max(MIN_FEATURES, ceil(base_count * feature_fraction))
-
-    The number of instances sampled is calculated as:
-        base_count = ceil(num_instances / num_children)
-        sample_count = max(MIN_INSTANCES, ceil(base_count * instance_fraction))
-
-    Replacement behavior for both dimensions:
-        - When fraction > 1.0: always samples WITH replacement
-        - When fraction <= 1.0: samples WITHOUT replacement
-
     Args:
         feature_fraction: Multiplier for feature sample count. Default: 1.0.
         instance_fraction: Multiplier for instance sample count. Default: 1.0.
+        replace: Whether to allow overlap between children when fractions <= 1.0.
+            Default: False. Ignored for a dimension when its fraction > 1.0 (always True).
 
     Examples:
         >>> import numpy as np
+        >>> np.random.seed(42)
         >>> strategy = CombinedSamplingStrategy(
-        ...     feature_fraction=1.0,
-        ...     instance_fraction=1.0
+        ...     feature_fraction=0.5,
+        ...     instance_fraction=0.5,
+        ...     replace=False
         ... )
         >>> data = np.random.rand(100, 10) > 0.5
         >>> labels = np.random.randint(0, 2, 100)
-        >>> result = strategy.sample(data, labels, num_features=10, num_children=3)
-        >>> result.data.shape  # (~34 instances, ~4 features)
-        (34, 4)
+        >>> results = strategy.sample(data, labels, num_features=10, num_children=3)
+        >>> len(results)
+        3
+        >>> results[0].data.shape
+        (50, 5)
     """
-
-    def __init__(
-        self,
-        feature_fraction: float = 1.0,
-        instance_fraction: float = 1.0,
-    ):
-        """Initialize CombinedSamplingStrategy.
-
-        Args:
-            feature_fraction: Multiplier for feature sample count. Must be > 0.
-            instance_fraction: Multiplier for instance sample count. Must be > 0.
-
-        Raises:
-            ValueError: If feature_fraction or instance_fraction is <= 0.
-        """
-        if feature_fraction <= 0:
-            raise ValueError("feature_fraction must be > 0")
-        if instance_fraction <= 0:
-            raise ValueError("instance_fraction must be > 0")
-        self.feature_fraction = feature_fraction
-        self.instance_fraction = instance_fraction
 
     def sample(
         self,
         data: ndarray,
         labels: ndarray,
-        num_features: int,
         num_children: int,
-    ) -> SamplingResult:
-        """Sample both features and instances from the training data.
+    ) -> List[SamplingResult]:
+        """Sample both features and instances for all children at once.
 
         Args:
             data: Training data as 2D boolean array (instances x features).
             labels: Training labels as 1D integer array.
-            num_features: Total number of features in the data.
-            num_children: Number of child populations being created.
+            num_children: Number of child populations to create.
 
         Returns:
-            SamplingResult with both feature and instance subsets applied,
-            containing both feature_indices and instance_indices.
+            List of SamplingResult, one per child, with both feature and instance
+            subsets applied, containing both feature_indices and instance_indices.
         """
-        num_instances = len(data)
-
-        # Feature sampling
-        feature_base = ceil(num_features / num_children)
-        feature_count = max(
-            self.MIN_FEATURES, ceil(feature_base * self.feature_fraction)
+        num_instances, num_features = data.shape
+        samples_per_child = ceil(num_instances * self.sample_fraction)
+        features_per_child = ceil(num_features * self.feature_fraction)
+        if samples_per_child < self.MIN_INSTANCES:
+            raise ValueError(
+                f"Cannot sample less than {self.MIN_INSTANCES} instances. "
+                f"There are only {num_instances} instances and sample_fraction is {self.sample_fraction}!"
+            )
+        if features_per_child < self.MIN_FEATURES:
+            raise ValueError(
+                f"Cannot sample less than {self.MIN_FEATURES} features. "
+                f"There are only {num_features} features and feature_fraction is {self.feature_fraction}!"
+            )
+        sample_allocation = self.allocate_indices_to_children(
+            samples_per_child, num_instances, num_children
         )
-        feature_replace = self.feature_fraction > 1.0
-        if not feature_replace:
-            feature_count = min(feature_count, num_features)
-
-        feature_indices = np.random.choice(
-            num_features,
-            size=feature_count,
-            replace=feature_replace,
-        )
-
-        # Instance sampling
-        instance_base = ceil(num_instances / num_children)
-        instance_count = max(
-            self.MIN_INSTANCES, ceil(instance_base * self.instance_fraction)
-        )
-        instance_replace = self.instance_fraction > 1.0
-        if not instance_replace:
-            instance_count = min(instance_count, num_instances)
-
-        instance_indices = np.random.choice(
-            num_instances,
-            size=instance_count,
-            replace=instance_replace,
+        feature_allocation = self.allocate_indices_to_children(
+            features_per_child, num_features, num_children
         )
 
-        # Use np.ix_ for 2D indexing
-        sampled_data = data[np.ix_(instance_indices, feature_indices)]
-        sampled_labels = labels[instance_indices]
-
-        return SamplingResult(
-            data=sampled_data,
-            labels=sampled_labels,
-            feature_indices=feature_indices,
-            instance_indices=instance_indices,
-            feature_mapping={
-                position: feature_index
-                for position, feature_index in enumerate(feature_indices)
-            },
-        )
+        return [
+            self.create_sampling_result(
+                data,
+                labels,
+                feature_indices,
+                sample_indices,
+            )
+            for sample_indices, feature_indices in zip(
+                sample_allocation, feature_allocation
+            )
+        ]

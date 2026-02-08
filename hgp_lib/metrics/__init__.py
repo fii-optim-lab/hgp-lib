@@ -17,14 +17,18 @@ class EpochMetrics:
         std_score (float): Standard deviation of population scores.
         best_rule (Rule): Best rule in this epoch.
         regenerated (bool): Whether population was regenerated this step.
+        children_best_scores (List[float] | None): Best scores from each child
+            population at this epoch. Only populated for hierarchical GP runs
+            where num_child_populations > 0. None for non-hierarchical runs.
     """
 
     epoch: int
-    best_score: float
+    best_score: float  # TODO: Rename to current_best
     mean_score: float
     std_score: float
     best_rule: Rule
     regenerated: bool = False
+    children_best_scores: List[float] | None = None
 
 
 @dataclass
@@ -132,13 +136,13 @@ class TrainerResult:
     Metrics returned by the trainer after fitting.
     Attributes:
         train_history (TrainingHistory): Per-epoch training metrics.
-        val_history (TrainingHistory | None): Per-validation-step metrics, or None if no validation.
+        val_history (TrainingHistory): Per-validation-step metrics.
         best_rule (Rule): Best rule found during training.
         best_score (float): Best fitness score achieved.
     """
 
     train_history: TrainingHistory
-    val_history: TrainingHistory | None
+    val_history: TrainingHistory
     best_rule: Rule
     best_score: float
 
@@ -160,6 +164,10 @@ class RunMetrics:
         feature_names (Dict[int, str]): Mapping from literal indices to the
             binarized column names produced by the best fold's binarizer.
             Use with `rule.to_str(feature_names)` for human-readable output.
+        fold_train_histories (List[TrainingHistory]): Epoch-level training
+            metrics for each fold.
+        fold_val_histories (List[TrainingHistory]): Epoch-level
+            validation metrics for each fold.
     """
 
     run_id: int
@@ -171,6 +179,22 @@ class RunMetrics:
     test_score: float
     best_rule: Rule
     feature_names: Dict[int, str]
+    fold_train_histories: List[TrainingHistory] | None
+    fold_val_histories: List[TrainingHistory | None] | None
+
+    @property
+    def train_history(self) -> TrainingHistory | None:
+        """Training history for the best fold."""
+        if self.fold_train_histories is None:
+            return None
+        return self.fold_train_histories[self.best_fold_idx]
+
+    @property
+    def val_history(self) -> TrainingHistory | None:
+        """Validation history for the best fold."""
+        if self.fold_val_histories is None:
+            return None
+        return self.fold_val_histories[self.best_fold_idx]
 
 
 @dataclass

@@ -8,9 +8,9 @@ from ..configs import BooleanGPConfig, validate_gp_config
 from ..crossover import CrossoverExecutor
 from ..metrics import StepMetrics, ValidateBestMetrics, ValidatePopulationMetrics
 from ..mutations import (
-    create_mutation_executor,
+    create_default_mutation_executor,
 )
-from ..populations import PopulationGenerator, RandomStrategy
+from ..populations.populations_factory import create_default_population_generator
 from ..rules import Rule
 from ..selections import TournamentSelection
 from ..utils.metrics import optimize_scorer_for_data
@@ -67,6 +67,7 @@ class BooleanGP:
         train_labels = config.train_labels
         # TODO: We should add in documentation that our score_fn follows the sklearn
         #  standard of (predictions, labels) and sample_weight support is recommended for optimization.
+        # Careful! the sklearn pattern is labels, predictions!
 
         score_fn = config.score_fn
         self._original_score_fn = score_fn
@@ -83,18 +84,21 @@ class BooleanGP:
         self.current_depth = current_depth
         num_features = train_data.shape[1]
 
-        population_generator = config.population_generator
-        if population_generator is None:
-            # TODO: We should rethink a system that is easy to initialize for both the user and child populations:
-            # Maybe a common configuration for all strategies? This should be analyzed further
-            random_strategy = RandomStrategy(num_literals=num_features)
-            population_generator = PopulationGenerator(strategies=[random_strategy])
+        population_generator_fn = (
+            config.population_generator_fn or create_default_population_generator
+        )
+        population_generator = population_generator_fn(
+            config.population_size, num_features, score_fn, train_data, train_labels
+        )
 
-        mutation_executor = config.mutation_executor
-        if mutation_executor is None:
-            mutation_executor = create_mutation_executor(
-                num_literals=num_features, check_valid=config.check_valid
-            )
+        mutation_executor_fn = (
+            config.mutation_executor_fn or create_default_mutation_executor
+        )
+        mutation_executor = mutation_executor_fn(
+            num_literals=num_features,
+            mutation_p=config.mutation_p,
+            check_valid=config.check_valid,
+        )
 
         crossover_executor = config.crossover_executor
         if crossover_executor is None:
@@ -134,40 +138,35 @@ class BooleanGP:
         self._transfer_size: int = 0
         self.parent_rule_indices: List[int] = []
 
+        # TODO: We should always have num_child_populations > 0 if max_depth si greater than 0.
+        # Check if this is true and add the check.
         if config.max_depth > current_depth and config.num_child_populations > 0:
             self._create_child_populations()
 
     def _create_child_populations(self) -> None:
-        """Create child populations using the sampling strategy."""
+        """Create child populations using the sampling strategy.
+
+        Calls sample() once for all children to ensure correct overlap/partitioning
+        behavior controlled by the replace parameter. Each SamplingResult in the
+        returned list is used to configure one child population.
+        """
         if self.config.sampling_strategy is None:
+            # TODO: We should have checked this in the validate function for the config.
             raise RuntimeError(
                 "Cannot create child populations without a sampling strategy"
             )
-        num_features = self.train_data.shape[1]
-        for _ in range(self.config.num_child_populations):
-            result = self.config.sampling_strategy.sample(
-                self.train_data,
-                self.train_labels,
-                num_features,
-                self.config.num_child_populations,
-            )
-            num_sampled_features = len(result.feature_indices)
-            child_generator = PopulationGenerator(
-                strategies=[RandomStrategy(num_literals=num_sampled_features)],
-                population_size=self.population_generator.population_size,
-            )
-            child_mutation_executor = create_mutation_executor(
-                num_literals=num_sampled_features,
-                check_valid=self.config.check_valid,
-                mutation_p=self.mutation_executor.mutation_p,
-                num_tries=self.mutation_executor.num_tries,
-            )
+
+        results = self.config.sampling_strategy.sample(
+            self.train_data,
+            self.train_labels,
+            self.config.num_child_populations,
+        )
+
+        for result in results:
             child_config = replace(
                 self.config,
                 train_data=result.data,
                 train_labels=result.labels,
-                population_generator=child_generator,
-                mutation_executor=child_mutation_executor,
             )
             child = BooleanGP(child_config, current_depth=self.current_depth + 1)
             child.feature_mapping = result.feature_mapping
