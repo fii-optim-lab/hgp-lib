@@ -1,4 +1,5 @@
 import random
+from copy import deepcopy
 from dataclasses import replace
 from functools import partial
 from multiprocessing import Queue
@@ -24,20 +25,34 @@ def execute_single_run(
     progress_queue: Optional[Queue] = None,
 ) -> RunMetrics:
     """
-    Execute one benchmark run: stratified train/test split, k-fold CV, select best fold, test.
+    Execute one benchmark run: stratified train/test split, per-fold binarization,
+    k-fold CV training, best-fold selection, and test-set evaluation.
 
-    This is a module-level function so it can be pickled for process_map.
+    This is a module-level function so it can be pickled for `multiprocessing`.
+
+    **Per-fold binarization:** For each fold a fresh `deepcopy` of the configured
+    binarizer is fitted on the training fold (with labels, enabling supervised
+    binning for numerical features) and used to transform the validation fold.
+    After selecting the best fold, its binarizer transforms the held-out test
+    data. This prevents data leakage across folds and between train/test sets.
+
+    The resulting `RunMetrics` includes `feature_names`, a `Dict[int, str]`
+    mapping literal indices to binarized column names for the best fold's
+    binarizer. This enables human-readable display of the best rule.
 
     Args:
         run_id (int): Index of the run (0-based).
         seed (int): Random seed for stratified split and k-fold.
-        config (BenchmarkerConfig): Configuration for the benchmark run.
+        config (BenchmarkerConfig): Configuration for the benchmark run. See `BenchmarkerConfig` for more details.
         progress_queue (Queue | None): Optional queue for sending progress updates
             to the main process. When provided, local progress bars are disabled
             and progress is sent via the queue instead. Default: `None`.
 
     Returns:
-        RunMetrics: Metrics for the run including fold scores, best rule, and validation score.
+        RunMetrics: Contains `run_id`, `seed`, `fold_train_scores`,
+            `fold_val_scores`, `best_fold_idx`, `best_fold_val_score`,
+            `test_score`, `best_rule`, and `feature_names`.
+            See `RunMetrics` for detailed field descriptions.
 
     Raises:
         RuntimeError: If no best rule is available after training a fold.
@@ -77,11 +92,22 @@ def execute_single_run(
     epoch_callback = (
         partial(send_progress, progress_queue, "epoch") if use_queue else None
     )
+    binarizers = []
+    feature_names_per_binarizer = []
 
     for train_idx, val_idx in fold_splits:
-        fold_train = train_data[train_idx]
-        fold_val = train_data[val_idx]
+        fold_train = train_data.iloc[train_idx]
         fold_train_labels = train_labels[train_idx]
+
+        binarizer = deepcopy(config.binarizer)
+        fold_train = binarizer.fit_transform(fold_train, fold_train_labels)
+        binarizers.append(binarizer)
+        feature_names_per_binarizer.append(
+            {i: col for i, col in enumerate(fold_train.columns)}
+        )
+        fold_train = fold_train.to_numpy(dtype=bool)
+
+        fold_val = binarizer.transform(train_data.iloc[val_idx]).to_numpy(dtype=bool)
         fold_val_labels = train_labels[val_idx]
 
         fold_gp_config = replace(
@@ -129,6 +155,11 @@ def execute_single_run(
     best_fold_idx = int(np.argmax(fold_val_scores))
     best_fold_val_score = fold_val_scores[best_fold_idx]
     best_rule = fold_best_rules[best_fold_idx]
+    del train_data, train_labels
+
+    binarizer_here = binarizers[best_fold_idx]
+    feature_names = feature_names_per_binarizer[best_fold_idx]
+    test_data = binarizer_here.transform(test_data).to_numpy(dtype=bool)
 
     if gp_template.optimize_scorer:
         test_score_fn, test_data_opt, test_labels_opt = optimize_scorer_for_data(
@@ -153,6 +184,7 @@ def execute_single_run(
         best_fold_val_score=best_fold_val_score,
         test_score=test_score,
         best_rule=best_rule,
+        feature_names=feature_names,
     )
 
 

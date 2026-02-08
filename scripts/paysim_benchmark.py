@@ -49,7 +49,6 @@ Requires preprocessed PaySim data in HDF format at data/PaySim.hdf
 
 import argparse
 from functools import partial
-import gc
 
 import numpy as np
 import pandas as pd
@@ -108,21 +107,7 @@ def f1_score(y_pred, y_true, sample_weight=None):
 # ==============================================================================
 
 
-def load_and_binarize_paysim(hdf_path: str, num_bins: int = 5):
-    """
-    Load PaySim data and binarize features.
-
-    The binarization converts continuous features into boolean features using
-    dt-based binning. Each original feature becomes `num_bins` boolean
-    features indicating which bin the value falls into.
-
-    Args:
-        hdf_path: Path to the preprocessed PaySim HDF file
-        num_bins: Number of bins for binarization
-
-    Returns:
-        Tuple of (data, labels, feature_names)
-    """
+def load_paysim(hdf_path: str):
     print(f"Loading data from {hdf_path}...")
     df: pd.DataFrame = pd.read_hdf(hdf_path)
 
@@ -141,19 +126,7 @@ def load_and_binarize_paysim(hdf_path: str, num_bins: int = 5):
     print(f"Loaded {len(data)} samples, {len(data.columns)} features")
     print(f"Fraud rate: {labels.mean():.4f} ({labels.sum()} fraud cases)")
 
-    # Binarize features using quantile-based binning
-    print(f"\nBinarizing features (num_bins={num_bins})...")
-    binarizer = StandardBinarizer(num_bins=num_bins)
-    data_bin = binarizer.fit_transform(data, labels)
-    feature_names = {i: col for i, col in enumerate(data_bin.columns)}
-
-    print(f"Binarized: {data_bin.shape[1]} features (from {data.shape[1]})")
-
-    data_bin = data_bin.values
-    del data
-    gc.collect()
-
-    return data_bin, labels, feature_names
+    return data, labels
 
 
 def is_valid(rule: Rule, max_rule_size: int) -> bool:
@@ -196,9 +169,7 @@ def main(args: argparse.Namespace):
     5. Print results with statistics
     """
     # Load data
-    data, labels, feature_names = load_and_binarize_paysim(
-        args.data_path, num_bins=args.num_bins
-    )
+    data, labels = load_paysim(args.data_path)
 
     # Create validity checker
     is_valid = create_validity_checker(args.max_rule_size)
@@ -256,10 +227,13 @@ def main(args: argparse.Namespace):
     print("BENCHMARK CONFIGURATION")
     print("=" * 60)
 
+    binarizer = StandardBinarizer(num_bins=args.num_bins)
+
     config = BenchmarkerConfig(
         data=data,
         labels=labels,
         trainer_config=trainer_config,
+        binarizer=binarizer,
         num_runs=args.num_runs,
         n_folds=args.n_folds,
         test_size=args.test_size,
@@ -335,7 +309,7 @@ def main(args: argparse.Namespace):
     print(f"\nBest rule (from run {best_run_idx}, score={scores[best_run_idx]:.4f}):")
     print(f"  {best_rule}")
     print("\nReadable form:")
-    print(f"  {best_rule.to_str(feature_names)}")
+    print(f"  {best_rule.to_str(result.feature_names_per_run[best_run_idx])}")
 
     print("\n" + "=" * 60)
     print("Benchmark completed!")

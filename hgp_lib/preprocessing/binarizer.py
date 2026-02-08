@@ -79,6 +79,7 @@ class StandardBinarizer:
         self.column_precision = {}
         self.categorical_values_ = {}
         self.numerical_bins_ = {}
+        self._is_fitted = False
 
     def _validate_params(
         self, num_bins: int, column_strategy: Optional[dict[str, int]], precision: int
@@ -228,6 +229,7 @@ class StandardBinarizer:
                     f"Unsupported column type for column {column} of type {X[column].dtype}"
                 )
 
+        self._is_fitted = True
         return result
 
     def _format_numeric_bin_name(self, column: str, left: float, right: float) -> str:
@@ -272,7 +274,7 @@ class StandardBinarizer:
         """
         check_isinstance(X, pd.DataFrame)
 
-        if not self.categorical_values_ or not self.numerical_bins_:
+        if not self._is_fitted:
             raise ValueError("Binarizer must be fitted before calling transform")
 
         result = pd.DataFrame(index=X.index)

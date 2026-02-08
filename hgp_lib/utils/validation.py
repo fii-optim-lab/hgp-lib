@@ -1,6 +1,7 @@
 import inspect
 from typing import Sequence, Tuple, Type, Callable, Any
 import numpy as np
+import pandas as pd
 
 from ..rules import Rule
 
@@ -91,27 +92,34 @@ def validate_operator_types(operator_types: Sequence[Type[Rule]]):
             )
 
 
-def check_X_y(X: np.ndarray, y: np.ndarray):
+def check_X_y(
+    X: np.ndarray | pd.DataFrame,
+    y: np.ndarray,
+    x_type: Type[np.ndarray] | Type[pd.DataFrame] = np.ndarray,
+):
     """
     Validate input data and labels.
 
-    Checks that X and y are numpy arrays, have compatible shapes (same number of samples),
-    and are not None.
+    Checks that X is an instance of `x_type`, y is a numpy array, both are
+    non-None, non-empty, 2-D/1-D respectively, and have the same number of
+    samples.
 
     Args:
-        X (np.ndarray): Input data.
-        y (np.ndarray): Target labels.
+        X (np.ndarray | pd.DataFrame): Input data.
+        y (np.ndarray): Target labels (1-D).
+        x_type (Type[np.ndarray] | Type[pd.DataFrame]): Expected type for X.
+            Default: `np.ndarray`.
 
     Raises:
         ValueError: If X or y is None, empty, or have mismatched lengths.
-        TypeError: If X or y is not a numpy array.
+        TypeError: If X is not an instance of `x_type` or y is not an ndarray.
     """
     if X is None:
         raise ValueError("X (data) cannot be None")
     if y is None:
         raise ValueError("y (labels) cannot be None")
 
-    check_isinstance(X, np.ndarray)
+    check_isinstance(X, x_type)
     check_isinstance(y, np.ndarray)
 
     if len(X) != len(y):
