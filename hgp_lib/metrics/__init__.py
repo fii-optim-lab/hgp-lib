@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Dict
 
 from numpy import ndarray
 
@@ -136,13 +136,13 @@ class TrainerResult:
     Metrics returned by the trainer after fitting.
     Attributes:
         train_history (TrainingHistory): Per-epoch training metrics.
-        val_history (TrainingHistory | None): Per-validation-step metrics, or None if no validation.
+        val_history (TrainingHistory): Per-validation-step metrics.
         best_rule (Rule): Best rule found during training.
         best_score (float): Best fitness score achieved.
     """
 
     train_history: TrainingHistory
-    val_history: TrainingHistory | None
+    val_history: TrainingHistory
     best_rule: Rule
     best_score: float
 
@@ -151,6 +151,7 @@ class TrainerResult:
 class RunMetrics:
     """
     Metrics returned by a single benchmark run.
+
     Attributes:
         run_id (int): Index of the run (0-based).
         seed (int): Random seed used for this run.
@@ -160,11 +161,13 @@ class RunMetrics:
         best_fold_val_score (float): Best validation score across folds.
         test_score (float): Test set score of the selected best rule.
         best_rule (Rule): The best rule selected from the best fold.
-        fold_train_histories (List[TrainingHistory] | None): Epoch-level training
-            metrics for each fold. None if not captured.
-        fold_val_histories (List[TrainingHistory | None] | None): Epoch-level
-            validation metrics for each fold. Inner None if no validation was
-            performed for that fold. Outer None if not captured.
+        feature_names (Dict[int, str]): Mapping from literal indices to the
+            binarized column names produced by the best fold's binarizer.
+            Use with `rule.to_str(feature_names)` for human-readable output.
+        fold_train_histories (List[TrainingHistory]): Epoch-level training
+            metrics for each fold.
+        fold_val_histories (List[TrainingHistory]): Epoch-level
+            validation metrics for each fold.
     """
 
     run_id: int
@@ -175,8 +178,9 @@ class RunMetrics:
     best_fold_val_score: float
     test_score: float
     best_rule: Rule
-    fold_train_histories: List[TrainingHistory] | None = None
-    fold_val_histories: List[TrainingHistory | None] | None = None
+    feature_names: Dict[int, str]
+    fold_train_histories: List[TrainingHistory] | None
+    fold_val_histories: List[TrainingHistory | None] | None
 
     @property
     def train_history(self) -> TrainingHistory | None:
@@ -197,6 +201,7 @@ class RunMetrics:
 class BenchmarkResult:
     """
     Metrics returned by the benchmarker after fitting.
+
     Attributes:
         run_metrics (List[RunMetrics]): Per-run details.
         mean_test_score (float): Mean test score across runs.
@@ -205,6 +210,10 @@ class BenchmarkResult:
         std_best_val_score (float): Standard deviation of best validation scores.
         all_test_scores (List[float]): Test score for each run.
         all_best_rules (List[Rule]): Best rule from each run.
+        feature_names_per_run (List[Dict[int, str]]): Literal-index-to-column-name
+            mapping for each run's best rule. Use
+            `result.all_best_rules[i].to_str(result.feature_names_per_run[i])`
+            to display the *i*-th run's rule in human-readable form.
     """
 
     run_metrics: List[RunMetrics]
@@ -214,6 +223,7 @@ class BenchmarkResult:
     std_best_val_score: float
     all_test_scores: List[float]
     all_best_rules: List[Rule]
+    feature_names_per_run: List[Dict[int, str]]
 
 
 __all__ = [

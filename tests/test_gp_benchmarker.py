@@ -3,6 +3,7 @@ import unittest
 import random
 
 import numpy as np
+import pandas as pd
 
 import hgp_lib
 from hgp_lib.benchmarkers import GPBenchmarker
@@ -14,6 +15,7 @@ from hgp_lib.mutations import (
     create_standard_operator_mutations,
 )
 from hgp_lib.populations import PopulationGenerator, RandomStrategy
+from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.rules import Rule
 from hgp_lib.selections import RouletteSelection
 
@@ -36,17 +38,20 @@ class TestGPBenchmarker(unittest.TestCase):
         random.seed(42)
         np.random.seed(42)
 
-        self.data = np.array(
-            [
-                [True, False, True, False],
-                [False, True, False, True],
-                [True, True, False, False],
-                [False, False, True, True],
-                [True, False, False, True],
-                [False, True, True, False],
-                [True, True, True, False],
-                [False, False, False, True],
-            ]
+        self.data = pd.DataFrame(
+            np.array(
+                [
+                    [True, False, True, False],
+                    [False, True, False, True],
+                    [True, True, False, False],
+                    [False, False, True, True],
+                    [True, False, False, True],
+                    [False, True, True, False],
+                    [True, True, True, False],
+                    [False, False, False, True],
+                ]
+            ),
+            columns=["0", "1", "2", "3"],
         )
         self.labels = np.array([1, 0, 1, 0, 1, 0, 1, 0])
         self.num_features = 4
@@ -110,9 +115,9 @@ class TestGPBenchmarker(unittest.TestCase):
                 config = self._make_config(trainer_config=trainer_config)
                 GPBenchmarker(config)
 
-        with self.subTest("data must be ndarray"):
+        with self.subTest("data must be a DataFrame"):
             with self.assertRaises(TypeError):
-                config = self._make_config(data="not array")
+                config = self._make_config(data="not a dataframe")
                 GPBenchmarker(config)
 
         with self.subTest("labels must be ndarray"):
@@ -152,7 +157,7 @@ class TestGPBenchmarker(unittest.TestCase):
 
         with self.subTest("data must be 2D"):
             with self.assertRaises(ValueError):
-                config = self._make_config(data=np.array([1, 2, 3]))
+                config = self._make_config(data=pd.DataFrame(np.array([1, 2, 3])))
                 GPBenchmarker(config)
 
         with self.subTest("labels must be 1D"):
@@ -224,6 +229,12 @@ class TestGPBenchmarker(unittest.TestCase):
         self.assertEqual(len(result.run_metrics), 2)
         self.assertEqual(len(result.all_test_scores), 2)
 
+        # feature_names_per_run should have one entry per run
+        self.assertEqual(len(result.feature_names_per_run), 2)
+        for fn_map in result.feature_names_per_run:
+            self.assertIsInstance(fn_map, dict)
+            self.assertTrue(len(fn_map) > 0)
+
     def test_fit_run_metrics_structure(self):
         trainer_config = self._make_trainer_config(num_epochs=3)
         config = self._make_config(trainer_config=trainer_config, num_runs=1, n_jobs=1)
@@ -243,6 +254,13 @@ class TestGPBenchmarker(unittest.TestCase):
         self.assertEqual(len(run_metrics.fold_train_scores), 2)
         self.assertEqual(len(run_metrics.fold_val_scores), 2)
         self.assertIsInstance(run_metrics.best_rule, Rule)
+
+        # feature_names should map literal indices to column names
+        self.assertIsInstance(run_metrics.feature_names, dict)
+        self.assertTrue(len(run_metrics.feature_names) > 0)
+        for idx, name in run_metrics.feature_names.items():
+            self.assertIsInstance(idx, int)
+            self.assertIsInstance(name, str)
 
     def test_fit_aggregation(self):
         trainer_config = self._make_trainer_config(num_epochs=3)
@@ -379,6 +397,61 @@ class TestGPBenchmarker(unittest.TestCase):
         """Test that optimize_scorer defaults to True in BooleanGPConfig."""
         gp_config = BooleanGPConfig(score_fn=accuracy_with_sample_weight)
         self.assertTrue(gp_config.optimize_scorer)
+
+    def test_default_binarizer_is_set(self):
+        """Test that a default StandardBinarizer is created when binarizer=None."""
+        config = self._make_config()
+        benchmarker = GPBenchmarker(config)
+        self.assertIsInstance(benchmarker.config.binarizer, StandardBinarizer)
+
+    def test_custom_binarizer(self):
+        """Test that a custom StandardBinarizer with non-default bins is used."""
+        binarizer = StandardBinarizer(num_bins=3)
+        config = self._make_config(binarizer=binarizer)
+        benchmarker = GPBenchmarker(config)
+        self.assertIs(benchmarker.config.binarizer, binarizer)
+        result = benchmarker.fit()
+        self.assertEqual(len(result.run_metrics), 2)
+
+    def test_fitted_binarizer_rejected(self):
+        """Test that a pre-fitted binarizer is rejected during validation."""
+        binarizer = StandardBinarizer(num_bins=2)
+        binarizer.fit_transform(self.data)
+        self.assertTrue(binarizer._is_fitted)
+        with self.assertRaises(ValueError):
+            config = self._make_config(binarizer=binarizer)
+            GPBenchmarker(config)
+
+    def test_data_must_be_dataframe(self):
+        """Test that passing a numpy array as data raises TypeError."""
+        with self.assertRaises(TypeError):
+            config = self._make_config(data=self.data.to_numpy())
+            GPBenchmarker(config)
+
+    def test_feature_names_enable_readable_rules(self):
+        """Test that feature_names can be used with rule.to_str() for readable output."""
+        trainer_config = self._make_trainer_config(num_epochs=3)
+        config = self._make_config(trainer_config=trainer_config, num_runs=1, n_jobs=1)
+        benchmarker = GPBenchmarker(config)
+        result = benchmarker.fit()
+
+        best_rule = result.all_best_rules[0]
+        feature_names = result.feature_names_per_run[0]
+
+        # to_str should succeed and return a non-empty string
+        readable = best_rule.to_str(feature_names)
+        self.assertIsInstance(readable, str)
+        self.assertTrue(len(readable) > 0)
+
+    def test_feature_names_consistent_across_result(self):
+        """Test that feature_names in RunMetrics matches feature_names_per_run in BenchmarkResult."""
+        trainer_config = self._make_trainer_config(num_epochs=2)
+        config = self._make_config(trainer_config=trainer_config, num_runs=2, n_jobs=1)
+        benchmarker = GPBenchmarker(config)
+        result = benchmarker.fit()
+
+        for i, run_metrics in enumerate(result.run_metrics):
+            self.assertEqual(run_metrics.feature_names, result.feature_names_per_run[i])
 
     def test_doctests(self):
         result = doctest.testmod(hgp_lib.benchmarkers.gp_benchmarker, verbose=False)

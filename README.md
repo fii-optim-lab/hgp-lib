@@ -13,7 +13,13 @@ For more information about binarization and custom configurations, see TODO (cre
 Label aware binarization is usually employed to create class-aware bins for numerical columns.
 The binarizer must be fit only on the training data to prevent data leakage!
 
-Depending on usage, data preparation may very (i.e. when doing k-fold cross-validation).
+Depending on usage, data preparation may vary (i.e. when doing k-fold cross-validation).
+
+> **Note:** If you are using the **GPBenchmarker**, you do **not** need to binarize manually.
+> The benchmarker handles per-fold binarization internally to prevent data leakage.
+> See [Benchmarking Boolean GP](#benchmarking-boolean-gp) for details.
+
+For manual training (GPTrainer / BooleanGP), binarize the data yourself:
 
 ```python
 from hgp_lib.preprocessing import StandardBinarizer
@@ -227,10 +233,36 @@ test_metrics = trainer.score(test_data, test_labels)
 
 The benchmarker runs multiple full runs (default 30), each with a stratified train/test split and k-fold CV on the training set. Results are aggregated across runs. Runs execute in parallel by default. The benchmarker accepts a `BenchmarkerConfig` containing a `TrainerConfig` template.
 
+**Automatic binarization**: Pass raw (non-binarized) data as a `pandas.DataFrame` in `BenchmarkerConfig.data`. The benchmarker binarizes internally: for each fold, a fresh copy of the binarizer is fitted on the training fold (with labels for supervised binning) and used to transform the validation fold. The best fold's binarizer is then used to transform the held-out test set. This prevents data leakage across folds and between train/test splits.
+
+By default a `StandardBinarizer()` is used. You can pass a custom binarizer (unfitted) via the `binarizer` parameter:
+
+```python
+from hgp_lib.preprocessing import StandardBinarizer
+
+binarizer = StandardBinarizer(num_bins=10)  # must be unfitted
+config = BenchmarkerConfig(
+    data=data,
+    labels=labels,
+    trainer_config=trainer_config,
+    binarizer=binarizer,  # None -> default StandardBinarizer(num_bins=5)
+)
+```
+
+**Feature names**: The `BenchmarkResult` includes `feature_names_per_run`, a list of `Dict[int, str]` mappings (one per run) from literal indices to the binarized column names. Use this to display rules in human-readable form:
+
+```python
+best_idx = np.argmax(result.all_test_scores)
+print(result.all_best_rules[best_idx].to_str(result.feature_names_per_run[best_idx]))
+```
+
 **Scorer Optimization**: The benchmarker can automatically optimize scorers per fold by deduplicating data and using sample weights. This significantly speeds up scoring for datasets with many duplicate rows. To use this feature, pass a base scorer (not pre-optimized) that accepts a `sample_weight` parameter, and set `optimize_scorer=True` in `BooleanGPConfig` (this is the default).
+
+**Full example**:
 
 ```python
 import numpy as np
+import pandas as pd
 from hgp_lib import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.benchmarkers import GPBenchmarker
 
@@ -246,9 +278,12 @@ def f1_score(predictions, labels, sample_weight=None):
         return 1.0 if pred_sum == label_sum == 0 else 0.0
     return 2 * tp / (pred_sum + label_sum)
 
+data = pd.DataFrame(...)  # raw features as a DataFrame (bool / categorical / numeric)
+labels = np.array(...)    # 1-D target array
+
 # Create nested configs: BooleanGPConfig -> TrainerConfig -> BenchmarkerConfig
 # Note: train_data/train_labels are not needed in gp_config here;
-# the benchmarker will set them per fold from the full dataset.
+# the benchmarker will binarize and set them per fold.
 gp_config = BooleanGPConfig(
     score_fn=f1_score,
     optimize_scorer=True,  # Default; enables scorer optimization per fold
@@ -269,8 +304,13 @@ config = BenchmarkerConfig(
 )
 benchmarker = GPBenchmarker(config)
 result = benchmarker.fit()
-# result.run_metrics, result.mean_test_score, result.std_test_score,
-# result.mean_best_val_score, result.std_best_val_score, result.all_test_scores, result.all_best_rules
+
+# Aggregated metrics
+print(f"Test score: {result.mean_test_score:.4f} ± {result.std_test_score:.4f}")
+
+# Human-readable best rule
+best_idx = np.argmax(result.all_test_scores)
+print(result.all_best_rules[best_idx].to_str(result.feature_names_per_run[best_idx]))
 ```
 
 **Important**: Do NOT pass pre-optimized scorers (e.g., from `optimize_scorer_for_data`) when using the benchmarker. Pre-optimized scorers have sample weights bound to the original data, which become invalid after train/test/fold splits. Either pass a base scorer with `optimize_scorer=True` (default), or use `optimize_scorer=False` for scorers without `sample_weight` support.
