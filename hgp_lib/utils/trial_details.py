@@ -166,7 +166,7 @@ def extract_trial_details(
 
     # Format best rule
     best_rule = best_run.best_rule
-    best_rule_str = best_rule.to_str(feature_names, indent=-1)
+    best_rule_str = str(best_rule)
     best_rule_indented = best_rule.to_str(feature_names, indent=0)
 
     # Detect hierarchical GP

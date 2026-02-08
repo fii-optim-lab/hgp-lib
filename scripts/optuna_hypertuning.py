@@ -366,10 +366,7 @@ def _save_trial_artifacts(
         # 3. Hierarchical plot (only for hierarchical trials)
         # Skip for non-hierarchical trials (is_hierarchical=False or num_children=0)
         if not details.is_hierarchical or details.num_children == 0:
-            logger.debug(
-                f"Trial {trial.number}: Non-hierarchical trial, "
-                "skipping hierarchical plot"
-            )
+            pass
         elif best_run.train_history is not None:
             # Verify children scores are actually available before plotting
             has_children_scores = any(
