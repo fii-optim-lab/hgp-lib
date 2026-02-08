@@ -86,18 +86,12 @@ def create_standard_operator_mutations(
     )
 
 
-def create_mutation_executor(
-    num_literals: int,
-    literal_mutation_fn: Callable[
-        [int], Tuple[Mutation, ...]
-    ] = create_standard_literal_mutations,
-    operator_mutation_fn: Callable[
-        [int], Tuple[Mutation, ...]
-    ] = create_standard_operator_mutations,
-    mutation_p: float = 0.1,
-    check_valid: Callable[[Rule], bool] | None = None,
-    num_tries: int = 1,
+def create_default_mutation_executor(
+    num_literals: int, mutation_p: float, check_valid: Callable[[Rule], bool] | None
 ) -> MutationExecutor:
+    literal_mutation_fn = create_standard_literal_mutations
+    operator_mutation_fn = create_standard_operator_mutations
+    num_tries = 1
     return MutationExecutor(
         literal_mutations=literal_mutation_fn(num_literals),
         operator_mutations=operator_mutation_fn(num_literals),
@@ -105,3 +99,8 @@ def create_mutation_executor(
         check_valid=check_valid,
         num_tries=num_tries,
     )
+
+
+create_mutation_executor_fn_type = Callable[
+    [int, float, Callable[[Rule], bool] | None], MutationExecutor
+]

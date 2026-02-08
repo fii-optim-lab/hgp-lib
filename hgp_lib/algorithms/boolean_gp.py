@@ -8,9 +8,9 @@ from ..configs import BooleanGPConfig, validate_gp_config
 from ..crossover import CrossoverExecutor
 from ..metrics import StepMetrics, ValidateBestMetrics, ValidatePopulationMetrics
 from ..mutations import (
-    create_mutation_executor,
+    create_default_mutation_executor,
 )
-from ..populations import PopulationGenerator, RandomStrategy
+from ..populations.populations_factory import create_default_population_generator
 from ..rules import Rule
 from ..selections import TournamentSelection
 from ..utils.metrics import optimize_scorer_for_data
@@ -84,18 +84,21 @@ class BooleanGP:
         self.current_depth = current_depth
         num_features = train_data.shape[1]
 
-        population_generator = config.population_generator
-        if population_generator is None:
-            # TODO: We should rethink a system that is easy to initialize for both the user and child populations:
-            # Maybe a common configuration for all strategies? This should be analyzed further
-            random_strategy = RandomStrategy(num_literals=num_features)
-            population_generator = PopulationGenerator(strategies=[random_strategy])
+        population_generator_fn = (
+            config.population_generator_fn or create_default_population_generator
+        )
+        population_generator = population_generator_fn(
+            config.population_size, num_features, score_fn, train_data, train_labels
+        )
 
-        mutation_executor = config.mutation_executor
-        if mutation_executor is None:
-            mutation_executor = create_mutation_executor(
-                num_literals=num_features, check_valid=config.check_valid
-            )
+        mutation_executor_fn = (
+            config.mutation_executor_fn or create_default_mutation_executor
+        )
+        mutation_executor = mutation_executor_fn(
+            num_literals=num_features,
+            mutation_p=config.mutation_p,
+            check_valid=config.check_valid,
+        )
 
         crossover_executor = config.crossover_executor
         if crossover_executor is None:
@@ -160,23 +163,10 @@ class BooleanGP:
         )
 
         for result in results:
-            num_features = result.data.shape[1]
-            child_generator = PopulationGenerator(
-                strategies=[RandomStrategy(num_literals=num_features)],
-                population_size=self.population_generator.population_size,
-            )
-            child_mutation_executor = create_mutation_executor(
-                num_literals=num_features,
-                check_valid=self.config.check_valid,
-                mutation_p=self.mutation_executor.mutation_p,
-                num_tries=self.mutation_executor.num_tries,
-            )
             child_config = replace(
                 self.config,
                 train_data=result.data,
                 train_labels=result.labels,
-                population_generator=child_generator,
-                mutation_executor=child_mutation_executor,
             )
             child = BooleanGP(child_config, current_depth=self.current_depth + 1)
             child.feature_mapping = result.feature_mapping

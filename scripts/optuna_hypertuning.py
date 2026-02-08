@@ -31,13 +31,10 @@ from optuna.artifacts import FileSystemArtifactStore, upload_artifact
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.crossover import CrossoverExecutor
-from hgp_lib.mutations import create_mutation_executor
 from hgp_lib.populations import (
     CombinedSamplingStrategy,
     FeatureSamplingStrategy,
     InstanceSamplingStrategy,
-    PopulationGenerator,
-    RandomStrategy,
 )
 from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.selections import RouletteSelection, TournamentSelection
@@ -220,8 +217,6 @@ def build_config(
     verbose: bool = False,
 ) -> BenchmarkerConfig:
     """Build BenchmarkerConfig from suggested hyperparameters."""
-    num_features = data.shape[1]
-
     # Selection strategy
     if params["selection_type"] == "tournament":
         selection = TournamentSelection(
@@ -231,15 +226,10 @@ def build_config(
         selection = RouletteSelection()
 
     # Population generator
-    population_generator = PopulationGenerator(
-        strategies=[RandomStrategy(num_literals=num_features)],
-        population_size=params["population_size"],
-    )
+    population_size = params["population_size"]
 
     # Mutation and crossover
-    mutation_executor = create_mutation_executor(
-        num_literals=num_features, mutation_p=params["mutation_probability"]
-    )
+    mutation_p = params["mutation_probability"]
     crossover_executor = CrossoverExecutor(crossover_p=params["crossover_rate"])
 
     # Sampling strategy for hierarchical GP
@@ -268,8 +258,10 @@ def build_config(
     gp_config = BooleanGPConfig(
         score_fn=score_fn,
         selection=selection,
-        population_generator=population_generator,
-        mutation_executor=mutation_executor,
+        population_generator_fn=None,
+        population_size=population_size,
+        mutation_executor_fn=None,
+        mutation_p=mutation_p,
         crossover_executor=crossover_executor,
         regeneration=params.get("regeneration", False),
         regeneration_patience=params.get("regeneration_patience", 100),

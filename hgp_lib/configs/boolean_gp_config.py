@@ -4,8 +4,9 @@ from typing import Callable
 from numpy import ndarray
 
 from ..crossover import CrossoverExecutor
-from ..mutations import MutationExecutor
-from ..populations import PopulationGenerator, SamplingStrategy
+from ..mutations.mutation_factory import create_mutation_executor_fn_type
+from ..populations import SamplingStrategy
+from ..populations.populations_factory import create_population_generator_fn_type
 from ..rules import Rule
 from ..selections import BaseSelection
 from ..utils.validation import check_isinstance, check_X_y, validate_callable
@@ -23,7 +24,6 @@ class BooleanGPConfig:
         train_labels (ndarray | None): Training labels (1D integer array). Can be None
             when used as a template in BenchmarkerConfig.
         population_generator (PopulationGenerator | None): Optional; default created from num_features.
-        mutation_executor (MutationExecutor | None): Optional; default created from num_features.
         crossover_executor (CrossoverExecutor | None): Optional; default CrossoverExecutor().
         selection (BaseSelection | None): Optional; default TournamentSelection().
         optimize_scorer (bool): Whether to optimize scorer via data deduplication and sample weights.
@@ -56,8 +56,15 @@ class BooleanGPConfig:
     score_fn: Callable[[ndarray, ndarray], float]
     train_data: ndarray | None = None
     train_labels: ndarray | None = None
-    population_generator: PopulationGenerator | None = None
-    mutation_executor: MutationExecutor | None = None
+    population_generator_fn: create_population_generator_fn_type | None = (
+        None  # TODO: Add documentation
+    )
+    population_size: int = 100  # TODO: Add documentation
+    mutation_executor_fn: create_mutation_executor_fn_type | None = (
+        None  # TODO: Add documentation
+    )
+    mutation_p: float = 0.1  # TODO: Add documentation
+    # TODO: Add tests
     crossover_executor: CrossoverExecutor | None = None
     selection: BaseSelection | None = None
     optimize_scorer: bool = True
@@ -106,10 +113,16 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
     check_isinstance(config.regeneration_patience, int)
     if config.regeneration and config.regeneration_patience < 1:
         raise ValueError("regeneration_patience must be a positive integer")
-    if config.population_generator is not None:
-        check_isinstance(config.population_generator, PopulationGenerator)
-    if config.mutation_executor is not None:
-        check_isinstance(config.mutation_executor, MutationExecutor)
+    if config.population_generator_fn is not None:
+        validate_callable(
+            config.population_generator_fn,
+            f"population_generator_fn must be callable, is {type(config.population_generator_fn)}",
+        )
+    if config.mutation_executor_fn is not None:
+        validate_callable(
+            config.mutation_executor_fn,
+            f"mutation_executor_fn must be callable, is {type(config.mutation_executor_fn)}",
+        )
     if config.crossover_executor is not None:
         check_isinstance(config.crossover_executor, CrossoverExecutor)
     if config.selection is not None:
