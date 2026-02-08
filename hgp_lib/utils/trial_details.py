@@ -51,7 +51,7 @@ class TrialDetails:
     best_run_val_score: float = 0.0
     best_run_test_score: float = 0.0
     best_rule_str: str = ""
-    best_rule_indented: str = ""
+    best_rule_human_readable: str = ""
     is_hierarchical: bool = False
     num_children: int = 0
 
@@ -109,7 +109,6 @@ def _detect_hierarchical(run_metrics: List[RunMetrics]) -> tuple[bool, int]:
 
 def extract_trial_details(
     result: BenchmarkResult,
-    feature_names: Dict[int, str] | None = None,
 ) -> TrialDetails:
     """
     Extract all trial details from a benchmark result.
@@ -119,8 +118,6 @@ def extract_trial_details(
 
     Args:
         result: BenchmarkResult containing all run metrics.
-        feature_names: Optional mapping of feature indices to names for
-            human-readable rule formatting.
 
     Returns:
         TrialDetails containing all extracted information.
@@ -167,7 +164,9 @@ def extract_trial_details(
     # Format best rule
     best_rule = best_run.best_rule
     best_rule_str = str(best_rule)
-    best_rule_indented = best_rule.to_str(feature_names, indent=0)
+    best_rule_human_readable = best_rule.to_str(
+        result.feature_names_per_run[best_run_idx], indent=0
+    )
 
     # Detect hierarchical GP
     is_hierarchical, num_children = _detect_hierarchical(result.run_metrics)
@@ -185,7 +184,7 @@ def extract_trial_details(
         best_run_val_score=best_run_val_score,
         best_run_test_score=best_run_test_score,
         best_rule_str=best_rule_str,
-        best_rule_indented=best_rule_indented,
+        best_rule_human_readable=best_rule_human_readable,
         is_hierarchical=is_hierarchical,
         num_children=num_children,
     )
@@ -227,7 +226,7 @@ def store_trial_details(
 
     # Store rule strings
     trial.set_user_attr("best_rule", details.best_rule_str)
-    trial.set_user_attr("best_rule_indented", details.best_rule_indented)
+    trial.set_user_attr("best_rule_human_readable", details.best_rule_human_readable)
 
     # Store hierarchical info
     trial.set_user_attr("is_hierarchical", details.is_hierarchical)

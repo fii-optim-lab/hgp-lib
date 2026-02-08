@@ -19,11 +19,12 @@ import os
 import tempfile
 import traceback
 from pathlib import Path
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Tuple
 
 import matplotlib
 import numpy as np
 import optuna
+import pandas as pd
 from numpy import ndarray
 from optuna.artifacts import FileSystemArtifactStore, upload_artifact
 
@@ -38,8 +39,8 @@ from hgp_lib.populations import (
     PopulationGenerator,
     RandomStrategy,
 )
+from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.selections import RouletteSelection, TournamentSelection
-from hgp_lib.utils.benchmarking import load_data
 from hgp_lib.utils.metrics import fast_f1_score
 from hgp_lib.utils.trial_details import extract_trial_details, store_trial_details
 from hgp_lib.utils.visualization import (
@@ -55,6 +56,48 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+
+def load_data(data_path: str) -> Tuple[pd.DataFrame, ndarray]:
+    """
+    Load and preprocess data from HDF file for benchmarking.
+
+    Loads the data, identifies the target column, and binarizes features
+    using StandardBinarizer. Supports PaySim format (isFraud column) and
+    generic format (target column).
+
+    Args:
+        data_path: Path to HDF file containing data.
+        num_bins: Number of bins for binarization. Default: 5.
+
+    Returns:
+        Tuple of (data, labels) as numpy arrays, binarized and ready for GP.
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        RuntimeError: If target column cannot be identified.
+    """
+    path = Path(data_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Data file not found: {data_path}")
+
+    logger.info(f"Loading data from {data_path}...")
+
+    df: pd.DataFrame = pd.read_hdf(data_path)
+
+    # Detect target column - PaySim uses isFraud, others use target
+    if "isFraud" in df.columns:
+        target_column = "isFraud"
+    elif "target" in df.columns:
+        target_column = "target"
+    else:
+        raise RuntimeError(f"Unknown target column. Available: {df.columns.tolist()}")
+
+    labels = df[target_column].to_numpy(dtype=bool, copy=True)
+    data = df.drop([target_column], axis=1)
+
+    del df
+    return data, labels
 
 
 def create_argument_parser() -> argparse.ArgumentParser:
@@ -105,13 +148,15 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
     """Suggest all hyperparameters (base + hierarchical) in one function."""
     params = {}
 
+    params["num_bins"] = trial.suggest_int("num_bins", 4, 6)
+
     # Base GP parameters
     params["population_size"] = trial.suggest_int("population_size", 50, 200, step=25)
     params["mutation_probability"] = trial.suggest_float(
-        "mutation_probability", 0.001, 0.5, step=0.001
+        "mutation_probability", 0.001, 0.3, step=0.001
     )
     params["crossover_rate"] = trial.suggest_float(
-        "crossover_rate", 0.1, 0.95, step=0.01
+        "crossover_rate", 0.1, 0.95, step=0.05
     )
     params["num_epochs"] = trial.suggest_int("num_epochs", 100, 5000, step=100)
 
@@ -119,26 +164,29 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
         "selection_type", ["roulette", "tournament"]
     )
     if params["selection_type"] == "tournament":
-        params["tournament_size"] = trial.suggest_int("tournament_size", 2, 30)
-        params["selection_p"] = trial.suggest_float("selection_p", 0.1, 0.9, step=0.05)
+        params["tournament_size"] = trial.suggest_int("tournament_size", 5, 30)
+        params["selection_p"] = trial.suggest_float("selection_p", 0.25, 0.9, step=0.05)
 
     params["regeneration"] = trial.suggest_categorical("regeneration", [True, False])
     if params["regeneration"]:
+        min_regen = 50
+        max_regen = params["num_epochs"] // 2
+        max_regen -= max_regen % min_regen
         params["regeneration_patience"] = trial.suggest_int(
-            "regeneration_patience", 50, params["num_epochs"] - 50, step=50
+            "regeneration_patience", min_regen, max_regen, step=min_regen
         )
 
     # Hierarchical GP parameters (num_child_populations=0 means no hierarchy)
-    params["num_child_populations"] = trial.suggest_int("num_child_populations", 0, 5)
+    params["num_child_populations"] = trial.suggest_int("num_child_populations", 0, 10)
 
     if params["num_child_populations"] > 0:
         params["max_depth"] = 1
-        params["top_k_transfer"] = trial.suggest_int("top_k_transfer", 5, 50)
+        params["top_k_transfer"] = trial.suggest_int("top_k_transfer", 5, 50, step=5)
         params["feedback_type"] = trial.suggest_categorical(
             "feedback_type", ["additive", "multiplicative"]
         )
         params["feedback_strength"] = trial.suggest_float(
-            "feedback_strength", 0.0, 1.0, step=0.001
+            "feedback_strength", 0.0, 0.2, step=0.01
         )
 
         params["sampling_strategy_type"] = trial.suggest_categorical(
@@ -148,30 +196,24 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
 
         if not params["use_replace"]:
             max_fraction = 1.0 / params["num_child_populations"]
-            if params["sampling_strategy_type"] in ("feature", "combined"):
-                params["feature_fraction"] = trial.suggest_float(
-                    "feature_fraction", 0.1, max_fraction
-                )
-            if params["sampling_strategy_type"] in ("instance", "combined"):
-                params["instance_fraction"] = trial.suggest_float(
-                    "instance_fraction", 0.1, max_fraction
-                )
         else:
-            if params["sampling_strategy_type"] in ("feature", "combined"):
-                params["feature_fraction"] = trial.suggest_float(
-                    "feature_fraction", 0.1, 1.0
-                )
-            if params["sampling_strategy_type"] in ("instance", "combined"):
-                params["instance_fraction"] = trial.suggest_float(
-                    "instance_fraction", 0.1, 1.0
-                )
+            max_fraction = 1.0
+
+        if params["sampling_strategy_type"] in ("feature", "combined"):
+            params["feature_fraction"] = trial.suggest_float(
+                "feature_fraction", 0.1, max_fraction, step=0.01
+            )
+        if params["sampling_strategy_type"] in ("instance", "combined"):
+            params["instance_fraction"] = trial.suggest_float(
+                "instance_fraction", 0.1, max_fraction, step=0.01
+            )
 
     return params
 
 
 def build_config(
     params: Dict[str, Any],
-    data: ndarray,
+    data: pd.DataFrame,
     labels: ndarray,
     score_fn: Callable,
     n_jobs: int,
@@ -243,11 +285,14 @@ def build_config(
         gp_config=gp_config, num_epochs=params["num_epochs"], progress_bar=verbose
     )
 
+    binarizer = StandardBinarizer(num_bins=params["num_bins"])
+
     return BenchmarkerConfig(
         data=data,
         labels=labels,
         trainer_config=trainer_config,
-        num_runs=3,
+        binarizer=binarizer,
+        num_runs=5,
         n_folds=3,
         n_jobs=n_jobs,
         show_run_progress=verbose,
@@ -257,7 +302,7 @@ def build_config(
 
 
 def create_objective(
-    data: ndarray,
+    data: pd.DataFrame,
     labels: ndarray,
     n_jobs: int,
     artifact_store: FileSystemArtifactStore,
