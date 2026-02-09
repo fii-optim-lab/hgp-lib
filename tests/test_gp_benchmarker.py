@@ -9,12 +9,8 @@ import hgp_lib
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.crossover import CrossoverExecutor
-from hgp_lib.mutations import (
-    MutationExecutor,
-    create_standard_literal_mutations,
-    create_standard_operator_mutations,
-)
-from hgp_lib.populations import PopulationGenerator, RandomStrategy
+from hgp_lib.mutations import MutationExecutorFactory
+from hgp_lib.populations import PopulationGeneratorFactory
 from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.rules import Rule
 from hgp_lib.selections import RouletteSelection
@@ -91,6 +87,7 @@ class TestGPBenchmarker(unittest.TestCase):
             trainer_config=trainer_config,
             num_runs=2,
             n_folds=2,
+            n_jobs=1,
         )
         defaults.update(kwargs)
         return BenchmarkerConfig(**defaults)
@@ -165,18 +162,16 @@ class TestGPBenchmarker(unittest.TestCase):
                 config = self._make_config(labels=np.array([[1, 0], [1, 0]]))
                 GPBenchmarker(config)
 
-        with self.subTest(
-            "population_generator must be PopulationGenerator if provided"
-        ):
+        with self.subTest("population_factory must be PopulationGeneratorFactory"):
             with self.assertRaises(TypeError):
-                gp_config = self._make_gp_config(population_generator="not a generator")
+                gp_config = self._make_gp_config(population_factory="not a factory")
                 trainer_config = self._make_trainer_config(gp_config=gp_config)
                 config = self._make_config(trainer_config=trainer_config)
                 GPBenchmarker(config)
 
-        with self.subTest("mutation_executor must be MutationExecutor if provided"):
+        with self.subTest("mutation_factory must be MutationExecutorFactory"):
             with self.assertRaises(TypeError):
-                gp_config = self._make_gp_config(mutation_executor="not an executor")
+                gp_config = self._make_gp_config(mutation_factory="not a factory")
                 trainer_config = self._make_trainer_config(gp_config=gp_config)
                 config = self._make_config(trainer_config=trainer_config)
                 GPBenchmarker(config)
@@ -312,25 +307,18 @@ class TestGPBenchmarker(unittest.TestCase):
         )
         self.assertEqual(result1.mean_test_score, result2.mean_test_score)
 
-    def test_custom_population_generator(self):
-        generator = PopulationGenerator(
-            strategies=[RandomStrategy(num_literals=self.num_features)],
-            population_size=10,
-        )
-        gp_config = self._make_gp_config(population_generator=generator)
+    def test_custom_population_factory(self):
+        factory = PopulationGeneratorFactory(population_size=10)
+        gp_config = self._make_gp_config(population_factory=factory)
         trainer_config = self._make_trainer_config(gp_config=gp_config, num_epochs=2)
         config = self._make_config(trainer_config=trainer_config, num_runs=1, n_jobs=1)
         benchmarker = GPBenchmarker(config)
         result = benchmarker.fit()
         self.assertEqual(len(result.run_metrics), 1)
 
-    def test_custom_mutation_executor(self):
-        mutation_executor = MutationExecutor(
-            literal_mutations=create_standard_literal_mutations(self.num_features),
-            operator_mutations=create_standard_operator_mutations(self.num_features),
-            mutation_p=0.1,
-        )
-        gp_config = self._make_gp_config(mutation_executor=mutation_executor)
+    def test_custom_mutation_factory(self):
+        factory = MutationExecutorFactory(mutation_p=0.1)
+        gp_config = self._make_gp_config(mutation_factory=factory)
         trainer_config = self._make_trainer_config(gp_config=gp_config, num_epochs=2)
         config = self._make_config(trainer_config=trainer_config, num_runs=1, n_jobs=1)
         benchmarker = GPBenchmarker(config)

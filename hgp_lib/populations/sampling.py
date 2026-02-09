@@ -15,9 +15,6 @@ from numpy import ndarray
 from hgp_lib.utils.validation import check_isinstance
 
 
-# TODO: Add tests for this module
-
-
 @dataclass
 class SamplingResult:
     """Result of a sampling operation containing sampled data and index mappings.
@@ -56,10 +53,13 @@ class SamplingStrategy(ABC):
     Sampling strategies define how to select subsets of data and/or features
     for child populations in hierarchical GP.
 
-    Args:
-        # TODO: Write documentation about feature_fraction, sample_fraction, and replace
-
     Attributes:
+        feature_fraction (float): Fraction of features to sample per child.
+            Default: `1.0`.
+        sample_fraction (float): Fraction of instances to sample per child.
+            Default: `1.0`.
+        replace (bool): Whether to allow overlap between children.
+            Default: `False`.
         MIN_FEATURES: Minimum number of features required in sampled result.
         MIN_INSTANCES: Minimum number of instances required in sampled result.
     """
@@ -88,19 +88,27 @@ class SamplingStrategy(ABC):
         self.sample_fraction = sample_fraction
         self.replace = replace
 
-        self.add_feature_mapping = feature_fraction != 1.0
-
     def allocate_indices_to_children(self, k: int, n: int, num_children: int):
-        # TODO: Write documentation
-        if self.replace:
-            return [
-                np.random.choice(n, size=k, replace=False) for _ in range(num_children)
-            ]
-        if k * num_children > n:
-            raise RuntimeError(
-                f"Can't allocate {k} indices to {num_children} children from total {n} when replace is False"
-            )
-        return np.random.permutation(n)[: k * num_children].reshape(num_children, k)
+        """Allocate `k` indices out of `n` to each of `num_children` children.
+
+        When `k >= n`, every child receives all `n` indices. When
+        `replace=False` and `k * num_children <= n`, indices are partitioned
+        without overlap. Otherwise each child receives an independent random
+        sample of `k` unique indices (overlap between children is possible).
+
+        Args:
+            k (int): Number of indices each child receives.
+            n (int): Total number of available indices.
+            num_children (int): Number of children to allocate to.
+
+        Returns:
+            List of ndarray, one per child, each containing `min(k, n)` indices.
+        """
+        if k >= n:
+            return [np.arange(n) for _ in range(num_children)]
+        if not self.replace and k * num_children <= n:
+            return np.random.permutation(n)[: k * num_children].reshape(num_children, k)
+        return [np.random.choice(n, size=k, replace=False) for _ in range(num_children)]
 
     @staticmethod
     def create_sampling_result(
@@ -146,14 +154,22 @@ class SamplingStrategy(ABC):
 class FeatureSamplingStrategy(SamplingStrategy):
     """Samples a subset of features from the training data.
 
-    # TODO: Write documentation
+    Each child population receives a subset of the parent's feature columns.
+    The number of features per child is `ceil(num_features * feature_fraction)`.
 
     Overlap behavior (controlled by `replace` parameter):
-        - replace=False: No overlap between children (partitioning) - each feature
-          appears in at most one child population
-        - replace=True: Overlap allowed - features can appear in multiple children
+        - `replace=False`: No overlap between children (partitioning) — each feature
+          appears in at most one child population.
+        - `replace=True`: Overlap allowed — features can appear in multiple children.
+
+    When `feature_fraction=1.0`, all children receive all features regardless of
+    `replace`.
 
     Within each child, features are always unique (no duplicates within a single child).
+
+    Attributes:
+        feature_fraction (float): Fraction of features per child. Default: `1.0`.
+        replace (bool): Allow feature overlap between children. Default: `False`.
 
     Examples:
         >>> import numpy as np
@@ -161,7 +177,7 @@ class FeatureSamplingStrategy(SamplingStrategy):
         >>> strategy = FeatureSamplingStrategy(feature_fraction=0.5)
         >>> data = np.random.rand(100, 10) > 0.5
         >>> labels = np.random.randint(0, 2, 100)
-        >>> results = strategy.sample(data, labels, num_features=10, num_children=3)
+        >>> results = strategy.sample(data, labels, num_children=3)
         >>> len(results)
         3
         >>> len(results[0].feature_indices)
@@ -208,7 +224,20 @@ class FeatureSamplingStrategy(SamplingStrategy):
 class InstanceSamplingStrategy(SamplingStrategy):
     """Samples a subset of instances from the training data.
 
-    # TODO: Write documentation
+    Each child population receives a subset of the parent's rows. All features
+    are preserved. The number of instances per child is
+    `ceil(num_instances * instance_fraction)`.
+
+    Overlap behavior (controlled by `replace` parameter):
+        - `replace=False`: No overlap between children (partitioning).
+        - `replace=True`: Overlap allowed.
+
+    When `instance_fraction=1.0`, all children receive all instances regardless of
+    `replace`.
+
+    Attributes:
+        instance_fraction (float): Fraction of instances per child. Default: `1.0`.
+        replace (bool): Allow instance overlap between children. Default: `False`.
 
     Examples:
         >>> import numpy as np
@@ -216,15 +245,20 @@ class InstanceSamplingStrategy(SamplingStrategy):
         >>> strategy = InstanceSamplingStrategy(instance_fraction=0.8)
         >>> data = np.random.rand(100, 10) > 0.5
         >>> labels = np.random.randint(0, 2, 100)
-        >>> results = strategy.sample(data, labels, num_features=10, num_children=3)
+        >>> results = strategy.sample(data, labels, num_children=3)
         >>> len(results)
         3
         >>> len(results[0].instance_indices)
         80
     """
 
-    def __init__(self, sample_fraction: float = 1.0, replace: bool = False):
-        super().__init__(sample_fraction=sample_fraction, replace=replace)
+    def __init__(self, instance_fraction: float = 1.0, replace: bool = False):
+        super().__init__(sample_fraction=instance_fraction, replace=replace)
+
+    @property
+    def instance_fraction(self) -> float:
+        """Alias for `sample_fraction` for readability."""
+        return self.sample_fraction
 
     def sample(
         self,
@@ -266,11 +300,10 @@ class CombinedSamplingStrategy(SamplingStrategy):
     Applies both feature sampling and instance sampling to create
     child populations with reduced feature and instance sets.
 
-    Args:
-        feature_fraction: Multiplier for feature sample count. Default: 1.0.
-        instance_fraction: Multiplier for instance sample count. Default: 1.0.
-        replace: Whether to allow overlap between children when fractions <= 1.0.
-            Default: False. Ignored for a dimension when its fraction > 1.0 (always True).
+    Attributes:
+        feature_fraction (float): Fraction of features per child. Default: `1.0`.
+        instance_fraction (float): Fraction of instances per child. Default: `1.0`.
+        replace (bool): Whether to allow overlap between children. Default: `False`.
 
     Examples:
         >>> import numpy as np
@@ -282,12 +315,29 @@ class CombinedSamplingStrategy(SamplingStrategy):
         ... )
         >>> data = np.random.rand(100, 10) > 0.5
         >>> labels = np.random.randint(0, 2, 100)
-        >>> results = strategy.sample(data, labels, num_features=10, num_children=3)
+        >>> results = strategy.sample(data, labels, num_children=3)
         >>> len(results)
         3
         >>> results[0].data.shape
         (50, 5)
     """
+
+    def __init__(
+        self,
+        feature_fraction: float = 1.0,
+        instance_fraction: float = 1.0,
+        replace: bool = False,
+    ):
+        super().__init__(
+            feature_fraction=feature_fraction,
+            sample_fraction=instance_fraction,
+            replace=replace,
+        )
+
+    @property
+    def instance_fraction(self) -> float:
+        """Alias for `sample_fraction` for readability."""
+        return self.sample_fraction
 
     def sample(
         self,

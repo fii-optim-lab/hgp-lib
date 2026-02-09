@@ -1,6 +1,7 @@
 from .base_strategy import PopulationStrategy
 from .strategies import RandomStrategy, BestLiteralStrategy
 from .generator import PopulationGenerator
+from .populations_factory import PopulationGeneratorFactory
 from .sampling import (
     SamplingResult,
     SamplingStrategy,
@@ -11,6 +12,7 @@ from .sampling import (
 
 __all__ = [
     "PopulationGenerator",
+    "PopulationGeneratorFactory",
     "PopulationStrategy",
     "RandomStrategy",
     "BestLiteralStrategy",

@@ -31,10 +31,12 @@ from optuna.artifacts import FileSystemArtifactStore, upload_artifact
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.crossover import CrossoverExecutor
+from hgp_lib.mutations import MutationExecutorFactory
 from hgp_lib.populations import (
     CombinedSamplingStrategy,
     FeatureSamplingStrategy,
     InstanceSamplingStrategy,
+    PopulationGeneratorFactory,
 )
 from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.selections import RouletteSelection, TournamentSelection
@@ -258,10 +260,8 @@ def build_config(
     gp_config = BooleanGPConfig(
         score_fn=score_fn,
         selection=selection,
-        population_generator_fn=None,
-        population_size=population_size,
-        mutation_executor_fn=None,
-        mutation_p=mutation_p,
+        population_factory=PopulationGeneratorFactory(population_size=population_size),
+        mutation_factory=MutationExecutorFactory(mutation_p=mutation_p),
         crossover_executor=crossover_executor,
         regeneration=params.get("regeneration", False),
         regeneration_patience=params.get("regeneration_patience", 100),

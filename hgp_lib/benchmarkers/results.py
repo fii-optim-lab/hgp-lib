@@ -23,9 +23,11 @@ def aggregate_results(run_metrics: List[RunMetrics]) -> BenchmarkResult:
         >>> rule = Literal(value=0)
         >>> metrics = [
         ...     RunMetrics(run_id=0, seed=0, fold_train_scores=[0.7], fold_val_scores=[0.75],
-        ...                best_fold_idx=0, test_score=0.8, best_fold_val_score=0.75, best_rule=rule, feature_names={}),
+        ...                best_fold_idx=0, test_score=0.8, best_fold_val_score=0.75, best_rule=rule,
+        ...                feature_names={}, fold_train_histories=None, fold_val_histories=None),
         ...     RunMetrics(run_id=1, seed=1, fold_train_scores=[0.8], fold_val_scores=[0.85],
-        ...                best_fold_idx=0, test_score=0.9, best_fold_val_score=0.85, best_rule=rule, feature_names={}),
+        ...                best_fold_idx=0, test_score=0.9, best_fold_val_score=0.85, best_rule=rule,
+        ...                feature_names={}, fold_train_histories=None, fold_val_histories=None),
         ... ]
         >>> result = aggregate_results(metrics)
         >>> round(result.mean_test_score, 2)

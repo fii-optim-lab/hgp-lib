@@ -1,12 +1,12 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable
 
 from numpy import ndarray
 
 from ..crossover import CrossoverExecutor
-from ..mutations.mutation_factory import create_mutation_executor_fn_type
+from ..mutations.mutation_factory import MutationExecutorFactory
 from ..populations import SamplingStrategy
-from ..populations.populations_factory import create_population_generator_fn_type
+from ..populations.populations_factory import PopulationGeneratorFactory
 from ..rules import Rule
 from ..selections import BaseSelection
 from ..utils.validation import check_isinstance, check_X_y, validate_callable
@@ -18,26 +18,44 @@ class BooleanGPConfig:
     Configuration for BooleanGP.
 
     Attributes:
-        score_fn (Callable): Fitness function (predictions, labels) -> float.
-        train_data (ndarray | None): Training data (2D boolean array). Can be None when
-            used as a template in BenchmarkerConfig (data provided at benchmarker level).
-        train_labels (ndarray | None): Training labels (1D integer array). Can be None
-            when used as a template in BenchmarkerConfig.
-        population_generator (PopulationGenerator | None): Optional; default created from num_features.
-        crossover_executor (CrossoverExecutor | None): Optional; default CrossoverExecutor().
-        selection (BaseSelection | None): Optional; default TournamentSelection().
-        optimize_scorer (bool): Whether to optimize scorer via data deduplication and sample weights.
-        regeneration (bool): Whether to regenerate population on plateau.
+        score_fn (Callable): Fitness function `(predictions, labels) -> float`.
+        train_data (ndarray | None): Training data (2-D boolean array). Can be `None` when
+            used as a template in `BenchmarkerConfig` (data provided at benchmarker level).
+            Default: `None`.
+        train_labels (ndarray | None): Training labels (1-D integer array). Can be `None`
+            when used as a template in `BenchmarkerConfig`. Default: `None`.
+        population_factory (PopulationGeneratorFactory): Factory that creates the
+            `PopulationGenerator` at runtime. Override `create_strategies` on the
+            factory to use custom strategies (e.g., `BestLiteralStrategy`).
+            Default: `PopulationGeneratorFactory()` (population_size=100, RandomStrategy).
+        mutation_factory (MutationExecutorFactory): Factory that creates the
+            `MutationExecutor` at runtime. Override `create_literal_mutations` /
+            `create_operator_mutations` on the factory to use custom mutations.
+            Default: `MutationExecutorFactory()` (mutation_p=0.1, standard mutations).
+        crossover_executor (CrossoverExecutor | None): Optional; default `CrossoverExecutor()`.
+            Default: `None`.
+        selection (BaseSelection | None): Optional; default `TournamentSelection()`.
+            Default: `None`.
+        optimize_scorer (bool): Whether to optimize scorer via data deduplication and
+            sample weights. Default: `True`.
+        regeneration (bool): Whether to regenerate population on plateau. Default: `False`.
         regeneration_patience (int): Epochs without improvement before regeneration.
-        check_valid (Callable[[Rule], bool] | None): Optional rule validator for mutation/crossover.
-        num_child_populations (int): Number of child populations for hierarchical GP. Default: 0.
-        max_depth (int): Maximum hierarchical depth; 0 means no children. Default: 0.
+            Default: `100`.
+        check_valid (Callable[[Rule], bool] | None): Optional rule validator for
+            mutation/crossover. Default: `None`.
+        num_child_populations (int): Number of child populations for hierarchical GP.
+            Default: `0`.
+        max_depth (int): Maximum hierarchical depth; `0` means no children.
             Root population has current_depth=0, its children have current_depth=1, etc.
-        sampling_strategy (SamplingStrategy | None): Strategy for sampling data/features for children.
-            Required when max_depth > 0. Default: None.
-        top_k_transfer (int): Number of top rules to transfer from each child to parent. Default: 10.
-        feedback_type (str): How to apply parent feedback: "additive" or "multiplicative". Default: "multiplicative".
-        feedback_strength (float): Coefficient for feedback signal. Must be > 0. Default: 0.1.
+            Default: `0`.
+        sampling_strategy (SamplingStrategy | None): Strategy for sampling data/features
+            for children. Required when `max_depth > 0`. Default: `None`.
+        top_k_transfer (int): Number of top rules to transfer from each child to parent.
+            Default: `10`.
+        feedback_type (str): How to apply parent feedback: `"additive"` or
+            `"multiplicative"`. Default: `"multiplicative"`.
+        feedback_strength (float): Coefficient for feedback signal. Must be > 0.
+            Default: `0.1`.
 
     Examples:
         >>> import numpy as np
@@ -50,28 +68,28 @@ class BooleanGPConfig:
         (4, 2)
         >>> config.optimize_scorer
         True
+        >>> config.population_factory.population_size
+        100
+        >>> config.mutation_factory.mutation_p
+        0.1
     """
 
     # TODO: We should reconsider the ordering of the arguments for score fn. Pred, GT or GT, Pred?
     score_fn: Callable[[ndarray, ndarray], float]
     train_data: ndarray | None = None
     train_labels: ndarray | None = None
-    population_generator_fn: create_population_generator_fn_type | None = (
-        None  # TODO: Add documentation
+    population_factory: PopulationGeneratorFactory = field(
+        default_factory=PopulationGeneratorFactory
     )
-    population_size: int = 100  # TODO: Add documentation
-    mutation_executor_fn: create_mutation_executor_fn_type | None = (
-        None  # TODO: Add documentation
+    mutation_factory: MutationExecutorFactory = field(
+        default_factory=MutationExecutorFactory
     )
-    mutation_p: float = 0.1  # TODO: Add documentation
-    # TODO: Add tests
     crossover_executor: CrossoverExecutor | None = None
     selection: BaseSelection | None = None
     optimize_scorer: bool = True
     regeneration: bool = False
     regeneration_patience: int = 100
     check_valid: Callable[[Rule], bool] | None = None
-    # Hierarchical GP
     num_child_populations: int = 0
     max_depth: int = 0
     sampling_strategy: SamplingStrategy | None = None
@@ -82,13 +100,14 @@ class BooleanGPConfig:
 
 def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> None:
     """
-    Validate BooleanGPConfig.
+    Validate `BooleanGPConfig`.
 
     Args:
         config (BooleanGPConfig): Configuration to validate.
-        require_data (bool): If True, validates that train_data and train_labels are
-            provided. Set to False when validating a template config (e.g., inside
-            BenchmarkerConfig where data is provided separately). Default: `True`.
+        require_data (bool): If `True`, validates that `train_data` and
+            `train_labels` are provided. Set to `False` when validating a template
+            config (e.g., inside `BenchmarkerConfig` where data is provided
+            separately). Default: `True`.
 
     Raises:
         TypeError: If any field has incorrect type.
@@ -109,20 +128,10 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
             raise ValueError("train_data and train_labels are required")
         check_X_y(config.train_data, config.train_labels)
     validate_callable(config.score_fn)
-    check_isinstance(config.regeneration, bool)
-    check_isinstance(config.regeneration_patience, int)
-    if config.regeneration and config.regeneration_patience < 1:
-        raise ValueError("regeneration_patience must be a positive integer")
-    if config.population_generator_fn is not None:
-        validate_callable(
-            config.population_generator_fn,
-            f"population_generator_fn must be callable, is {type(config.population_generator_fn)}",
-        )
-    if config.mutation_executor_fn is not None:
-        validate_callable(
-            config.mutation_executor_fn,
-            f"mutation_executor_fn must be callable, is {type(config.mutation_executor_fn)}",
-        )
+
+    check_isinstance(config.population_factory, PopulationGeneratorFactory)
+    check_isinstance(config.mutation_factory, MutationExecutorFactory)
+
     if config.crossover_executor is not None:
         check_isinstance(config.crossover_executor, CrossoverExecutor)
     if config.selection is not None:
@@ -130,7 +139,11 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
     if config.check_valid is not None:
         validate_callable(config.check_valid)
 
-    # Hierarchical GP validation
+    check_isinstance(config.regeneration, bool)
+    check_isinstance(config.regeneration_patience, int)
+    if config.regeneration and config.regeneration_patience < 1:
+        raise ValueError("regeneration_patience must be a positive integer")
+
     check_isinstance(config.num_child_populations, int)
     check_isinstance(config.max_depth, int)
     if config.num_child_populations < 0:

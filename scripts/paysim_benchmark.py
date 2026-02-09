@@ -57,8 +57,7 @@ from hgp_lib import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.populations import (
     FeatureSamplingStrategy,
-    PopulationGenerator,
-    RandomStrategy,
+    PopulationGeneratorFactory,
 )
 from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.rules import Rule
@@ -182,9 +181,8 @@ def main(args: argparse.Namespace):
     gp_config = BooleanGPConfig(
         score_fn=f1_score,
         check_valid=is_valid,
-        population_generator=PopulationGenerator(
-            strategies=[RandomStrategy(num_literals=data.shape[1])],
-            population_size=args.population_size,
+        population_factory=PopulationGeneratorFactory(
+            population_size=args.population_size
         ),
         optimize_scorer=args.optimize_scorer,
         regeneration=args.regeneration,

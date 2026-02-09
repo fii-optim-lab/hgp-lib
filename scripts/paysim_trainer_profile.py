@@ -82,7 +82,7 @@ from hgp_lib.mutations import (
 from hgp_lib.populations import (
     FeatureSamplingStrategy,
     PopulationGenerator,
-    RandomStrategy,
+    PopulationGeneratorFactory,
 )
 from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.rules import Rule
@@ -498,11 +498,6 @@ def main(args: argparse.Namespace) -> None:
     print("GP CONFIGURATION")
     print("=" * 60)
 
-    population_generator = PopulationGenerator(
-        strategies=[RandomStrategy(num_literals=train_data.shape[1])],
-        population_size=args.population_size,
-    )
-
     gp_config = BooleanGPConfig(
         train_data=train_data,
         train_labels=train_labels,
@@ -511,7 +506,9 @@ def main(args: argparse.Namespace) -> None:
         optimize_scorer=args.optimize_scorer,
         regeneration=args.regeneration,
         regeneration_patience=args.regeneration_patience,
-        population_generator=population_generator,
+        population_factory=PopulationGeneratorFactory(
+            population_size=args.population_size
+        ),
     )
 
     # Apply hierarchical GP settings if max_depth > 0

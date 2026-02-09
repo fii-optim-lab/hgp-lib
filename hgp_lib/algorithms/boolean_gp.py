@@ -7,10 +7,6 @@ from numpy import ndarray
 from ..configs import BooleanGPConfig, validate_gp_config
 from ..crossover import CrossoverExecutor
 from ..metrics import StepMetrics, ValidateBestMetrics, ValidatePopulationMetrics
-from ..mutations import (
-    create_default_mutation_executor,
-)
-from ..populations.populations_factory import create_default_population_generator
 from ..rules import Rule
 from ..selections import TournamentSelection
 from ..utils.metrics import optimize_scorer_for_data
@@ -28,15 +24,15 @@ class BooleanGP:
     real best rule (all-time best across regenerations). When enabled, regeneration
     resets the population if no improvement is observed for a specified number of epochs.
 
-    Training data and labels are provided via BooleanGPConfig. The number of features
-    (num_features) is derived from the data shape, simplifying PopulationGenerator and
-    MutationExecutor setup when defaults are used.
+    Training data and labels are provided via `BooleanGPConfig`. The number of features
+    (`num_features`) is derived from the data shape and passed to the configured
+    `population_factory` and `mutation_factory` for runtime construction of the
+    `PopulationGenerator` and `MutationExecutor`.
 
     Args:
-        config (BooleanGPConfig): Configuration containing train_data, train_labels,
-            score_fn, and optional components. If population_generator or
-            mutation_executor are None, they are created using num_features derived
-            from config.train_data.shape[1].
+        config (BooleanGPConfig): Configuration containing `train_data`,
+            `train_labels`, `score_fn`, `population_factory`,
+            `mutation_factory`, and optional components.
 
     Examples:
         >>> import numpy as np
@@ -84,20 +80,11 @@ class BooleanGP:
         self.current_depth = current_depth
         num_features = train_data.shape[1]
 
-        population_generator_fn = (
-            config.population_generator_fn or create_default_population_generator
+        population_generator = config.population_factory.create(
+            num_features, score_fn, train_data, train_labels
         )
-        population_generator = population_generator_fn(
-            config.population_size, num_features, score_fn, train_data, train_labels
-        )
-
-        mutation_executor_fn = (
-            config.mutation_executor_fn or create_default_mutation_executor
-        )
-        mutation_executor = mutation_executor_fn(
-            num_literals=num_features,
-            mutation_p=config.mutation_p,
-            check_valid=config.check_valid,
+        mutation_executor = config.mutation_factory.create(
+            num_features, config.check_valid
         )
 
         crossover_executor = config.crossover_executor

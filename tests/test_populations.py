@@ -2,7 +2,13 @@ import unittest
 import random
 import numpy as np
 
-from hgp_lib.populations import PopulationGenerator, RandomStrategy, BestLiteralStrategy
+from hgp_lib.populations import (
+    PopulationGenerator,
+    PopulationGeneratorFactory,
+    RandomStrategy,
+    BestLiteralStrategy,
+)
+from hgp_lib.mutations import MutationExecutorFactory
 from hgp_lib.rules import And, Or, Literal
 
 
@@ -308,12 +314,169 @@ class TestPopulations(unittest.TestCase):
         import doctest
         import hgp_lib.populations.strategies
         import hgp_lib.populations.generator
+        import hgp_lib.populations.populations_factory
 
         result = doctest.testmod(hgp_lib.populations.strategies, verbose=False)
         self.assertEqual(result.failed, 0, f"Strategies doctests failed: {result}")
 
         result = doctest.testmod(hgp_lib.populations.generator, verbose=False)
         self.assertEqual(result.failed, 0, f"Generator doctests failed: {result}")
+
+        result = doctest.testmod(hgp_lib.populations.populations_factory, verbose=False)
+        self.assertEqual(result.failed, 0, f"Factory doctests failed: {result}")
+
+
+class TestPopulationGeneratorFactory(unittest.TestCase):
+    def setUp(self):
+        random.seed(42)
+        np.random.seed(42)
+
+        self.train_data = np.array(
+            [
+                [True, False, True, False],
+                [False, True, False, True],
+                [True, True, False, False],
+                [False, False, True, True],
+            ]
+        )
+        self.train_labels = np.array([1, 0, 1, 0])
+        self.num_literals = 4
+
+    def simple_score_fn(self, predictions, labels):
+        return np.mean(predictions == labels)
+
+    def test_default_factory(self):
+        factory = PopulationGeneratorFactory()
+        self.assertEqual(factory.population_size, 100)
+
+    def test_custom_population_size(self):
+        factory = PopulationGeneratorFactory(population_size=50)
+        self.assertEqual(factory.population_size, 50)
+
+    def test_population_size_must_be_positive(self):
+        with self.assertRaises(ValueError):
+            PopulationGeneratorFactory(population_size=0)
+        with self.assertRaises(ValueError):
+            PopulationGeneratorFactory(population_size=-5)
+
+    def test_population_size_must_be_int(self):
+        with self.assertRaises(TypeError):
+            PopulationGeneratorFactory(population_size=10.5)
+
+    def test_create_returns_generator(self):
+        factory = PopulationGeneratorFactory(population_size=10)
+        gen = factory.create(
+            self.num_literals,
+            self.simple_score_fn,
+            self.train_data,
+            self.train_labels,
+        )
+        self.assertIsInstance(gen, PopulationGenerator)
+
+    def test_create_generates_correct_count(self):
+        factory = PopulationGeneratorFactory(population_size=15)
+        gen = factory.create(
+            self.num_literals,
+            self.simple_score_fn,
+            self.train_data,
+            self.train_labels,
+        )
+        population = gen.generate()
+        self.assertEqual(len(population), 15)
+
+    def test_default_strategy_is_random(self):
+        factory = PopulationGeneratorFactory(population_size=5)
+        gen = factory.create(
+            self.num_literals,
+            self.simple_score_fn,
+            self.train_data,
+            self.train_labels,
+        )
+        population = gen.generate()
+        for rule in population:
+            self.assertIsInstance(rule, (And, Or))
+
+    def test_subclass_override(self):
+        class BestLiteralFactory(PopulationGeneratorFactory):
+            def create_strategies(
+                self, num_literals, score_fn, train_data, train_labels
+            ):
+                return [
+                    BestLiteralStrategy(
+                        num_literals=num_literals,
+                        score_fn=score_fn,
+                        train_data=train_data,
+                        train_labels=train_labels,
+                    )
+                ]
+
+        factory = BestLiteralFactory(population_size=5)
+        gen = factory.create(
+            self.num_literals,
+            self.simple_score_fn,
+            self.train_data,
+            self.train_labels,
+        )
+        population = gen.generate()
+        self.assertEqual(len(population), 5)
+        for rule in population:
+            self.assertIsInstance(rule, Literal)
+
+
+class TestMutationExecutorFactory(unittest.TestCase):
+    def test_default_factory(self):
+        factory = MutationExecutorFactory()
+        self.assertEqual(factory.mutation_p, 0.1)
+        self.assertEqual(factory.num_tries, 1)
+
+    def test_custom_params(self):
+        factory = MutationExecutorFactory(mutation_p=0.05, num_tries=3)
+        self.assertEqual(factory.mutation_p, 0.05)
+        self.assertEqual(factory.num_tries, 3)
+
+    def test_mutation_p_out_of_range(self):
+        with self.assertRaises(ValueError):
+            MutationExecutorFactory(mutation_p=-0.1)
+        with self.assertRaises(ValueError):
+            MutationExecutorFactory(mutation_p=1.5)
+
+    def test_mutation_p_must_be_float(self):
+        with self.assertRaises(TypeError):
+            MutationExecutorFactory(mutation_p=1)
+
+    def test_num_tries_must_be_positive(self):
+        with self.assertRaises(ValueError):
+            MutationExecutorFactory(num_tries=0)
+
+    def test_create_returns_executor(self):
+        from hgp_lib.mutations import MutationExecutor
+
+        factory = MutationExecutorFactory(mutation_p=0.5)
+        executor = factory.create(num_literals=4)
+        self.assertIsInstance(executor, MutationExecutor)
+        self.assertEqual(executor.mutation_p, 0.5)
+
+    def test_create_with_check_valid(self):
+        from hgp_lib.mutations import MutationExecutor
+
+        factory = MutationExecutorFactory(mutation_p=0.1, num_tries=3)
+
+        def valid(rule):
+            return len(rule) < 50
+
+        executor = factory.create(num_literals=4, check_valid=valid)
+        self.assertIsInstance(executor, MutationExecutor)
+        self.assertEqual(executor.num_tries, 3)
+        self.assertIsNotNone(executor.check_valid)
+
+    def test_doctests(self):
+        import doctest
+        import hgp_lib.mutations.mutation_factory
+
+        result = doctest.testmod(hgp_lib.mutations.mutation_factory, verbose=False)
+        self.assertEqual(
+            result.failed, 0, f"Mutation factory doctests failed: {result}"
+        )
 
 
 if __name__ == "__main__":

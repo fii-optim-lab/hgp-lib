@@ -8,12 +8,7 @@ import hgp_lib.algorithms.boolean_gp
 from hgp_lib.algorithms import BooleanGP
 from hgp_lib.configs import BooleanGPConfig
 from hgp_lib.crossover import CrossoverExecutor
-from hgp_lib.mutations import (
-    MutationExecutor,
-    create_standard_literal_mutations,
-    create_standard_operator_mutations,
-)
-from hgp_lib.populations import PopulationGenerator, RandomStrategy
+from hgp_lib.populations import PopulationGeneratorFactory
 from hgp_lib.rules import Rule
 from hgp_lib.selections import TournamentSelection
 
@@ -43,27 +38,13 @@ class TestBooleanGP(unittest.TestCase):
 
         self.score_fn = accuracy
 
-        self.generator = PopulationGenerator(
-            strategies=[RandomStrategy(num_literals=self.num_features)],
-            population_size=10,
-        )
-
-        self.mutation_executor = MutationExecutor(
-            literal_mutations=create_standard_literal_mutations(self.num_features),
-            operator_mutations=create_standard_operator_mutations(self.num_features),
-        )
-
     def _make_config(self, **kwargs):
-        """Helper to create BooleanGPConfig with test defaults.
-
-        Note: optimize_scorer=False by default since test scorer doesn't support sample_weight.
-        """
+        """Helper to create BooleanGPConfig with test defaults."""
         defaults = dict(
             score_fn=self.score_fn,
             train_data=self.train_data,
             train_labels=self.train_labels,
-            population_generator=self.generator,
-            mutation_executor=self.mutation_executor,
+            population_factory=PopulationGeneratorFactory(population_size=10),
             optimize_scorer=False,
         )
         defaults.update(kwargs)
@@ -75,14 +56,14 @@ class TestBooleanGP(unittest.TestCase):
                 config = self._make_config(score_fn="not callable")
                 BooleanGP(config)
 
-        with self.subTest("population_generator must be PopulationGenerator"):
+        with self.subTest("population_factory must be PopulationGeneratorFactory"):
             with self.assertRaises(TypeError):
-                config = self._make_config(population_generator="not generator")
+                config = self._make_config(population_factory="not factory")
                 BooleanGP(config)
 
-        with self.subTest("mutation_executor must be MutationExecutor"):
+        with self.subTest("mutation_factory must be MutationExecutorFactory"):
             with self.assertRaises(TypeError):
-                config = self._make_config(mutation_executor="not executor")
+                config = self._make_config(mutation_factory="not factory")
                 BooleanGP(config)
 
         with self.subTest("crossover_executor must be CrossoverExecutor"):

@@ -21,17 +21,13 @@ class TestFeatureSamplingStrategy(unittest.TestCase):
     def test_returns_correct_number_of_results(self):
         """sample() returns exactly num_children results."""
         strategy = FeatureSamplingStrategy(feature_fraction=1.0)
-        results = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=5
-        )
+        results = strategy.sample(self.data, self.labels, num_children=5)
         self.assertEqual(len(results), 5)
 
     def test_each_result_has_unique_features(self):
         """Each child has unique feature indices (no duplicates within a child)."""
         strategy = FeatureSamplingStrategy(feature_fraction=1.0, replace=True)
-        results = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=3
-        )
+        results = strategy.sample(self.data, self.labels, num_children=3)
 
         for result in results:
             unique_count = len(np.unique(result.feature_indices))
@@ -39,12 +35,9 @@ class TestFeatureSamplingStrategy(unittest.TestCase):
 
     def test_no_overlap_when_replace_false(self):
         """When replace=False, features don't overlap between children."""
-        strategy = FeatureSamplingStrategy(feature_fraction=0.5, replace=False)
-        results = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=3
-        )
+        strategy = FeatureSamplingStrategy(feature_fraction=0.3, replace=False)
+        results = strategy.sample(self.data, self.labels, num_children=3)
 
-        # Check no overlap between any two children
         for i in range(len(results)):
             for j in range(i + 1, len(results)):
                 set_i = set(results[i].feature_indices)
@@ -59,9 +52,7 @@ class TestFeatureSamplingStrategy(unittest.TestCase):
     def test_feature_mapping_correct(self):
         """feature_mapping correctly maps child indices to parent indices."""
         strategy = FeatureSamplingStrategy(feature_fraction=1.0)
-        results = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=3
-        )
+        results = strategy.sample(self.data, self.labels, num_children=3)
 
         for result in results:
             self.assertIsNotNone(result.feature_mapping)
@@ -71,22 +62,17 @@ class TestFeatureSamplingStrategy(unittest.TestCase):
     def test_data_dimensions_correct(self):
         """Sampled data has correct dimensions."""
         strategy = FeatureSamplingStrategy(feature_fraction=1.0)
-        results = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=3
-        )
+        results = strategy.sample(self.data, self.labels, num_children=3)
 
         for result in results:
-            # All instances preserved
             self.assertEqual(result.data.shape[0], len(self.labels))
-            # Features match feature_indices
             self.assertEqual(result.data.shape[1], len(result.feature_indices))
-            # instance_indices is None for feature-only sampling
             self.assertIsNone(result.instance_indices)
 
     def test_invalid_feature_fraction_raises(self):
         """feature_fraction <= 0 raises ValueError."""
         with self.assertRaises(ValueError):
-            FeatureSamplingStrategy(feature_fraction=0)
+            FeatureSamplingStrategy(feature_fraction=0.0)
         with self.assertRaises(ValueError):
             FeatureSamplingStrategy(feature_fraction=-1.0)
 
@@ -102,17 +88,13 @@ class TestInstanceSamplingStrategy(unittest.TestCase):
     def test_returns_correct_number_of_results(self):
         """sample() returns exactly num_children results."""
         strategy = InstanceSamplingStrategy(instance_fraction=1.0)
-        results = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=5
-        )
+        results = strategy.sample(self.data, self.labels, num_children=5)
         self.assertEqual(len(results), 5)
 
     def test_each_result_has_unique_instances(self):
         """Each child has unique instance indices (no duplicates within a child)."""
         strategy = InstanceSamplingStrategy(instance_fraction=1.0, replace=True)
-        results = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=3
-        )
+        results = strategy.sample(self.data, self.labels, num_children=3)
 
         for result in results:
             unique_count = len(np.unique(result.instance_indices))
@@ -120,12 +102,9 @@ class TestInstanceSamplingStrategy(unittest.TestCase):
 
     def test_no_overlap_when_replace_false(self):
         """When replace=False, instances don't overlap between children."""
-        strategy = InstanceSamplingStrategy(instance_fraction=0.5, replace=False)
-        results = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=3
-        )
+        strategy = InstanceSamplingStrategy(instance_fraction=0.3, replace=False)
+        results = strategy.sample(self.data, self.labels, num_children=3)
 
-        # Check no overlap between any two children
         for i in range(len(results)):
             for j in range(i + 1, len(results)):
                 set_i = set(results[i].instance_indices)
@@ -140,24 +119,18 @@ class TestInstanceSamplingStrategy(unittest.TestCase):
     def test_data_dimensions_correct(self):
         """Sampled data has correct dimensions."""
         strategy = InstanceSamplingStrategy(instance_fraction=1.0)
-        results = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=3
-        )
+        results = strategy.sample(self.data, self.labels, num_children=3)
 
         for result in results:
-            # Instances match instance_indices
             self.assertEqual(result.data.shape[0], len(result.instance_indices))
-            # All features preserved
             self.assertEqual(result.data.shape[1], 20)
-            # Labels match instances
             self.assertEqual(len(result.labels), len(result.instance_indices))
-            # feature_mapping is None for instance-only sampling
             self.assertIsNone(result.feature_mapping)
 
     def test_invalid_instance_fraction_raises(self):
         """instance_fraction <= 0 raises ValueError."""
         with self.assertRaises(ValueError):
-            InstanceSamplingStrategy(instance_fraction=0)
+            InstanceSamplingStrategy(instance_fraction=0.0)
         with self.assertRaises(ValueError):
             InstanceSamplingStrategy(instance_fraction=-1.0)
 
@@ -173,9 +146,7 @@ class TestCombinedSamplingStrategy(unittest.TestCase):
     def test_returns_correct_number_of_results(self):
         """sample() returns exactly num_children results."""
         strategy = CombinedSamplingStrategy(feature_fraction=1.0, instance_fraction=1.0)
-        results = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=5
-        )
+        results = strategy.sample(self.data, self.labels, num_children=5)
         self.assertEqual(len(results), 5)
 
     def test_each_result_has_unique_features(self):
@@ -183,9 +154,7 @@ class TestCombinedSamplingStrategy(unittest.TestCase):
         strategy = CombinedSamplingStrategy(
             feature_fraction=1.0, instance_fraction=1.0, replace=True
         )
-        results = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=3
-        )
+        results = strategy.sample(self.data, self.labels, num_children=3)
 
         for result in results:
             unique_count = len(np.unique(result.feature_indices))
@@ -196,9 +165,7 @@ class TestCombinedSamplingStrategy(unittest.TestCase):
         strategy = CombinedSamplingStrategy(
             feature_fraction=1.0, instance_fraction=1.0, replace=True
         )
-        results = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=3
-        )
+        results = strategy.sample(self.data, self.labels, num_children=3)
 
         for result in results:
             unique_count = len(np.unique(result.instance_indices))
@@ -207,11 +174,9 @@ class TestCombinedSamplingStrategy(unittest.TestCase):
     def test_no_feature_overlap_when_replace_false(self):
         """When replace=False, features don't overlap between children."""
         strategy = CombinedSamplingStrategy(
-            feature_fraction=0.5, instance_fraction=0.5, replace=False
+            feature_fraction=0.3, instance_fraction=0.3, replace=False
         )
-        results = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=3
-        )
+        results = strategy.sample(self.data, self.labels, num_children=3)
 
         for i in range(len(results)):
             for j in range(i + 1, len(results)):
@@ -227,11 +192,9 @@ class TestCombinedSamplingStrategy(unittest.TestCase):
     def test_no_instance_overlap_when_replace_false(self):
         """When replace=False, instances don't overlap between children."""
         strategy = CombinedSamplingStrategy(
-            feature_fraction=0.5, instance_fraction=0.5, replace=False
+            feature_fraction=0.3, instance_fraction=0.3, replace=False
         )
-        results = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=3
-        )
+        results = strategy.sample(self.data, self.labels, num_children=3)
 
         for i in range(len(results)):
             for j in range(i + 1, len(results)):
@@ -247,9 +210,7 @@ class TestCombinedSamplingStrategy(unittest.TestCase):
     def test_feature_mapping_correct(self):
         """feature_mapping correctly maps child indices to parent indices."""
         strategy = CombinedSamplingStrategy(feature_fraction=1.0, instance_fraction=1.0)
-        results = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=3
-        )
+        results = strategy.sample(self.data, self.labels, num_children=3)
 
         for result in results:
             self.assertIsNotNone(result.feature_mapping)
@@ -259,22 +220,17 @@ class TestCombinedSamplingStrategy(unittest.TestCase):
     def test_data_dimensions_correct(self):
         """Sampled data has correct dimensions."""
         strategy = CombinedSamplingStrategy(feature_fraction=1.0, instance_fraction=1.0)
-        results = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=3
-        )
+        results = strategy.sample(self.data, self.labels, num_children=3)
 
         for result in results:
-            # Instances match instance_indices
             self.assertEqual(result.data.shape[0], len(result.instance_indices))
-            # Features match feature_indices
             self.assertEqual(result.data.shape[1], len(result.feature_indices))
-            # Labels match instances
             self.assertEqual(len(result.labels), len(result.instance_indices))
 
     def test_invalid_fractions_raise(self):
         """Invalid fractions raise ValueError."""
         with self.assertRaises(ValueError):
-            CombinedSamplingStrategy(feature_fraction=0)
+            CombinedSamplingStrategy(feature_fraction=0.0)
         with self.assertRaises(ValueError):
             CombinedSamplingStrategy(instance_fraction=-1.0)
 
@@ -297,11 +253,8 @@ class TestSamplingRandomized(unittest.TestCase):
             num_features = np.random.randint(4, 51)
             num_instances = np.random.randint(4, 101)
             num_children = np.random.randint(1, 11)
-            replace = np.random.choice([True, False])
-            # When replace=False, fraction must be <= 1.0 to avoid sample > population
-            feature_fraction = (
-                np.random.uniform(0.1, 2.0) if replace else np.random.uniform(0.1, 1.0)
-            )
+            replace = bool(np.random.choice([True, False]))
+            feature_fraction = float(np.random.uniform(0.5, 1.0))
 
             data = np.random.rand(num_instances, num_features) > 0.5
             labels = np.random.randint(0, 2, num_instances)
@@ -309,9 +262,7 @@ class TestSamplingRandomized(unittest.TestCase):
             strategy = FeatureSamplingStrategy(
                 feature_fraction=feature_fraction, replace=replace
             )
-            results = strategy.sample(
-                data, labels, num_features=num_features, num_children=num_children
-            )
+            results = strategy.sample(data, labels, num_children=int(num_children))
 
             self.assertEqual(len(results), num_children)
 
@@ -324,11 +275,8 @@ class TestSamplingRandomized(unittest.TestCase):
             num_features = np.random.randint(4, 51)
             num_instances = np.random.randint(4, 101)
             num_children = np.random.randint(1, 11)
-            replace = np.random.choice([True, False])
-            # When replace=False, fraction must be <= 1.0 to avoid sample > population
-            instance_fraction = (
-                np.random.uniform(0.1, 2.0) if replace else np.random.uniform(0.1, 1.0)
-            )
+            replace = bool(np.random.choice([True, False]))
+            instance_fraction = float(np.random.uniform(0.5, 1.0))
 
             data = np.random.rand(num_instances, num_features) > 0.5
             labels = np.random.randint(0, 2, num_instances)
@@ -336,9 +284,7 @@ class TestSamplingRandomized(unittest.TestCase):
             strategy = InstanceSamplingStrategy(
                 instance_fraction=instance_fraction, replace=replace
             )
-            results = strategy.sample(
-                data, labels, num_features=num_features, num_children=num_children
-            )
+            results = strategy.sample(data, labels, num_children=int(num_children))
 
             self.assertEqual(len(results), num_children)
 
@@ -351,14 +297,9 @@ class TestSamplingRandomized(unittest.TestCase):
             num_features = np.random.randint(4, 51)
             num_instances = np.random.randint(4, 101)
             num_children = np.random.randint(1, 11)
-            replace = np.random.choice([True, False])
-            # When replace=False, fractions must be <= 1.0 to avoid sample > population
-            feature_fraction = (
-                np.random.uniform(0.1, 2.0) if replace else np.random.uniform(0.1, 1.0)
-            )
-            instance_fraction = (
-                np.random.uniform(0.1, 2.0) if replace else np.random.uniform(0.1, 1.0)
-            )
+            replace = bool(np.random.choice([True, False]))
+            feature_fraction = float(np.random.uniform(0.5, 1.0))
+            instance_fraction = float(np.random.uniform(0.5, 1.0))
 
             data = np.random.rand(num_instances, num_features) > 0.5
             labels = np.random.randint(0, 2, num_instances)
@@ -368,9 +309,7 @@ class TestSamplingRandomized(unittest.TestCase):
                 instance_fraction=instance_fraction,
                 replace=replace,
             )
-            results = strategy.sample(
-                data, labels, num_features=num_features, num_children=num_children
-            )
+            results = strategy.sample(data, labels, num_children=int(num_children))
 
             self.assertEqual(len(results), num_children)
 
@@ -383,10 +322,8 @@ class TestSamplingRandomized(unittest.TestCase):
             num_features = np.random.randint(4, 51)
             num_instances = np.random.randint(4, 101)
             num_children = np.random.randint(1, 11)
-            replace = np.random.choice([True, False])
-            feature_fraction = (
-                np.random.uniform(0.1, 2.0) if replace else np.random.uniform(0.1, 1.0)
-            )
+            replace = bool(np.random.choice([True, False]))
+            feature_fraction = float(np.random.uniform(0.5, 1.0))
 
             data = np.random.rand(num_instances, num_features) > 0.5
             labels = np.random.randint(0, 2, num_instances)
@@ -394,16 +331,12 @@ class TestSamplingRandomized(unittest.TestCase):
             strategy = FeatureSamplingStrategy(
                 feature_fraction=feature_fraction, replace=replace
             )
-            results = strategy.sample(
-                data, labels, num_features=num_features, num_children=num_children
-            )
+            results = strategy.sample(data, labels, num_children=int(num_children))
 
             for result in results:
                 self.assertIsNotNone(result.feature_mapping)
-                # Keys should be 0 to len(feature_indices)-1
                 expected_keys = set(range(len(result.feature_indices)))
                 self.assertEqual(set(result.feature_mapping.keys()), expected_keys)
-                # Each mapping should match feature_indices
                 for i, idx in enumerate(result.feature_indices):
                     self.assertEqual(result.feature_mapping[i], int(idx))
 
@@ -416,13 +349,9 @@ class TestSamplingRandomized(unittest.TestCase):
             num_features = np.random.randint(4, 51)
             num_instances = np.random.randint(4, 101)
             num_children = np.random.randint(1, 11)
-            replace = np.random.choice([True, False])
-            feature_fraction = (
-                np.random.uniform(0.1, 2.0) if replace else np.random.uniform(0.1, 1.0)
-            )
-            instance_fraction = (
-                np.random.uniform(0.1, 2.0) if replace else np.random.uniform(0.1, 1.0)
-            )
+            replace = bool(np.random.choice([True, False]))
+            feature_fraction = float(np.random.uniform(0.5, 1.0))
+            instance_fraction = float(np.random.uniform(0.5, 1.0))
 
             data = np.random.rand(num_instances, num_features) > 0.5
             labels = np.random.randint(0, 2, num_instances)
@@ -432,16 +361,12 @@ class TestSamplingRandomized(unittest.TestCase):
                 instance_fraction=instance_fraction,
                 replace=replace,
             )
-            results = strategy.sample(
-                data, labels, num_features=num_features, num_children=num_children
-            )
+            results = strategy.sample(data, labels, num_children=int(num_children))
 
             for result in results:
                 self.assertIsNotNone(result.feature_mapping)
-                # Keys should be 0 to len(feature_indices)-1
                 expected_keys = set(range(len(result.feature_indices)))
                 self.assertEqual(set(result.feature_mapping.keys()), expected_keys)
-                # Each mapping should match feature_indices
                 for i, idx in enumerate(result.feature_indices):
                     self.assertEqual(result.feature_mapping[i], int(idx))
 
