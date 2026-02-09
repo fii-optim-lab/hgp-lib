@@ -362,6 +362,41 @@ class TestBooleanGP(unittest.TestCase):
         result = doctest.testmod(hgp_lib.algorithms.boolean_gp, verbose=False)
         self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
+    def test_compute_regularized_scores_formula(self):
+        """Test that regularized scores follow the formula: score - penalty * ln(complexity).
+
+        When complexity_penalty is 0, regularized scores equal original scores.
+        """
+        config = self._make_config(complexity_penalty=0.0)
+        gp = BooleanGP(config)
+
+        # Test with multiple random score arrays and complexity penalties
+        for seed in range(10):
+            np.random.seed(seed)
+            random.seed(seed)
+
+            scores = np.random.uniform(-1.0, 1.0, len(gp.population))
+            complexities = np.array([len(rule) for rule in gp.population])
+
+            # Test with complexity_penalty = 0
+            gp.complexity_penalty = 0.0
+            regularized = gp._compute_regularized_scores(scores.copy())
+            self.assertTrue(
+                np.allclose(regularized, scores),
+                "When complexity_penalty=0, regularized scores should equal original scores",
+            )
+
+            # Test with various positive complexity_penalty values
+            for penalty in [0.001, 0.01, 0.05, 0.1]:
+                gp.complexity_penalty = penalty
+                regularized = gp._compute_regularized_scores(scores.copy())
+                expected = scores - penalty * np.log(complexities)
+
+                self.assertTrue(
+                    np.allclose(regularized, expected),
+                    f"Regularized score formula failed for penalty={penalty}",
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

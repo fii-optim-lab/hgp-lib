@@ -74,6 +74,7 @@ class BooleanGP:
             )
 
         self.score_fn = score_fn
+        self.complexity_penalty = config.complexity_penalty
         self.train_data = train_data
         self.train_labels = train_labels
 
@@ -366,6 +367,23 @@ class BooleanGP:
 
         return child_feedbacks
 
+    def _compute_regularized_scores(self, scores: ndarray) -> ndarray:
+        """Compute regularized scores with complexity penalty.
+
+        regularized_score = score - complexity_penalty * ln(complexity)
+
+        Args:
+            scores (ndarray): Scores for the population.
+
+        Returns:
+            ndarray: Regularized scores for selection.
+        """
+        if self.complexity_penalty == 0:
+            return scores
+
+        complexities = np.array([len(rule) for rule in self.population])
+        return scores - self.complexity_penalty * np.log(complexities)
+
     def _new_generation(
         self, scores: ndarray, children_metrics: List[StepMetrics]
     ) -> StepMetrics:
@@ -420,8 +438,9 @@ class BooleanGP:
             self.best_score = -float("inf")
             self.best_not_improved_epochs = 0
         else:
+            regularized_scores = self._compute_regularized_scores(scores)
             self.population, selected_scores = self.selection.select(
-                self.population, scores, self.population_size
+                self.population, regularized_scores, self.population_size
             )
             # Non-root populations need reordering so top-K rules are at the front
             # for transfer to parent population during the next forward pass.

@@ -6,6 +6,19 @@ import pandas as pd
 from ..rules import Rule
 
 
+def complexity_check(max_complexity: int = 100) -> Callable[[Rule], bool]:
+    """
+    Create a validity check that limits rule complexity.
+
+    Usage:
+        config = BooleanGPConfig(
+            check_valid=complexity_check(50),
+            ...
+        )
+    """
+    return lambda rule: len(rule) <= max_complexity
+
+
 def validate_callable(maybe_callable: Callable, error_message: str | None = None):
     """
     Validate that a value is callable.

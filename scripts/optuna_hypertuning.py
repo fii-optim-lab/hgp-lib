@@ -41,6 +41,7 @@ from hgp_lib.populations import (
 from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.selections import RouletteSelection, TournamentSelection
 from hgp_lib.utils.metrics import fast_f1_score
+from hgp_lib.utils.validation import complexity_check
 from hgp_lib.utils.trial_details import extract_trial_details, store_trial_details
 from hgp_lib.utils.visualization import (
     plot_all_runs_progression,
@@ -175,6 +176,11 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
             "regeneration_patience", min_regen, max_regen, step=min_regen
         )
 
+    # Complexity regularization
+    params["complexity_penalty"] = trial.suggest_float(
+        "complexity_penalty", 0.0, 0.1, step=0.005
+    )
+
     # Hierarchical GP parameters (num_child_populations=0 means no hierarchy)
     params["num_child_populations"] = trial.suggest_int("num_child_populations", 0, 10)
 
@@ -263,8 +269,10 @@ def build_config(
         population_factory=PopulationGeneratorFactory(population_size=population_size),
         mutation_factory=MutationExecutorFactory(mutation_p=mutation_p),
         crossover_executor=crossover_executor,
+        check_valid=complexity_check(),
         regeneration=params.get("regeneration", False),
         regeneration_patience=params.get("regeneration_patience", 100),
+        complexity_penalty=params.get("complexity_penalty", 0.0),
         num_child_populations=params.get("num_child_populations", 0),
         max_depth=params.get("max_depth", 0),
         sampling_strategy=sampling_strategy,
