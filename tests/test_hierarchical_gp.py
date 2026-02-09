@@ -55,7 +55,7 @@ class TestSamplingStrategies(unittest.TestCase):
 
     def test_instance_sampling_basic(self):
         """Test that InstanceSamplingStrategy samples correct number of instances."""
-        strategy = InstanceSamplingStrategy(instance_fraction=0.25)
+        strategy = InstanceSamplingStrategy(sample_fraction=0.25)
         results = strategy.sample(self.data, self.labels, num_children=4)
 
         self.assertEqual(len(results), 4)
@@ -68,9 +68,7 @@ class TestSamplingStrategies(unittest.TestCase):
 
     def test_combined_sampling(self):
         """Test CombinedSamplingStrategy samples both dimensions."""
-        strategy = CombinedSamplingStrategy(
-            feature_fraction=0.25, instance_fraction=0.25
-        )
+        strategy = CombinedSamplingStrategy(feature_fraction=0.25, sample_fraction=0.25)
         results = strategy.sample(self.data, self.labels, num_children=4)
 
         self.assertEqual(len(results), 4)
@@ -134,7 +132,7 @@ class TestChildPopulationCreation(unittest.TestCase):
             train_labels=self.labels,
             max_depth=1,
             num_child_populations=2,
-            sampling_strategy=InstanceSamplingStrategy(instance_fraction=1.0),
+            sampling_strategy=InstanceSamplingStrategy(sample_fraction=1.0),
             top_k_transfer=5,
         )
         gp = BooleanGP(config)
@@ -246,7 +244,7 @@ class TestHierarchicalTraining(unittest.TestCase):
             train_labels=self.labels,
             max_depth=1,
             num_child_populations=2,
-            sampling_strategy=InstanceSamplingStrategy(instance_fraction=1.0),
+            sampling_strategy=InstanceSamplingStrategy(sample_fraction=1.0),
             top_k_transfer=5,
             optimize_scorer=False,
         )
@@ -265,7 +263,7 @@ class TestHierarchicalTraining(unittest.TestCase):
             max_depth=1,
             num_child_populations=2,
             sampling_strategy=CombinedSamplingStrategy(
-                feature_fraction=1.0, instance_fraction=1.0
+                feature_fraction=1.0, sample_fraction=1.0
             ),
             top_k_transfer=5,
             optimize_scorer=False,
@@ -494,7 +492,7 @@ class TestBooleanGPSamplingIntegration(unittest.TestCase):
                 train_labels=labels,
                 max_depth=1,
                 num_child_populations=num_children,
-                sampling_strategy=InstanceSamplingStrategy(instance_fraction=1.0),
+                sampling_strategy=InstanceSamplingStrategy(sample_fraction=1.0),
                 top_k_transfer=3,
             )
             gp = BooleanGP(config)

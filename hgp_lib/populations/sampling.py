@@ -226,23 +226,19 @@ class InstanceSamplingStrategy(SamplingStrategy):
 
     Each child population receives a subset of the parent's rows. All features
     are preserved. The number of instances per child is
-    `ceil(num_instances * instance_fraction)`.
+    `ceil(num_instances * sample_fraction)`.
 
     Overlap behavior (controlled by `replace` parameter):
         - `replace=False`: No overlap between children (partitioning).
         - `replace=True`: Overlap allowed.
 
-    When `instance_fraction=1.0`, all children receive all instances regardless of
+    When `sample_fraction=1.0`, all children receive all instances regardless of
     `replace`.
-
-    Attributes:
-        instance_fraction (float): Fraction of instances per child. Default: `1.0`.
-        replace (bool): Allow instance overlap between children. Default: `False`.
 
     Examples:
         >>> import numpy as np
         >>> np.random.seed(42)
-        >>> strategy = InstanceSamplingStrategy(instance_fraction=0.8)
+        >>> strategy = InstanceSamplingStrategy(sample_fraction=0.8)
         >>> data = np.random.rand(100, 10) > 0.5
         >>> labels = np.random.randint(0, 2, 100)
         >>> results = strategy.sample(data, labels, num_children=3)
@@ -252,13 +248,8 @@ class InstanceSamplingStrategy(SamplingStrategy):
         80
     """
 
-    def __init__(self, instance_fraction: float = 1.0, replace: bool = False):
-        super().__init__(sample_fraction=instance_fraction, replace=replace)
-
-    @property
-    def instance_fraction(self) -> float:
-        """Alias for `sample_fraction` for readability."""
-        return self.sample_fraction
+    def __init__(self, sample_fraction: float = 1.0, replace: bool = False):
+        super().__init__(sample_fraction=sample_fraction, replace=replace)
 
     def sample(
         self,
@@ -302,7 +293,7 @@ class CombinedSamplingStrategy(SamplingStrategy):
 
     Attributes:
         feature_fraction (float): Fraction of features per child. Default: `1.0`.
-        instance_fraction (float): Fraction of instances per child. Default: `1.0`.
+        sample_fraction (float): Fraction of instances per child. Default: `1.0`.
         replace (bool): Whether to allow overlap between children. Default: `False`.
 
     Examples:
@@ -310,7 +301,7 @@ class CombinedSamplingStrategy(SamplingStrategy):
         >>> np.random.seed(42)
         >>> strategy = CombinedSamplingStrategy(
         ...     feature_fraction=0.5,
-        ...     instance_fraction=0.5,
+        ...     sample_fraction=0.5,
         ...     replace=False
         ... )
         >>> data = np.random.rand(100, 10) > 0.5
@@ -325,19 +316,14 @@ class CombinedSamplingStrategy(SamplingStrategy):
     def __init__(
         self,
         feature_fraction: float = 1.0,
-        instance_fraction: float = 1.0,
+        sample_fraction: float = 1.0,
         replace: bool = False,
     ):
         super().__init__(
             feature_fraction=feature_fraction,
-            sample_fraction=instance_fraction,
+            sample_fraction=sample_fraction,
             replace=replace,
         )
-
-    @property
-    def instance_fraction(self) -> float:
-        """Alias for `sample_fraction` for readability."""
-        return self.sample_fraction
 
     def sample(
         self,

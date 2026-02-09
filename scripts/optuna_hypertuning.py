@@ -203,8 +203,8 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
                 "feature_fraction", 0.1, max_fraction, step=0.01
             )
         if params["sampling_strategy_type"] in ("instance", "combined"):
-            params["instance_fraction"] = trial.suggest_float(
-                "instance_fraction", 0.1, max_fraction, step=0.01
+            params["sample_fraction"] = trial.suggest_float(
+                "sample_fraction", 0.1, max_fraction, step=0.01
             )
 
     return params
@@ -246,13 +246,13 @@ def build_config(
             )
         elif strategy_type == "instance":
             sampling_strategy = InstanceSamplingStrategy(
-                sample_fraction=params.get("instance_fraction", 1.0),
+                sample_fraction=params.get("sample_fraction", 1.0),
                 replace=use_replace,
             )
         else:
             sampling_strategy = CombinedSamplingStrategy(
                 feature_fraction=params.get("feature_fraction", 1.0),
-                sample_fraction=params.get("instance_fraction", 1.0),
+                sample_fraction=params.get("sample_fraction", 1.0),
                 replace=use_replace,
             )
 
