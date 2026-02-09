@@ -27,7 +27,8 @@ dependencies = [
     "scikit-learn",
     "tqdm",
     "optuna",
-    "optuna-dashboard"
+    "optuna-dashboard",
+    "matplotlib"
 ]
 [tool.setuptools.packages.find]
 include = ["hgp_lib*"]
