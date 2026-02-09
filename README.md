@@ -39,7 +39,7 @@ val_data = binarizer.transform(val_data)
 test_data = binarizer.transform(test_data)
 ```
 
-**Config-based API**: The library uses dataclass configs (`BooleanGPConfig`, `TrainerConfig`, `BenchmarkerConfig`) for all main components. When you pass training data in a config, **the number of features is derived from the data** (`train_data.shape[1]`), so you do not need to pass `num_literals` when using default population generator and mutation executor.
+**Config-based API**: The library uses dataclass configs (`BooleanGPConfig`, `TrainerConfig`, `BenchmarkerConfig`) for all main components. When you pass training data in a config, **the number of features is derived from the data** (`train_data.shape[1]`) and passed to the configured `PopulationGeneratorFactory` and `MutationExecutorFactory` at runtime, so you do not need to pass `num_literals` when using the default factories.
 
 ### Simple training
 
@@ -70,12 +70,13 @@ test_metrics = trainer.score(test_data, test_labels)
 
 ### Hyperparameter configuration
 
+The `PopulationGeneratorFactory` and `MutationExecutorFactory` hold config-time parameters and build the actual `PopulationGenerator` / `MutationExecutor` at runtime (when `num_features` is known from the data). Subclass either factory to use custom strategies or mutations.
 
 ```python
-from hgp_lib.mutations import create_mutation_executor
 from hgp_lib.crossover import CrossoverExecutor
+from hgp_lib.mutations import MutationExecutorFactory
+from hgp_lib.populations import PopulationGeneratorFactory, BestLiteralStrategy
 from hgp_lib.selections import TournamentSelection, RouletteSelection, ParetoSelection
-from hgp_lib.populations import PopulationGenerator, RandomStrategy, BestLiteralStrategy
 from hgp_lib.rules import Rule
 
 max_rule_size = 100
@@ -94,29 +95,24 @@ def is_rule_valid(rule: Rule) -> bool:
     return True
 
 
-num_features = train_data.shape[1]  # Derive from data; no need to pass num_literals into config when using defaults
-random_strategy = RandomStrategy(num_literals=num_features)
-best_literal_strategy = BestLiteralStrategy(
-    num_literals=num_features,
-    score_fn=score_fn,
-    train_data=train_data,
-    train_labels=train_labels,
-    sample_size=0.1,  # Use 10% of data for evaluation
-    feature_size=0.5  # Use 50% of features for evaluation
-)
+# Population factory (default uses RandomStrategy)
+population_factory = PopulationGeneratorFactory(population_size=population_size)
 
-population_generator = PopulationGenerator(
-    strategies=[random_strategy, best_literal_strategy],
-    population_size=population_size,
-    weights=[0.8, 0.2]  # 80% Random, 20% Best Literal
-)
+# Subclass to use custom strategies (e.g. BestLiteralStrategy)
+class MyPopulationFactory(PopulationGeneratorFactory):
+    def create_strategies(self, num_literals, score_fn, train_data, train_labels):
+        return [BestLiteralStrategy(
+            num_literals=num_literals,
+            score_fn=score_fn,
+            train_data=train_data,
+            train_labels=train_labels,
+            sample_size=0.1,  # Use 10% of data for evaluation
+            feature_size=0.5, # Use 50% of features for evaluation
+        )]
 
-mutation_executor = create_mutation_executor(
-    num_literals=num_features, # Mandatory
-    mutation_p=mutation_p,  # Optional
-    check_valid=is_rule_valid,  # Optional
-    num_tries=10,  # Optional
-)
+# Mutation factory (default uses standard literal and operator mutations)
+mutation_factory = MutationExecutorFactory(mutation_p=mutation_p)
+
 crossover_executor = CrossoverExecutor(
     crossover_p=crossover_p,  # Optional
     crossover_strategy="best",  # Optional. Default: `"random"`
@@ -135,50 +131,64 @@ selection = TournamentSelection(size=10, selection_probability=0.4)
 
 The `PopulationGenerator` creates the initial set of rules. It uses a strategy pattern to allow for different initialization methods.
 
+When using `BooleanGPConfig`, pass a `PopulationGeneratorFactory` instead of a `PopulationGenerator` directly. The factory defers construction until the number of features is known from the data. Override `create_strategies` to use custom strategies:
+
 ```python
-from hgp_lib.populations import PopulationGenerator, RandomStrategy, BestLiteralStrategy
+from hgp_lib.populations import (
+    PopulationGeneratorFactory, PopulationGenerator,
+    RandomStrategy, BestLiteralStrategy,
+)
 
-# Simple Random Strategy
-# Generates rules with one operator (And/Or) and two random literals
+# Default factory: uses RandomStrategy, constructs the generator at runtime
+factory = PopulationGeneratorFactory(population_size=100)
+
+# Custom factory with BestLiteralStrategy
+class MyFactory(PopulationGeneratorFactory):
+    def create_strategies(self, num_literals, score_fn, train_data, train_labels):
+        random = RandomStrategy(num_literals=num_literals)
+        best = BestLiteralStrategy(
+            num_literals=num_literals,
+            score_fn=score_fn,
+            train_data=train_data,
+            train_labels=train_labels,
+            sample_size=100,    # Evaluate on 100 random samples
+            feature_size=None,  # Evaluate all features
+        )
+        return [random, best]
+
+factory = MyFactory(population_size=100)
+```
+
+You can also create a `PopulationGenerator` directly for standalone use (outside of `BooleanGPConfig`):
+
+```python
 random_strategy = RandomStrategy(num_literals=10)
-
-# Best Literal Strategy
-# Evaluates all single literals on a subset of data and picks the best one
-best_literal_strategy = BestLiteralStrategy(
-    num_literals=10,
-    score_fn=my_score_fn,
-    train_data=X_train,
-    train_labels=y_train,
-    sample_size=100,  # Evaluate on 100 random samples
-    feature_size=None # Evaluate all features
-)
-
-# Combine strategies
 generator = PopulationGenerator(
-    strategies=[random_strategy, best_literal_strategy],
+    strategies=[random_strategy],
     population_size=100,
-    weights=[0.7, 0.3] # 70% of rules from Random, 30% from Best Literal
 )
-
 initial_population = generator.generate()
 ```
 
 ### Low level usage with fine control
 
-Use `BooleanGPConfig` to configure the algorithm. Training data is passed in the config; **the number of features (num_features) is derived from the data shape**, so you do not need to pass `num_literals` separately when using default population generator and mutation executor.
+Use `BooleanGPConfig` to configure the algorithm. Training data is passed in the config; **the number of features (`num_features`) is derived from the data shape** and passed to the configured `population_factory` and `mutation_factory` for runtime construction.
 
 ```python
 from hgp_lib import BooleanGPConfig
 from hgp_lib.algorithms import BooleanGP
+from hgp_lib.mutations import MutationExecutorFactory
+from hgp_lib.populations import PopulationGeneratorFactory
 
 gp_config = BooleanGPConfig(
     train_data=train_data,
     train_labels=train_labels,
     score_fn=score_fn,
-    population_generator=population_generator,  # Optional; default uses num_features from data
-    mutation_executor=mutation_executor,  # Optional; default uses num_features from data
+    population_factory=population_factory,  # Optional; default PopulationGeneratorFactory()
+    mutation_factory=mutation_factory,  # Optional; default MutationExecutorFactory()
     crossover_executor=crossover_executor,
     selection=selection,
+    check_valid=is_rule_valid,
     regeneration=regeneration,
     regeneration_patience=regeneration_patience,
 )
@@ -208,10 +218,11 @@ gp_config = BooleanGPConfig(
     train_data=train_data,
     train_labels=train_labels,
     score_fn=score_fn,
-    population_generator=population_generator,
-    mutation_executor=mutation_executor,
+    population_factory=population_factory,  # Optional; default PopulationGeneratorFactory()
+    mutation_factory=mutation_factory,  # Optional; default MutationExecutorFactory()
     crossover_executor=crossover_executor,
     selection=selection,
+    check_valid=is_rule_valid,
     regeneration=regeneration,
     regeneration_patience=regeneration_patience,
 )
