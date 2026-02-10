@@ -18,7 +18,8 @@ class RandomStrategy(PopulationStrategy):
 
     Attributes:
         num_literals (int): The total number of available literals.
-        operator_types (Sequence[Type[Rule]]): A sequence of allowed operator types (e.g., `(Or, And)`). Default: `(Or, And)`.
+        operator_types (Sequence[Type[Rule]]): A sequence of allowed operator types
+            (e.g., `(Or, And)`). Default: `(Or, And)`.
 
     Examples:
         >>> from hgp_lib.populations import RandomStrategy
@@ -137,6 +138,12 @@ class BestLiteralStrategy(PopulationStrategy):
         validate_callable(score_fn)
         check_X_y(train_data, train_labels)
 
+        if len(train_data[0]) != num_literals:
+            raise ValueError(
+                f"Number of features in train_data must be equal to num_literals, "
+                f"got {len(train_data[0])} != {num_literals}"
+            )
+
         self.num_literals = num_literals
         self.score_fn = score_fn
         self.train_data = train_data
@@ -144,11 +151,6 @@ class BestLiteralStrategy(PopulationStrategy):
 
         self._sample_count = self._resolve_size(sample_size, len(train_data))
         self._feature_count = self._resolve_size(feature_size, num_literals)
-
-        if len(train_data[0]) != num_literals:
-            raise ValueError(
-                f"Number of features in train_data must be equal to num_literals, got {len(train_data[0])} != {num_literals}"
-            )
 
     def _resolve_size(self, size: int | float | None, total: int) -> int:
         if size is None:
@@ -200,7 +202,6 @@ class BestLiteralStrategy(PopulationStrategy):
             best_score = -float("inf")
 
             for i in feature_indices:
-                # Optimization: Direct access to column data avoids object creation overhead
                 preds_pos = subset_data[:, i]
                 score_pos = self.score_fn(preds_pos, subset_labels)
 

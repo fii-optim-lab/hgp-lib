@@ -17,6 +17,8 @@ from hgp_lib.configs import (
     validate_gp_config,
     validate_trainer_config,
 )
+from hgp_lib.mutations import MutationExecutorFactory
+from hgp_lib.populations import PopulationGeneratorFactory
 from hgp_lib.preprocessing import StandardBinarizer
 
 
@@ -98,8 +100,10 @@ class TestBooleanGPConfig(unittest.TestCase):
         self.assertEqual(config.regeneration_patience, 100)
         self.assertEqual(config.max_depth, 0)
         self.assertEqual(config.num_child_populations, 0)
-        self.assertIsNone(config.population_generator)
-        self.assertIsNone(config.mutation_executor)
+        self.assertIsInstance(config.population_factory, PopulationGeneratorFactory)
+        self.assertIsInstance(config.mutation_factory, MutationExecutorFactory)
+        self.assertEqual(config.population_factory.population_size, 100)
+        self.assertEqual(config.mutation_factory.mutation_p, 0.1)
         self.assertIsNone(config.crossover_executor)
         self.assertIsNone(config.selection)
 

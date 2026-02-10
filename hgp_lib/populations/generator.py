@@ -14,7 +14,7 @@ class PopulationGenerator:
     Attributes:
         strategies (Sequence[PopulationStrategy]): The list of strategies to use.
         population_size (int): The total number of rules to generate. Default: `100`.
-        weights (Sequence[float] | np.ndarray| None): Weights for random selection of strategies.
+        weights (Sequence[float] | np.ndarray | None): Weights for random selection of strategies.
             If `None`, all strategies are selected with equal probability. Default: `None`.
 
     Examples:
@@ -37,7 +37,8 @@ class PopulationGenerator:
 
         Args:
             strategies (Sequence[PopulationStrategy]): A non-empty sequence of PopulationStrategy instances.
-            population_size (int): The number of rules to generate. Must be greater than `0`. Default: `100`.
+            population_size (int): The number of rules to generate. Must be greater than `0`.
+                Default: `100`.
             weights (Sequence[float] | np.ndarray | None): Optional weights for each strategy.
                 Must sum to > `0` and be non-negative. Default: `None`.
         """

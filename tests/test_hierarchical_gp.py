@@ -31,15 +31,12 @@ class TestSamplingStrategies(unittest.TestCase):
 
     def test_feature_sampling_basic(self):
         """Test that FeatureSamplingStrategy samples correct number of features."""
-        strategy = FeatureSamplingStrategy(feature_fraction=1.0)
-        results = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=4
-        )
+        strategy = FeatureSamplingStrategy(feature_fraction=0.25)
+        results = strategy.sample(self.data, self.labels, num_children=4)
 
-        # Should return a list with 4 results (one per child)
         self.assertEqual(len(results), 4)
 
-        # Check first result - Expected: ceil(20/4) = 5 features per child
+        # ceil(20 * 0.25) = 5 features per child
         result = results[0]
         self.assertEqual(len(result.feature_indices), 5)
         self.assertEqual(result.data.shape, (100, 5))
@@ -49,46 +46,34 @@ class TestSamplingStrategies(unittest.TestCase):
     def test_feature_sampling_with_fraction(self):
         """Test FeatureSamplingStrategy with different fractions."""
         strategy = FeatureSamplingStrategy(feature_fraction=0.5)
-        results = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=4
-        )
+        results = strategy.sample(self.data, self.labels, num_children=4)
 
-        # Should return a list with 4 results
         self.assertEqual(len(results), 4)
 
-        # Expected: max(2, ceil(ceil(20/4) * 0.5)) = max(2, ceil(2.5)) = 3
-        self.assertEqual(len(results[0].feature_indices), 3)
+        # ceil(20 * 0.5) = 10 features per child
+        self.assertEqual(len(results[0].feature_indices), 10)
 
     def test_instance_sampling_basic(self):
         """Test that InstanceSamplingStrategy samples correct number of instances."""
-        strategy = InstanceSamplingStrategy(instance_fraction=1.0)
-        results = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=4
-        )
+        strategy = InstanceSamplingStrategy(sample_fraction=0.25)
+        results = strategy.sample(self.data, self.labels, num_children=4)
 
-        # Should return a list with 4 results
         self.assertEqual(len(results), 4)
 
-        # Check first result - Expected: ceil(100/4) = 25 instances per child
+        # ceil(100 * 0.25) = 25 instances per child
         result = results[0]
         self.assertEqual(len(result.instance_indices), 25)
         self.assertEqual(result.data.shape, (25, 20))
-        # All features preserved
-        np.testing.assert_array_equal(result.feature_indices, np.arange(20))
+        self.assertIsNone(result.feature_mapping)
 
     def test_combined_sampling(self):
         """Test CombinedSamplingStrategy samples both dimensions."""
-        strategy = CombinedSamplingStrategy(feature_fraction=1.0, instance_fraction=1.0)
-        results = strategy.sample(
-            self.data, self.labels, num_features=20, num_children=4
-        )
+        strategy = CombinedSamplingStrategy(feature_fraction=0.25, sample_fraction=0.25)
+        results = strategy.sample(self.data, self.labels, num_children=4)
 
-        # Should return a list with 4 results
         self.assertEqual(len(results), 4)
 
-        # Check first result
-        # Features: ceil(20/4) = 5
-        # Instances: ceil(100/4) = 25
+        # Features: ceil(20 * 0.25) = 5, Instances: ceil(100 * 0.25) = 25
         result = results[0]
         self.assertEqual(len(result.feature_indices), 5)
         self.assertEqual(len(result.instance_indices), 25)
@@ -126,7 +111,7 @@ class TestChildPopulationCreation(unittest.TestCase):
             train_labels=self.labels,
             max_depth=1,
             num_child_populations=2,
-            sampling_strategy=FeatureSamplingStrategy(feature_fraction=1.0),
+            sampling_strategy=FeatureSamplingStrategy(feature_fraction=0.5),
             top_k_transfer=5,
         )
         gp = BooleanGP(config)
@@ -136,9 +121,7 @@ class TestChildPopulationCreation(unittest.TestCase):
 
         for child in gp.child_populations:
             self.assertEqual(child.current_depth, 1)
-            # Children should have feature mapping since features are subsampled
             self.assertIsNotNone(child.feature_mapping)
-            # Child should have fewer features
             self.assertLess(child.train_data.shape[1], self.data.shape[1])
 
     def test_children_created_with_instance_sampling(self):
@@ -149,7 +132,7 @@ class TestChildPopulationCreation(unittest.TestCase):
             train_labels=self.labels,
             max_depth=1,
             num_child_populations=2,
-            sampling_strategy=InstanceSamplingStrategy(instance_fraction=1.0),
+            sampling_strategy=InstanceSamplingStrategy(sample_fraction=1.0),
             top_k_transfer=5,
         )
         gp = BooleanGP(config)
@@ -261,7 +244,7 @@ class TestHierarchicalTraining(unittest.TestCase):
             train_labels=self.labels,
             max_depth=1,
             num_child_populations=2,
-            sampling_strategy=InstanceSamplingStrategy(instance_fraction=1.0),
+            sampling_strategy=InstanceSamplingStrategy(sample_fraction=1.0),
             top_k_transfer=5,
             optimize_scorer=False,
         )
@@ -280,7 +263,7 @@ class TestHierarchicalTraining(unittest.TestCase):
             max_depth=1,
             num_child_populations=2,
             sampling_strategy=CombinedSamplingStrategy(
-                feature_fraction=1.0, instance_fraction=1.0
+                feature_fraction=1.0, sample_fraction=1.0
             ),
             top_k_transfer=5,
             optimize_scorer=False,
@@ -509,7 +492,7 @@ class TestBooleanGPSamplingIntegration(unittest.TestCase):
                 train_labels=labels,
                 max_depth=1,
                 num_child_populations=num_children,
-                sampling_strategy=InstanceSamplingStrategy(instance_fraction=1.0),
+                sampling_strategy=InstanceSamplingStrategy(sample_fraction=1.0),
                 top_k_transfer=3,
             )
             gp = BooleanGP(config)

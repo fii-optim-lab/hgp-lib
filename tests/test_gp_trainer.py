@@ -8,12 +8,7 @@ import hgp_lib.trainers.gp_trainer
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
 from hgp_lib.trainers import GPTrainer
 from hgp_lib.crossover import CrossoverExecutor
-from hgp_lib.mutations import (
-    MutationExecutor,
-    create_standard_literal_mutations,
-    create_standard_operator_mutations,
-)
-from hgp_lib.populations import PopulationGenerator, RandomStrategy
+from hgp_lib.populations import PopulationGeneratorFactory
 from hgp_lib.selections import RouletteSelection, TournamentSelection
 from hgp_lib.rules import Rule
 
@@ -167,7 +162,7 @@ class TestGPTrainer(unittest.TestCase):
         self.assertIsNotNone(result.best_rule)
         self.assertIsNotNone(result.best_score)
         self.assertEqual(len(result.train_history.epochs), 5)
-        self.assertIsNone(result.val_history)
+        self.assertEqual(len(result.val_history.epochs), 0)
 
     def test_fit_with_validation(self):
         config = self._make_trainer_config(
@@ -246,26 +241,21 @@ class TestGPTrainer(unittest.TestCase):
         self.assertIsInstance(all_time_metrics.best_rule, Rule)
         self.assertIsInstance(current_metrics.best_rule, Rule)
 
-    def test_custom_population_generator(self):
-        generator = PopulationGenerator(
-            strategies=[RandomStrategy(num_literals=self.num_features)],
-            population_size=20,
-        )
+    def test_custom_population_factory(self):
+        factory = PopulationGeneratorFactory(population_size=20)
 
-        gp_config = self._make_gp_config(population_generator=generator)
+        gp_config = self._make_gp_config(population_factory=factory)
         config = self._make_trainer_config(gp_config=gp_config, num_epochs=5)
         trainer = GPTrainer(config)
 
         self.assertEqual(len(trainer.gp_algo.population), 20)
 
-    def test_custom_mutation_executor(self):
-        mutation_executor = MutationExecutor(
-            literal_mutations=create_standard_literal_mutations(self.num_features),
-            operator_mutations=create_standard_operator_mutations(self.num_features),
-            mutation_p=0.5,
-        )
+    def test_custom_mutation_factory(self):
+        from hgp_lib.mutations import MutationExecutorFactory
 
-        gp_config = self._make_gp_config(mutation_executor=mutation_executor)
+        factory = MutationExecutorFactory(mutation_p=0.5)
+
+        gp_config = self._make_gp_config(mutation_factory=factory)
         config = self._make_trainer_config(gp_config=gp_config, num_epochs=5)
         trainer = GPTrainer(config)
 
