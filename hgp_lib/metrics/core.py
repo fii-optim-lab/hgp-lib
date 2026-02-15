@@ -6,7 +6,7 @@ from typing import Sequence
 from ..rules import Rule
 
 
-@dataclass(frozen=True)
+@dataclass()
 class GenerationMetrics:
     """All metrics captured at a single generation for one population."""
 

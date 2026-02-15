@@ -100,11 +100,7 @@ class GPTrainer:
                         self.val_score_fn,
                     )
 
-                    # Create new GenerationMetrics with val_scores added
-                    gen_metrics = replace(
-                        gen_metrics,
-                        val_score=val_score,
-                    )
+                    gen_metrics.val_score = val_score
 
                 parent_generations.append(gen_metrics)
 
