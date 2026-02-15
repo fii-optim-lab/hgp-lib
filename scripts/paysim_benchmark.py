@@ -282,19 +282,17 @@ def main(args: argparse.Namespace):
         )
 
     print("\nPerformance:")
-    print(
-        f"  Test F1 Score:  {result.mean_test_score:.4f} ± {result.std_test_score:.4f}"
-    )
-    print(
-        f"  Val F1 Score:   {result.mean_best_val_score:.4f} ± {result.std_best_val_score:.4f}"
-    )
+    test_scores = np.array(result.test_scores)
+    val_scores = np.array([run.mean_val_score for run in result.runs])
+    print(f"  Test F1 Score:  {test_scores.mean():.4f} ± {test_scores.std():.4f}")
+    print(f"  Val F1 Score:   {val_scores.mean():.4f} ± {val_scores.std():.4f}")
 
     print("\nPer-run test scores:")
-    for i, score in enumerate(result.all_test_scores):
+    for i, score in enumerate(result.test_scores):
         print(f"  Run {i:2d}: {score:.4f}")
 
     # Statistics
-    scores = np.array(result.all_test_scores)
+    scores = test_scores
     print("\nStatistics:")
     print(f"  Min:    {scores.min():.4f}")
     print(f"  Max:    {scores.max():.4f}")
@@ -302,12 +300,13 @@ def main(args: argparse.Namespace):
     print(f"  IQR:    {np.percentile(scores, 75) - np.percentile(scores, 25):.4f}")
 
     # Show best rule from run with highest test score
-    best_run_idx = np.argmax(result.all_test_scores)
-    best_rule = result.all_best_rules[best_run_idx]
+    best_run_idx = int(np.argmax(result.test_scores))
+    best_run = result.runs[best_run_idx]
+    best_rule = best_run.best_rule
     print(f"\nBest rule (from run {best_run_idx}, score={scores[best_run_idx]:.4f}):")
     print(f"  {best_rule}")
     print("\nReadable form:")
-    print(f"  {best_rule.to_str(result.feature_names_per_run[best_run_idx])}")
+    print(f"  {best_rule.to_str(best_run.feature_names)}")
 
     print("\n" + "=" * 60)
     print("Benchmark completed!")

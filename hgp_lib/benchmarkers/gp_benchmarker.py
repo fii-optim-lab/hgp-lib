@@ -5,10 +5,9 @@ from typing import List
 from tqdm import tqdm
 
 from ..configs import BenchmarkerConfig, validate_benchmarker_config
-from ..metrics import BenchmarkResult, RunMetrics
+from ..metrics import ExperimentResult, RunResult
 
 from .progress import ProgressConfig, ProgressListener
-from .results import aggregate_results
 from .runner import execute_single_run, single_run_wrapper
 from ..preprocessing import StandardBinarizer
 
@@ -34,10 +33,6 @@ class GPBenchmarker:
     Raw (non-binarized) data should be passed as a
     `pandas.DataFrame` in `BenchmarkerConfig.data`. Binarization happens
     internally per fold to prevent data leakage.
-
-    The `BenchmarkResult` includes `feature_names_per_run`, a mapping from
-    literal indices to the binarized column names, enabling human-readable
-    rule display via `rule.to_str(feature_names)`.
 
     Args:
         config (BenchmarkerConfig): Configuration with data,
@@ -80,20 +75,18 @@ class GPBenchmarker:
             benchmarker = GPBenchmarker(config)
             result = benchmarker.fit()
 
-            # Display the best rule in human-readable form
-            best_idx = np.argmax(result.all_test_scores)
-            print(result.all_best_rules[best_idx].to_str(
-                result.feature_names_per_run[best_idx]
-            ))
+            # Get the best rule
+            best_rule = result.best_rule
+            best_run = result.best_run
+            print(best_rule.to_str(best_run.feature_names))
     """
 
-    # TODO: This should be a doctest instead of an example.
     def __init__(self, config: BenchmarkerConfig):
         validate_benchmarker_config(config)
         self.config = config
         if self.config.binarizer is None:
             self.config.binarizer = StandardBinarizer()
-        self._run_metrics: List[RunMetrics] | None = None
+        self._run_results: ExperimentResult | None = None
 
     def _effective_n_jobs(self) -> int:
         """
@@ -107,9 +100,9 @@ class GPBenchmarker:
             n_jobs = os.cpu_count() or 1
         return max(1, min(n_jobs, self.config.num_runs))
 
-    def _run_sequential(self) -> List[RunMetrics]:
+    def _run_sequential(self) -> ExperimentResult:
         """Run all benchmark runs sequentially with nested progress bars."""
-        run_metrics: List[RunMetrics] = []
+        run_results: List[RunResult] = []
 
         if self.config.show_run_progress:
             self.config.trainer_config.leave_progress_bar = False
@@ -119,14 +112,14 @@ class GPBenchmarker:
             desc="Benchmark Runs",
             disable=not self.config.show_run_progress,
         ):
-            metrics = execute_single_run(
+            result = execute_single_run(
                 run_id, self.config.base_seed + run_id, self.config
             )
-            run_metrics.append(metrics)
+            run_results.append(result)
 
-        return run_metrics
+        return ExperimentResult(runs=run_results)
 
-    def _run_parallel(self, n_jobs: int) -> List[RunMetrics]:
+    def _run_parallel(self, n_jobs: int) -> ExperimentResult:
         """Run all benchmark runs in parallel with centralized progress bars."""
         show_progress = self.config.trainer_config.progress_bar
 
@@ -156,7 +149,7 @@ class GPBenchmarker:
 
         try:
             with multiprocessing.Pool(processes=n_jobs) as pool:
-                run_metrics = pool.map(single_run_wrapper, run_args)
+                run_results = pool.map(single_run_wrapper, run_args)
             # Normal completion - wait for listener to finish processing
             listener.join()
         except Exception:
@@ -164,29 +157,26 @@ class GPBenchmarker:
             listener.stop()
             raise
 
-        return run_metrics
+        return ExperimentResult(runs=run_results)
 
-    def fit(self) -> BenchmarkResult:
+    def fit(self) -> ExperimentResult:
         """
         Run all benchmark runs (parallel or sequential) and aggregate results.
 
         Each run performs a stratified train/test split, k-fold CV with per-fold
         binarization, and test-set evaluation. Results across runs are aggregated
-        into mean/std statistics.
+        into an ExperimentResult.
 
         Returns:
-            BenchmarkResult: Contains `run_metrics`, `mean_test_score`,
-                `std_test_score`, `mean_best_val_score`, `std_best_val_score`,
-                `all_test_scores`, `all_best_rules`, and
-                `feature_names_per_run`.
-                See `BenchmarkResult` for detailed field descriptions.
+            ExperimentResult: Contains all run results with methods to get
+                best_run, best_rule, test scores statistics, etc.
         """
         effective_n_jobs = self._effective_n_jobs()
 
         if effective_n_jobs == 1:
-            run_metrics = self._run_sequential()
+            run_results = self._run_sequential()
         else:
-            run_metrics = self._run_parallel(effective_n_jobs)
+            run_results = self._run_parallel(effective_n_jobs)
 
-        self._run_metrics = run_metrics
-        return aggregate_results(run_metrics)
+        self._run_results = run_results
+        return run_results

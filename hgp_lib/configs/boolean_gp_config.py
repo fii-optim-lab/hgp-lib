@@ -76,6 +76,7 @@ class BooleanGPConfig:
 
     # TODO: We should reconsider the ordering of the arguments for score fn. Pred, GT or GT, Pred?
     score_fn: Callable[[ndarray, ndarray], float]
+    complexity_penalty: float = 0.0
     train_data: ndarray | None = None
     train_labels: ndarray | None = None
     population_factory: PopulationGeneratorFactory = field(
@@ -165,5 +166,10 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
             f"feedback_type must be 'additive' or 'multiplicative', got {config.feedback_type!r}"
         )
     check_isinstance(config.feedback_strength, (int, float))
-    if config.feedback_strength <= 0:
-        raise ValueError("feedback_strength must be > 0")
+    if config.feedback_strength < 0:
+        raise ValueError("feedback_strength must be >= 0")
+
+    # Complexity penalty validation
+    check_isinstance(config.complexity_penalty, (int, float))
+    if config.complexity_penalty < 0:
+        raise ValueError("complexity_penalty must be non-negative")

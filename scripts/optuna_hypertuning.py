@@ -15,8 +15,6 @@ View results:
 
 import argparse
 import logging
-import os
-import tempfile
 import traceback
 from pathlib import Path
 from typing import Any, Callable, Dict, Tuple
@@ -26,11 +24,12 @@ import numpy as np
 import optuna
 import pandas as pd
 from numpy import ndarray
-from optuna.artifacts import FileSystemArtifactStore, upload_artifact
+from optuna.artifacts import FileSystemArtifactStore
 
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.crossover import CrossoverExecutor
+from visualization.optuna import store_trial_attributes, upload_trial_artifacts
 from hgp_lib.mutations import MutationExecutorFactory
 from hgp_lib.populations import (
     CombinedSamplingStrategy,
@@ -41,14 +40,8 @@ from hgp_lib.populations import (
 from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.selections import RouletteSelection, TournamentSelection
 from hgp_lib.utils.metrics import fast_f1_score
-from hgp_lib.utils.trial_details import extract_trial_details, store_trial_details
-from hgp_lib.utils.visualization import (
-    plot_all_runs_progression,
-    plot_epoch_progression,
-    plot_hierarchical_progression,
-)
+from hgp_lib.utils.validation import complexity_check
 
-# Use non-interactive backend for matplotlib (required for saving plots without display)
 matplotlib.use("Agg")
 
 logging.basicConfig(
@@ -61,16 +54,11 @@ def load_data(data_path: str) -> Tuple[pd.DataFrame, ndarray]:
     """
     Load and preprocess data from HDF file for benchmarking.
 
-    Loads the data, identifies the target column, and binarizes features
-    using StandardBinarizer. Supports PaySim format (isFraud column) and
-    generic format (target column).
-
     Args:
         data_path: Path to HDF file containing data.
-        num_bins: Number of bins for binarization. Default: 5.
 
     Returns:
-        Tuple of (data, labels) as numpy arrays, binarized and ready for GP.
+        Tuple of (data, labels).
 
     Raises:
         FileNotFoundError: If the file does not exist.
@@ -147,40 +135,58 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
     """Suggest all hyperparameters (base + hierarchical) in one function."""
     params = {}
 
-    params["num_bins"] = trial.suggest_int("num_bins", 4, 6)
+    params["num_bins"] = trial.suggest_int("num_bins", 4, 8)
 
     # Base GP parameters
     params["population_size"] = trial.suggest_int("population_size", 50, 200, step=25)
     params["mutation_probability"] = trial.suggest_float(
-        "mutation_probability", 0.001, 0.3, step=0.001
+        "mutation_probability", 0.001, 0.25, step=0.001
     )
     params["crossover_rate"] = trial.suggest_float(
         "crossover_rate", 0.1, 0.95, step=0.05
     )
-    params["num_epochs"] = trial.suggest_int("num_epochs", 100, 5000, step=100)
+    params["num_epochs"] = trial.suggest_int("num_epochs", 500, 3000, step=100)
 
-    params["selection_type"] = trial.suggest_categorical(
-        "selection_type", ["roulette", "tournament"]
-    )
+    params["selection_type"] = "tournament"
     if params["selection_type"] == "tournament":
         params["tournament_size"] = trial.suggest_int("tournament_size", 5, 30)
-        params["selection_p"] = trial.suggest_float("selection_p", 0.25, 0.9, step=0.05)
+        params["selection_p"] = trial.suggest_float("selection_p", 0.2, 0.9, step=0.05)
 
     params["regeneration"] = trial.suggest_categorical("regeneration", [True, False])
     if params["regeneration"]:
         min_regen = 50
-        max_regen = params["num_epochs"] // 2
+        max_regen = params["num_epochs"] // 3
         max_regen -= max_regen % min_regen
         params["regeneration_patience"] = trial.suggest_int(
             "regeneration_patience", min_regen, max_regen, step=min_regen
         )
 
-    # Hierarchical GP parameters (num_child_populations=0 means no hierarchy)
-    params["num_child_populations"] = trial.suggest_int("num_child_populations", 0, 10)
+    # Complexity regularization
+    params["use_complexity_penalty"] = trial.suggest_categorical(
+        "use_complexity_penalty", [True, False]
+    )
+    if params["use_complexity_penalty"]:
+        params["complexity_penalty"] = trial.suggest_float(
+            "complexity_penalty", 0.0, 0.1, step=0.0001
+        )
 
-    if params["num_child_populations"] > 0:
-        params["max_depth"] = 1
-        params["top_k_transfer"] = trial.suggest_int("top_k_transfer", 5, 50, step=5)
+    # Hierarchical GP parameters (num_child_populations=0 means no hierarchy)
+    params["max_depth"] = trial.suggest_int("max_depth", 0, 2, step=1)
+    if params["max_depth"] > 0:
+        if params["max_depth"] == 3:
+            params["num_child_populations"] = 2
+        elif params["max_depth"] == 2:
+            params["num_child_populations"] = trial.suggest_int(
+                "num_child_populations", 2, 3
+            )
+        else:  # 1
+            params["num_child_populations"] = trial.suggest_int(
+                "num_child_populations", 2, 8
+            )
+
+        params["top_k_transfer"] = trial.suggest_int(
+            "top_k_transfer", 10, min(100, params["population_size"]), step=5
+        )
         params["feedback_type"] = trial.suggest_categorical(
             "feedback_type", ["additive", "multiplicative"]
         )
@@ -191,21 +197,36 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
         params["sampling_strategy_type"] = trial.suggest_categorical(
             "sampling_strategy_type", ["feature", "instance", "combined"]
         )
-        params["use_replace"] = trial.suggest_categorical("use_replace", [True, False])
+        # params["use_replace"] = trial.suggest_categorical("use_replace", [True, False])
+        params["use_replace"] = True
 
         if not params["use_replace"]:
-            max_fraction = 1.0 / params["num_child_populations"]
+            max_fraction = 1.0 / (
+                params["num_child_populations"] ** params["max_depth"]
+            )
         else:
             max_fraction = 1.0
 
+        low = 0.1 * params["max_depth"]
+
         if params["sampling_strategy_type"] in ("feature", "combined"):
-            params["feature_fraction"] = trial.suggest_float(
-                "feature_fraction", 0.1, max_fraction, step=0.01
-            )
+            if max_fraction - 0.1 >= 0.01:
+                params["feature_fraction"] = trial.suggest_float(
+                    "feature_fraction", low, max_fraction, step=0.01
+                )
+            else:
+                params["feature_fraction"] = trial.suggest_float(
+                    "feature_fraction", low, max_fraction
+                )
         if params["sampling_strategy_type"] in ("instance", "combined"):
-            params["sample_fraction"] = trial.suggest_float(
-                "sample_fraction", 0.1, max_fraction, step=0.01
-            )
+            if max_fraction - 0.1 >= 0.01:
+                params["sample_fraction"] = trial.suggest_float(
+                    "sample_fraction", low, max_fraction, step=0.01
+                )
+            else:
+                params["sample_fraction"] = trial.suggest_float(
+                    "sample_fraction", low, max_fraction
+                )
 
     return params
 
@@ -232,7 +253,10 @@ def build_config(
 
     # Mutation and crossover
     mutation_p = params["mutation_probability"]
-    crossover_executor = CrossoverExecutor(crossover_p=params["crossover_rate"])
+    check_valid = complexity_check()
+    crossover_executor = CrossoverExecutor(
+        crossover_p=params["crossover_rate"], check_valid=check_valid
+    )
 
     # Sampling strategy for hierarchical GP
     sampling_strategy = None
@@ -263,8 +287,10 @@ def build_config(
         population_factory=PopulationGeneratorFactory(population_size=population_size),
         mutation_factory=MutationExecutorFactory(mutation_p=mutation_p),
         crossover_executor=crossover_executor,
+        check_valid=check_valid,
         regeneration=params.get("regeneration", False),
         regeneration_patience=params.get("regeneration_patience", 100),
+        complexity_penalty=params.get("complexity_penalty", 0.0),
         num_child_populations=params.get("num_child_populations", 0),
         max_depth=params.get("max_depth", 0),
         sampling_strategy=sampling_strategy,
@@ -284,8 +310,8 @@ def build_config(
         labels=labels,
         trainer_config=trainer_config,
         binarizer=binarizer,
-        num_runs=5,
-        n_folds=3,
+        num_runs=10,
+        n_folds=5,
         n_jobs=n_jobs,
         show_run_progress=verbose,
         show_fold_progress=verbose,
@@ -309,126 +335,35 @@ def create_objective(
             config = build_config(params, data, labels, fast_f1_score, n_jobs, verbose)
             result = GPBenchmarker(config).fit()
 
-            # Extract and store detailed trial information
-            details = extract_trial_details(result)
-            store_trial_details(trial, details)
+            # Store trial attributes using new metrics system
+            store_trial_attributes(trial, result)
 
-            # Generate and save visualization artifacts
-            _save_trial_artifacts(trial, result, details, artifact_store)
-
-            logger.info(
-                f"Trial {trial.number}: val={result.mean_best_val_score:.4f}, "
-                f"test={result.mean_test_score:.4f}, hierarchical={params['num_child_populations'] > 0}"
+            # Upload visualization artifacts
+            upload_trial_artifacts(
+                trial,
+                result,
+                artifact_store,
+                top_k_transfer=params.get("top_k_transfer", 10),
             )
 
-            return result.mean_best_val_score
+            # Get mean validation score for optimization
+            mean_val_score = float(np.mean([run.mean_val_score for run in result.runs]))
+
+            mean_test_score = float(np.mean(result.test_scores))
+
+            logger.info(
+                f"Trial {trial.number}: val={mean_val_score:.4f}, "
+                f"test={mean_test_score:.4f}, "
+                f"hierarchical={params['max_depth'] > 0}"
+            )
+
+            return mean_val_score
 
         except Exception:
             logger.error(f"Trial {trial.number} failed: {traceback.format_exc()}")
             raise optuna.TrialPruned()
 
     return objective
-
-
-def _save_trial_artifacts(
-    trial: optuna.Trial,
-    result,
-    details,
-    artifact_store: FileSystemArtifactStore,
-) -> None:
-    """
-    Generate and save visualization artifacts for a trial.
-
-    Handles edge cases gracefully:
-    - Skips artifact generation if training history is not available
-    - Skips hierarchical plot for non-hierarchical trials (is_hierarchical=False)
-    - Logs warnings instead of failing on artifact upload errors
-
-    Args:
-        trial: Optuna trial object.
-        result: BenchmarkResult containing run metrics.
-        details: TrialDetails with extracted trial information.
-        artifact_store: FileSystemArtifactStore for saving artifacts.
-    """
-    import matplotlib.pyplot as plt
-
-    # Validate best_run_idx is within bounds
-    if details.best_run_idx >= len(result.run_metrics):
-        logger.warning(
-            f"Trial {trial.number}: best_run_idx ({details.best_run_idx}) "
-            f"out of bounds, skipping artifacts"
-        )
-        return
-
-    best_run = result.run_metrics[details.best_run_idx]
-
-    # Create a temporary directory for saving plots
-    with tempfile.TemporaryDirectory() as tmpdir:
-        # 1. Epoch progression plot (best run)
-        if best_run.train_history is not None:
-            try:
-                fig = plot_epoch_progression(
-                    best_run.train_history,
-                    best_run.val_history,
-                    title=f"Trial {trial.number}: F1 Score Progression (Best Run)",
-                )
-                epoch_path = os.path.join(tmpdir, "epoch_progression.png")
-                fig.savefig(epoch_path, dpi=150, bbox_inches="tight")
-                plt.close(fig)
-                upload_artifact(trial, epoch_path, artifact_store)
-            except Exception as e:
-                logger.error(
-                    f"Trial {trial.number}: Failed to save epoch progression plot: {e}"
-                )
-
-        # 2. All runs overlay plot
-        runs_with_history = [
-            rm for rm in result.run_metrics if rm.val_history is not None
-        ]
-        if runs_with_history:
-            try:
-                fig = plot_all_runs_progression(
-                    result.run_metrics,
-                    details.best_run_idx,
-                )
-                all_runs_path = os.path.join(tmpdir, "all_runs_progression.png")
-                fig.savefig(all_runs_path, dpi=150, bbox_inches="tight")
-                plt.close(fig)
-                upload_artifact(trial, all_runs_path, artifact_store)
-            except Exception as e:
-                logger.warning(
-                    f"Trial {trial.number}: Failed to save all runs plot: {e}"
-                )
-
-        # 3. Hierarchical plot (only for hierarchical trials)
-        # Skip for non-hierarchical trials (is_hierarchical=False or num_children=0)
-        if not details.is_hierarchical or details.num_children == 0:
-            pass
-        elif best_run.train_history is not None:
-            # Verify children scores are actually available before plotting
-            has_children_scores = any(
-                epoch.children_best_scores is not None
-                for epoch in best_run.train_history.epochs
-            )
-            if has_children_scores:
-                try:
-                    fig = plot_hierarchical_progression(
-                        best_run.train_history,
-                        details.num_children,
-                    )
-                    hier_path = os.path.join(tmpdir, "hierarchical_progression.png")
-                    fig.savefig(hier_path, dpi=150, bbox_inches="tight")
-                    plt.close(fig)
-                    upload_artifact(trial, hier_path, artifact_store)
-                except Exception as e:
-                    logger.warning(
-                        f"Trial {trial.number}: Failed to save hierarchical plot: {e}"
-                    )
-            else:
-                logger.warning(
-                    f"Trial {trial.number}: Hierarchical trial but no children "
-                    "scores available, skipping hierarchical plot"
-                )
 
 
 def main() -> None:
@@ -453,26 +388,20 @@ def main() -> None:
         storage=storage,
         direction="maximize",
         load_if_exists=True,
-        sampler=optuna.samplers.TPESampler(seed=args.seed),
     )
 
-    # Log info about existing trials (handle backward compatibility)
+    # Log info about existing trials
     existing_trials = study.trials
     if existing_trials:
-        trials_with_artifacts = sum(
+        trials_with_attrs = sum(
             1
             for t in existing_trials
-            if t.user_attrs.get("is_hierarchical") is not None
+            if t.user_attrs.get("06_hierarchy_is_hierarchical") is not None
         )
         logger.info(
             f"Loaded existing study with {len(existing_trials)} trials "
-            f"({trials_with_artifacts} with detailed attributes)"
+            f"({trials_with_attrs} with new attributes format)"
         )
-        if trials_with_artifacts < len(existing_trials):
-            logger.info(
-                "Note: Some older trials may not have detailed attributes or artifacts. "
-                "These will be displayed with limited information in the dashboard."
-            )
 
     objective = create_objective(
         data, labels, args.n_jobs, artifact_store, args.verbose
@@ -488,19 +417,15 @@ def main() -> None:
     best = study.best_trial
     print(f"\nBest validation score: {best.value:.4f}")
 
-    # Safely access user attributes (handle old trials without attributes)
-    best_test_score = best.user_attrs.get("best_run_test_score")
-    is_hierarchical = best.user_attrs.get("is_hierarchical")
+    # Access user attributes with new naming
+    best_test_score = best.user_attrs.get("04_best_test_score")
+    is_hierarchical = best.user_attrs.get("06_hierarchy_is_hierarchical")
 
     if best_test_score is not None:
         print(f"Best test score: {best_test_score:.4f}")
-    else:
-        print("Best test score: N/A (trial from older version)")
 
     if is_hierarchical is not None:
         print(f"Is hierarchical: {is_hierarchical}")
-    else:
-        print("Is hierarchical: N/A (trial from older version)")
 
     print("\nBest hyperparameters:")
     for key, value in best.params.items():
@@ -520,3 +445,7 @@ if __name__ == "__main__":
 # Example usage:
 # python scripts/optuna_hypertuning.py --data-path data/PaySim.hdf --n-trials 100 --study-name 3_tests_3_val_folds --verbose --artifact-dir ./artifacts
 # optuna-dashboard sqlite:///optuna_study.db --artifact-dir ./artifacts
+
+
+# source /Users/user/miniforge3/bin/activate
+# conda activate 312

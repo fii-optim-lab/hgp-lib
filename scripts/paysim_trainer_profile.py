@@ -341,9 +341,8 @@ def apply_timing_decorators() -> None:
     # GP algorithm core
     BooleanGP.step = decorator(BooleanGP.step)
     BooleanGP._new_generation = decorator(BooleanGP._new_generation)
-    BooleanGP._evaluate_population = decorator(BooleanGP._evaluate_population)
+    BooleanGP.evaluate_population = decorator(BooleanGP.evaluate_population)
     BooleanGP._update_best = decorator(BooleanGP._update_best)
-    BooleanGP.validate_population = decorator(BooleanGP.validate_population)
 
     # Hierarchical GP operations
     BooleanGP._create_child_populations = decorator(BooleanGP._create_child_populations)
@@ -555,23 +554,24 @@ def main(args: argparse.Namespace) -> None:
     # Print training summary
     print("\n" + "-" * 60)
     print("Training Summary:")
-    print(f"  Best train score: {result.best_score:.4f}")
-    if result.val_history:
-        val_scores = result.val_history.best_scores()
-        print(f"  Best val score: {max(val_scores):.4f}")
-        print(f"  Final val score: {val_scores[-1]:.4f}")
+    best_train = max(gen.best_train_score for gen in result.generations)
+    print(f"  Best train score: {best_train:.4f}")
+    if result.best_val_score is not None:
+        print(f"  Best val score: {result.best_val_score:.4f}")
 
     # Evaluate on test set
     print("\n" + "=" * 60)
     print("TEST EVALUATION")
     print("=" * 60)
 
-    test_metrics = trainer.score(test_data, test_labels, score_fn=f1_score)
-    print(f"Test F1 score: {test_metrics.best:.4f}")
+    test_score = trainer.gp_algo.evaluate_best(
+        test_data, test_labels, score_fn=f1_score
+    )
+    print(f"Test F1 score: {test_score:.4f}")
     print("\nBest rule:")
-    print(f"  {test_metrics.best_rule}")
+    print(f"  {result.global_best_rule}")
     print("\nReadable form:")
-    print(f"  {test_metrics.best_rule.to_str(feature_names)}")
+    print(f"  {result.global_best_rule.to_str(feature_names)}")
 
     # Print profiling results
     print_timing_results(measurements, args)

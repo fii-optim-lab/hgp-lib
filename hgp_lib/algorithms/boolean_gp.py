@@ -6,7 +6,7 @@ from numpy import ndarray
 
 from ..configs import BooleanGPConfig, validate_gp_config
 from ..crossover import CrossoverExecutor
-from ..metrics import StepMetrics, ValidateBestMetrics, ValidatePopulationMetrics
+from ..metrics import GenerationMetrics
 from ..rules import Rule
 from ..selections import TournamentSelection
 from ..utils.metrics import optimize_scorer_for_data
@@ -20,9 +20,9 @@ class BooleanGP:
     boolean rules to optimize a fitness function. Each generation applies crossover and
     mutation operations, evaluates the population, and selects the best individuals.
 
-    The algorithm tracks both the current best rule (best in the current run) and the
-    real best rule (all-time best across regenerations). When enabled, regeneration
-    resets the population if no improvement is observed for a specified number of epochs.
+    The algorithm tracks the current best rule (best in the current run). When enabled,
+    regeneration resets the population if no improvement is observed for a specified
+    number of epochs.
 
     Training data and labels are provided via `BooleanGPConfig`. The number of features
     (`num_features`) is derived from the data shape and passed to the configured
@@ -51,9 +51,7 @@ class BooleanGP:
         ...     optimize_scorer=False,
         ... )
         >>> gp = BooleanGP(config)
-        >>> metrics = gp.step()
-        >>> metrics.epoch
-        0
+        >>> gen_metrics = gp.step()
     """
 
     def __init__(self, config: BooleanGPConfig, current_depth: int = 0):
@@ -74,6 +72,7 @@ class BooleanGP:
             )
 
         self.score_fn = score_fn
+        self.complexity_penalty = config.complexity_penalty
         self.train_data = train_data
         self.train_labels = train_labels
 
@@ -113,10 +112,10 @@ class BooleanGP:
         self._top_k = config.top_k_transfer
 
         self.best_score = -float("inf")
+        self.global_best_score = -float("inf")
         self.best_rule: Rule | None = None
+        self.global_best_rule: Rule | None = None
         self.best_not_improved_epochs = 0
-        self.real_best_score = -float("inf")
-        self.real_best_rule: Rule | None = None
         self._epoch = -1
 
         self.config = config
@@ -160,7 +159,7 @@ class BooleanGP:
 
             self.child_populations.append(child)
 
-    def step(self) -> StepMetrics:
+    def step(self) -> GenerationMetrics:
         """
         Performs one training step (generation) of the genetic programming algorithm.
 
@@ -171,9 +170,7 @@ class BooleanGP:
         epochs, the population is regenerated.
 
         Returns:
-            StepMetrics: Dataclass containing best, best_rule, real_best, real_best_rule,
-                current_best, mean_score, std_score, population_scores, epoch,
-                best_not_improved_epochs, and regenerated.
+            GenerationMetrics: Metrics for this generation including rules, scores, etc.
         """
         # TODO: Add doctests here.
         self.forward()
@@ -219,7 +216,7 @@ class BooleanGP:
         self.population += offspring
         self.mutation_executor.apply(self.population)
 
-    def backward(self, parent_scores: ndarray | None = None) -> StepMetrics:
+    def backward(self, parent_scores: ndarray | None = None) -> GenerationMetrics:
         """
         Performs the backward pass of the genetic programming algorithm.
 
@@ -241,9 +238,9 @@ class BooleanGP:
                 offspring in the parent. Default: None.
 
         Returns:
-            StepMetrics: Dictionary containing metrics about the generation step.
+            GenerationMetrics: Metrics for this generation.
         """
-        scores = self._evaluate_population(
+        scores = self.evaluate_population(
             self.train_data, self.train_labels, self.score_fn
         )
         if parent_scores is not None:
@@ -366,9 +363,26 @@ class BooleanGP:
 
         return child_feedbacks
 
+    def _compute_regularized_scores(
+        self, scores: ndarray, complexities: List[int]
+    ) -> ndarray:
+        """Compute regularized scores with complexity penalty.
+
+        regularized_score = score - complexity_penalty * ln(complexity)
+
+        Args:
+            scores (ndarray): Scores for the population.
+
+        Returns:
+            ndarray: Regularized scores for selection.
+        """
+        if self.complexity_penalty == 0:
+            return scores
+        return scores - self.complexity_penalty * np.log(complexities)
+
     def _new_generation(
-        self, scores: ndarray, children_metrics: List[StepMetrics]
-    ) -> StepMetrics:
+        self, scores: ndarray, children_metrics: List[GenerationMetrics]
+    ) -> GenerationMetrics:
         """
         Creates a new generation by selecting individuals and optionally regenerating the population.
 
@@ -382,15 +396,13 @@ class BooleanGP:
                 length as `self.population`.
 
         Returns:
-            StepMetrics: Metrics about the generation step, including mean_score and std_score.
+            GenerationMetrics: Metrics about the generation step.
         """
-        mean_score = np.mean(scores)
-        std_score = np.std(scores, mean=mean_score)
-
-        best_idx = np.argmax(scores)
+        best_idx = int(np.argmax(scores))
         current_best = float(scores[best_idx])
+        current_best_rule = self.population[best_idx].copy()
 
-        self._update_best(current_best, self.population[best_idx])
+        self._update_best(current_best, current_best_rule)
 
         regenerated = False
         if (
@@ -400,19 +412,16 @@ class BooleanGP:
             regenerated = True
 
         self._epoch += 1
-        metrics = StepMetrics(
-            best=self.best_score,
-            best_rule=self.best_rule,
-            real_best=self.real_best_score,
-            real_best_rule=self.real_best_rule,
-            current_best=current_best,
-            mean_score=float(mean_score),
-            std_score=float(std_score),
-            population_scores=scores,
-            epoch=self._epoch,
-            best_not_improved_epochs=self.best_not_improved_epochs,
-            regenerated=regenerated,
-            children_metrics=children_metrics,
+
+        # Create GenerationMetrics
+        complexities = [len(rule) for rule in self.population]
+
+        metrics = GenerationMetrics.from_population(
+            best_idx=best_idx,
+            best_rule=current_best_rule,
+            train_scores=scores.tolist(),
+            complexities=complexities,
+            child_population_generation_metrics=children_metrics,
         )
 
         if regenerated:
@@ -420,17 +429,19 @@ class BooleanGP:
             self.best_score = -float("inf")
             self.best_not_improved_epochs = 0
         else:
+            regularized_scores = self._compute_regularized_scores(scores, complexities)
             self.population, selected_scores = self.selection.select(
-                self.population, scores, self.population_size
+                self.population, regularized_scores, self.population_size
             )
             # Non-root populations need reordering so top-K rules are at the front
             # for transfer to parent population during the next forward pass.
             if self.current_depth > 0:  # top_k must be positive if current_depth > 0
                 sorted_indices = np.argpartition(-selected_scores, self._top_k)
                 self.population = [self.population[i] for i in sorted_indices]
+
         return metrics
 
-    def _evaluate_population(
+    def evaluate_population(
         self,
         data: ndarray,
         labels: ndarray,
@@ -459,8 +470,8 @@ class BooleanGP:
         Updates the best rule tracking based on the current generation's best.
 
         If the current best score is greater than or equal to the stored best score,
-        updates both the current run's best and the all-time best (if it's a new record).
-        Otherwise, increments the counter for epochs without improvement.
+        updates the current run's best. Otherwise, increments the counter for epochs
+        without improvement.
 
         Args:
             current_best (float):
@@ -472,20 +483,19 @@ class BooleanGP:
         if current_best >= self.best_score:
             self.best_not_improved_epochs = 0
             self.best_score = current_best
-            self.best_rule = current_best_rule.copy()
-            if self.best_score > self.real_best_score:
-                self.real_best_score = self.best_score
-                self.real_best_rule = self.best_rule.copy()
+            self.best_rule = current_best_rule
+            if current_best >= self.global_best_score:
+                self.global_best_score = current_best
+                self.global_best_rule = current_best_rule
         else:
             self.best_not_improved_epochs += 1
 
-    def validate_best(
+    def evaluate_best(
         self,
         data: ndarray,
         labels: ndarray,
         score_fn: Callable[[ndarray, ndarray], float] | None = None,
-        all_time_best: bool = False,
-    ) -> ValidateBestMetrics:
+    ) -> float:
         """
         Evaluates the best rule on validation or test data.
 
@@ -496,60 +506,16 @@ class BooleanGP:
                 Note: Uses the original (non-optimized) scorer by default since
                 the optimized scorer has sample_weight bound to training data.
                 Default: `None`.
-            all_time_best (bool): If True, evaluate all-time best rule; else current run's best.
-                Default: `False`.
 
         Returns:
-            ValidateBestMetrics: best (float) and best_rule (Rule).
+            float: best_score
 
         Raises:
             RuntimeError: If no best rule is available (run at least one step first).
         """
         # TODO: Add doctests here.
-        if self.real_best_rule is None or self.best_rule is None:
+        if self.global_best_rule is None:
             raise RuntimeError("No best rule available. Run at least one step first.")
 
-        best_rule = self.real_best_rule if all_time_best else self.best_rule
         fn = self._original_score_fn if score_fn is None else score_fn
-        best_score = float(fn(best_rule.evaluate(data), labels))
-        return ValidateBestMetrics(best=best_score, best_rule=best_rule)
-
-    def validate_population(
-        self,
-        data: ndarray,
-        labels: ndarray,
-        score_fn: Callable[[ndarray, ndarray], float] | None = None,
-        all_time_best: bool = False,
-    ) -> ValidatePopulationMetrics:
-        """
-        Evaluates the best rule and entire population on validation or test data.
-
-        Args:
-            data (ndarray): Validation/test data (2D boolean array).
-            labels (ndarray): Validation/test labels (1D integer array).
-            score_fn (Callable | None): Optional; uses original score_fn if None.
-                Note: Uses the original (non-optimized) scorer by default since
-                the optimized scorer has sample_weight bound to training data.
-                Default: `None`.
-            all_time_best (bool): If True, evaluate all-time best rule; else current run's best.
-                Default: `False`.
-
-        Returns:
-            ValidatePopulationMetrics: best, best_rule, and population_scores.
-
-        Raises:
-            RuntimeError: If no best rule is available (run at least one step first).
-        """
-        # TODO: Add doctests here.
-        if self.real_best_rule is None or self.best_rule is None:
-            raise RuntimeError("No best rule available. Run at least one step first.")
-
-        best_rule = self.real_best_rule if all_time_best else self.best_rule
-        fn = self._original_score_fn if score_fn is None else score_fn
-        best_score = float(fn(best_rule.evaluate(data), labels))
-        population_scores = self._evaluate_population(data, labels, fn)
-        return ValidatePopulationMetrics(
-            best=best_score,
-            best_rule=best_rule,
-            population_scores=population_scores,
-        )
+        return float(fn(self.global_best_rule.evaluate(data), labels))

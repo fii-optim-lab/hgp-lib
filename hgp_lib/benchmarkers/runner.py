@@ -10,8 +10,7 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from tqdm import tqdm
 
 from ..configs import BenchmarkerConfig
-from ..metrics import RunMetrics
-from ..rules import Rule
+from ..metrics import PopulationHistory, RunResult
 from ..trainers import GPTrainer
 from ..utils.metrics import optimize_scorer_for_data
 
@@ -23,7 +22,7 @@ def execute_single_run(
     seed: int,
     config: BenchmarkerConfig,
     progress_queue: Optional[Queue] = None,
-) -> RunMetrics:
+) -> RunResult:
     """
     Execute one benchmark run: stratified train/test split, per-fold binarization,
     k-fold CV training, best-fold selection, and test-set evaluation.
@@ -36,23 +35,14 @@ def execute_single_run(
     After selecting the best fold, its binarizer transforms the held-out test
     data. This prevents data leakage across folds and between train/test sets.
 
-    The resulting `RunMetrics` includes `feature_names`, a `Dict[int, str]`
-    mapping literal indices to binarized column names for the best fold's
-    binarizer. This enables human-readable display of the best rule.
-
     Args:
         run_id (int): Index of the run (0-based).
         seed (int): Random seed for stratified split and k-fold.
-        config (BenchmarkerConfig): Configuration for the benchmark run. See `BenchmarkerConfig` for more details.
-        progress_queue (Queue | None): Optional queue for sending progress updates
-            to the main process. When provided, local progress bars are disabled
-            and progress is sent via the queue instead. Default: `None`.
+        config (BenchmarkerConfig): Configuration for the benchmark run.
+        progress_queue (Queue | None): Optional queue for sending progress updates.
 
     Returns:
-        RunMetrics: Contains `run_id`, `seed`, `fold_train_scores`,
-            `fold_val_scores`, `best_fold_idx`, `best_fold_val_score`,
-            `test_score`, `best_rule`, `feature_names`, `fold_train_histories`, `fold_val_histories`.
-            See `RunMetrics` for detailed field descriptions.
+        RunResult: Contains run_id, seed, folds, test_score, best_rule, feature_names.
 
     Raises:
         RuntimeError: If no best rule is available after training a fold.
@@ -81,11 +71,9 @@ def execute_single_run(
 
     skf = StratifiedKFold(n_splits=config.n_folds, shuffle=True, random_state=seed)
 
-    fold_train_scores: List[float] = []
-    fold_val_scores: List[float] = []
-    fold_best_rules: List[Rule] = []
-    fold_train_histories: List = []
-    fold_val_histories: List = []
+    folds: List[PopulationHistory] = []
+    binarizers = []
+    feature_names_per_binarizer = []
 
     fold_splits = skf.split(train_data, train_labels)
     if show_folds:
@@ -94,10 +82,10 @@ def execute_single_run(
     epoch_callback = (
         partial(send_progress, progress_queue, "epoch") if use_queue else None
     )
-    binarizers = []
-    feature_names_per_binarizer = []
 
-    for train_idx, val_idx in fold_splits:
+    best_fold_idx = 0
+    best_val_score = -float("inf")
+    for fold_idx, (train_idx, val_idx) in enumerate(fold_splits):
         fold_train = train_data.iloc[train_idx]
         fold_train_labels = train_labels[train_idx]
 
@@ -127,40 +115,23 @@ def execute_single_run(
         )
 
         trainer = GPTrainer(fold_trainer_config)
-        trainer_result = trainer.fit()
-        fold_train_histories.append(trainer_result.train_history)
-        fold_val_histories.append(trainer_result.val_history)
+        history = trainer.fit()
+        if (
+            history.best_val_score is not None
+            and history.best_val_score > best_val_score
+        ):
+            best_val_score = history.best_val_score
+            best_fold_idx = fold_idx
 
-        train_metrics = trainer.gp_algo.validate_best(
-            trainer.gp_algo.train_data,
-            trainer.gp_algo.train_labels,
-            score_fn=trainer.gp_algo.score_fn,
-            all_time_best=True,
-        )
-        val_metrics = trainer.gp_algo.validate_best(
-            trainer.val_data,
-            trainer.val_labels,
-            score_fn=trainer.val_score_fn,
-            all_time_best=True,
-        )
-
-        fold_train_scores.append(float(train_metrics.best))
-        fold_val_scores.append(float(val_metrics.best))
-
-        if trainer.gp_algo.real_best_rule is None:
-            raise RuntimeError(
-                f"No best rule available after training fold. "
-                f"Run {run_id}, seed {seed}."
-            )
-        fold_best_rules.append(trainer.gp_algo.real_best_rule.copy())
+        folds.append(history)
 
         send_progress(progress_queue, "fold", 1)
 
-    best_fold_idx = int(np.argmax(fold_val_scores))
-    best_fold_val_score = fold_val_scores[best_fold_idx]
-    best_rule = fold_best_rules[best_fold_idx]
     del train_data, train_labels
 
+    best_rule = folds[best_fold_idx].global_best_rule
+
+    # Transform test data using best fold's binarizer
     binarizer_here = binarizers[best_fold_idx]
     feature_names = feature_names_per_binarizer[best_fold_idx]
     test_data = binarizer_here.transform(test_data).to_numpy(dtype=bool)
@@ -174,29 +145,25 @@ def execute_single_run(
         test_data_opt = test_data
         test_labels_opt = test_labels
 
-    test_predictions = best_rule.evaluate(test_data_opt)
-    test_score = float(test_score_fn(test_predictions, test_labels_opt))
+    test_score = float(
+        test_score_fn(best_rule.evaluate(test_data_opt), test_labels_opt)
+    )
 
     send_progress(progress_queue, "run", 1)
 
-    return RunMetrics(
+    return RunResult(
         run_id=run_id,
         seed=seed,
-        fold_train_scores=fold_train_scores,
-        fold_val_scores=fold_val_scores,
         best_fold_idx=best_fold_idx,
-        best_fold_val_score=best_fold_val_score,
+        folds=folds,
         test_score=test_score,
-        best_rule=best_rule,
-        fold_train_histories=fold_train_histories,
-        fold_val_histories=fold_val_histories,
         feature_names=feature_names,
     )
 
 
 def single_run_wrapper(
     args: Tuple[int, int, BenchmarkerConfig, Optional[Queue]],
-) -> RunMetrics:
+) -> RunResult:
     """
     Picklable wrapper for multiprocessing Pool.
 
@@ -204,7 +171,7 @@ def single_run_wrapper(
         args (tuple): Tuple of (run_id, seed, config, progress_queue).
 
     Returns:
-        RunMetrics: Metrics for the run.
+        RunResult: Result for the run.
     """
     run_id, seed, config, progress_queue = args
     return execute_single_run(run_id, seed, config, progress_queue)

@@ -83,10 +83,14 @@ class TestBooleanGPConfig(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_gp_config(config, require_data=False)
 
-    def test_feedback_strength_must_be_positive(self):
-        config = BooleanGPConfig(score_fn=accuracy, feedback_strength=0)
+    def test_feedback_strength_must_be_non_negative(self):
+        config = BooleanGPConfig(score_fn=accuracy, feedback_strength=-0.1)
         with self.assertRaises(ValueError):
             validate_gp_config(config, require_data=False)
+
+    def test_feedback_strength_zero_is_valid(self):
+        config = BooleanGPConfig(score_fn=accuracy, feedback_strength=0)
+        validate_gp_config(config, require_data=False)  # Should not raise
 
     def test_top_k_transfer_must_be_at_least_1(self):
         config = BooleanGPConfig(score_fn=accuracy, top_k_transfer=0)
@@ -281,6 +285,30 @@ class TestConfigDoctests(unittest.TestCase):
     def test_benchmarker_config_doctests(self):
         result = doctest.testmod(hgp_lib.configs.benchmarker_config, verbose=False)
         self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
+
+
+class TestComplexityCheck(unittest.TestCase):
+    """Tests for complexity_check helper function."""
+
+    def test_complexity_check_accepts_small_rules(self):
+        from hgp_lib.utils import complexity_check
+        from hgp_lib.rules import Literal, And, Or
+
+        check = complexity_check(5)
+        self.assertTrue(check(Literal(value=0)))  # len=1
+        self.assertTrue(check(And([Literal(value=0), Literal(value=1)])))  # len=3
+        self.assertTrue(
+            check(And([Literal(value=0), Or([Literal(value=1), Literal(value=2)])]))
+        )  # len=5
+
+    def test_complexity_check_rejects_large_rules(self):
+        from hgp_lib.utils import complexity_check
+        from hgp_lib.rules import Literal, And, Or
+
+        check = complexity_check(3)
+        self.assertFalse(
+            check(And([Literal(value=0), Or([Literal(value=1), Literal(value=2)])]))
+        )  # len=5
 
 
 if __name__ == "__main__":
