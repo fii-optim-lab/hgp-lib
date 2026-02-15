@@ -1,9 +1,15 @@
 import inspect
+from functools import partial
 from typing import Sequence, Tuple, Type, Callable, Any
 import numpy as np
 import pandas as pd
 
 from ..rules import Rule
+
+
+def _check_complexity(rule: Rule, max_complexity: int) -> bool:
+    """Check if rule complexity is within limit."""
+    return len(rule) <= max_complexity
 
 
 def complexity_check(max_complexity: int = 100) -> Callable[[Rule], bool]:
@@ -16,7 +22,7 @@ def complexity_check(max_complexity: int = 100) -> Callable[[Rule], bool]:
             ...
         )
     """
-    return lambda rule: len(rule) <= max_complexity
+    return partial(_check_complexity, max_complexity=max_complexity)
 
 
 def validate_callable(maybe_callable: Callable, error_message: str | None = None):

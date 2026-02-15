@@ -166,8 +166,8 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
             f"feedback_type must be 'additive' or 'multiplicative', got {config.feedback_type!r}"
         )
     check_isinstance(config.feedback_strength, (int, float))
-    if config.feedback_strength <= 0:
-        raise ValueError("feedback_strength must be > 0")
+    if config.feedback_strength < 0:
+        raise ValueError("feedback_strength must be >= 0")
 
     # Complexity penalty validation
     check_isinstance(config.complexity_penalty, (int, float))

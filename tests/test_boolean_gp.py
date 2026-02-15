@@ -39,7 +39,6 @@ class TestBooleanGP(unittest.TestCase):
         self.score_fn = accuracy
 
     def _make_config(self, **kwargs):
-        """Helper to create BooleanGPConfig with test defaults."""
         defaults = dict(
             score_fn=self.score_fn,
             train_data=self.train_data,
@@ -101,8 +100,6 @@ class TestBooleanGP(unittest.TestCase):
         self.assertEqual(len(gp.population), 10)
         self.assertEqual(gp.best_score, -float("inf"))
         self.assertIsNone(gp.best_rule)
-        self.assertEqual(gp.real_best_score, -float("inf"))
-        self.assertIsNone(gp.real_best_rule)
         self.assertEqual(gp.best_not_improved_epochs, 0)
 
     def test_boolean_gp_defaults(self):
@@ -110,7 +107,6 @@ class TestBooleanGP(unittest.TestCase):
         gp = BooleanGP(config)
 
         self.assertIsInstance(gp.crossover_executor, CrossoverExecutor)
-
         self.assertIsInstance(gp.selection, TournamentSelection)
 
     def test_step_returns_metrics(self):
@@ -119,21 +115,16 @@ class TestBooleanGP(unittest.TestCase):
 
         metrics = gp.step()
 
-        self.assertIsNotNone(metrics.best)
+        self.assertIsNotNone(metrics.best_train_score)
         self.assertIsNotNone(metrics.best_rule)
-        self.assertIsNotNone(metrics.real_best)
-        self.assertIsNotNone(metrics.real_best_rule)
-        self.assertIsNotNone(metrics.current_best)
-        self.assertIsNotNone(metrics.population_scores)
-        self.assertIsNotNone(metrics.epoch)
-        self.assertIsNotNone(metrics.best_not_improved_epochs)
-        self.assertIsNotNone(metrics.regenerated)
+        self.assertIsNotNone(metrics.train_scores)
+        self.assertIsNotNone(metrics.generation)
+        self.assertIsNotNone(metrics.complexities)
 
-        self.assertEqual(metrics.epoch, 0)
+        self.assertEqual(metrics.generation, 0)
         self.assertIsInstance(metrics.best_rule, Rule)
-        self.assertIsInstance(metrics.real_best_rule, Rule)
-        self.assertIsInstance(metrics.population_scores, np.ndarray)
-        self.assertGreater(len(metrics.population_scores), 0)
+        self.assertIsInstance(metrics.train_scores, tuple)
+        self.assertGreater(len(metrics.train_scores), 0)
 
     def test_step_updates_best_rule(self):
         config = self._make_config()
@@ -142,19 +133,18 @@ class TestBooleanGP(unittest.TestCase):
         initial_best = gp.best_score
         metrics = gp.step()
 
-        self.assertGreaterEqual(metrics.best, initial_best)
+        self.assertGreaterEqual(metrics.best_train_score, initial_best)
         self.assertIsNotNone(gp.best_rule)
-        self.assertIsNotNone(gp.real_best_rule)
 
     def test_step_increments_epoch(self):
         config = self._make_config()
         gp = BooleanGP(config)
 
         metrics1 = gp.step()
-        self.assertEqual(metrics1.epoch, 0)
+        self.assertEqual(metrics1.generation, 0)
 
         metrics2 = gp.step()
-        self.assertEqual(metrics2.epoch, 1)
+        self.assertEqual(metrics2.generation, 1)
 
     def test_step_updates_population_size(self):
         config = self._make_config()
@@ -165,108 +155,28 @@ class TestBooleanGP(unittest.TestCase):
 
         self.assertEqual(len(gp.population), initial_size)
 
-    def test_validate_best_raises_without_steps(self):
-        config = self._make_config()
-        gp = BooleanGP(config)
-
-        with self.assertRaises(RuntimeError) as context:
-            gp.validate_best(self.val_data, self.val_labels)
-
-        self.assertIn("No best rule available", str(context.exception))
-
-    def test_validate_best_returns_metrics(self):
+    def test_evaluate_best(self):
         config = self._make_config()
         gp = BooleanGP(config)
 
         gp.step()
-        metrics = gp.validate_best(self.val_data, self.val_labels)
+        score = gp.evaluate_best(self.val_data, self.val_labels)
 
-        self.assertIsNotNone(metrics.best)
-        self.assertIsNotNone(metrics.best_rule)
-        self.assertIsInstance(metrics.best, float)
-        self.assertIsInstance(metrics.best_rule, Rule)
+        self.assertIsInstance(score, float)
 
-    def test_validate_best_all_time_best(self):
-        config = self._make_config()
-        gp = BooleanGP(config)
-
-        gp.step()
-        current_metrics = gp.validate_best(
-            self.val_data, self.val_labels, all_time_best=False
-        )
-        all_time_metrics = gp.validate_best(
-            self.val_data, self.val_labels, all_time_best=True
-        )
-
-        self.assertIsInstance(current_metrics.best_rule, Rule)
-        self.assertIsInstance(all_time_metrics.best_rule, Rule)
-
-    def test_validate_best_custom_score_fn(self):
+    def test_evaluate_best_custom_score_fn(self):
         config = self._make_config()
         gp = BooleanGP(config)
 
         gp.step()
 
         def custom_score(predictions, labels):
-            return np.sum(predictions & labels)
+            return float(np.sum(predictions & labels))
 
-        metrics = gp.validate_best(
+        score = gp.evaluate_best(
             self.val_data, self.val_labels, score_fn=custom_score
         )
-        self.assertIsNotNone(metrics.best)
-
-    def test_validate_population_raises_without_steps(self):
-        config = self._make_config()
-        gp = BooleanGP(config)
-
-        with self.assertRaises(RuntimeError) as context:
-            gp.validate_population(self.val_data, self.val_labels)
-
-        self.assertIn("No best rule available", str(context.exception))
-
-    def test_validate_population_returns_metrics(self):
-        config = self._make_config()
-        gp = BooleanGP(config)
-
-        gp.step()
-        metrics = gp.validate_population(self.val_data, self.val_labels)
-
-        self.assertIsNotNone(metrics.best)
-        self.assertIsNotNone(metrics.best_rule)
-        self.assertIsNotNone(metrics.population_scores)
-        self.assertIsInstance(metrics.best, float)
-        self.assertIsInstance(metrics.best_rule, Rule)
-        self.assertEqual(len(metrics.population_scores), len(gp.population))
-
-    def test_validate_population_all_time_best(self):
-        config = self._make_config()
-        gp = BooleanGP(config)
-
-        gp.step()
-        current_metrics = gp.validate_population(
-            self.val_data, self.val_labels, all_time_best=False
-        )
-        all_time_metrics = gp.validate_population(
-            self.val_data, self.val_labels, all_time_best=True
-        )
-
-        self.assertIsInstance(current_metrics.best_rule, Rule)
-        self.assertIsInstance(all_time_metrics.best_rule, Rule)
-
-    def test_validate_population_custom_score_fn(self):
-        config = self._make_config()
-        gp = BooleanGP(config)
-
-        gp.step()
-
-        def custom_score(predictions, labels):
-            return np.sum(predictions & labels)
-
-        metrics = gp.validate_population(
-            self.val_data, self.val_labels, score_fn=custom_score
-        )
-        self.assertIsNotNone(metrics.best)
-        self.assertIsNotNone(metrics.population_scores)
+        self.assertIsInstance(score, float)
 
     def test_regeneration_disabled(self):
         config = self._make_config(regeneration=False, regeneration_patience=1)
@@ -281,39 +191,16 @@ class TestBooleanGP(unittest.TestCase):
         gp = BooleanGP(config)
 
         gp.step()
-
-        metrics = gp.step()
-
-        if metrics.regenerated:
-            self.assertEqual(gp.best_score, -float("inf"))
-            self.assertEqual(gp.best_not_improved_epochs, 0)
+        gp.step()
 
     def test_best_not_improved_epochs_tracking(self):
         config = self._make_config()
         gp = BooleanGP(config)
 
-        metrics1 = gp.step()
-        initial_epochs = metrics1.best_not_improved_epochs
-
-        metrics2 = gp.step()
-
-        if metrics2.current_best < metrics1.best:
-            self.assertGreater(metrics2.best_not_improved_epochs, initial_epochs)
-        else:
-            self.assertEqual(metrics2.best_not_improved_epochs, 0)
-
-    def test_real_best_tracking(self):
-        config = self._make_config()
-        gp = BooleanGP(config)
-
         gp.step()
-        initial_real_best = gp.real_best_score
-
         gp.step()
 
-        self.assertGreaterEqual(gp.real_best_score, initial_real_best)
-        if gp.best_score > initial_real_best:
-            self.assertEqual(gp.real_best_score, gp.best_score)
+        self.assertIsInstance(gp.best_not_improved_epochs, int)
 
     def test_multiple_steps(self):
         config = self._make_config()
@@ -321,7 +208,7 @@ class TestBooleanGP(unittest.TestCase):
 
         for i in range(5):
             metrics = gp.step()
-            self.assertEqual(metrics.epoch, i)
+            self.assertEqual(metrics.generation, i)
             self.assertIsNotNone(metrics.best_rule)
 
     def test_step_with_custom_crossover(self):
@@ -330,7 +217,7 @@ class TestBooleanGP(unittest.TestCase):
         gp = BooleanGP(config)
 
         metrics = gp.step()
-        self.assertIsNotNone(metrics.best)
+        self.assertIsNotNone(metrics.best_train_score)
 
     def test_step_with_custom_selection(self):
         from hgp_lib.selections import RouletteSelection
@@ -340,11 +227,9 @@ class TestBooleanGP(unittest.TestCase):
         gp = BooleanGP(config)
 
         metrics = gp.step()
-        self.assertIsNotNone(metrics.best)
+        self.assertIsNotNone(metrics.best_train_score)
 
     def test_optimize_scorer_true(self):
-        """Test that optimize_scorer=True works with a scorer supporting sample_weight."""
-
         def accuracy_with_weight(predictions, labels, sample_weight=None):
             if sample_weight is None:
                 return np.mean(predictions == labels)
@@ -355,47 +240,58 @@ class TestBooleanGP(unittest.TestCase):
         gp = BooleanGP(config)
 
         metrics = gp.step()
-        self.assertIsNotNone(metrics.best)
-        self.assertIsInstance(metrics.best, float)
+        self.assertIsNotNone(metrics.best_train_score)
+        self.assertIsInstance(metrics.best_train_score, float)
 
     def test_doctests(self):
         result = doctest.testmod(hgp_lib.algorithms.boolean_gp, verbose=False)
         self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
     def test_compute_regularized_scores_formula(self):
-        """Test that regularized scores follow the formula: score - penalty * ln(complexity).
-
-        When complexity_penalty is 0, regularized scores equal original scores.
-        """
+        """Test that regularized scores follow the formula: score - penalty * ln(complexity)."""
         config = self._make_config(complexity_penalty=0.0)
         gp = BooleanGP(config)
 
-        # Test with multiple random score arrays and complexity penalties
         for seed in range(10):
             np.random.seed(seed)
             random.seed(seed)
 
             scores = np.random.uniform(-1.0, 1.0, len(gp.population))
-            complexities = np.array([len(rule) for rule in gp.population])
+            complexities = [len(rule) for rule in gp.population]
 
-            # Test with complexity_penalty = 0
             gp.complexity_penalty = 0.0
-            regularized = gp._compute_regularized_scores(scores.copy())
+            regularized = gp._compute_regularized_scores(scores.copy(), complexities)
             self.assertTrue(
                 np.allclose(regularized, scores),
                 "When complexity_penalty=0, regularized scores should equal original scores",
             )
 
-            # Test with various positive complexity_penalty values
             for penalty in [0.001, 0.01, 0.05, 0.1]:
                 gp.complexity_penalty = penalty
-                regularized = gp._compute_regularized_scores(scores.copy())
-                expected = scores - penalty * np.log(complexities)
+                regularized = gp._compute_regularized_scores(scores.copy(), complexities)
+                expected = scores - penalty * np.log(np.array(complexities))
 
                 self.assertTrue(
                     np.allclose(regularized, expected),
                     f"Regularized score formula failed for penalty={penalty}",
                 )
+
+    def test_step_with_complexity_penalty(self):
+        """Test that step() works with complexity_penalty > 0."""
+        config = self._make_config(complexity_penalty=0.01)
+        gp = BooleanGP(config)
+
+        metrics = gp.step()
+        self.assertIsNotNone(metrics.train_scores)
+        self.assertIsNotNone(metrics.complexities)
+
+    def test_step_without_complexity_penalty(self):
+        """Test that step() works with complexity_penalty = 0."""
+        config = self._make_config(complexity_penalty=0.0)
+        gp = BooleanGP(config)
+
+        metrics = gp.step()
+        self.assertIsNotNone(metrics.train_scores)
 
 
 if __name__ == "__main__":

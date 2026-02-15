@@ -130,9 +130,8 @@ def apply_timing_decorators():
 
     BooleanGP.step = decorator(BooleanGP.step)
     BooleanGP._new_generation = decorator(BooleanGP._new_generation)
-    BooleanGP._evaluate_population = decorator(BooleanGP._evaluate_population)
+    BooleanGP.evaluate_population = decorator(BooleanGP.evaluate_population)
     BooleanGP._update_best = decorator(BooleanGP._update_best)
-    BooleanGP.validate_population = decorator(BooleanGP.validate_population)
 
     CrossoverExecutor.apply = decorator(CrossoverExecutor.apply)
     MutationExecutor.apply = decorator(MutationExecutor.apply)
@@ -215,40 +214,26 @@ def main():
     with open("debug.txt", "w") as f:
         pass
     val_best = 0.0
-    val_avg = 0.0
     with tqdm(range(num_epochs), desc="Training") as tbar:
         for epoch in tbar:
             train_metrics = gp_algo.step()
 
             if (epoch + 1) % 10 == 0:
-                val_metrics = gp_algo.validate_population(
+                val_score = gp_algo.evaluate_best(
                     val_data_bin, val_labels, val_score_fn
                 )
-                val_best = val_metrics.best
-                val_avg = val_metrics.population_scores.mean()
-                if (epoch + 1) % 50 == 0:
-                    with open("debug.txt", "a") as f:
-                        f.write(str(epoch) + "\n")
-                        for r in gp_algo.population:
-                            f.write(str(r) + "\n")
-                        f.write("\n--------------------\n")
+                val_best = max(val_best, val_score)
             tbar.set_postfix(
                 {
-                    "current_best": f"{train_metrics.current_best:.4f}",
-                    "train_best": f"{train_metrics.best:.4f}",
-                    "real_best": f"{train_metrics.real_best:.4f}",
+                    "train_best": f"{train_metrics.best_train_score:.4f}",
                     "val_best": f"{val_best:.4f}",
-                    "val_avg": f"{val_avg:.4f}",
                 }
             )
 
     print("\n" + "-" * 60)
     print("Final evaluation on test set...")
-    test_metrics = gp_algo.validate_population(
-        test_data_bin, test_labels, test_score_fn, all_time_best=True
-    )
-    print(f"Test best: {test_metrics.best:.4f}")
-    print(f"Test population average: {test_metrics.population_scores.mean():.4f}")
+    test_score = gp_algo.evaluate_best(test_data_bin, test_labels, test_score_fn)
+    print(f"Test best: {test_score:.4f}")
 
     print_timing_results(measurements)
     print("\nTraining completed!")

@@ -83,10 +83,14 @@ class TestBooleanGPConfig(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_gp_config(config, require_data=False)
 
-    def test_feedback_strength_must_be_positive(self):
-        config = BooleanGPConfig(score_fn=accuracy, feedback_strength=0)
+    def test_feedback_strength_must_be_non_negative(self):
+        config = BooleanGPConfig(score_fn=accuracy, feedback_strength=-0.1)
         with self.assertRaises(ValueError):
             validate_gp_config(config, require_data=False)
+
+    def test_feedback_strength_zero_is_valid(self):
+        config = BooleanGPConfig(score_fn=accuracy, feedback_strength=0)
+        validate_gp_config(config, require_data=False)  # Should not raise
 
     def test_top_k_transfer_must_be_at_least_1(self):
         config = BooleanGPConfig(score_fn=accuracy, top_k_transfer=0)
