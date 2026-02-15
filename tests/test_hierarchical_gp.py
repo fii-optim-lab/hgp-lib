@@ -202,7 +202,6 @@ class TestHierarchicalTraining(unittest.TestCase):
 
         metrics = gp.step()
 
-        self.assertEqual(metrics.generation, 0)
         self.assertIsNotNone(metrics.best_rule)
         self.assertGreater(metrics.best_train_score, 0)
         # Should have metrics for child populations
@@ -297,7 +296,9 @@ class TestHierarchicalTraining(unittest.TestCase):
             self.assertEqual(len(child_metrics.child_population_generation_metrics), 2)
             for grandchild_metrics in child_metrics.child_population_generation_metrics:
                 # Grandchildren have no children
-                self.assertEqual(len(grandchild_metrics.child_population_generation_metrics), 0)
+                self.assertEqual(
+                    len(grandchild_metrics.child_population_generation_metrics), 0
+                )
 
 
 class TestFeedbackMechanism(unittest.TestCase):

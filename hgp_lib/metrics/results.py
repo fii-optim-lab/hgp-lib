@@ -29,7 +29,11 @@ class RunResult:
     @cached_property
     def fold_val_scores(self) -> List[float]:
         """Get best validation score from each fold."""
-        return [fold.best_val_score for fold in self.folds if fold.best_val_score is not None]
+        return [
+            fold.best_val_score
+            for fold in self.folds
+            if fold.best_val_score is not None
+        ]
 
     @cached_property
     def mean_val_score(self) -> float:
@@ -50,7 +54,7 @@ class ExperimentResult:
     def best_run(self) -> RunResult:
         """
         Get the run with the highest mean validation score across folds.
-        
+
         Returns:
             RunResult with highest mean validation score.
         """
@@ -69,11 +73,11 @@ class ExperimentResult:
     def best_rule(self) -> Rule:
         """
         Get the best rule from the best fold of the best run.
-        
+
         Best run = run with highest mean validation score across folds.
         Best fold = fold with highest best validation score in best run.
         Best rule = rule with highest validation score in best fold.
-        
+
         Returns:
             Best Rule.
         """

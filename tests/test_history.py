@@ -19,7 +19,6 @@ class TestPopulationHistory(unittest.TestCase):
     def test_with_generations(self):
         """Test history with generations."""
         gen = GenerationMetrics.from_population(
-            generation=0,
             best_idx=0,
             best_rule=Literal(value=0),
             train_scores=[0.8],
@@ -35,7 +34,6 @@ class TestPopulationHistory(unittest.TestCase):
     def test_best_val_score_none_when_no_val(self):
         """Test best_val_score is None when no validation scores exist."""
         gen = GenerationMetrics.from_population(
-            generation=0,
             best_idx=0,
             best_rule=Literal(value=0),
             train_scores=[0.8],
@@ -51,7 +49,6 @@ class TestPopulationHistory(unittest.TestCase):
     def test_best_val_score_with_val(self):
         """Test best_val_score returns max val score."""
         gen1 = GenerationMetrics.from_population(
-            generation=0,
             best_idx=0,
             best_rule=Literal(value=0),
             train_scores=[0.8],
@@ -61,7 +58,6 @@ class TestPopulationHistory(unittest.TestCase):
         gen1 = replace(gen1, val_score=0.6)
 
         gen2 = GenerationMetrics.from_population(
-            generation=1,
             best_idx=0,
             best_rule=Literal(value=0),
             train_scores=[0.9],

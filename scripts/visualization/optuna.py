@@ -8,7 +8,7 @@ import numpy as np
 if TYPE_CHECKING:
     import optuna
 
-from ..results import ExperimentResult
+from hgp_lib.metrics.results import ExperimentResult
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,9 @@ def store_trial_attributes(
     # 05_rule_*
     best_rule = result.best_rule
     trial.set_user_attr("05_rule_string", str(best_rule))
-    trial.set_user_attr("05_rule_human_readable", best_rule.to_str(best_run.feature_names))
+    trial.set_user_attr(
+        "05_rule_human_readable", best_rule.to_str(best_run.feature_names)
+    )
     trial.set_user_attr("05_rule_complexity", len(best_rule))
 
 
@@ -96,6 +98,7 @@ def upload_trial_artifacts(
     import tempfile
 
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
@@ -129,5 +132,7 @@ def upload_trial_artifacts(
                 upload_artifact(trial, plot_path, artifact_store)
 
             except Exception as e:
-                logger.warning(f"Trial {trial.number}: Failed to generate {plot_name}: {e}")
+                logger.warning(
+                    f"Trial {trial.number}: Failed to generate {plot_name}: {e}"
+                )
                 continue

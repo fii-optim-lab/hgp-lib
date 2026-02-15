@@ -297,14 +297,18 @@ class TestComplexityCheck(unittest.TestCase):
         check = complexity_check(5)
         self.assertTrue(check(Literal(value=0)))  # len=1
         self.assertTrue(check(And([Literal(value=0), Literal(value=1)])))  # len=3
-        self.assertTrue(check(And([Literal(value=0), Or([Literal(value=1), Literal(value=2)])])))  # len=5
+        self.assertTrue(
+            check(And([Literal(value=0), Or([Literal(value=1), Literal(value=2)])]))
+        )  # len=5
 
     def test_complexity_check_rejects_large_rules(self):
         from hgp_lib.utils import complexity_check
         from hgp_lib.rules import Literal, And, Or
 
         check = complexity_check(3)
-        self.assertFalse(check(And([Literal(value=0), Or([Literal(value=1), Literal(value=2)])])))  # len=5
+        self.assertFalse(
+            check(And([Literal(value=0), Or([Literal(value=1), Literal(value=2)])]))
+        )  # len=5
 
 
 if __name__ == "__main__":

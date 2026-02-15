@@ -29,7 +29,7 @@ from optuna.artifacts import FileSystemArtifactStore
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.crossover import CrossoverExecutor
-from hgp_lib.metrics.visualization.optuna import store_trial_attributes, upload_trial_artifacts
+from visualization.optuna import store_trial_attributes, upload_trial_artifacts
 from hgp_lib.mutations import MutationExecutorFactory
 from hgp_lib.populations import (
     CombinedSamplingStrategy,
@@ -42,7 +42,6 @@ from hgp_lib.selections import RouletteSelection, TournamentSelection
 from hgp_lib.utils.metrics import fast_f1_score
 from hgp_lib.utils.validation import complexity_check
 
-# Use non-interactive backend for matplotlib (required for saving plots without display)
 matplotlib.use("Agg")
 
 logging.basicConfig(
@@ -163,7 +162,9 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
         )
 
     # Complexity regularization
-    params["use_complexity_penalty"] = trial.suggest_categorical("use_complexity_penalty", [True, False])
+    params["use_complexity_penalty"] = trial.suggest_categorical(
+        "use_complexity_penalty", [True, False]
+    )
     if params["use_complexity_penalty"]:
         params["complexity_penalty"] = trial.suggest_float(
             "complexity_penalty", 0.0, 0.1, step=0.0001
@@ -175,11 +176,17 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
         if params["max_depth"] == 3:
             params["num_child_populations"] = 2
         elif params["max_depth"] == 2:
-            params["num_child_populations"] = trial.suggest_int("num_child_populations", 2, 3)
+            params["num_child_populations"] = trial.suggest_int(
+                "num_child_populations", 2, 3
+            )
         else:  # 1
-            params["num_child_populations"] = trial.suggest_int("num_child_populations", 2, 8)
+            params["num_child_populations"] = trial.suggest_int(
+                "num_child_populations", 2, 8
+            )
 
-        params["top_k_transfer"] = trial.suggest_int("top_k_transfer", 10, min(100, params["population_size"]), step=5)
+        params["top_k_transfer"] = trial.suggest_int(
+            "top_k_transfer", 10, min(100, params["population_size"]), step=5
+        )
         params["feedback_type"] = trial.suggest_categorical(
             "feedback_type", ["additive", "multiplicative"]
         )
@@ -194,7 +201,9 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
         params["use_replace"] = True
 
         if not params["use_replace"]:
-            max_fraction = 1.0 / (params["num_child_populations"] ** params["max_depth"])
+            max_fraction = 1.0 / (
+                params["num_child_populations"] ** params["max_depth"]
+            )
         else:
             max_fraction = 1.0
 
@@ -245,7 +254,9 @@ def build_config(
     # Mutation and crossover
     mutation_p = params["mutation_probability"]
     check_valid = complexity_check()
-    crossover_executor = CrossoverExecutor(crossover_p=params["crossover_rate"], check_valid=check_valid)
+    crossover_executor = CrossoverExecutor(
+        crossover_p=params["crossover_rate"], check_valid=check_valid
+    )
 
     # Sampling strategy for hierarchical GP
     sampling_strategy = None
@@ -329,15 +340,14 @@ def create_objective(
 
             # Upload visualization artifacts
             upload_trial_artifacts(
-                trial, result, artifact_store,
+                trial,
+                result,
+                artifact_store,
                 top_k_transfer=params.get("top_k_transfer", 10),
             )
 
             # Get mean validation score for optimization
-            mean_val_score = float(np.mean([
-                run.mean_val_score
-                for run in result.runs
-            ]))
+            mean_val_score = float(np.mean([run.mean_val_score for run in result.runs]))
 
             mean_test_score = float(np.mean(result.test_scores))
 

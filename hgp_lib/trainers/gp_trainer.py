@@ -1,15 +1,12 @@
 from dataclasses import replace
-from typing import Callable, List
+from typing import List
 
-import numpy as np
-from numpy import ndarray
 from tqdm import tqdm
 
 from ..algorithms import BooleanGP
 from ..configs import TrainerConfig, validate_trainer_config
 from ..metrics import GenerationMetrics, PopulationHistory
 from ..utils.metrics import optimize_scorer_for_data
-from ..utils.validation import check_X_y
 
 
 class GPTrainer:
@@ -94,7 +91,9 @@ class GPTrainer:
                 gen_metrics = self.gp_algo.step()
 
                 # Get validation scores if validation data is available
-                if self.val_data is not None and ((epoch + 1) % self.val_every == 0 or epoch == self.num_epochs - 1):
+                if self.val_data is not None and (
+                    (epoch + 1) % self.val_every == 0 or epoch == self.num_epochs - 1
+                ):
                     val_score = self.gp_algo.evaluate_best(
                         self.val_data,
                         self.val_labels,

@@ -1,17 +1,24 @@
 """Plot functions for metrics visualization."""
 
-from __future__ import annotations
-
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..results import ExperimentResult
+from hgp_lib.metrics.results import ExperimentResult
 
 
 # Color palette
-COLORS = ["#2196F3", "#FF9800", "#4CAF50", "#E91E63", "#9C27B0",
-          "#00BCD4", "#FF5722", "#795548", "#607D8B", "#CDDC39"]
-
+COLORS = [
+    "#2196F3",
+    "#FF9800",
+    "#4CAF50",
+    "#E91E63",
+    "#9C27B0",
+    "#00BCD4",
+    "#FF5722",
+    "#795548",
+    "#607D8B",
+    "#CDDC39",
+]
 
 
 def plot_experiment_boxplots(
@@ -60,8 +67,12 @@ def plot_experiment_boxplots(
     for pos, d, color in zip(positions, data, box_colors):
         if len(d) >= 2:
             parts = ax.violinplot(
-                d, positions=[pos], showmeans=False,
-                showmedians=False, showextrema=False, widths=0.7,
+                d,
+                positions=[pos],
+                showmeans=False,
+                showmedians=False,
+                showextrema=False,
+                widths=0.7,
             )
             for pc in parts["bodies"]:
                 pc.set_facecolor(color)
@@ -115,8 +126,13 @@ def plot_experiment_boxplots(
     for pos, d, _color in zip(positions, data, box_colors):
         mean_val = float(np.mean(d))
         ax.hlines(
-            mean_val, pos - half_w, pos + half_w,
-            colors="white", linewidths=2, linestyles="-", zorder=6,
+            mean_val,
+            pos - half_w,
+            pos + half_w,
+            colors="white",
+            linewidths=2,
+            linestyles="-",
+            zorder=6,
         )
 
     # --- Annotate all stats on the left side (with anti-overlap) ---
@@ -138,8 +154,11 @@ def plot_experiment_boxplots(
 
         # Left-side labels: spread them so they don't overlap
         raw_left = [
-            ("Min", min_val), ("Q1", q1), ("Md", median),
-            ("Q3", q3), ("Max", max_val),
+            ("Min", min_val),
+            ("Q1", q1),
+            ("Md", median),
+            ("Q3", q3),
+            ("Max", max_val),
         ]
         # Sort by actual value
         raw_left.sort(key=lambda x: x[1])
@@ -153,21 +172,36 @@ def plot_experiment_boxplots(
 
         for (label, _val), y in zip(raw_left, placed_y):
             ax.annotate(
-                f"{label}={_val:.3f}", xy=(pos - offset, y),
-                fontsize=fontsize, color=color, ha="right", va="center",
+                f"{label}={_val:.3f}",
+                xy=(pos - offset, y),
+                fontsize=fontsize,
+                color=color,
+                ha="right",
+                va="center",
                 fontweight="bold",
             )
 
         # Right-side: μ and σ stacked using text coordinates
         ax.annotate(
-            f"μ={mean_val:.3f}", xy=(pos + offset, mean_val),
-            fontsize=fontsize, color=color, ha="left", va="center",
-            fontweight="bold", fontstyle="italic",
+            f"μ={mean_val:.3f}",
+            xy=(pos + offset, mean_val),
+            fontsize=fontsize,
+            color=color,
+            ha="left",
+            va="center",
+            fontweight="bold",
+            fontstyle="italic",
         )
         ax.annotate(
-            f"σ={std_val:.3f}", xy=(pos + offset, mean_val),
-            fontsize=fontsize, color=color, ha="left", va="top",
-            fontstyle="italic", xytext=(0, -10), textcoords="offset points",
+            f"σ={std_val:.3f}",
+            xy=(pos + offset, mean_val),
+            fontsize=fontsize,
+            color=color,
+            ha="left",
+            va="top",
+            fontstyle="italic",
+            xytext=(0, -10),
+            textcoords="offset points",
         )
 
     ax.set_ylabel("Score")
@@ -176,6 +210,7 @@ def plot_experiment_boxplots(
 
     # Legend: category patches only (no mean/std in legend)
     from matplotlib.patches import Patch
+
     legend_handles = [
         Patch(facecolor=c, alpha=0.45, edgecolor=c, label=lbl)
         for c, lbl in zip(box_colors, labels)
@@ -186,8 +221,6 @@ def plot_experiment_boxplots(
     if save_path is not None:
         fig.savefig(save_path, dpi=150, bbox_inches="tight")
     return fig
-
-
 
 
 def plot_best_fold_generations(
@@ -219,30 +252,46 @@ def plot_best_fold_generations(
     best_run = experiment.best_run
     best_fold = best_run.folds[best_run.best_fold_idx]
 
-    generations = [g.generation for g in best_fold.generations]
+    generations = tuple(range(1, len(best_fold.generations) + 1))
     train_scores = [g.best_train_score for g in best_fold.generations]
     complexities = [g.best_rule_complexity for g in best_fold.generations]
 
     val_gens = []
     val_scores = []
-    for g in best_fold.generations:
+    for i, g in enumerate(best_fold.generations):
         if g.val_score is not None:
-            val_gens.append(g.generation)
+            val_gens.append(i + 1)
             val_scores.append(g.val_score)
 
     # Left axis: scores
-    ax1.plot(generations, train_scores, color=COLORS[0], linewidth=2, label="Train Score")
+    ax1.plot(
+        generations, train_scores, color=COLORS[0], linewidth=2, label="Train Score"
+    )
     if val_scores:
-        ax1.plot(val_gens, val_scores, color=COLORS[1], linewidth=2, marker="o",
-                 markersize=3, label="Valid Score")
+        ax1.plot(
+            val_gens,
+            val_scores,
+            color=COLORS[1],
+            linewidth=2,
+            marker="o",
+            markersize=3,
+            label="Valid Score",
+        )
     ax1.set_xlabel("Generation")
     ax1.set_ylabel("Score", color="black")
     ax1.tick_params(axis="y", labelcolor="black")
 
     # Right axis: complexity
     ax2 = ax1.twinx()
-    ax2.plot(generations, complexities, color=COLORS[2], linewidth=1.5, linestyle="--",
-             alpha=0.8, label="Complexity")
+    ax2.plot(
+        generations,
+        complexities,
+        color=COLORS[2],
+        linewidth=1.5,
+        linestyle="--",
+        alpha=0.8,
+        label="Complexity",
+    )
     ax2.set_ylabel("Complexity (nodes)", color=COLORS[2])
     ax2.tick_params(axis="y", labelcolor=COLORS[2])
 
@@ -264,7 +313,11 @@ def plot_best_fold_generations(
 
         for i, rg in enumerate(regen_gens):
             ax1.axvline(
-                x=rg, color="#9E9E9E", linestyle=":", linewidth=1.2, alpha=0.7,
+                x=rg,
+                color="#9E9E9E",
+                linestyle=":",
+                linewidth=1.2,
+                alpha=0.7,
                 label="Regeneration" if i == 0 else None,
             )
 
@@ -280,9 +333,6 @@ def plot_best_fold_generations(
     if save_path is not None:
         fig.savefig(save_path, dpi=150, bbox_inches="tight")
     return fig
-
-
-
 
 
 def plot_all_folds_val_scores(
@@ -318,19 +368,22 @@ def plot_all_folds_val_scores(
 
     highlight_map: dict[int, str] = {}
     if n >= 1:
-        highlight_map[_pick(n - 1).run_id] = "Best"      # max
-        highlight_map[_pick(0).run_id] = "Worst"          # min
+        highlight_map[_pick(n - 1).run_id] = "Best"  # max
+        highlight_map[_pick(0).run_id] = "Worst"  # min
     if n >= 3:
-        highlight_map[_pick(n // 2).run_id] = "Median"    # median
+        highlight_map[_pick(n // 2).run_id] = "Median"  # median
     if n >= 5:
-        highlight_map[_pick(n // 4).run_id] = "Q1"        # Q1
-        highlight_map[_pick(3 * n // 4).run_id] = "Q3"    # Q3
+        highlight_map[_pick(n // 4).run_id] = "Q1"  # Q1
+        highlight_map[_pick(3 * n // 4).run_id] = "Q3"  # Q3
 
     # Draw order: Best first (on top in legend)
     highlight_order = ["Best", "Q3", "Median", "Q1", "Worst"]
     highlight_colors = {
-        "Best": COLORS[0], "Worst": COLORS[3], "Median": COLORS[1],
-        "Q1": COLORS[4], "Q3": COLORS[2],
+        "Best": COLORS[0],
+        "Worst": COLORS[3],
+        "Median": COLORS[1],
+        "Q1": COLORS[4],
+        "Q3": COLORS[2],
     }
 
     # --- First pass: draw background (non-highlighted) runs ---
@@ -338,15 +391,27 @@ def plot_all_folds_val_scores(
         if run.run_id in highlight_map:
             continue
         fold = run.folds[run.best_fold_idx]
-        val_gens = [g.generation for g in fold.generations if g.val_score is not None]
-        val_scores = [g.val_score for g in fold.generations if g.val_score is not None]
-        if val_scores:
-            ax.plot(val_gens, val_scores, color="#BDBDBD", linewidth=0.8,
-                    alpha=0.35, linestyle="-", zorder=1)
+        val_gens = []
+        val_scores = []
+        for i, g in enumerate(fold.generations):
+            if g.val_score is not None:
+                val_gens.append(i + 1)
+                val_scores.append(g.val_score)
+        if len(val_scores) != 0:
+            ax.plot(
+                val_gens,
+                val_scores,
+                color="#BDBDBD",
+                linewidth=0.8,
+                alpha=0.35,
+                linestyle="-",
+                zorder=1,
+            )
 
     # --- Second pass: draw highlighted runs in order ---
-    tag_to_run = {tag: run for run in experiment.runs
-                  if (tag := highlight_map.get(run.run_id))}
+    tag_to_run = {
+        tag: run for run in experiment.runs if (tag := highlight_map.get(run.run_id))
+    }
     for tag in highlight_order:
         if tag not in tag_to_run:
             continue
@@ -357,9 +422,9 @@ def plot_all_folds_val_scores(
         val_gens = []
         val_scores = []
         val_complexities = []
-        for g in fold.generations:
+        for i, g in enumerate(fold.generations):
             if g.val_score is not None:
-                val_gens.append(g.generation)
+                val_gens.append(i + 1)
                 val_scores.append(g.val_score)
                 val_complexities.append(g.best_rule_complexity)
 
@@ -367,13 +432,28 @@ def plot_all_folds_val_scores(
             continue
 
         # Complexity on right axis
-        ax2.plot(val_gens, val_complexities, color=color, linewidth=1,
-                 alpha=0.3, linestyle="--", zorder=2)
+        ax2.plot(
+            val_gens,
+            val_complexities,
+            color=color,
+            linewidth=1,
+            alpha=0.3,
+            linestyle="--",
+            zorder=2,
+        )
 
         # Validation score
-        ax.plot(val_gens, val_scores, color=color, linewidth=1.5,
-                marker=".", markersize=4, alpha=0.9, zorder=3,
-                label=f"{tag} (Run {run.run_id}, μ_val={run.mean_val_score:.3f})")
+        ax.plot(
+            val_gens,
+            val_scores,
+            color=color,
+            linewidth=1.5,
+            marker=".",
+            markersize=4,
+            alpha=0.9,
+            zorder=3,
+            label=f"{tag} (Run {run.run_id}, μ_val={run.mean_val_score:.3f})",
+        )
 
         # Peak marker + test annotation
         peak_idx = int(np.argmax(val_scores))
@@ -384,14 +464,23 @@ def plot_all_folds_val_scores(
         size = 120 if tag == "Best" else 50
 
         ax.scatter(
-            peak_gen, peak_val, color=color, marker=marker,
-            s=size, edgecolors="white", linewidths=0.8, zorder=5,
+            peak_gen,
+            peak_val,
+            color=color,
+            marker=marker,
+            s=size,
+            edgecolors="white",
+            linewidths=0.8,
+            zorder=5,
         )
         ax.annotate(
             f"test={run.test_score:.3f}",
             xy=(peak_gen, peak_val),
-            fontsize=7, color=color, fontweight="bold",
-            xytext=(5, 8), textcoords="offset points",
+            fontsize=7,
+            color=color,
+            fontweight="bold",
+            xytext=(5, 8),
+            textcoords="offset points",
         )
 
     ax.set_xlabel("Generation")
@@ -406,11 +495,6 @@ def plot_all_folds_val_scores(
     if save_path is not None:
         fig.savefig(save_path, dpi=150, bbox_inches="tight")
     return fig
-
-
-
-
-
 
 
 def plot_population_bands(
@@ -453,18 +537,19 @@ def plot_population_bands(
         """Collect per-generation means/stds for a population."""
         gens, all_scores, all_comps = [], [], []
 
-        for gm in gen_metrics_list:
+        for i, gm in enumerate(gen_metrics_list):
             scores = sorted(gm.train_scores, reverse=True)
-            comps = [c for _, c in sorted(
-                zip(gm.train_scores, gm.complexities), reverse=True
-            )]
+            comps = [
+                c
+                for _, c in sorted(zip(gm.train_scores, gm.complexities), reverse=True)
+            ]
             if not is_root:
                 scores = scores[:top_k]
                 comps = comps[:top_k]
             if not scores:
                 continue
 
-            gens.append(gm.generation)
+            gens.append(i + 1)
             all_scores.append(scores)
             all_comps.append(comps)
 
@@ -502,16 +587,43 @@ def plot_population_bands(
         s_c_stds = _smooth(c_stds)
 
         # Fitness
-        ax_fit.fill_between(gens, s_means - s_stds, s_means + s_stds,
-                            color=color, alpha=alpha_band, zorder=3 - depth)
-        ax_fit.plot(gens, s_means, color=color, linewidth=lw, alpha=alpha_line,
-                    label=f"{label}", zorder=4 - depth)
+        ax_fit.fill_between(
+            gens,
+            s_means - s_stds,
+            s_means + s_stds,
+            color=color,
+            alpha=alpha_band,
+            zorder=3 - depth,
+        )
+        ax_fit.plot(
+            gens,
+            s_means,
+            color=color,
+            linewidth=lw,
+            alpha=alpha_line,
+            label=f"{label}",
+            zorder=4 - depth,
+        )
 
         # Complexity (same color, same style)
-        ax_comp.fill_between(gens, s_c_means - s_c_stds, s_c_means + s_c_stds,
-                             color=color, alpha=alpha_band, zorder=3 - depth)
-        ax_comp.plot(gens, s_c_means, color=color, linewidth=lw, alpha=alpha_line,
-                     linestyle="--", label=f"{label}", zorder=4 - depth)
+        ax_comp.fill_between(
+            gens,
+            s_c_means - s_c_stds,
+            s_c_means + s_c_stds,
+            color=color,
+            alpha=alpha_band,
+            zorder=3 - depth,
+        )
+        ax_comp.plot(
+            gens,
+            s_c_means,
+            color=color,
+            linewidth=lw,
+            alpha=alpha_line,
+            linestyle="--",
+            label=f"{label}",
+            zorder=4 - depth,
+        )
 
     # --- Root population ---
     root_data = _collect_band_data(best_fold.generations, is_root=True)
@@ -528,9 +640,7 @@ def plot_population_bands(
             child_gens = []
             for gm in gen_metrics_list:
                 if child_idx < len(gm.child_population_generation_metrics):
-                    child_gens.append(
-                        gm.child_population_generation_metrics[child_idx]
-                    )
+                    child_gens.append(gm.child_population_generation_metrics[child_idx])
             data = _collect_band_data(child_gens, is_root=False)
             if data:
                 candidates.append((child_idx, child_gens, data))
@@ -564,8 +674,3 @@ def plot_population_bands(
     if save_path is not None:
         fig.savefig(save_path, dpi=150, bbox_inches="tight")
     return fig
-
-
-
-
-

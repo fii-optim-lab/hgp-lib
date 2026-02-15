@@ -284,12 +284,8 @@ def main(args: argparse.Namespace):
     print("\nPerformance:")
     test_scores = np.array(result.test_scores)
     val_scores = np.array([run.mean_val_score for run in result.runs])
-    print(
-        f"  Test F1 Score:  {test_scores.mean():.4f} ± {test_scores.std():.4f}"
-    )
-    print(
-        f"  Val F1 Score:   {val_scores.mean():.4f} ± {val_scores.std():.4f}"
-    )
+    print(f"  Test F1 Score:  {test_scores.mean():.4f} ± {test_scores.std():.4f}")
+    print(f"  Val F1 Score:   {val_scores.mean():.4f} ± {val_scores.std():.4f}")
 
     print("\nPer-run test scores:")
     for i, score in enumerate(result.test_scores):

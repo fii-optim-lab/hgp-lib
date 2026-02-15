@@ -564,7 +564,9 @@ def main(args: argparse.Namespace) -> None:
     print("TEST EVALUATION")
     print("=" * 60)
 
-    test_score = trainer.gp_algo.evaluate_best(test_data, test_labels, score_fn=f1_score)
+    test_score = trainer.gp_algo.evaluate_best(
+        test_data, test_labels, score_fn=f1_score
+    )
     print(f"Test F1 score: {test_score:.4f}")
     print("\nBest rule:")
     print(f"  {result.global_best_rule}")

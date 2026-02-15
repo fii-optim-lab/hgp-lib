@@ -75,7 +75,7 @@ def execute_single_run(
     binarizers = []
     feature_names_per_binarizer = []
 
-    fold_splits = list(skf.split(train_data, train_labels))
+    fold_splits = skf.split(train_data, train_labels)
     if show_folds:
         fold_splits = tqdm(fold_splits, total=config.n_folds, desc="Folds", leave=False)
 
@@ -116,7 +116,10 @@ def execute_single_run(
 
         trainer = GPTrainer(fold_trainer_config)
         history = trainer.fit()
-        if history.best_val_score is not None and history.best_val_score > best_val_score:
+        if (
+            history.best_val_score is not None
+            and history.best_val_score > best_val_score
+        ):
             best_val_score = history.best_val_score
             best_fold_idx = fold_idx
 
@@ -142,7 +145,9 @@ def execute_single_run(
         test_data_opt = test_data
         test_labels_opt = test_labels
 
-    test_score = float(test_score_fn(best_rule.evaluate(test_data_opt), test_labels_opt))
+    test_score = float(
+        test_score_fn(best_rule.evaluate(test_data_opt), test_labels_opt)
+    )
 
     send_progress(progress_queue, "run", 1)
 

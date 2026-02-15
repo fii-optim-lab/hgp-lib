@@ -160,7 +160,6 @@ class TestGPTrainer(unittest.TestCase):
 
         for i, gen in enumerate(result.generations):
             self.assertIsInstance(gen, GenerationMetrics)
-            self.assertEqual(gen.generation, i)
             self.assertIsNotNone(gen.best_rule)
             self.assertIsNotNone(gen.train_scores)
             self.assertGreater(len(gen.train_scores), 0)
@@ -180,9 +179,13 @@ class TestGPTrainer(unittest.TestCase):
 
         for i, gen in enumerate(result.generations):
             if (i + 1) % 5 == 0:
-                self.assertIsNotNone(gen.val_score, f"Generation {i} should have val_score")
+                self.assertIsNotNone(
+                    gen.val_score, f"Generation {i} should have val_score"
+                )
             else:
-                self.assertIsNone(gen.val_score, f"Generation {i} should not have val_score")
+                self.assertIsNone(
+                    gen.val_score, f"Generation {i} should not have val_score"
+                )
 
     def test_custom_population_factory(self):
         factory = PopulationGeneratorFactory(population_size=20)

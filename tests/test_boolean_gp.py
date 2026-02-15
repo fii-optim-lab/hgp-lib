@@ -1,6 +1,7 @@
 import doctest
 import unittest
 import random
+from typing import Sequence
 
 import numpy as np
 
@@ -118,12 +119,10 @@ class TestBooleanGP(unittest.TestCase):
         self.assertIsNotNone(metrics.best_train_score)
         self.assertIsNotNone(metrics.best_rule)
         self.assertIsNotNone(metrics.train_scores)
-        self.assertIsNotNone(metrics.generation)
         self.assertIsNotNone(metrics.complexities)
 
-        self.assertEqual(metrics.generation, 0)
         self.assertIsInstance(metrics.best_rule, Rule)
-        self.assertIsInstance(metrics.train_scores, tuple)
+        self.assertIsInstance(metrics.train_scores, Sequence)
         self.assertGreater(len(metrics.train_scores), 0)
 
     def test_step_updates_best_rule(self):
@@ -135,16 +134,6 @@ class TestBooleanGP(unittest.TestCase):
 
         self.assertGreaterEqual(metrics.best_train_score, initial_best)
         self.assertIsNotNone(gp.best_rule)
-
-    def test_step_increments_epoch(self):
-        config = self._make_config()
-        gp = BooleanGP(config)
-
-        metrics1 = gp.step()
-        self.assertEqual(metrics1.generation, 0)
-
-        metrics2 = gp.step()
-        self.assertEqual(metrics2.generation, 1)
 
     def test_step_updates_population_size(self):
         config = self._make_config()
@@ -173,9 +162,7 @@ class TestBooleanGP(unittest.TestCase):
         def custom_score(predictions, labels):
             return float(np.sum(predictions & labels))
 
-        score = gp.evaluate_best(
-            self.val_data, self.val_labels, score_fn=custom_score
-        )
+        score = gp.evaluate_best(self.val_data, self.val_labels, score_fn=custom_score)
         self.assertIsInstance(score, float)
 
     def test_regeneration_disabled(self):
@@ -208,7 +195,6 @@ class TestBooleanGP(unittest.TestCase):
 
         for i in range(5):
             metrics = gp.step()
-            self.assertEqual(metrics.generation, i)
             self.assertIsNotNone(metrics.best_rule)
 
     def test_step_with_custom_crossover(self):
@@ -268,7 +254,9 @@ class TestBooleanGP(unittest.TestCase):
 
             for penalty in [0.001, 0.01, 0.05, 0.1]:
                 gp.complexity_penalty = penalty
-                regularized = gp._compute_regularized_scores(scores.copy(), complexities)
+                regularized = gp._compute_regularized_scores(
+                    scores.copy(), complexities
+                )
                 expected = scores - penalty * np.log(np.array(complexities))
 
                 self.assertTrue(

@@ -52,8 +52,6 @@ class BooleanGP:
         ... )
         >>> gp = BooleanGP(config)
         >>> gen_metrics = gp.step()
-        >>> gen_metrics.generation
-        0
     """
 
     def __init__(self, config: BooleanGPConfig, current_depth: int = 0):
@@ -365,7 +363,9 @@ class BooleanGP:
 
         return child_feedbacks
 
-    def _compute_regularized_scores(self, scores: ndarray, complexities: List[int]) -> ndarray:
+    def _compute_regularized_scores(
+        self, scores: ndarray, complexities: List[int]
+    ) -> ndarray:
         """Compute regularized scores with complexity penalty.
 
         regularized_score = score - complexity_penalty * ln(complexity)
@@ -378,7 +378,7 @@ class BooleanGP:
         """
         if self.complexity_penalty == 0:
             return scores
-        return scores - self.complexity_penalty * np.log(np.array(complexities))
+        return scores - self.complexity_penalty * np.log(complexities)
 
     def _new_generation(
         self, scores: ndarray, children_metrics: List[GenerationMetrics]
@@ -412,12 +412,11 @@ class BooleanGP:
             regenerated = True
 
         self._epoch += 1
-        
+
         # Create GenerationMetrics
         complexities = [len(rule) for rule in self.population]
 
         metrics = GenerationMetrics.from_population(
-            generation=self._epoch,
             best_idx=best_idx,
             best_rule=current_best_rule,
             train_scores=scores.tolist(),
@@ -439,7 +438,7 @@ class BooleanGP:
             if self.current_depth > 0:  # top_k must be positive if current_depth > 0
                 sorted_indices = np.argpartition(-selected_scores, self._top_k)
                 self.population = [self.population[i] for i in sorted_indices]
-        
+
         return metrics
 
     def evaluate_population(
@@ -496,7 +495,7 @@ class BooleanGP:
         data: ndarray,
         labels: ndarray,
         score_fn: Callable[[ndarray, ndarray], float] | None = None,
-    ) -> float :
+    ) -> float:
         """
         Evaluates the best rule on validation or test data.
 

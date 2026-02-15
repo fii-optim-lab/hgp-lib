@@ -3,7 +3,7 @@
 import unittest
 
 from hgp_lib.metrics.core import GenerationMetrics
-from hgp_lib.rules import Literal, And, Or
+from hgp_lib.rules import Literal, And
 
 
 class TestGenerationMetrics(unittest.TestCase):
@@ -16,7 +16,6 @@ class TestGenerationMetrics(unittest.TestCase):
         complexities = [1, 3]
 
         metrics = GenerationMetrics.from_population(
-            generation=5,
             best_idx=1,
             best_rule=best_rule,
             train_scores=train_scores,
@@ -24,9 +23,8 @@ class TestGenerationMetrics(unittest.TestCase):
             child_population_generation_metrics=[],
         )
 
-        self.assertEqual(metrics.generation, 5)
         self.assertEqual(metrics.population_size, 2)
-        self.assertEqual(metrics.complexities, (1, 3))
+        self.assertEqual(metrics.complexities, [1, 3])
         self.assertEqual(str(metrics.best_rule), "And(1, 2)")
         self.assertAlmostEqual(metrics.best_train_score, 0.9)
 
@@ -36,7 +34,6 @@ class TestGenerationMetrics(unittest.TestCase):
 
         best_rule = Literal(value=0)
         metrics = GenerationMetrics.from_population(
-            generation=0,
             best_idx=0,
             best_rule=best_rule,
             train_scores=[0.8],
@@ -51,7 +48,6 @@ class TestGenerationMetrics(unittest.TestCase):
     def test_hierarchical_metrics(self):
         """Test construction with child population metrics."""
         child = GenerationMetrics.from_population(
-            generation=0,
             best_idx=0,
             best_rule=Literal(value=0),
             train_scores=[0.5],
@@ -60,7 +56,6 @@ class TestGenerationMetrics(unittest.TestCase):
         )
 
         metrics = GenerationMetrics.from_population(
-            generation=0,
             best_idx=0,
             best_rule=Literal(value=0),
             train_scores=[0.7],
@@ -73,7 +68,6 @@ class TestGenerationMetrics(unittest.TestCase):
     def test_best_train_score(self):
         """Test best_train_score property."""
         metrics = GenerationMetrics.from_population(
-            generation=0,
             best_idx=1,
             best_rule=Literal(value=1),
             train_scores=[0.3, 0.9, 0.5],
@@ -85,7 +79,6 @@ class TestGenerationMetrics(unittest.TestCase):
     def test_best_rule_complexity(self):
         """Test best_rule_complexity property."""
         metrics = GenerationMetrics.from_population(
-            generation=0,
             best_idx=1,
             best_rule=Literal(value=1),
             train_scores=[0.3, 0.9],
