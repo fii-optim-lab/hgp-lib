@@ -29,6 +29,9 @@ class CrossoverExecutor:
         num_tries (int, optional):
             Maximum number of crossover attempts per pair when validation fails.
             Must be `1` when no validator is provided. Default: `1`.
+        operator_p (float, optional):
+            Probability of selecting an operator node (vs. a literal) when choosing
+            a crossover point in the rule tree. Must be in [0.0, 1.0]. Default: `0.9`.
 
     Examples:
         >>> import random
@@ -52,12 +55,14 @@ class CrossoverExecutor:
         crossover_strategy: str = "random",
         check_valid: Callable[[Rule], bool] | None = None,
         num_tries: int = 1,
+        operator_p: float = 0.9,
     ):
-        self._validate_params(crossover_p, crossover_strategy, check_valid, num_tries)
+        self._validate_params(crossover_p, crossover_strategy, check_valid, num_tries, operator_p)
         self.crossover_p: float = crossover_p
         self.crossover_strategy: str = crossover_strategy
         self.check_valid: Callable[[Rule], bool] | None = check_valid
         self.num_tries: int = num_tries
+        self.operator_p: float = operator_p
 
     @staticmethod
     def _validate_params(
@@ -65,14 +70,21 @@ class CrossoverExecutor:
         crossover_strategy: str,
         check_valid: Callable[[Rule], bool] | None,
         num_tries: int,
+        operator_p: float,
     ):
         check_isinstance(crossover_p, float)
         check_isinstance(crossover_strategy, str)
         check_isinstance(num_tries, int)
+        check_isinstance(operator_p, float)
 
         if crossover_p < 0.0 or crossover_p > 1.0:
             raise ValueError(
                 f"crossover_p must be a float between 0.0 and 1.0, is '{crossover_p}'"
+            )
+
+        if operator_p < 0.0 or operator_p > 1.0:
+            raise ValueError(
+                f"operator_p must be a float between 0.0 and 1.0, is '{operator_p}'"
             )
 
         accepted_strategies = ("best", "random")
@@ -201,8 +213,8 @@ class CrossoverExecutor:
         for _ in range(self.num_tries):
             child_a, child_b = parent_a.copy(), parent_b.copy()
 
-            node_a = select_crossover_point(child_a, operator_p=0.5)
-            node_b = select_crossover_point(child_b, operator_p=0.5)
+            node_a = select_crossover_point(child_a, operator_p=self.operator_p)
+            node_b = select_crossover_point(child_b, operator_p=self.operator_p)
             # node_a = random.choice(child_a.flatten())
             # node_b = random.choice(child_b.flatten())
 
