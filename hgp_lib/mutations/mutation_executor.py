@@ -67,7 +67,12 @@ class MutationExecutor:
         operator_p: float = 0.9,
     ):
         self._validate_params(
-            mutation_p, literal_mutations, operator_mutations, check_valid, num_tries, operator_p
+            mutation_p,
+            literal_mutations,
+            operator_mutations,
+            check_valid,
+            num_tries,
+            operator_p,
         )
         self.mutation_p: float = mutation_p
         self.literal_mutations: Tuple = tuple(literal_mutations)

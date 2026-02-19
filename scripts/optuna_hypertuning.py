@@ -293,7 +293,9 @@ def build_config(
         score_fn=score_fn,
         selection=selection,
         population_factory=PopulationGeneratorFactory(population_size=population_size),
-        mutation_factory=MutationExecutorFactory(mutation_p=mutation_p, operator_p=params.get("mutation_operator_p", 0.9)),
+        mutation_factory=MutationExecutorFactory(
+            mutation_p=mutation_p, operator_p=params.get("mutation_operator_p", 0.9)
+        ),
         crossover_executor=crossover_executor,
         check_valid=check_valid,
         regeneration=params.get("regeneration", False),
@@ -451,7 +453,10 @@ if __name__ == "__main__":
     main()
 
 # Example usage:
-# python scripts/optuna_hypertuning.py --data-path data/PaySim.hdf --n-trials 100 --study-name 3_tests_3_val_folds --verbose --artifact-dir ./artifacts
+# python scripts/optuna_hypertuning.py --data-path data/PaySim.hdf
+#                                      --n-trials 100
+#                                      --study-name 3_tests_3_val_folds
+#                                      --verbose --artifact-dir ./artifacts
 # optuna-dashboard sqlite:///optuna_study.db --artifact-dir ./artifacts
 
 

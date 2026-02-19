@@ -69,7 +69,6 @@ class TestCrossoverExecutor(unittest.TestCase):
             for child in children:
                 self.assertIsInstance(child, Rule)
 
-
     def test_apply_random_strategy(self):
         """Test that apply selects rules and returns children with parent indices."""
         executor = CrossoverExecutor(crossover_p=1.0)

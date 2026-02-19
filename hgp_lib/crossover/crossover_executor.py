@@ -57,7 +57,9 @@ class CrossoverExecutor:
         num_tries: int = 1,
         operator_p: float = 0.9,
     ):
-        self._validate_params(crossover_p, crossover_strategy, check_valid, num_tries, operator_p)
+        self._validate_params(
+            crossover_p, crossover_strategy, check_valid, num_tries, operator_p
+        )
         self.crossover_p: float = crossover_p
         self.crossover_strategy: str = crossover_strategy
         self.check_valid: Callable[[Rule], bool] | None = check_valid

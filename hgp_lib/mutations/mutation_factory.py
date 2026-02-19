@@ -125,7 +125,9 @@ class MutationExecutorFactory:
         1
     """
 
-    def __init__(self, mutation_p: float = 0.1, num_tries: int = 1, operator_p: float = 0.9):
+    def __init__(
+        self, mutation_p: float = 0.1, num_tries: int = 1, operator_p: float = 0.9
+    ):
         check_isinstance(mutation_p, float)
         if mutation_p < 0.0 or mutation_p > 1.0:
             raise ValueError(
