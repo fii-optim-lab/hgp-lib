@@ -33,6 +33,9 @@ class MutationExecutor:
         num_tries (int):
             Maximum number of attempts per node in case mutations raise `MutationError` or fail
             validation. Must be `1` when no validator is provided. Default: `1`.
+        operator_p (float):
+            Probability of selecting an operator node (vs. a literal) when choosing a mutation
+            point in the rule tree. Must be in [0.0, 1.0]. Default: `0.9`.
 
     Examples:
         >>> import random
@@ -44,6 +47,7 @@ class MutationExecutor:
         ...     literal_mutations=[NegateMutation()],
         ...     operator_mutations=[NegateMutation()],
         ...     mutation_p=1.0,
+        ...     operator_p=0.5,
         ... )
         >>> rules = [Literal(value=0), And([Literal(value=0), Literal(value=1)])]
         >>> executor.apply(rules)
@@ -60,15 +64,22 @@ class MutationExecutor:
         mutation_p: float = 0.1,
         check_valid: Callable[[Rule], bool] | None = None,
         num_tries: int = 1,
+        operator_p: float = 0.9,
     ):
         self._validate_params(
-            mutation_p, literal_mutations, operator_mutations, check_valid, num_tries
+            mutation_p,
+            literal_mutations,
+            operator_mutations,
+            check_valid,
+            num_tries,
+            operator_p,
         )
         self.mutation_p: float = mutation_p
         self.literal_mutations: Tuple = tuple(literal_mutations)
         self.operator_mutations: Tuple = tuple(operator_mutations)
         self.check_valid: Callable[[Rule], bool] | None = check_valid
         self.num_tries: int = num_tries
+        self.operator_p: float = operator_p
 
     @staticmethod
     def _validate_params(
@@ -77,15 +88,22 @@ class MutationExecutor:
         operator_mutations: Sequence[Mutation],
         check_valid: Callable[[Rule], bool] | None,
         num_tries: int,
+        operator_p: float,
     ):
         check_isinstance(mutation_p, float)
         check_isinstance(literal_mutations, Sequence)
         check_isinstance(operator_mutations, Sequence)
         check_isinstance(num_tries, int)
+        check_isinstance(operator_p, float)
 
         if mutation_p < 0.0 or mutation_p > 1.0:
             raise ValueError(
                 f"mutation_p must be a float between 0.0 and 1.0, is '{mutation_p}'"
+            )
+
+        if operator_p < 0.0 or operator_p > 1.0:
+            raise ValueError(
+                f"operator_p must be a float between 0.0 and 1.0, is '{operator_p}'"
             )
 
         if len(literal_mutations) == 0:
@@ -162,7 +180,7 @@ class MutationExecutor:
 
         for mutation_i in range(n_mutations):
             for tries in range(self.num_tries):
-                selected = select_crossover_point(new_rule, operator_p=0.5)
+                selected = select_crossover_point(new_rule, operator_p=self.operator_p)
                 # selected = random.choice(new_rule.flatten())
 
                 try:

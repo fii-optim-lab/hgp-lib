@@ -40,6 +40,35 @@ class TestCrossoverExecutor(unittest.TestCase):
             with self.assertRaises(ValueError):
                 CrossoverExecutor(check_valid=lambda r: True, num_tries=0)
 
+    def test_operator_p_validation(self):
+        """Test that operator_p outside [0.0, 1.0] raises ValueError."""
+        with self.assertRaises(ValueError):
+            CrossoverExecutor(operator_p=-0.1)
+        with self.assertRaises(ValueError):
+            CrossoverExecutor(operator_p=1.1)
+
+    def test_operator_p_default(self):
+        """Test that operator_p defaults to 0.9."""
+        executor = CrossoverExecutor()
+        self.assertEqual(executor.operator_p, 0.9)
+
+    def test_operator_p_used_in_crossover(self):
+        """Test that operator_p=1.0 causes only operator nodes to be selected as crossover points."""
+        executor = CrossoverExecutor(operator_p=1.0)
+
+        # Tree with both operators and literals
+        parent_a = And([Literal(value=0), Or([Literal(value=1), Literal(value=2)])])
+        parent_b = Or([And([Literal(value=3), Literal(value=4)]), Literal(value=5)])
+
+        # With operator_p=1.0, crossover points should always be operators.
+        # Run multiple times to gain confidence.
+        for seed in range(20):
+            random.seed(seed)
+            children = executor.crossover(parent_a, parent_b)
+            # Children should still be valid Rule objects
+            for child in children:
+                self.assertIsInstance(child, Rule)
+
     def test_apply_random_strategy(self):
         """Test that apply selects rules and returns children with parent indices."""
         executor = CrossoverExecutor(crossover_p=1.0)

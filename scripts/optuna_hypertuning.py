@@ -145,6 +145,12 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
     params["crossover_rate"] = trial.suggest_float(
         "crossover_rate", 0.1, 0.95, step=0.05
     )
+    params["crossover_operator_p"] = trial.suggest_float(
+        "crossover_operator_p", 0.0, 1.0, step=0.05
+    )
+    params["mutation_operator_p"] = trial.suggest_float(
+        "mutation_operator_p", 0.0, 1.0, step=0.05
+    )
     params["num_epochs"] = trial.suggest_int("num_epochs", 500, 3000, step=100)
 
     params["selection_type"] = "tournament"
@@ -255,7 +261,9 @@ def build_config(
     mutation_p = params["mutation_probability"]
     check_valid = complexity_check()
     crossover_executor = CrossoverExecutor(
-        crossover_p=params["crossover_rate"], check_valid=check_valid
+        crossover_p=params["crossover_rate"],
+        check_valid=check_valid,
+        operator_p=params.get("crossover_operator_p", 0.9),
     )
 
     # Sampling strategy for hierarchical GP
@@ -285,7 +293,9 @@ def build_config(
         score_fn=score_fn,
         selection=selection,
         population_factory=PopulationGeneratorFactory(population_size=population_size),
-        mutation_factory=MutationExecutorFactory(mutation_p=mutation_p),
+        mutation_factory=MutationExecutorFactory(
+            mutation_p=mutation_p, operator_p=params.get("mutation_operator_p", 0.9)
+        ),
         crossover_executor=crossover_executor,
         check_valid=check_valid,
         regeneration=params.get("regeneration", False),
@@ -443,7 +453,10 @@ if __name__ == "__main__":
     main()
 
 # Example usage:
-# python scripts/optuna_hypertuning.py --data-path data/PaySim.hdf --n-trials 100 --study-name 3_tests_3_val_folds --verbose --artifact-dir ./artifacts
+# python scripts/optuna_hypertuning.py --data-path data/PaySim.hdf
+#                                      --n-trials 100
+#                                      --study-name 3_tests_3_val_folds
+#                                      --verbose --artifact-dir ./artifacts
 # optuna-dashboard sqlite:///optuna_study.db --artifact-dir ./artifacts
 
 

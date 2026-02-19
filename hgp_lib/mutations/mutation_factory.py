@@ -99,6 +99,9 @@ class MutationExecutorFactory:
         mutation_p (float): Per-node mutation probability. Default: `0.1`.
         num_tries (int): Maximum number of attempts per mutation node. Must be `1`
             when no `check_valid` is provided to `create`. Default: `1`.
+        operator_p (float): Probability of selecting an operator node (vs. a literal)
+            when choosing a mutation point in the rule tree. Must be in [0.0, 1.0].
+            Default: `0.9`.
 
     Examples:
         >>> from hgp_lib.mutations import MutationExecutorFactory
@@ -122,7 +125,9 @@ class MutationExecutorFactory:
         1
     """
 
-    def __init__(self, mutation_p: float = 0.1, num_tries: int = 1):
+    def __init__(
+        self, mutation_p: float = 0.1, num_tries: int = 1, operator_p: float = 0.9
+    ):
         check_isinstance(mutation_p, float)
         if mutation_p < 0.0 or mutation_p > 1.0:
             raise ValueError(
@@ -131,8 +136,14 @@ class MutationExecutorFactory:
         check_isinstance(num_tries, int)
         if num_tries < 1:
             raise ValueError(f"num_tries must be at least 1, got {num_tries}")
+        check_isinstance(operator_p, float)
+        if operator_p < 0.0 or operator_p > 1.0:
+            raise ValueError(
+                f"operator_p must be between 0.0 and 1.0, got {operator_p}"
+            )
         self.mutation_p = mutation_p
         self.num_tries = num_tries
+        self.operator_p = operator_p
 
     def create_literal_mutations(self, num_literals: int) -> Tuple[Mutation, ...]:
         """
@@ -186,4 +197,5 @@ class MutationExecutorFactory:
             mutation_p=self.mutation_p,
             check_valid=check_valid,
             num_tries=self.num_tries,
+            operator_p=self.operator_p,
         )
