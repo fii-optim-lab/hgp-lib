@@ -201,22 +201,6 @@ class TestRules(unittest.TestCase):
         )
         np.testing.assert_array_equal(test_rule_1.evaluate(self.data), result)
 
-    def test_rule_extend(self):
-        l1 = Literal(value=0)
-        rule = And([l1], copy_subrules=True)
-
-        l2 = Literal(value=1)
-        rule.extend([l2], copy=True)
-        self.assertEqual(len(rule.subrules), 2)
-        self.assertNotEqual(id(l2), id(rule.subrules[1]))
-        self.assertEqual(rule.subrules[1].parent, rule)
-
-        l3 = Literal(value=2)
-        rule.extend([l3], copy=False)
-        self.assertEqual(len(rule.subrules), 3)
-        self.assertEqual(id(l3), id(rule.subrules[2]))
-        self.assertEqual(l3.parent, rule)
-
     def test_replace_with_rule(self):
         """Test that replace_with_rule replaces target content in-place."""
         with self.subTest("And to Or"):

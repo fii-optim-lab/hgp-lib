@@ -56,28 +56,16 @@ class Rule(ABC):
     ):
         self.subrules = []
         if subrules is not None:
-            self.extend(subrules, copy=copy_subrules)
+            if copy_subrules:
+                self.subrules.extend([s.copy(self) for s in subrules])
+            else:
+                for s in subrules:
+                    s.parent = self
+                self.subrules.extend(subrules)
 
         self.parent = parent
         self.value = value
         self.negated = negated
-
-    def extend(self, new_subrules: List["Rule"], copy: bool = True):
-        """
-        Extends the current subrules with a list of new subrules.
-
-        Args:
-            new_subrules (List[Rule]): The list of new subrules to add.
-            copy (bool): If True, deep copies each new subrule. If False, moves them (assigns parent to self).
-                Default: `True`.
-        """
-        # TODO: Check where this can be added to improve performance.
-        if copy:
-            self.subrules.extend([s.copy(self) for s in new_subrules])
-        else:
-            for s in new_subrules:
-                s.parent = self
-            self.subrules.extend(new_subrules)
 
     def flatten(self):
         """
@@ -100,7 +88,7 @@ class Rule(ABC):
         result = [self]
         queue = [self]
         while queue:
-            current = queue.pop(0)
+            current = queue.pop()
             result.extend(current.subrules)
             queue.extend(current.subrules)
         return result
@@ -144,12 +132,14 @@ class Rule(ABC):
             >>> len(And([Literal(value=1), Or([Literal(value=2), Literal(value=3)])]))
             5
         """
+        # TODO: Check a 2 list approach for speed (no queue)
         result = 1
         queue = [self]
         while queue:
-            current = queue.pop(0)
-            result += len(current.subrules)
-            queue.extend(current.subrules)
+            current = queue.pop()
+            if current.subrules:
+                result += len(current.subrules)
+                queue.extend(current.subrules)
         return result
 
     def __len___r(self) -> int:

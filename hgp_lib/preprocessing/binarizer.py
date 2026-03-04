@@ -124,6 +124,7 @@ class StandardBinarizer:
             >>> binarizer._get_tree_based_bins(X, y, 2)
             array([-inf,  4.5,  inf])
         """
+        # TODO: Check for improvements
         if len(np.unique(X)) <= 1:
             return np.array([-np.inf, np.inf])
 
@@ -190,6 +191,7 @@ class StandardBinarizer:
             >>> result.dtypes.unique()
             array([dtype('bool')], dtype=object)
         """
+        # TODO: Check for improvements
         check_isinstance(X, pd.DataFrame)
         result = pd.DataFrame(index=X.index)
 
