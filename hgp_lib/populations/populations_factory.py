@@ -10,11 +10,11 @@ from ..utils.validation import check_isinstance
 
 class PopulationGeneratorFactory:
     """
-    Factory for creating `PopulationGenerator` instances.
+    Factory for creating `PopulationGenerator` instances, supporting both binary and multiclass rule generation.
 
     Stores configuration-time parameters (`population_size`) and defers
     data-dependent construction to `create`. Override `create_strategies`
-    to customise which strategies are instantiated.
+    to customise which strategies are instantiated. For multiclass, possible_classes are inferred from train_labels.
 
     Attributes:
         population_size (int): Number of rules the generator will produce.
@@ -75,7 +75,10 @@ class PopulationGeneratorFactory:
         Returns:
             List[PopulationStrategy]: Strategies to pass to `PopulationGenerator`.
         """
-        return [RandomStrategy(num_literals=num_literals)]
+        possible_classes = np.unique(train_labels)
+        return [
+            RandomStrategy(num_literals=num_literals, possible_classes=possible_classes)
+        ]
 
     def create(
         self,

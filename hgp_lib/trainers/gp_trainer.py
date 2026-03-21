@@ -2,7 +2,7 @@ from typing import List
 
 from tqdm import tqdm
 
-from ..algorithms import BooleanGP
+from ..algorithms import BooleanGP, MulticlassGP
 from ..configs import TrainerConfig, validate_trainer_config
 from ..metrics import GenerationMetrics, PopulationHistory
 from ..utils.metrics import optimize_scorer_for_data
@@ -10,10 +10,11 @@ from ..utils.metrics import optimize_scorer_for_data
 
 class GPTrainer:
     """
-    High-level trainer for Boolean Genetic Programming.
+    High-level trainer for Boolean and Multiclass Genetic Programming.
     Accepts a TrainerConfig containing a BooleanGPConfig and training options.
     Runs the training loop and optionally validates every val_every epochs.
     Returns a HierarchicalHistory with GenerationMetrics per epoch.
+    Automatically selects MulticlassGP if the number of unique labels > 2.
     Args:
         config (TrainerConfig): Configuration with gp_config (BooleanGPConfig),
             num_epochs, optional val_data/val_labels, val_every, progress options.
@@ -26,7 +27,10 @@ class GPTrainer:
         ...     return np.mean(predictions == labels)
         >>>
         >>> train_data = np.array([[True, False, True, False], [False, True, False, True]])
-        >>> train_labels = np.array([1, 0])
+        >>> # train_labels can be binary (for binary classification):
+        >>> train_labels = np.array([0, 1, 0])
+        >>> # or multiclass (for multiclass classification):
+        >>> train_labels = np.array([1, 0, 2])
         >>> val_data = np.array([[True, True, False, False]])
         >>> val_labels = np.array([1])
         >>> gp_config = BooleanGPConfig(
@@ -51,7 +55,12 @@ class GPTrainer:
         validate_trainer_config(config)
 
         self.config = config
-        self.gp_algo = BooleanGP(config.gp_config)
+        labels = config.gp_config.train_labels
+        n_classes = len(set(labels))
+        if n_classes > 2:
+            self.gp_algo = MulticlassGP(config.gp_config)
+        else:
+            self.gp_algo = BooleanGP(config.gp_config)
         self.num_epochs = config.num_epochs
         self.val_every = config.val_every
         self.progress_bar = config.progress_bar
@@ -121,7 +130,13 @@ class GPTrainer:
         if remaining_epochs > 0 and self.progress_callback is not None:
             self.progress_callback(remaining_epochs)
 
+        if hasattr(self.gp_algo, "global_best_rule"):
+            best = self.gp_algo.global_best_rule
+        elif hasattr(self.gp_algo, "global_best_ruleset"):
+            best = self.gp_algo.global_best_ruleset
+        else:
+            best = None
         return PopulationHistory(
-            generations=parent_generations,
-            global_best_rule=self.gp_algo.global_best_rule,
+            generations=parent_generations if parent_generations else [],
+            global_best_rule=best,
         )

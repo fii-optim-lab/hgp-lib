@@ -9,6 +9,33 @@ from ..utils.validation import validate_num_literals, validate_operator_types
 from ..rules import Rule, Or, And, Literal
 
 
+class ChangeClassMutation(Mutation):
+    """
+    Mutation that changes the class label of a rule to a different class (for multiclass GP).
+    Useful for evolving rules in multiclass classification tasks by randomly switching the class label.
+    Args:
+        possible_classes (Sequence[int]): List of possible class labels.
+    """
+
+    def __init__(self, possible_classes):
+        super().__init__(is_literal_mutation=True, is_operator_mutation=True)
+        self.possible_classes = list(possible_classes)
+
+    def apply(self, rule: Rule):
+        """
+        Randomly change the class label of the given rule to a different class from possible_classes.
+        Args:
+            rule (Rule): The rule whose class_label will be changed.
+        """
+        if not self.possible_classes:
+            return
+        current = rule.class_label
+        choices = [c for c in self.possible_classes if c != current]
+        if not choices:
+            return
+        rule.class_label = random.choice(choices)
+
+
 class DeleteMutation(Mutation):
     """
     The `DeleteMutation` removes a given `Rule` node from its parent operator (e.g., an `And` or `Or` rule) inplace.

@@ -145,9 +145,11 @@ def execute_single_run(
         test_data_opt = test_data
         test_labels_opt = test_labels
 
-    test_score = float(
-        test_score_fn(best_rule.evaluate(test_data_opt), test_labels_opt)
-    )
+    if hasattr(best_rule, "predict"):
+        test_preds = best_rule.predict(test_data_opt)
+    else:
+        test_preds = best_rule.evaluate(test_data_opt)
+    test_score = float(test_score_fn(test_preds, test_labels_opt))
 
     send_progress(progress_queue, "run", 1)
 

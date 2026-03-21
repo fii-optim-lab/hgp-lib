@@ -9,6 +9,7 @@ from hgp_lib.mutations import (
     DeleteMutation,
     MutationError,
     NegateMutation,
+    ChangeClassMutation,
     ReplaceLiteral,
     PromoteLiteral,
     RemoveIntermediateOperator,
@@ -528,6 +529,23 @@ class TestMutations(unittest.TestCase):
         self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
         result = doctest.testmod(hgp_lib.mutations.mutation_executor, verbose=False)
         self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
+
+    def test_change_class_mutation(self):
+        possible_classes = [0, 1, 2]
+        mutation = ChangeClassMutation(possible_classes)
+        rule = Literal(value=0, class_label=1)
+        old_label = rule.class_label
+        mutation.apply(rule)
+        self.assertIn(rule.class_label, possible_classes)
+        self.assertNotEqual(rule.class_label, old_label)
+        op = And(
+            [Literal(value=0, class_label=2), Literal(value=1, class_label=2)],
+            class_label=2,
+        )
+        old_label_op = op.class_label
+        mutation.apply(op)
+        self.assertIn(op.class_label, possible_classes)
+        self.assertNotEqual(op.class_label, old_label_op)
 
 
 if __name__ == "__main__":

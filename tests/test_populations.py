@@ -325,6 +325,20 @@ class TestPopulations(unittest.TestCase):
         result = doctest.testmod(hgp_lib.populations.populations_factory, verbose=False)
         self.assertEqual(result.failed, 0, f"Factory doctests failed: {result}")
 
+    def test_random_strategy_generate_multiclass(self):
+        possible_classes = [0, 1, 2]
+        strategy = RandomStrategy(
+            num_literals=self.num_literals,
+            operator_types=(And, Or),
+            possible_classes=possible_classes,
+        )
+        rules = strategy.generate(n=20)
+        self.assertEqual(len(rules), 20)
+        for rule in rules:
+            self.assertIn(rule.class_label, possible_classes)
+            for sub in rule.subrules:
+                self.assertIn(sub.class_label, possible_classes)
+
 
 class TestPopulationGeneratorFactory(unittest.TestCase):
     def setUp(self):

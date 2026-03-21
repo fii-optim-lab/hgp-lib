@@ -14,33 +14,40 @@ from ..utils.validation import (
 
 class RandomStrategy(PopulationStrategy):
     """
-    Generates rules by randomly selecting an operator and two literals.
+    Generates rules by randomly selecting an operator and two literals, supporting both binary and multiclass rule generation.
 
     Attributes:
         num_literals (int): The total number of available literals.
         operator_types (Sequence[Type[Rule]]): A sequence of allowed operator types
             (e.g., `(Or, And)`). Default: `(Or, And)`.
+        possible_classes (Sequence[int]): List of possible class labels for multiclass problems.
 
     Examples:
         >>> from hgp_lib.populations import RandomStrategy
         >>> from hgp_lib.rules import And, Or
-        >>> strategy = RandomStrategy(num_literals=5, operator_types=(And, Or))
+        >>> strategy = RandomStrategy(num_literals=5, operator_types=(And, Or), possible_classes=(0, 1, 2))
         >>> rules = strategy.generate(n=1)
         >>> rule = rules[0]
         >>> isinstance(rule, (And, Or))
         True
         >>> len(rule.subrules)
         2
+        >>> rule.class_label in (0, 1, 2)
+        True
     """
 
     def __init__(
-        self, num_literals: int, operator_types: Sequence[Type[Rule]] = (Or, And)
+        self,
+        num_literals: int,
+        operator_types: Sequence[Type[Rule]] = (Or, And),
+        possible_classes: Sequence[int] = (0, 1),
     ):
         validate_num_literals(num_literals)
         validate_operator_types(operator_types)
 
         self.num_literals = num_literals
         self.operator_types = operator_types
+        self.possible_classes = list(possible_classes)
 
     def generate(self, n: int) -> List[Rule]:
         """
@@ -62,18 +69,24 @@ class RandomStrategy(PopulationStrategy):
         idx2s = np.random.randint(0, self.num_literals - 1, size=n)
         idx2s += idx2s >= idx1s  # Avoid duplicate indices.
         negations = np.random.randint(0, 2, size=(n, 3)).astype(bool)
+        class_labels = np.random.choice(self.possible_classes, size=n)
 
         for i in range(n):
             operator_class = self.operator_types[op_indices[i]]
-
+            label = class_labels[i]
             rules.append(
                 operator_class(
                     subrules=[
-                        Literal(value=idx1s[i], negated=negations[i, 1]),
-                        Literal(value=idx2s[i], negated=negations[i, 2]),
+                        Literal(
+                            value=idx1s[i], negated=negations[i, 1], class_label=label
+                        ),
+                        Literal(
+                            value=idx2s[i], negated=negations[i, 2], class_label=label
+                        ),
                     ],
                     negated=negations[i, 0],
                     copy_subrules=False,
+                    class_label=label,
                 )
             )
         return rules

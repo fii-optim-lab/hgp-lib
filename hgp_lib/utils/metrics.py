@@ -144,3 +144,36 @@ def optimize_scorer_for_data(
         )
         scorer = partial(scorer, sample_weight=sample_weight)
     return scorer, data, labels
+
+
+def f1_score_multiclass(predictions, labels, sample_weight=None):
+    """
+    Compute F1 score for multiclass classification with support for missing predictions (-1).
+
+    Args:
+        predictions (np.ndarray): Predicted class labels (may contain -1 for missing).
+        labels (np.ndarray): True class labels.
+        sample_weight (np.ndarray, optional): Not used, for API compatibility.
+
+    Returns:
+        float: F1 score in [0, 1].
+
+    Notes:
+        - If both predictions and labels are empty, returns 1.0 (perfect agreement on empty set).
+        - If all predictions are missing but labels exist, returns 0.0.
+    """
+    if len(predictions) == 0 and len(labels) == 0:
+        return 1.0
+    mask = (predictions != -1) & (labels != -1)
+    y_pred = predictions[mask]
+    y_true = labels[mask]
+    tp = np.sum(y_pred == y_true)
+    pred_sum = len(y_pred)
+    label_sum = len(y_true)
+    if pred_sum == 0 or label_sum == 0:
+        return 0.0
+    precision = tp / pred_sum
+    recall = tp / label_sum
+    if precision + recall == 0:
+        return 0.0
+    return 2 * precision * recall / (precision + recall)

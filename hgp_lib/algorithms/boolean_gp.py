@@ -83,7 +83,7 @@ class BooleanGP:
             num_features, score_fn, train_data, train_labels
         )
         mutation_executor = config.mutation_factory.create(
-            num_features, config.check_valid
+            num_features, config.check_valid, train_labels=train_labels
         )
 
         crossover_executor = config.crossover_executor

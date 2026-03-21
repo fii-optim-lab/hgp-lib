@@ -1,3 +1,4 @@
+import numpy as np
 from typing import Dict
 
 from .rules import Rule
@@ -57,6 +58,22 @@ class Literal(Rule):
             array([ True, False])
         """
         return ~data[:, self.value] if self.negated else data[:, self.value]
+
+    def evaluate_multiclass(self, data):
+        """
+        Evaluates this literal for multiclass prediction. Returns an array with the class label where
+        the literal matches, -1 otherwise.
+        Args:
+            data (np.ndarray): Input data (instances x features).
+        Returns:
+            np.ndarray: Array of predicted class labels (or -1 for no match).
+        """
+        if self.class_label is None:
+            return np.full(data.shape[0], -1, dtype=int)
+        mask = ~data[:, self.value] if self.negated else data[:, self.value]
+        result = np.full(mask.shape, -1, dtype=int)
+        result[mask] = self.class_label
+        return result
 
     def to_str(
         self, feature_names: Dict[int, str] | None = None, indent: bool = -1

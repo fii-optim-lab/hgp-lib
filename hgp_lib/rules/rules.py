@@ -44,7 +44,7 @@ class Rule(ABC):
         And(0, Or(~1, 2), 3)
     """
 
-    __slots__ = ("subrules", "parent", "value", "negated")
+    __slots__ = ("subrules", "parent", "value", "negated", "class_label")
 
     def __init__(
         self,
@@ -53,6 +53,7 @@ class Rule(ABC):
         value: Optional[int] = None,
         negated: bool = False,
         copy_subrules: bool = True,
+        class_label: Optional[int] = None,
     ):
         self.subrules = []
         if subrules is not None:
@@ -66,6 +67,7 @@ class Rule(ABC):
         self.parent = parent
         self.value = value
         self.negated = negated
+        self.class_label = class_label
 
     def flatten(self):
         """
@@ -235,6 +237,8 @@ class Rule(ABC):
             self.parent if parent is None else parent,
             self.value,
             self.negated,
+            True,
+            self.class_label,
         )
 
     @abstractmethod
@@ -286,3 +290,28 @@ class Rule(ABC):
         else:
             for subrule in self.subrules:
                 subrule.apply_feature_mapping(feature_mapping)
+
+
+class RuleSet:
+    def __init__(self, rules, default_class=None):
+        self.rules = rules
+        self.default_class = default_class
+
+    def predict(self, X):
+        """
+        Predict class labels for input data X using the set of rules.
+        For multiclass, each rule may predict a different class; the first matching rule is used.
+        Args:
+            X (np.ndarray): Input data (instances x features).
+        Returns:
+            np.ndarray: Predicted class labels for each instance.
+        """
+        n_samples = X.shape[0]
+        predictions = np.full(n_samples, self.default_class, dtype=int)
+        if len(self.rules) == 0:
+            return predictions
+        for rule in self.rules:
+            matches = rule.evaluate_multiclass(X)
+            mask = (matches == rule.class_label) & (predictions == self.default_class)
+            predictions[mask] = rule.class_label
+        return predictions

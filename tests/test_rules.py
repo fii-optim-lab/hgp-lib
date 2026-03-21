@@ -333,6 +333,100 @@ class TestRules(unittest.TestCase):
         result = doctest.testmod(hgp_lib.rules.utils, verbose=False)
         self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
+    def test_literal_evaluate_multiclass(self):
+        data = np.array(
+            [
+                [True, False, True],
+                [False, True, False],
+                [True, True, False],
+                [False, False, False],
+            ]
+        )
+        lit = Literal(value=0, class_label=2)
+        out = lit.evaluate_multiclass(data)
+        np.testing.assert_array_equal(out, np.array([2, -1, 2, -1]))
+        lit_neg = Literal(value=1, negated=True, class_label=1)
+        out_neg = lit_neg.evaluate_multiclass(data)
+        np.testing.assert_array_equal(out_neg, np.array([1, -1, -1, 1]))
+        lit_none = Literal(value=2)
+        out_none = lit_none.evaluate_multiclass(data)
+        np.testing.assert_array_equal(out_none, np.array([-1, -1, -1, -1]))
+
+    def test_and_evaluate_multiclass(self):
+        data = np.array(
+            [
+                [True, False],
+                [True, True],
+                [False, True],
+                [True, True],
+            ]
+        )
+        rule = And(
+            [
+                Literal(value=0, class_label=3),
+                Literal(value=1, class_label=3),
+            ],
+            class_label=3,
+        )
+        out = rule.evaluate_multiclass(data)
+        np.testing.assert_array_equal(out, np.array([-1, 3, -1, 3]))
+        rule_neg = And(
+            [
+                Literal(value=0, class_label=2),
+                Literal(value=1, class_label=2),
+            ],
+            class_label=2,
+            negated=True,
+        )
+        out_neg = rule_neg.evaluate_multiclass(data)
+        np.testing.assert_array_equal(out_neg, np.array([2, -1, 2, -1]))
+
+    def test_or_evaluate_multiclass(self):
+        data = np.array(
+            [
+                [True, False],
+                [False, True],
+                [False, False],
+                [True, True],
+            ]
+        )
+        rule = Or(
+            [
+                Literal(value=0, class_label=1),
+                Literal(value=1, class_label=1),
+            ],
+            class_label=1,
+        )
+        out = rule.evaluate_multiclass(data)
+        np.testing.assert_array_equal(out, np.array([1, 1, -1, 1]))
+        rule_neg = Or(
+            [
+                Literal(value=0, class_label=2),
+                Literal(value=1, class_label=2),
+            ],
+            class_label=2,
+            negated=True,
+        )
+        out_neg = rule_neg.evaluate_multiclass(data)
+        np.testing.assert_array_equal(out_neg, np.array([-1, -1, 2, -1]))
+
+    def test_ruleset_predict_multiclass(self):
+        data = np.array(
+            [
+                [True, False],
+                [False, True],
+                [True, True],
+                [False, False],
+            ]
+        )
+        rule1 = Literal(value=0, class_label=1)
+        rule2 = Literal(value=1, class_label=2)
+        ruleset = hgp_lib.rules.rules.RuleSet([rule1, rule2], default_class=0)
+        preds = ruleset.predict(data)
+        np.testing.assert_array_equal(preds, np.array([1, 2, 1, 0]))
+        emptyset = hgp_lib.rules.rules.RuleSet([], default_class=9)
+        np.testing.assert_array_equal(emptyset.predict(data), np.array([9, 9, 9, 9]))
+
 
 if __name__ == "__main__":
     unittest.main()

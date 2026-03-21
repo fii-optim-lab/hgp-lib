@@ -1,3 +1,4 @@
+import numpy as np
 from typing import Callable, Sequence, Tuple, Type
 
 from .base_mutation import Mutation
@@ -6,6 +7,7 @@ from .literal_mutations import (
     NegateMutation,
     PromoteLiteral,
     ReplaceLiteral,
+    ChangeClassMutation,
 )
 from .operator_mutations import AddLiteral, RemoveIntermediateOperator, ReplaceOperator
 from ..rules import And, Or, Rule
@@ -14,7 +16,9 @@ from ..utils.validation import check_isinstance
 
 
 def create_standard_literal_mutations(
-    num_literals: int, operator_types: Sequence[Type[Rule]] = (Or, And)
+    num_literals: int,
+    operator_types: Sequence[Type[Rule]] = (Or, And),
+    possible_classes: Sequence[int] = None,
 ) -> Tuple[Mutation, ...]:
     """
     Creates a standard set of literal-level mutations commonly used in rule evolution.
@@ -41,12 +45,15 @@ def create_standard_literal_mutations(
         >>> [type(mutation).__name__ for mutation in mutations]
         ['DeleteMutation', 'NegateMutation', 'ReplaceLiteral', 'PromoteLiteral']
     """
-    return (
+    mutations = [
         DeleteMutation(),
         NegateMutation(),
         ReplaceLiteral(num_literals),
         PromoteLiteral(num_literals, operator_types),
-    )
+    ]
+    if possible_classes is not None and len(possible_classes) > 1:
+        mutations.append(ChangeClassMutation(possible_classes))
+    return tuple(mutations)
 
 
 def create_standard_operator_mutations(
@@ -115,7 +122,7 @@ class MutationExecutorFactory:
 
         >>> from hgp_lib.mutations import MutationExecutorFactory, NegateMutation
         >>> class NegateOnlyFactory(MutationExecutorFactory):
-        ...     def create_literal_mutations(self, num_literals):
+        ...     def create_literal_mutations(self, num_literals, possible_classes=None):
         ...         return (NegateMutation(),)
         ...     def create_operator_mutations(self, num_literals):
         ...         return (NegateMutation(),)
@@ -145,7 +152,9 @@ class MutationExecutorFactory:
         self.num_tries = num_tries
         self.operator_p = operator_p
 
-    def create_literal_mutations(self, num_literals: int) -> Tuple[Mutation, ...]:
+    def create_literal_mutations(
+        self, num_literals: int, possible_classes: Sequence[int] = None
+    ) -> Tuple[Mutation, ...]:
         """
         Create the set of literal-level mutations.
 
@@ -158,7 +167,9 @@ class MutationExecutorFactory:
         Returns:
             Tuple[Mutation, ...]: Literal mutations for the executor.
         """
-        return create_standard_literal_mutations(num_literals)
+        return create_standard_literal_mutations(
+            num_literals, possible_classes=possible_classes
+        )
 
     def create_operator_mutations(self, num_literals: int) -> Tuple[Mutation, ...]:
         """
@@ -179,6 +190,7 @@ class MutationExecutorFactory:
         self,
         num_literals: int,
         check_valid: Callable[[Rule], bool] | None = None,
+        train_labels: Sequence[int] = None,
     ) -> MutationExecutor:
         """
         Create a `MutationExecutor` with the configured mutations and parameters.
@@ -191,8 +203,13 @@ class MutationExecutorFactory:
         Returns:
             MutationExecutor: Configured mutation executor.
         """
+        possible_classes = None
+        if train_labels is not None:
+            possible_classes = np.unique(train_labels)
         return MutationExecutor(
-            literal_mutations=self.create_literal_mutations(num_literals),
+            literal_mutations=self.create_literal_mutations(
+                num_literals, possible_classes=possible_classes
+            ),
             operator_mutations=self.create_operator_mutations(num_literals),
             mutation_p=self.mutation_p,
             check_valid=check_valid,

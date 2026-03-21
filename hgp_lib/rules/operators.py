@@ -87,6 +87,26 @@ class And(Rule):
             mask = np.logical_not(mask, out=mask)
         return mask
 
+    def evaluate_multiclass(self, data: np.ndarray) -> np.ndarray:
+        """
+        Evaluates this AND operator for multiclass prediction. Returns the class label if all subrules match, -1 otherwise.
+        Args:
+            data (np.ndarray): Input data (instances x features).
+        Returns:
+            np.ndarray: Array of predicted class labels (or -1 for no match).
+        """
+        if self.class_label is None:
+            return np.full(data.shape[0], -1, dtype=int)
+        sub_preds = [subrule.evaluate_multiclass(data) for subrule in self.subrules]
+        mask = np.ones(len(data), dtype=bool)
+        for pred in sub_preds:
+            mask &= pred != -1
+        if self.negated:
+            mask = ~mask
+        result = np.full(mask.shape, -1, dtype=int)
+        result[mask] = self.class_label
+        return result
+
 
 class Or(Rule):
     """
@@ -165,6 +185,26 @@ class Or(Rule):
         if self.negated:
             mask = np.logical_not(mask, out=mask)
         return mask
+
+    def evaluate_multiclass(self, data: np.ndarray) -> np.ndarray:
+        """
+        Evaluates this OR operator for multiclass prediction. Returns the class label if any subrule matches, -1 otherwise.
+        Args:
+            data (np.ndarray): Input data (instances x features).
+        Returns:
+            np.ndarray: Array of predicted class labels (or -1 for no match).
+        """
+        if self.class_label is None:
+            return np.full(data.shape[0], -1, dtype=int)
+        sub_preds = [subrule.evaluate_multiclass(data) for subrule in self.subrules]
+        mask = np.zeros(len(data), dtype=bool)
+        for pred in sub_preds:
+            mask |= pred != -1
+        if self.negated:
+            mask = ~mask
+        result = np.full(mask.shape, -1, dtype=int)
+        result[mask] = self.class_label
+        return result
 
 
 # TODO: Add higher level operators from Boolxai

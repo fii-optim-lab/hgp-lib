@@ -1,9 +1,10 @@
 """Unit tests for GenerationMetrics construction."""
 
 import unittest
-
+import numpy as np
 from hgp_lib.metrics.core import GenerationMetrics
 from hgp_lib.rules import Literal, And
+from hgp_lib.utils.metrics import f1_score_multiclass
 
 
 class TestGenerationMetrics(unittest.TestCase):
@@ -86,6 +87,38 @@ class TestGenerationMetrics(unittest.TestCase):
             child_population_generation_metrics=[],
         )
         self.assertEqual(metrics.best_rule_complexity, 5)
+
+
+class TestF1ScoreMulticlass(unittest.TestCase):
+    def test_perfect_match(self):
+        y_true = np.array([0, 1, 2, 1, 0])
+        y_pred = np.array([0, 1, 2, 1, 0])
+        self.assertAlmostEqual(f1_score_multiclass(y_pred, y_true), 1.0)
+
+    def test_all_wrong(self):
+        y_true = np.array([0, 1, 2])
+        y_pred = np.array([1, 2, 0])
+        self.assertAlmostEqual(f1_score_multiclass(y_pred, y_true), 0.0)
+
+    def test_some_missing(self):
+        y_true = np.array([0, 1, 2, 1, 0])
+        y_pred = np.array([0, -1, 2, 1, -1])
+        self.assertAlmostEqual(f1_score_multiclass(y_pred, y_true), 1.0)
+
+    def test_all_missing(self):
+        y_true = np.array([0, 1, 2])
+        y_pred = np.array([-1, -1, -1])
+        self.assertAlmostEqual(f1_score_multiclass(y_pred, y_true), 0.0)
+
+    def test_empty(self):
+        y_true = np.array([])
+        y_pred = np.array([])
+        self.assertAlmostEqual(f1_score_multiclass(y_pred, y_true), 1.0)
+
+    def test_partial_match(self):
+        y_true = np.array([0, 1, 2, 1, 0])
+        y_pred = np.array([0, 2, 2, 1, 1])
+        self.assertAlmostEqual(f1_score_multiclass(y_pred, y_true), 0.6)
 
 
 if __name__ == "__main__":

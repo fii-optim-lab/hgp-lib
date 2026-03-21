@@ -3,7 +3,9 @@
 import unittest
 
 import numpy as np
-
+from hgp_lib.algorithms import MulticlassGP
+from hgp_lib.populations import PopulationGeneratorFactory
+from hgp_lib.mutations import MutationExecutorFactory
 from hgp_lib.algorithms import BooleanGP
 from hgp_lib.configs import BooleanGPConfig
 from hgp_lib.populations import (
@@ -299,6 +301,40 @@ class TestHierarchicalTraining(unittest.TestCase):
                 self.assertEqual(
                     len(grandchild_metrics.child_population_generation_metrics), 0
                 )
+
+    def test_multiclassgp_simple(self):
+        np.random.seed(123)
+        data = np.array(
+            [
+                [1, 0],
+                [0, 1],
+                [1, 1],
+                [0, 0],
+                [1, 0],
+                [0, 1],
+            ],
+            dtype=bool,
+        )
+        labels = np.array([0, 1, 2, 0, 1, 2])
+
+        def acc(pred, y):
+            return np.mean(pred == y)
+
+        config = BooleanGPConfig(
+            score_fn=acc,
+            train_data=data,
+            train_labels=labels,
+            population_factory=PopulationGeneratorFactory(),
+            mutation_factory=MutationExecutorFactory(),
+            max_depth=0,
+            num_child_populations=0,
+            top_k_transfer=1,
+            optimize_scorer=False,
+        )
+        gp = MulticlassGP(config)
+        metrics = gp.step()
+        self.assertIsNotNone(metrics.best_rule)
+        self.assertGreaterEqual(metrics.best_train_score, 0)
 
 
 class TestFeedbackMechanism(unittest.TestCase):

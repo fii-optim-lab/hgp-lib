@@ -2,6 +2,7 @@ from .base_mutation import Mutation
 from .literal_mutations import (
     DeleteMutation,
     NegateMutation,
+    ChangeClassMutation,
     ReplaceLiteral,
     PromoteLiteral,
 )
@@ -29,6 +30,7 @@ __all__ = [
     # Literal and operator mutations
     "DeleteMutation",
     "NegateMutation",
+    "ChangeClassMutation",
     # Literal mutations
     "ReplaceLiteral",
     "PromoteLiteral",
