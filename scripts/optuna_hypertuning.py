@@ -15,9 +15,11 @@ View results:
 
 import argparse
 import logging
+import os
+import sys
 import traceback
 from pathlib import Path
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict
 
 import matplotlib
 import numpy as np
@@ -37,10 +39,18 @@ from hgp_lib.populations import (
     InstanceSamplingStrategy,
     PopulationGeneratorFactory,
 )
-from hgp_lib.preprocessing import StandardBinarizer
+from hgp_lib.preprocessing import StandardBinarizer, load_data
 from hgp_lib.selections import RouletteSelection, TournamentSelection
 from hgp_lib.utils.metrics import fast_f1_score
 from hgp_lib.utils.validation import complexity_check
+
+
+if os.path.dirname(os.path.abspath(__file__)) not in sys.path:
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+
+from pmlb_preprocess import save_pmlb_data  # noqa: E402
+
 
 matplotlib.use("Agg")
 
@@ -48,43 +58,6 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
-
-
-def load_data(data_path: str) -> Tuple[pd.DataFrame, ndarray]:
-    """
-    Load and preprocess data from HDF file for benchmarking.
-
-    Args:
-        data_path: Path to HDF file containing data.
-
-    Returns:
-        Tuple of (data, labels).
-
-    Raises:
-        FileNotFoundError: If the file does not exist.
-        RuntimeError: If target column cannot be identified.
-    """
-    path = Path(data_path)
-    if not path.exists():
-        raise FileNotFoundError(f"Data file not found: {data_path}")
-
-    logger.info(f"Loading data from {data_path}...")
-
-    df: pd.DataFrame = pd.read_hdf(data_path)
-
-    # Detect target column - PaySim uses isFraud, others use target
-    if "isFraud" in df.columns:
-        target_column = "isFraud"
-    elif "target" in df.columns:
-        target_column = "target"
-    else:
-        raise RuntimeError(f"Unknown target column. Available: {df.columns.tolist()}")
-
-    labels = df[target_column].to_numpy(dtype=bool, copy=True)
-    data = df.drop([target_column], axis=1)
-
-    del df
-    return data, labels
 
 
 def create_argument_parser() -> argparse.ArgumentParser:
@@ -384,6 +357,9 @@ def main() -> None:
     np.random.seed(args.seed)
 
     logger.info("Loading data...")
+    if not os.path.isfile(args.data_path):
+        data_path = Path(args.data_path)
+        save_pmlb_data(data_path.stem, data_path.parent)
     data, labels = load_data(args.data_path)
 
     # Initialize artifact store
@@ -455,7 +431,11 @@ if __name__ == "__main__":
 # Example usage:
 # python scripts/optuna_hypertuning.py --data-path data/PaySim.hdf
 #                                      --n-trials 100
-#                                      --study-name 3_tests_3_val_folds
+#                                      --study-name PaySim
+#                                      --verbose --artifact-dir ./artifacts
+# python scripts/optuna_hypertuning.py --data-path data/breast_cancer.hdf
+#                                      --n-trials 100
+#                                      --study-name pmlb_breast_cancer
 #                                      --verbose --artifact-dir ./artifacts
 # optuna-dashboard sqlite:///optuna_study.db --artifact-dir ./artifacts
 

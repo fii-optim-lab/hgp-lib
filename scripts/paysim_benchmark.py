@@ -51,7 +51,6 @@ import argparse
 from functools import partial
 
 import numpy as np
-import pandas as pd
 
 from hgp_lib import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.benchmarkers import GPBenchmarker
@@ -59,7 +58,7 @@ from hgp_lib.populations import (
     FeatureSamplingStrategy,
     PopulationGeneratorFactory,
 )
-from hgp_lib.preprocessing import StandardBinarizer
+from hgp_lib.preprocessing import StandardBinarizer, load_data
 from hgp_lib.rules import Rule
 
 
@@ -106,28 +105,6 @@ def f1_score(y_pred, y_true, sample_weight=None):
 # ==============================================================================
 
 
-def load_paysim(hdf_path: str):
-    print(f"Loading data from {hdf_path}...")
-    df: pd.DataFrame = pd.read_hdf(hdf_path)
-
-    # Detect target column (supports both original and preprocessed formats)
-    if "isFraud" in df.columns:
-        target_column = "isFraud"
-    elif "target" in df.columns:
-        target_column = "target"
-    else:
-        raise RuntimeError(f"Target column not found. Columns: {df.columns.tolist()}")
-
-    labels = df[target_column].values.copy()
-    data = df.drop([target_column], axis=1)
-    del df
-
-    print(f"Loaded {len(data)} samples, {len(data.columns)} features")
-    print(f"Fraud rate: {labels.mean():.4f} ({labels.sum()} fraud cases)")
-
-    return data, labels
-
-
 def is_valid(rule: Rule, max_rule_size: int) -> bool:
     return len(rule) <= max_rule_size
 
@@ -168,7 +145,7 @@ def main(args: argparse.Namespace):
     5. Print results with statistics
     """
     # Load data
-    data, labels = load_paysim(args.data_path)
+    data, labels = load_data(args.data_path)
 
     # Create validity checker
     is_valid = create_validity_checker(args.max_rule_size)

@@ -62,7 +62,6 @@ import gc
 from typing import Dict, Tuple
 
 import numpy as np
-import pandas as pd
 from sklearn.model_selection import train_test_split
 from timed_decorator.builder import create_timed_decorator, get_timed_decorator
 
@@ -84,7 +83,7 @@ from hgp_lib.populations import (
     PopulationGenerator,
     PopulationGeneratorFactory,
 )
-from hgp_lib.preprocessing import StandardBinarizer
+from hgp_lib.preprocessing import StandardBinarizer, load_data
 from hgp_lib.rules import Rule
 from hgp_lib.selections import TournamentSelection
 from hgp_lib.trainers import GPTrainer
@@ -159,19 +158,7 @@ def preprocess_paysim_data(hdf_path: str, num_bins: int = 5) -> Tuple:
     """
     print(f"Loading data from {hdf_path}...")
 
-    df: pd.DataFrame = pd.read_hdf(hdf_path)
-
-    # Detect target column (supports both original and preprocessed formats)
-    if "isFraud" in df.columns:
-        target_column = "isFraud"
-    elif "target" in df.columns:
-        target_column = "target"
-    else:
-        raise RuntimeError(f"Target column not found. Columns: {df.columns.tolist()}")
-
-    labels = df[target_column].values.copy()
-    data = df.drop([target_column], axis=1)
-    del df
+    data, labels = load_data(hdf_path)
 
     print(f"Loaded {len(data)} samples with {len(data.columns)} features")
     print(f"Fraud rate: {labels.mean():.4f} ({labels.sum()} fraud cases)")
