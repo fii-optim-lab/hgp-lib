@@ -1,7 +1,9 @@
 import argparse
+import random
 import subprocess
+import sys
 from concurrent.futures import ProcessPoolExecutor
-from functools import partial
+from time import sleep
 
 
 def get_binary_classification_datasets():
@@ -10,25 +12,33 @@ def get_binary_classification_datasets():
     return df_summary[df_summary["n_classes"] == 2.0]["dataset"].tolist()
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-n_jobs", type=int, default=4)
-    args = parser.parse_args()
-
-    dataset_names = get_binary_classification_datasets()
+def get_commands_for_datasets(dataset_names):
     commands = []
     for dataset_name in dataset_names:
         cmd = (
-            "python "
+            f"{sys.executable} "
             "scripts/optuna_hypertuning.py "
             f"--data-path data/{dataset_name}.hdf "
             "--n-trials 100 "
             f"--study-name pmlb_{dataset_name} "
             "--artifact-dir ./artifacts"
         )
-        commands.append(cmd.split(" "))
+        commands.append(cmd)
+    return commands
 
-    subprocess_runner = partial(subprocess.run, check=True)
+
+def subprocess_runner(command: str):
+    sleep(random.randint(1, 5))
+    subprocess.run(command.split(" "), check=True)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-n_jobs", type=int, default=4)
+    args = parser.parse_args()
+
+    dataset_names = get_binary_classification_datasets()
+    commands = get_commands_for_datasets(dataset_names)
     with ProcessPoolExecutor(max_workers=args.n_jobs) as executor:
         executor.map(subprocess_runner, commands)
 

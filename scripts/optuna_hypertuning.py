@@ -108,7 +108,7 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
     """Suggest all hyperparameters (base + hierarchical) in one function."""
     params = {}
 
-    params["num_bins"] = trial.suggest_int("num_bins", 4, 8)
+    params["num_bins"] = trial.suggest_int("num_bins", 2, 10)
 
     # Base GP parameters
     params["population_size"] = trial.suggest_int("population_size", 50, 200, step=25)
@@ -155,12 +155,10 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
         if params["max_depth"] == 3:
             params["num_child_populations"] = 2
         elif params["max_depth"] == 2:
-            params["num_child_populations"] = trial.suggest_int(
-                "num_child_populations", 2, 3
-            )
+            params["num_child_populations"] = 2
         else:  # 1
             params["num_child_populations"] = trial.suggest_int(
-                "num_child_populations", 2, 8
+                "num_child_populations", 2, 5
             )
 
         params["top_k_transfer"] = trial.suggest_int(
@@ -293,8 +291,9 @@ def build_config(
         labels=labels,
         trainer_config=trainer_config,
         binarizer=binarizer,
-        num_runs=10,
-        n_folds=5,
+        # TODO: we should make these configurable
+        num_runs=5,
+        n_folds=3,
         n_jobs=n_jobs,
         show_run_progress=verbose,
         show_fold_progress=verbose,

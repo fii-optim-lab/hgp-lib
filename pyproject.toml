@@ -49,3 +49,5 @@ dev = [
     "flake8",
     "ruff",
 ]
+[tool.ruff]
+exclude = [".venv"]
