@@ -1,4 +1,7 @@
+import argparse
 import subprocess
+from concurrent.futures import ProcessPoolExecutor
+from functools import partial
 
 
 def get_binary_classification_datasets():
@@ -8,10 +11,13 @@ def get_binary_classification_datasets():
 
 
 def main():
-    dataset_names = get_binary_classification_datasets()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-n_jobs", type=int, default=4)
+    args = parser.parse_args()
 
+    dataset_names = get_binary_classification_datasets()
+    commands = []
     for dataset_name in dataset_names:
-        print(f"Running on {dataset_name}")
         cmd = (
             "python "
             "scripts/optuna_hypertuning.py "
@@ -20,9 +26,11 @@ def main():
             f"--study-name pmlb_{dataset_name} "
             "--artifact-dir ./artifacts"
         )
-        print(cmd)
-        cmd = cmd.split(" ")
-        subprocess.run(cmd, check=True)
+        commands.append(cmd.split(" "))
+
+    subprocess_runner = partial(subprocess.run, check=True)
+    with ProcessPoolExecutor(max_workers=args.n_jobs) as executor:
+        executor.map(subprocess_runner, commands)
 
 
 if __name__ == "__main__":
