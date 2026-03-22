@@ -18,7 +18,7 @@ def main():
             f"--data-path data/{dataset_name}.hdf "
             "--n-trials 100 "
             f"--study-name pmlb_{dataset_name} "
-            "--verbose --artifact-dir ./artifacts"
+            "--artifact-dir ./artifacts"
         )
         print(cmd)
         cmd = cmd.split(" ")
