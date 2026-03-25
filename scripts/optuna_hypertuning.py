@@ -111,7 +111,7 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
     params["num_bins"] = trial.suggest_int("num_bins", 2, 10)
 
     # Base GP parameters
-    params["population_size"] = trial.suggest_int("population_size", 50, 200, step=25)
+    params["population_size"] = trial.suggest_int("population_size", 50, 150, step=25)
     params["mutation_probability"] = trial.suggest_float(
         "mutation_probability", 0.001, 0.25, step=0.001
     )
@@ -162,7 +162,7 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
             )
 
         params["top_k_transfer"] = trial.suggest_int(
-            "top_k_transfer", 10, min(100, params["population_size"]), step=5
+            "top_k_transfer", 10, min(100, params["population_size"] - 1), step=5
         )
         params["feedback_type"] = trial.suggest_categorical(
             "feedback_type", ["additive", "multiplicative"]
@@ -230,7 +230,7 @@ def build_config(
 
     # Mutation and crossover
     mutation_p = params["mutation_probability"]
-    check_valid = complexity_check()
+    check_valid = complexity_check(80)
     crossover_executor = CrossoverExecutor(
         crossover_p=params["crossover_rate"],
         check_valid=check_valid,
