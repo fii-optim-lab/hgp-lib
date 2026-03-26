@@ -117,7 +117,7 @@ class ReplaceOperator(Mutation):
     def __init__(self, operator_types: Sequence[Type[Rule]] = (Or, And)):
         super().__init__(is_literal_mutation=False, is_operator_mutation=True)
         validate_operator_types(operator_types)
-        self.operator_types: Tuple[Type[Rule]] = tuple(operator_types)
+        self.operator_types: Tuple[Type[Rule], ...] = tuple(operator_types)
 
     def apply(self, rule: Rule):
         """
