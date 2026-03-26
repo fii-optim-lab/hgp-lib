@@ -27,6 +27,7 @@ import optuna
 import pandas as pd
 from numpy import ndarray
 from optuna.artifacts import FileSystemArtifactStore
+from optuna.trial import TrialState
 
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
@@ -70,12 +71,15 @@ def create_argument_parser() -> argparse.ArgumentParser:
         "--data-path", type=str, required=True, help="Path to HDF data file"
     )
     parser.add_argument(
-        "--n-trials", type=int, default=100, help="Number of optimization trials"
+        "--n-trials", type=int, default=100, help="Number of optimization trials for this run"
+    )
+    parser.add_argument(
+        "--max-n-trials", type=int, default=100, help="Maximum number of optimization trials for this study"
     )
     parser.add_argument(
         "--study-name",
         type=str,
-        default="gp_hypertuning",
+        required=True,
         help="Name for the Optuna study",
     )
     parser.add_argument(
@@ -95,6 +99,12 @@ def create_argument_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--n-jobs", type=int, default=-1, help="Number of parallel jobs (-1 = all CPUs)"
+    )
+    parser.add_argument(
+        "--n-runs", type=int, default=5, help="Number of Monte-Carlo runs for GPBenchmarker"
+    )
+    parser.add_argument(
+        "--n-folds", type=int, default=5, help="Number of folds for k-fold cross-validation in GPBenchmarker"
     )
     parser.add_argument(
         "--verbose",
@@ -377,23 +387,30 @@ def main() -> None:
 
     # Log info about existing trials
     existing_trials = study.trials
+    completed_trials = 0
     if existing_trials:
-        trials_with_attrs = sum(
-            1
-            for t in existing_trials
-            if t.user_attrs.get("06_hierarchy_is_hierarchical") is not None
-        )
+        completed_trials = sum([trial.state == TrialState.COMPLETE for trial in existing_trials])
+        # TODO: Debug this and add remaining trials
         logger.info(
             f"Loaded existing study with {len(existing_trials)} trials "
-            f"({trials_with_attrs} with new attributes format)"
+            f"({completed_trials} completed trials)"
         )
+
+    max_n_trials = args.max_n_trials
+    if completed_trials >= max_n_trials:
+        logger.info(
+            f"Study {args.study_name} with {len(existing_trials)} trials already completed."
+        )
+        return
+
+    n_trials = min(args.n_trials, max_n_trials - completed_trials)
 
     objective = create_objective(
         data, labels, args.n_jobs, artifact_store, args.verbose
     )
 
-    logger.info(f"Starting optimization with {args.n_trials} trials...")
-    study.optimize(objective, n_trials=args.n_trials, show_progress_bar=True)
+    logger.info(f"Starting optimization with {n_trials} trials...")
+    study.optimize(objective, n_trials=n_trials, show_progress_bar=True)
 
     print("\n" + "=" * 60)
     print("OPTIMIZATION COMPLETE")

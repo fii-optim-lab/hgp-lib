@@ -19,7 +19,8 @@ def get_commands_for_datasets(dataset_names):
             f"{sys.executable} "
             "scripts/optuna_hypertuning.py "
             f"--data-path data/{dataset_name}.hdf "
-            "--n-trials 50 "
+            "--n-trials 25 "
+            "--max-n-trials 25 "
             f"--study-name pmlb_{dataset_name} "
             "--artifact-dir ./artifacts"
         )
