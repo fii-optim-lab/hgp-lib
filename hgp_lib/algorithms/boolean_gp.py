@@ -522,3 +522,7 @@ class BooleanGP:
 
         fn = self._original_score_fn if score_fn is None else score_fn
         return float(fn(self.global_best_rule.evaluate(data), labels))
+
+    @property
+    def original_score_fn(self):
+        return self._original_score_fn
