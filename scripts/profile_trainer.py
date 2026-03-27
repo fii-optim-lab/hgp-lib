@@ -21,13 +21,11 @@ Adjust population and feature sampling:
     python scripts/profile_trainer.py --data_path data/PaySim.hdf --max_depth 1 --num_child_populations 5 --feature_fraction 0.5
 """
 
-from functools import partial
 from prettytable import PrettyTable
 import argparse
 import gc
 from typing import Dict, Tuple
 
-import numpy as np
 from sklearn.model_selection import train_test_split
 from timed_decorator.builder import create_timed_decorator, get_timed_decorator
 
@@ -336,7 +334,6 @@ def main(args: argparse.Namespace) -> None:
     print(f"  Best train score: {best_train:.4f}")
     if result.best_val_score is not None:
         print(f"  Best val score: {result.best_val_score:.4f}")
-
 
     test_score = trainer.gp_algo.evaluate_best(
         test_data, test_labels, score_fn=fast_f1_score

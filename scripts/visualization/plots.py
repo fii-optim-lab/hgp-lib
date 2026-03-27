@@ -7,7 +7,6 @@ from hgp_lib.metrics.results import ExperimentResult
 matplotlib.use("Agg")
 
 
-
 # Color palette
 COLORS = [
     "#2196F3",

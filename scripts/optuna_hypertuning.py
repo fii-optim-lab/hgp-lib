@@ -45,7 +45,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-
 def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
     # TODO: Use a hyperparameter_config.yaml to load the values of the hyperparameters.
     params = {}
@@ -259,7 +258,9 @@ def create_objective(
         params = suggest_hyperparameters(trial)
 
         try:
-            config = build_config(params, data, labels, fast_f1_score, n_jobs, n_runs, n_folds, verbose)
+            config = build_config(
+                params, data, labels, fast_f1_score, n_jobs, n_runs, n_folds, verbose
+            )
             result = GPBenchmarker(config).fit()
         except Exception:
             logger.error(f"Trial {trial.number} failed: {traceback.format_exc()}")
@@ -319,7 +320,9 @@ def main(args: argparse.Namespace) -> None:
     existing_trials = study.trials
     completed_trials = 0
     if existing_trials:
-        completed_trials = sum([trial.state == TrialState.COMPLETE for trial in existing_trials])
+        completed_trials = sum(
+            [trial.state == TrialState.COMPLETE for trial in existing_trials]
+        )
         # TODO: Debug this and add remaining trials
         logger.info(
             f"Loaded existing study with {len(existing_trials)} trials "
@@ -336,7 +339,13 @@ def main(args: argparse.Namespace) -> None:
     n_trials = min(args.n_trials, max_n_trials - completed_trials)
 
     objective = create_objective(
-        data, labels, args.n_jobs, args.n_runs, args.n_folds, artifact_store, args.verbose
+        data,
+        labels,
+        args.n_jobs,
+        args.n_runs,
+        args.n_folds,
+        artifact_store,
+        args.verbose,
     )
 
     logger.info(f"Starting optimization with {n_trials} trials...")
@@ -371,7 +380,6 @@ def main(args: argparse.Namespace) -> None:
     print("-" * 60)
 
 
-
 def parse_args() -> argparse.Namespace:
     """Create and configure the argument parser for CLI."""
     parser = argparse.ArgumentParser(
@@ -382,10 +390,16 @@ def parse_args() -> argparse.Namespace:
         "--data-path", type=str, required=True, help="Path to HDF data file"
     )
     parser.add_argument(
-        "--n-trials", type=int, default=100, help="Number of optimization trials for this run"
+        "--n-trials",
+        type=int,
+        default=100,
+        help="Number of optimization trials for this run",
     )
     parser.add_argument(
-        "--max-n-trials", type=int, default=100, help="Maximum number of optimization trials for this study"
+        "--max-n-trials",
+        type=int,
+        default=100,
+        help="Maximum number of optimization trials for this study",
     )
     parser.add_argument(
         "--study-name",
@@ -412,10 +426,16 @@ def parse_args() -> argparse.Namespace:
         "--n-jobs", type=int, default=-1, help="Number of parallel jobs (-1 = all CPUs)"
     )
     parser.add_argument(
-        "--n-runs", type=int, default=10, help="Number of Monte-Carlo runs for GPBenchmarker"
+        "--n-runs",
+        type=int,
+        default=10,
+        help="Number of Monte-Carlo runs for GPBenchmarker",
     )
     parser.add_argument(
-        "--n-folds", type=int, default=5, help="Number of folds for k-fold cross-validation in GPBenchmarker"
+        "--n-folds",
+        type=int,
+        default=5,
+        help="Number of folds for k-fold cross-validation in GPBenchmarker",
     )
     parser.add_argument(
         "--verbose",
