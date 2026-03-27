@@ -8,7 +8,7 @@ import numpy as np
 import hgp_lib.algorithms.boolean_gp
 from hgp_lib.algorithms import BooleanGP
 from hgp_lib.configs import BooleanGPConfig
-from hgp_lib.crossover import CrossoverExecutor
+from hgp_lib.crossover import CrossoverExecutor, CrossoverExecutorFactory
 from hgp_lib.populations import PopulationGeneratorFactory
 from hgp_lib.rules import Rule
 from hgp_lib.selections import TournamentSelection
@@ -198,8 +198,8 @@ class TestBooleanGP(unittest.TestCase):
             self.assertIsNotNone(metrics.best_rule)
 
     def test_step_with_custom_crossover(self):
-        crossover_executor = CrossoverExecutor(crossover_p=0.5)
-        config = self._make_config(crossover_executor=crossover_executor)
+        crossover_factory = CrossoverExecutorFactory(crossover_p=0.5)
+        config = self._make_config(crossover_factory=crossover_factory)
         gp = BooleanGP(config)
 
         metrics = gp.step()

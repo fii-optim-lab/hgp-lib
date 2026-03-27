@@ -7,7 +7,6 @@ from .base_mutation import Mutation
 from .utils import MutationError
 from ..rules import Rule, Literal
 from ..rules.utils import select_crossover_point
-from ..utils.validation import validate_callable, check_isinstance
 
 
 class MutationExecutor:
@@ -64,80 +63,18 @@ class MutationExecutor:
         mutation_p: float = 0.1,
         check_valid: Callable[[Rule], bool] | None = None,
         num_tries: int = 1,
-        operator_p: float = 0.9,
+        operator_p: float = 0.5,
     ):
-        self._validate_params(
-            mutation_p,
-            literal_mutations,
-            operator_mutations,
-            check_valid,
-            num_tries,
-            operator_p,
-        )
+        # mutation_p was checked
+        # check_valid was checked
+        # num_tries was checked
+        # operator_p was checked
         self.mutation_p: float = mutation_p
-        self.literal_mutations: Tuple = tuple(literal_mutations)
-        self.operator_mutations: Tuple = tuple(operator_mutations)
+        self.literal_mutations: Tuple[Mutation, ...] = tuple(literal_mutations)
+        self.operator_mutations: Tuple[Mutation, ...] = tuple(operator_mutations)
         self.check_valid: Callable[[Rule], bool] | None = check_valid
         self.num_tries: int = num_tries
         self.operator_p: float = operator_p
-
-    @staticmethod
-    def _validate_params(
-        mutation_p: float,
-        literal_mutations: Sequence[Mutation],
-        operator_mutations: Sequence[Mutation],
-        check_valid: Callable[[Rule], bool] | None,
-        num_tries: int,
-        operator_p: float,
-    ):
-        check_isinstance(mutation_p, float)
-        check_isinstance(literal_mutations, Sequence)
-        check_isinstance(operator_mutations, Sequence)
-        check_isinstance(num_tries, int)
-        check_isinstance(operator_p, float)
-
-        if mutation_p < 0.0 or mutation_p > 1.0:
-            raise ValueError(
-                f"mutation_p must be a float between 0.0 and 1.0, is '{mutation_p}'"
-            )
-
-        if operator_p < 0.0 or operator_p > 1.0:
-            raise ValueError(
-                f"operator_p must be a float between 0.0 and 1.0, is '{operator_p}'"
-            )
-
-        if len(literal_mutations) == 0:
-            raise ValueError("literal_mutations must be a non-empty Sequence")
-        if len(operator_mutations) == 0:
-            raise ValueError("operator_mutations must be a non-empty Sequence")
-
-        for literal_mutation in literal_mutations:
-            check_isinstance(literal_mutation, Mutation)
-            if not literal_mutation.is_literal_mutation:
-                raise TypeError(
-                    f"Each literal_mutations must be a literal mutation, but '{type(literal_mutation)} is not'"
-                )
-        for operator_mutation in operator_mutations:
-            check_isinstance(operator_mutation, Mutation)
-            if not operator_mutation.is_operator_mutation:
-                raise TypeError(
-                    f"Each operator_mutations must be an operator mutation, but '{type(operator_mutation)} is not'"
-                )
-
-        if check_valid is not None:
-            error_msg = f"check_valid must be a callable that accepts a Rule and returns bool, is {type(check_valid)}"
-            validate_callable(check_valid, error_msg)
-            try:
-                boolean = check_valid(Literal(value=0))
-                if not isinstance(boolean, bool):
-                    raise TypeError(error_msg)
-            except Exception as e:
-                raise TypeError(error_msg) from e
-
-        if num_tries < 1:
-            raise ValueError(f"num_tries must be greater than 0, is '{num_tries}'")
-        if num_tries > 1 and check_valid is None:
-            raise ValueError("num_tries must be 1 if check_valid is None")
 
     def apply(self, rules: List[Rule]):
         """

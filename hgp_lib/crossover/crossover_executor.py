@@ -2,9 +2,8 @@ from typing import Callable, List, Sequence, Tuple
 
 import numpy as np
 
-from ..rules import Rule, Literal
+from ..rules import Rule
 from ..rules.utils import deep_swap, apply_feature_mapping, select_crossover_point
-from ..utils.validation import validate_callable, check_isinstance
 
 
 class CrossoverExecutor:
@@ -57,58 +56,17 @@ class CrossoverExecutor:
         num_tries: int = 1,
         operator_p: float = 0.9,
     ):
-        self._validate_params(
-            crossover_p, crossover_strategy, check_valid, num_tries, operator_p
-        )
+        # crossover_p was checked
+        # crossover_strategy was checked
+        # check_valid was checked
+        # num_tries was checked, but not with check_valid
+        # operator_p was checked
+
         self.crossover_p: float = crossover_p
         self.crossover_strategy: str = crossover_strategy
         self.check_valid: Callable[[Rule], bool] | None = check_valid
         self.num_tries: int = num_tries
         self.operator_p: float = operator_p
-
-    @staticmethod
-    def _validate_params(
-        crossover_p: float,
-        crossover_strategy: str,
-        check_valid: Callable[[Rule], bool] | None,
-        num_tries: int,
-        operator_p: float,
-    ):
-        check_isinstance(crossover_p, float)
-        check_isinstance(crossover_strategy, str)
-        check_isinstance(num_tries, int)
-        check_isinstance(operator_p, float)
-
-        if crossover_p < 0.0 or crossover_p > 1.0:
-            raise ValueError(
-                f"crossover_p must be a float between 0.0 and 1.0, is '{crossover_p}'"
-            )
-
-        if operator_p < 0.0 or operator_p > 1.0:
-            raise ValueError(
-                f"operator_p must be a float between 0.0 and 1.0, is '{operator_p}'"
-            )
-
-        accepted_strategies = ("best", "random")
-        if crossover_strategy not in accepted_strategies:
-            raise ValueError(
-                f"crossover_strategy must be one of {accepted_strategies}, is '{crossover_strategy}'"
-            )
-
-        if check_valid is not None:
-            error_msg = f"check_valid must be a callable that accepts a Rule and returns bool, is {type(check_valid)}"
-            validate_callable(check_valid, error_msg)
-            try:
-                boolean = check_valid(Literal(value=0))
-                if not isinstance(boolean, bool):
-                    raise TypeError(error_msg)
-            except Exception as e:
-                raise TypeError(error_msg) from e
-
-        if num_tries < 1:
-            raise ValueError(f"num_tries must be greater than 0, is '{num_tries}'")
-        if num_tries > 1 and check_valid is None:
-            raise ValueError("num_tries must be 1 if check_valid is None")
 
     def apply(
         self, rules: List[Rule], feature_mappings: List[dict | None] | None = None

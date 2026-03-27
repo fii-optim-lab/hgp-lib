@@ -8,7 +8,7 @@ import pandas as pd
 import hgp_lib
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
-from hgp_lib.crossover import CrossoverExecutor
+from hgp_lib.crossover import CrossoverExecutorFactory
 from hgp_lib.metrics import ExperimentResult, RunResult
 from hgp_lib.mutations import MutationExecutorFactory
 from hgp_lib.populations import PopulationGeneratorFactory
@@ -312,8 +312,8 @@ class TestGPBenchmarker(unittest.TestCase):
         self.assertEqual(len(result.runs), 1)
 
     def test_custom_crossover_executor(self):
-        crossover_executor = CrossoverExecutor(crossover_p=0.5)
-        gp_config = self._make_gp_config(crossover_executor=crossover_executor)
+        crossover_factory = CrossoverExecutorFactory(crossover_p=0.5)
+        gp_config = self._make_gp_config(crossover_factory=crossover_factory)
         trainer_config = self._make_trainer_config(gp_config=gp_config, num_epochs=2)
         config = self._make_config(trainer_config=trainer_config, num_runs=1, n_jobs=1)
         benchmarker = GPBenchmarker(config)
