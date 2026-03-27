@@ -433,9 +433,8 @@ class BooleanGP:
             )
             # Non-root populations need reordering so top-K rules are at the front
             # for transfer to parent population during the next forward pass.
-            if self.current_depth > 0:  # top_k must be positive if current_depth > 0
-                # TODO: We had a ValueError: kth(=50) out of bounds (50)
-                # ValueError: kth(=100) out of bounds (100)
+            if self.current_depth > 0 and self._top_k < self.population_size:
+                # top_k must be positive if current_depth > 0
                 sorted_indices = np.argpartition(-selected_scores, self._top_k)
                 self.population = [self.population[i] for i in sorted_indices]
 

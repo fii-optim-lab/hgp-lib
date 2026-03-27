@@ -9,7 +9,7 @@ import hgp_lib.algorithms.boolean_gp
 from hgp_lib.algorithms import BooleanGP
 from hgp_lib.configs import BooleanGPConfig
 from hgp_lib.crossover import CrossoverExecutor, CrossoverExecutorFactory
-from hgp_lib.populations import PopulationGeneratorFactory
+from hgp_lib.populations import PopulationGeneratorFactory, FeatureSamplingStrategy
 from hgp_lib.rules import Rule
 from hgp_lib.selections import TournamentSelection
 
@@ -230,6 +230,8 @@ class TestBooleanGP(unittest.TestCase):
         self.assertIsInstance(metrics.best_train_score, float)
 
     def test_doctests(self):
+        # TODO: Check if we can't make a single test file that tests the doctests for all files automatically
+        # This means that it will automatically test it, without needing to specify the module
         result = doctest.testmod(hgp_lib.algorithms.boolean_gp, verbose=False)
         self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
@@ -263,6 +265,18 @@ class TestBooleanGP(unittest.TestCase):
                     np.allclose(regularized, expected),
                     f"Regularized score formula failed for penalty={penalty}",
                 )
+
+    def test_top_k_equals_population_size(self):
+        config = self._make_config(
+            population_factory=PopulationGeneratorFactory(population_size=100),
+            top_k_transfer=100,
+            num_child_populations=2,
+            max_depth=2,
+            sampling_strategy=FeatureSamplingStrategy(),
+        )
+        gp = BooleanGP(config)
+
+        gp.step()
 
     def test_step_with_complexity_penalty(self):
         """Test that step() works with complexity_penalty > 0."""
