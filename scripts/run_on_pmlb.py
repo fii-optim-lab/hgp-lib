@@ -21,6 +21,8 @@ def get_commands_for_datasets(dataset_names):
             f"--data-path data/{dataset_name}.hdf "
             "--n-trials 25 "
             "--max-n-trials 25 "
+            "--n-runs 5 "
+            "--n-folds 3 "
             f"--study-name pmlb_{dataset_name} "
             "--artifact-dir ./artifacts"
         )

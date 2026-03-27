@@ -1,20 +1,32 @@
-"""Optuna integration for trial attributes and artifact upload."""
-
 import logging
-from typing import TYPE_CHECKING
 
 import numpy as np
+import optuna
 
-if TYPE_CHECKING:
-    import optuna
+import os
+import tempfile
+
+import matplotlib
+
+import matplotlib.pyplot as plt
+
+from optuna.artifacts import upload_artifact
 
 from hgp_lib.metrics.results import ExperimentResult
+from .plots import (
+    plot_experiment_boxplots,
+    plot_best_fold_generations,
+    plot_all_folds_val_scores,
+    plot_population_bands,
+)
+
+matplotlib.use("Agg")
 
 logger = logging.getLogger(__name__)
 
 
 def store_trial_attributes(
-    trial: "optuna.Trial",
+    trial: optuna.Trial,
     result: ExperimentResult,
 ) -> None:
     """
@@ -79,7 +91,7 @@ def store_trial_attributes(
 
 
 def upload_trial_artifacts(
-    trial: "optuna.Trial",
+    trial: optuna.Trial,
     result: ExperimentResult,
     artifact_store,
     top_k_transfer: int = 10,
@@ -94,23 +106,6 @@ def upload_trial_artifacts(
         top_k_transfer: top_k_transfer from BooleanGPConfig, used for
             population bands plot.
     """
-    import os
-    import tempfile
-
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    from optuna.artifacts import upload_artifact
-
-    from .plots import (
-        plot_experiment_boxplots,
-        plot_best_fold_generations,
-        plot_all_folds_val_scores,
-        plot_population_bands,
-    )
-
     plots = [
         ("experiment_boxplots", plot_experiment_boxplots, (result,)),
         ("best_fold_generations", plot_best_fold_generations, (result,)),

@@ -1,10 +1,4 @@
 """
-PaySim Fraud Detection Benchmarking Script
-
-Benchmarks Boolean GP on PaySim transaction data using multi-run evaluation
-with k-fold cross-validation. Provides statistically robust performance
-estimates with configurable hyperparameters.
-
 ==============================================================================
 BENCHMARKING METHODOLOGY
 ==============================================================================
@@ -14,7 +8,7 @@ The benchmarker runs multiple independent experiments to estimate performance:
 1. For each run (default 30):
    - Split data into train (80%) and test (20%) sets
    - Perform k-fold CV (default 5) on training set
-   - Select best rule from fold with highest validation score
+   - Select best rule from fold with the highest validation score
    - Evaluate on held-out test set
 
 2. Report mean and std of test scores across all runs
@@ -29,22 +23,20 @@ USAGE EXAMPLES
 ==============================================================================
 
 Basic benchmark with defaults:
-    python scripts/paysim_benchmark.py
+    python scripts/run_benchmark.py --data_path data/PaySim.hdf
 
 Quick benchmark (fewer runs/folds):
-    python scripts/paysim_benchmark.py --num_runs 5 --n_folds 3 --num_epochs 500
+    python scripts/run_benchmark.py --data_path data/PaySim.hdf --num_runs 5 --n_folds 3 --num_epochs 500
 
 Hierarchical GP benchmark:
-    python scripts/paysim_benchmark.py --max_depth 1 --num_child_populations 3
+    python scripts/run_benchmark.py --data_path data/PaySim.hdf --max_depth 1 --num_child_populations 3
 
 Full benchmark with all CPUs:
-    python scripts/paysim_benchmark.py --num_runs 30 --n_folds 5 --n_jobs -1
+    python scripts/run_benchmark.py --data_path data/PaySim.hdf --num_runs 30 --n_folds 5 --n_jobs -1
 
 Compare configurations:
-    python scripts/paysim_benchmark.py --max_depth 0 --num_epochs 1000
-    python scripts/paysim_benchmark.py --max_depth 1 --num_epochs 1000
-
-Requires preprocessed PaySim data in HDF format at data/PaySim.hdf
+    python scripts/run_benchmark.py --data_path data/PaySim.hdf --max_depth 0 --num_epochs 1000
+    python scripts/run_benchmark.py --data_path data/PaySim.hdf --max_depth 1 --num_epochs 1000
 """
 
 import argparse
@@ -64,8 +56,6 @@ from hgp_lib.utils.metrics import fast_f1_score
 
 def main(args: argparse.Namespace):
     """
-    Main benchmarking function.
-
     Workflow:
     1. Load and binarize data
     2. Configure GP algorithm with specified parameters
@@ -73,16 +63,8 @@ def main(args: argparse.Namespace):
     4. Run benchmark
     5. Print results with statistics
     """
-    # Load data
     data, labels = load_data(args.data_path)
-
-    # Create validity checker
     is_valid = complexity_check(args.max_rule_size)
-
-    # Configure GP algorithm
-    print("\n" + "=" * 60)
-    print("GP CONFIGURATION")
-    print("=" * 60)
 
     gp_config = BooleanGPConfig(
         score_fn=fast_f1_score,
@@ -115,7 +97,6 @@ def main(args: argparse.Namespace):
     print(f"Optimize scorer: {args.optimize_scorer}")
     print(f"Regeneration: {args.regeneration} (patience={args.regeneration_patience})")
 
-    # Configure trainer
     trainer_config = TrainerConfig(
         gp_config=gp_config,
         num_epochs=args.num_epochs,
@@ -125,11 +106,6 @@ def main(args: argparse.Namespace):
 
     print(f"\nTraining epochs: {args.num_epochs}")
     print(f"Validation every: {args.val_every} epochs")
-
-    # Configure benchmarker
-    print("\n" + "=" * 60)
-    print("BENCHMARK CONFIGURATION")
-    print("=" * 60)
 
     binarizer = StandardBinarizer(num_bins=args.num_bins)
 
@@ -154,7 +130,6 @@ def main(args: argparse.Namespace):
     print(f"Parallel jobs: {config.n_jobs} (-1 = all CPUs)")
     print(f"Base seed: {config.base_seed}")
 
-    # Calculate total training iterations
     total_folds = config.num_runs * config.n_folds
     total_epochs = total_folds * args.num_epochs
     print("\nTotal training:")
@@ -163,18 +138,8 @@ def main(args: argparse.Namespace):
     )
     print(f"  {total_epochs:,} total epochs")
 
-    # Run benchmark
-    print("\n" + "=" * 60)
-    print("RUNNING BENCHMARK")
-    print("=" * 60)
-
     benchmarker = GPBenchmarker(config)
     result = benchmarker.fit()
-
-    # Print results
-    print("\n" + "=" * 60)
-    print("BENCHMARK RESULTS")
-    print("=" * 60)
 
     print("\nConfiguration summary:")
     print(
@@ -197,7 +162,6 @@ def main(args: argparse.Namespace):
     for i, score in enumerate(result.test_scores):
         print(f"  Run {i:2d}: {score:.4f}")
 
-    # Statistics
     scores = test_scores
     print("\nStatistics:")
     print(f"  Min:    {scores.min():.4f}")
@@ -205,7 +169,6 @@ def main(args: argparse.Namespace):
     print(f"  Median: {np.median(scores):.4f}")
     print(f"  IQR:    {np.percentile(scores, 75) - np.percentile(scores, 25):.4f}")
 
-    # Show best rule from run with highest test score
     best_run_idx = int(np.argmax(result.test_scores))
     best_run = result.runs[best_run_idx]
     best_rule = best_run.best_rule
@@ -214,29 +177,8 @@ def main(args: argparse.Namespace):
     print("\nReadable form:")
     print(f"  {best_rule.to_str(best_run.feature_names)}")
 
-    print("\n" + "=" * 60)
-    print("Benchmark completed!")
-    print("=" * 60)
-
-
-# ==============================================================================
-# ARGUMENT PARSER
-# ==============================================================================
-
 
 def parse_args() -> argparse.Namespace:
-    """
-    Parse command line arguments.
-
-    Arguments are organized into groups:
-    - Data: Input file path, binarization settings
-    - Training: Epochs, validation frequency
-    - GP Algorithm: Population size, rule constraints
-    - Hierarchical GP: Depth, child populations, feature sampling
-    - Optimization: Scorer optimization, regeneration
-    - Benchmark: Runs, folds, parallelization
-    - Output: Progress bar control
-    """
     parser = argparse.ArgumentParser(
         description="Benchmark Boolean GP on PaySim fraud detection data",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -247,8 +189,8 @@ def parse_args() -> argparse.Namespace:
     data_group.add_argument(
         "--data_path",
         type=str,
-        default="data/PaySim.hdf",
-        help="Path to preprocessed PaySim HDF file",
+        required=True,
+        help="Path to preprocessed data",
     )
     data_group.add_argument(
         "--num_bins",
@@ -283,7 +225,7 @@ def parse_args() -> argparse.Namespace:
     gp_group.add_argument(
         "--max_rule_size",
         type=int,
-        default=50,
+        default=100,
         help="Maximum nodes in a rule tree",
     )
 
@@ -311,22 +253,10 @@ def parse_args() -> argparse.Namespace:
     # Optimization arguments
     opt_group = parser.add_argument_group("Optimization")
     opt_group.add_argument(
-        "--optimize_scorer",
-        action="store_true",
-        default=True,
-        help="Enable scorer optimization for imbalanced data",
-    )
-    opt_group.add_argument(
         "--no_optimize_scorer",
         action="store_false",
         dest="optimize_scorer",
         help="Disable scorer optimization",
-    )
-    opt_group.add_argument(
-        "--regeneration",
-        action="store_true",
-        default=True,
-        help="Enable population regeneration on stagnation",
     )
     opt_group.add_argument(
         "--no_regeneration",

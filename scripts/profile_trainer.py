@@ -1,58 +1,24 @@
 """
-PaySim Fraud Detection Training Script with Profiling Support
+This script profiles the training of a Boolean GP model.
 
-This script trains a Boolean GP model on PaySim transaction data with comprehensive
-profiling capabilities. It's designed to measure the performance impact of various
-hyperparameters, especially tree depth and hierarchical population settings.
-
-==============================================================================
-PROFILING ARCHITECTURE
-==============================================================================
-
-The script uses `timed_decorator` to instrument key functions across the codebase.
-Timing is collected with nested support, meaning we can see both:
-- Total elapsed time (including time spent in child functions)
-- Own time (excluding child function calls)
-
-Key components profiled:
-1. Rule evaluation (Literal, And, Or) - Core boolean operations
-2. GP algorithm steps (_new_generation, _evaluate_population, _update_best)
-3. Genetic operators (CrossoverExecutor, MutationExecutor)
-4. Selection strategies (TournamentSelection, RouletteSelection)
-5. Child population operations (for hierarchical GP)
-
-==============================================================================
-DEPTH PARAMETER IMPACT
-==============================================================================
-
-The `max_depth` parameter controls hierarchical GP:
-- max_depth=0: Standard GP with single population (fastest)
-- max_depth=1: One level of child populations
-- max_depth=2+: Deeper hierarchies (exponentially more computation)
-
-Each depth level multiplies computation by `num_child_populations`.
-Use this script to measure the actual overhead vs accuracy tradeoff.
 
 ==============================================================================
 USAGE EXAMPLES
 ==============================================================================
 
 Basic profiling (standard GP):
-    python scripts/paysim_trainer_profile.py --num_epochs 500
+    python scripts/profile_trainer.py --data_path data/PaySim.hdf --num_epochs 500
 
 Profile hierarchical GP with depth 1:
-    python scripts/paysim_trainer_profile.py --max_depth 1 --num_epochs 500
+    python scripts/profile_trainer.py --data_path data/PaySim.hdf --max_depth 1 --num_epochs 500
 
 Compare depths with same epoch budget:
-    python scripts/paysim_trainer_profile.py --max_depth 0 --num_epochs 1000
-    python scripts/paysim_trainer_profile.py --max_depth 1 --num_epochs 1000
-    python scripts/paysim_trainer_profile.py --max_depth 2 --num_epochs 1000
+    python scripts/profile_trainer.py --data_path data/PaySim.hdf --max_depth 0 --num_epochs 1000
+    python scripts/profile_trainer.py --data_path data/PaySim.hdf --max_depth 1 --num_epochs 1000
+    python scripts/profile_trainer.py --data_path data/PaySim.hdf --max_depth 2 --num_epochs 1000
 
 Adjust population and feature sampling:
-    python scripts/paysim_trainer_profile.py --max_depth 1 \\
-        --num_child_populations 5 --feature_fraction 0.5
-
-Requires preprocessed PaySim data in HDF format at data/PaySim.hdf
+    python scripts/profile_trainer.py --data_path data/PaySim.hdf --max_depth 1 --num_child_populations 5 --feature_fraction 0.5
 """
 
 from functools import partial
@@ -87,81 +53,36 @@ from hgp_lib.preprocessing import StandardBinarizer, load_data
 from hgp_lib.rules import Rule
 from hgp_lib.selections import TournamentSelection
 from hgp_lib.trainers import GPTrainer
+from hgp_lib.utils import complexity_check
+from hgp_lib.utils.metrics import fast_f1_score
 
 
-# ==============================================================================
-# SCORING FUNCTION
-# ==============================================================================
-
-
-def f1_score(y_pred, y_true, sample_weight=None):
+def preprocess_data(data_path: str, num_bins: int = 5) -> Tuple:
     """
-    F1 score implementation supporting sample weights for scorer optimization.
-
-    When optimize_scorer=True in BooleanGPConfig, the scorer receives sample_weight
-    that emphasizes minority class samples. This improves performance on imbalanced
-    datasets like fraud detection.
-
-    Args:
-        y_pred: Boolean predictions array
-        y_true: Boolean ground truth array
-        sample_weight: Optional weights for each sample (used by scorer optimization)
-
-    Returns:
-        F1 score as float in [0, 1]
-    """
-    if sample_weight is None:
-        y_pred_sum = y_pred.sum()
-        y_true_sum = y_true.sum()
-    else:
-        y_pred_sum = np.dot(y_pred, sample_weight)
-        y_true_sum = np.dot(y_true, sample_weight)
-
-    if y_pred_sum == 0 or y_true_sum == 0:
-        return 1.0 if y_pred_sum == y_true_sum == 0 else 0.0
-
-    if sample_weight is None:
-        tp = (y_pred & y_true).sum()
-    else:
-        tp = np.dot(y_pred & y_true, sample_weight)
-    return 2 * tp / (y_pred_sum + y_true_sum)
-
-
-def is_valid(rule: Rule, max_rule_size: int) -> bool:
-    return len(rule) <= max_rule_size
-
-
-# ==============================================================================
-# DATA PREPROCESSING
-# ==============================================================================
-
-
-def preprocess_paysim_data(hdf_path: str, num_bins: int = 5) -> Tuple:
-    """
-    Load and preprocess PaySim data for training.
+    Load and preprocess data for training.
 
     This function:
     1. Loads the HDF file containing transaction data
-    2. Splits into train/val/test sets (64%/16%/20%)
+    2. Splits into train/val/test sets
     3. Binarizes features using StandardBinarizer
 
     The binarization is crucial for Boolean GP - it converts continuous features
     into boolean features that can be used as literals in the evolved rules.
 
     Args:
-        hdf_path: Path to the preprocessed PaySim HDF file
+        data_path: Path to the preprocessed PaySim HDF file
         num_bins: Number of bins for binarization
 
     Returns:
         Tuple of (train_data, train_labels, val_data, val_labels,
                   test_data, test_labels, feature_names)
     """
-    print(f"Loading data from {hdf_path}...")
+    print(f"Loading data from {data_path}...")
 
-    data, labels = load_data(hdf_path)
+    data, labels = load_data(data_path)
 
     print(f"Loaded {len(data)} samples with {len(data.columns)} features")
-    print(f"Fraud rate: {labels.mean():.4f} ({labels.sum()} fraud cases)")
+    print(f"Positive rate: {labels.mean():.4f} ({labels.sum()} positive cases)")
 
     # Stratified splits to maintain fraud ratio across sets
     print("\nSplitting data...")
@@ -178,9 +99,9 @@ def preprocess_paysim_data(hdf_path: str, num_bins: int = 5) -> Tuple:
         stratify=train_labels,
     )
 
-    print(f"Train: {len(train_data)} samples ({train_labels.sum()} fraud)")
-    print(f"Val:   {len(val_data)} samples ({val_labels.sum()} fraud)")
-    print(f"Test:  {len(test_data)} samples ({test_labels.sum()} fraud)")
+    print(f"Train: {len(train_data)} samples ({train_labels.sum()} positive)")
+    print(f"Val:   {len(val_data)} samples ({val_labels.sum()} positive)")
+    print(f"Test:  {len(test_data)} samples ({test_labels.sum()} positive)")
 
     # Binarize features - converts continuous to boolean
     # Each feature becomes num_bins boolean features
@@ -215,24 +136,7 @@ def preprocess_paysim_data(hdf_path: str, num_bins: int = 5) -> Tuple:
     )
 
 
-# ==============================================================================
-# PROFILING SETUP
-# ==============================================================================
-
-
 def setup_timing() -> Dict:
-    """
-    Initialize the timing measurement system.
-
-    Creates a timed decorator that:
-    - Supports nested timing (own_time vs elapsed_time)
-    - Disables GC during timing for accurate measurements
-    - Collects results in a dictionary for later analysis
-
-    Returns:
-        Dictionary that will be populated with timing measurements.
-        Format: {func_name: (call_count, total_elapsed_ns, own_time_ns)}
-    """
     measurements = {}
     create_timed_decorator(
         "GPTimer",
@@ -246,41 +150,6 @@ def setup_timing() -> Dict:
 
 
 def apply_timing_decorators() -> None:
-    """
-    Apply timing decorators to key functions throughout the codebase.
-
-    This instruments the following components:
-
-    1. RULE EVALUATION (core operations, called millions of times)
-       - Literal.evaluate: Single boolean feature lookup
-       - And.evaluate: Conjunction of child rules
-       - Or.evaluate: Disjunction of child rules
-
-    2. GP ALGORITHM (main training loop)
-       - BooleanGP.step: One generation (selection + crossover + mutation + eval)
-       - BooleanGP._new_generation: Create offspring via genetic operators
-       - BooleanGP._evaluate_population: Score all rules against data
-       - BooleanGP._update_best: Track best rule found so far
-       - BooleanGP.validate_population: Evaluate on validation set
-
-    3. GENETIC OPERATORS
-       - CrossoverExecutor.apply: Combine pairs of rules
-       - MutationExecutor.apply: Randomly modify rules
-
-    4. SELECTION STRATEGIES
-       - TournamentSelection.select: Tournament-based parent selection
-       - RouletteSelection.select: Fitness-proportionate selection
-
-    5. HIERARCHICAL GP (if max_depth > 0)
-       - BooleanGP._create_child_populations: Initialize child populations
-       - BooleanGP._generate_child_feedback: Aggregate child scores
-       - PopulationGenerator.generate: Create initial population
-
-    The decorator wraps each function to measure:
-    - Number of calls
-    - Total elapsed time (including child calls)
-    - Own time (excluding child calls)
-    """
     decorator = get_timed_decorator("GPTimer")
 
     # Rule evaluation - these are the hot paths
@@ -319,12 +188,6 @@ def apply_timing_decorators() -> None:
     ReplaceOperator.apply = decorator(ReplaceOperator.apply)
     RemoveIntermediateOperator.apply = decorator(RemoveIntermediateOperator.apply)
 
-    # Scoring function
-    # global f1_score
-    # f1_score = decorator(f1_score)
-    global is_valid
-    is_valid = decorator(is_valid)
-
     # GP algorithm core
     BooleanGP.step = decorator(BooleanGP.step)
     BooleanGP._new_generation = decorator(BooleanGP._new_generation)
@@ -350,19 +213,6 @@ def apply_timing_decorators() -> None:
 
 
 def print_timing_results(measurements: Dict, args: argparse.Namespace) -> None:
-    """
-    Print formatted timing results sorted by own time.
-
-    For each profiled function, shows:
-    - Number of calls
-    - Own time (excluding child calls) - most useful for identifying bottlenecks
-    - Elapsed time (including child calls)
-    - Per-call averages
-
-    Args:
-        measurements: Dictionary from setup_timing()
-        args: Command line arguments for context
-    """
     print("\n" + "=" * 80)
     print("TIMING RESULTS")
     print("=" * 80)
@@ -418,53 +268,10 @@ def print_timing_results(measurements: Dict, args: argparse.Namespace) -> None:
     print()
 
 
-# ==============================================================================
-# RULE VALIDITY CHECK
-# ==============================================================================
-
-
-def create_validity_checker(max_rule_size: int):
-    """
-    Create a function to check if a rule is valid.
-
-    This is used during mutation and crossover to reject rules that are too large.
-    Keeping rules small:
-    - Improves interpretability
-    - Prevents overfitting
-    - Speeds up evaluation
-
-    Args:
-        max_rule_size: Maximum number of nodes in a rule tree
-
-    Returns:
-        Function that returns True if rule is valid
-    """
-    return partial(is_valid, max_rule_size=max_rule_size)
-
-
-# ==============================================================================
-# MAIN TRAINING FUNCTION
-# ==============================================================================
-
-
 def main(args: argparse.Namespace) -> None:
-    """
-    Main training and profiling function.
-
-    Workflow:
-    1. Set up timing infrastructure
-    2. Apply decorators to functions we want to profile
-    3. Load and preprocess data
-    4. Configure GP algorithm with specified parameters
-    5. Run training via GPTrainer
-    6. Evaluate on test set
-    7. Print timing results
-    """
-    # Initialize profiling
     measurements = setup_timing()
     apply_timing_decorators()
 
-    # Load data
     (
         train_data,
         train_labels,
@@ -473,21 +280,13 @@ def main(args: argparse.Namespace) -> None:
         test_data,
         test_labels,
         feature_names,
-    ) = preprocess_paysim_data(args.data_path, num_bins=args.num_bins)
+    ) = preprocess_data(args.data_path, num_bins=args.num_bins)
 
-    # Create validity checker
-    is_valid = create_validity_checker(args.max_rule_size)
-
-    # Configure GP algorithm
-    # Note: Most parameters use sensible defaults from BooleanGPConfig
-    print("\n" + "=" * 60)
-    print("GP CONFIGURATION")
-    print("=" * 60)
-
+    is_valid = complexity_check(args.max_rule_size)
     gp_config = BooleanGPConfig(
         train_data=train_data,
         train_labels=train_labels,
-        score_fn=f1_score,
+        score_fn=fast_f1_score,
         check_valid=is_valid,
         optimize_scorer=args.optimize_scorer,
         regeneration=args.regeneration,
@@ -497,7 +296,6 @@ def main(args: argparse.Namespace) -> None:
         ),
     )
 
-    # Apply hierarchical GP settings if max_depth > 0
     if args.max_depth > 0:
         print("Hierarchical GP enabled:")
         print(f"  max_depth: {args.max_depth}")
@@ -517,7 +315,6 @@ def main(args: argparse.Namespace) -> None:
     print(f"Optimize scorer: {args.optimize_scorer}")
     print(f"Regeneration: {args.regeneration} (patience={args.regeneration_patience})")
 
-    # Configure trainer
     trainer_config = TrainerConfig(
         gp_config=gp_config,
         num_epochs=args.num_epochs,
@@ -530,15 +327,9 @@ def main(args: argparse.Namespace) -> None:
     print(f"\nTraining epochs: {args.num_epochs}")
     print(f"Validation every: {args.val_every} epochs")
 
-    # Initialize and run trainer
-    print("\n" + "=" * 60)
-    print("TRAINING")
-    print("=" * 60)
-
     trainer = GPTrainer(trainer_config)
     result = trainer.fit()
 
-    # Print training summary
     print("\n" + "-" * 60)
     print("Training Summary:")
     best_train = max(gen.best_train_score for gen in result.generations)
@@ -546,13 +337,9 @@ def main(args: argparse.Namespace) -> None:
     if result.best_val_score is not None:
         print(f"  Best val score: {result.best_val_score:.4f}")
 
-    # Evaluate on test set
-    print("\n" + "=" * 60)
-    print("TEST EVALUATION")
-    print("=" * 60)
 
     test_score = trainer.gp_algo.evaluate_best(
-        test_data, test_labels, score_fn=f1_score
+        test_data, test_labels, score_fn=fast_f1_score
     )
     print(f"Test F1 score: {test_score:.4f}")
     print("\nBest rule:")
@@ -560,31 +347,10 @@ def main(args: argparse.Namespace) -> None:
     print("\nReadable form:")
     print(f"  {result.global_best_rule.to_str(feature_names)}")
 
-    # Print profiling results
     print_timing_results(measurements, args)
-
-    print("=" * 60)
-    print("Profiling completed!")
-    print("=" * 60)
-
-
-# ==============================================================================
-# ARGUMENT PARSER
-# ==============================================================================
 
 
 def parse_args() -> argparse.Namespace:
-    """
-    Parse command line arguments.
-
-    Arguments are organized into groups:
-    - Data: Input file path
-    - Training: Epochs, validation frequency
-    - GP Algorithm: Population size, rule constraints
-    - Hierarchical GP: Depth, child populations, feature sampling
-    - Optimization: Scorer optimization, regeneration
-    - Output: Progress bar control
-    """
     parser = argparse.ArgumentParser(
         description="Profile Boolean GP training on PaySim data",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -595,7 +361,7 @@ def parse_args() -> argparse.Namespace:
     data_group.add_argument(
         "--data_path",
         type=str,
-        default="data/PaySim.hdf",
+        required=True,
         help="Path to preprocessed PaySim HDF file",
     )
     data_group.add_argument(
@@ -659,22 +425,10 @@ def parse_args() -> argparse.Namespace:
     # Optimization arguments
     opt_group = parser.add_argument_group("Optimization")
     opt_group.add_argument(
-        "--optimize_scorer",
-        action="store_true",
-        default=True,
-        help="Enable scorer optimization for imbalanced data",
-    )
-    opt_group.add_argument(
         "--no_optimize_scorer",
         action="store_false",
         dest="optimize_scorer",
         help="Disable scorer optimization",
-    )
-    opt_group.add_argument(
-        "--regeneration",
-        action="store_true",
-        default=True,
-        help="Enable population regeneration on stagnation",
     )
     opt_group.add_argument(
         "--no_regeneration",

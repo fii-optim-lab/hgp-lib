@@ -1,9 +1,11 @@
-"""Plot functions for metrics visualization."""
-
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
 from hgp_lib.metrics.results import ExperimentResult
+
+matplotlib.use("Agg")
+
 
 
 # Color palette
