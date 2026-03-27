@@ -10,6 +10,7 @@ import argparse
 import logging
 import os
 import traceback
+import warnings
 from pathlib import Path
 from typing import Any, Callable, Dict
 
@@ -47,6 +48,7 @@ logger = logging.getLogger(__name__)
 
 def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
     # TODO: Use a hyperparameter_config.yaml to load the values of the hyperparameters.
+    warnings.simplefilter(action="ignore", category=UserWarning)
     params = {}
 
     params["num_bins"] = trial.suggest_int("num_bins", 2, 10)
@@ -102,7 +104,6 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
                 "num_child_populations", 2, 5
             )
 
-        # TODO: Supress optuna user warning for range not divisible
         params["top_k_transfer"] = trial.suggest_int(
             "top_k_transfer", 10, min(100, params["population_size"] - 1), step=5
         )
