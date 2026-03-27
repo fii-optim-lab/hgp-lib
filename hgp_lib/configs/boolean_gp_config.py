@@ -143,14 +143,18 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
     check_isinstance(config.regeneration, bool)
     check_isinstance(config.regeneration_patience, int)
     if config.regeneration and config.regeneration_patience < 1:
-        raise ValueError("regeneration_patience must be a positive integer")
+        raise ValueError(
+            f"regeneration_patience must be a positive integer, is {config.regeneration_patience}"
+        )
 
     check_isinstance(config.num_child_populations, int)
     check_isinstance(config.max_depth, int)
     if config.num_child_populations < 0:
-        raise ValueError("num_child_populations must be non-negative")
+        raise ValueError(
+            f"num_child_populations must be non-negative, is {config.num_child_populations}"
+        )
     if config.max_depth < 0:
-        raise ValueError("max_depth must be non-negative")
+        raise ValueError(f"max_depth must be non-negative, is {config.max_depth}")
     if config.max_depth > 0 and config.sampling_strategy is None:
         raise ValueError("sampling_strategy is required when max_depth > 0")
     if config.max_depth > 0 and config.num_child_populations == 0:
@@ -159,17 +163,23 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
         check_isinstance(config.sampling_strategy, SamplingStrategy)
     check_isinstance(config.top_k_transfer, int)
     if config.top_k_transfer < 1:
-        raise ValueError("top_k_transfer must be at least 1")
+        raise ValueError(
+            f"top_k_transfer must be at least 1, is {config.top_k_transfer}"
+        )
     check_isinstance(config.feedback_type, str)
     if config.feedback_type not in ("additive", "multiplicative"):
         raise ValueError(
-            f"feedback_type must be 'additive' or 'multiplicative', got {config.feedback_type!r}"
+            f"feedback_type must be 'additive' or 'multiplicative', got {config.feedback_type}"
         )
     check_isinstance(config.feedback_strength, (int, float))
     if config.feedback_strength < 0:
-        raise ValueError("feedback_strength must be >= 0")
+        raise ValueError(
+            f"feedback_strength must be >= 0, is {config.feedback_strength}"
+        )
 
     # Complexity penalty validation
     check_isinstance(config.complexity_penalty, (int, float))
     if config.complexity_penalty < 0:
-        raise ValueError("complexity_penalty must be non-negative")
+        raise ValueError(
+            f"complexity_penalty must be non-negative, is {config.complexity_penalty}"
+        )

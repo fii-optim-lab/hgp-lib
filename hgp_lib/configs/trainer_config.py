@@ -78,10 +78,12 @@ def validate_trainer_config(config: TrainerConfig, require_data: bool = True) ->
     validate_gp_config(config.gp_config, require_data=require_data)
     check_isinstance(config.num_epochs, int)
     if config.num_epochs < 1:
-        raise ValueError("num_epochs must be a positive integer")
+        raise ValueError(
+            f"num_epochs must be a positive integer, is {config.num_epochs}"
+        )
     check_isinstance(config.val_every, int)
     if config.val_every < 1:
-        raise ValueError("val_every must be a positive integer")
+        raise ValueError(f"val_every must be a positive integer, is {config.val_every}")
     if (config.val_data is None) != (config.val_labels is None):
         raise ValueError(
             "val_data and val_labels must both be provided or both be None"
@@ -96,4 +98,6 @@ def validate_trainer_config(config: TrainerConfig, require_data: bool = True) ->
         )
     check_isinstance(config.progress_update_interval, int)
     if config.progress_update_interval < 1:
-        raise ValueError("progress_update_interval must be a positive integer")
+        raise ValueError(
+            f"progress_update_interval must be a positive integer, is {config.progress_update_interval}"
+        )
