@@ -22,7 +22,7 @@ from optuna.trial import TrialState
 
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
-from hgp_lib.crossover import CrossoverExecutor
+from hgp_lib.crossover import CrossoverExecutorFactory
 from visualization.optuna import store_trial_attributes, upload_trial_artifacts
 from hgp_lib.mutations import MutationExecutorFactory
 from hgp_lib.populations import (
@@ -102,6 +102,7 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
                 "num_child_populations", 2, 5
             )
 
+        # TODO: Supress optuna user warning for range not divisible
         params["top_k_transfer"] = trial.suggest_int(
             "top_k_transfer", 10, min(100, params["population_size"] - 1), step=5
         )
@@ -173,11 +174,6 @@ def build_config(
     # Mutation and crossover
     mutation_p = params["mutation_probability"]
     check_valid = complexity_check(80)
-    crossover_executor = CrossoverExecutor(
-        crossover_p=params["crossover_rate"],
-        check_valid=check_valid,
-        operator_p=params.get("crossover_operator_p", 0.9),
-    )
 
     # Sampling strategy for hierarchical GP
     sampling_strategy = None
@@ -207,9 +203,12 @@ def build_config(
         selection=selection,
         population_factory=PopulationGeneratorFactory(population_size=population_size),
         mutation_factory=MutationExecutorFactory(
-            mutation_p=mutation_p, operator_p=params.get("mutation_operator_p", 0.9)
+            mutation_p=mutation_p, operator_p=params.get("mutation_operator_p", 0.5)
         ),
-        crossover_executor=crossover_executor,
+        crossover_factory=CrossoverExecutorFactory(
+            crossover_p=params["crossover_rate"],
+            operator_p=params.get("crossover_operator_p", 0.9),
+        ),
         check_valid=check_valid,
         regeneration=params.get("regeneration", False),
         regeneration_patience=params.get("regeneration_patience", 100),
@@ -299,7 +298,12 @@ def main(args: argparse.Namespace) -> None:
     logger.info("Loading data...")
     if not os.path.isfile(args.data_path):
         data_path = Path(args.data_path)
-        save_pmlb_data(data_path.stem, str(data_path.parent))
+        try:
+            save_pmlb_data(data_path.stem, str(data_path.parent))
+        except FileNotFoundError:
+            logging.error(f"Dataset {data_path.stem} not found")
+            traceback.print_exc()
+            return
     data, labels = load_data(args.data_path)
 
     # Initialize artifact store

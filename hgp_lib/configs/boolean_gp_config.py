@@ -3,11 +3,11 @@ from typing import Callable
 
 from numpy import ndarray
 
-from ..crossover import CrossoverExecutor
+from ..crossover import CrossoverExecutorFactory
 from ..mutations.mutation_factory import MutationExecutorFactory
 from ..populations import SamplingStrategy
 from ..populations.populations_factory import PopulationGeneratorFactory
-from ..rules import Rule
+from ..rules import Rule, Literal
 from ..selections import BaseSelection
 from ..utils.validation import check_isinstance, check_X_y, validate_callable
 
@@ -31,9 +31,11 @@ class BooleanGPConfig:
         mutation_factory (MutationExecutorFactory): Factory that creates the
             `MutationExecutor` at runtime. Override `create_literal_mutations` /
             `create_operator_mutations` on the factory to use custom mutations.
-            Default: `MutationExecutorFactory()` (mutation_p=0.1, standard mutations).
-        crossover_executor (CrossoverExecutor | None): Optional; default `CrossoverExecutor()`.
-            Default: `None`.
+            Default: `MutationExecutorFactory()` (`mutation_p=0.1`, `num_tries=1`,
+            `operator_p=0.5`).
+        crossover_factory (CrossoverExecutorFactory): Factory that creates the
+            `CrossoverExecutor` at runtime. Default: `CrossoverExecutorFactory()`
+            (`crossover_p=0.7`, `crossover_strategy="random"`, `num_tries=1`, `operator_p=0.9`).
         selection (BaseSelection | None): Optional; default `TournamentSelection()`.
             Default: `None`.
         optimize_scorer (bool): Whether to optimize scorer via data deduplication and
@@ -42,7 +44,7 @@ class BooleanGPConfig:
         regeneration_patience (int): Epochs without improvement before regeneration.
             Default: `100`.
         check_valid (Callable[[Rule], bool] | None): Optional rule validator for
-            mutation/crossover. Default: `None`. # TODO: Mention that it will be used only when generating default Crossover and Mutations. For Crossover and mutations passed from outside, the outside value will be used.
+            mutation/crossover. Default: `None`.
         num_child_populations (int): Number of child populations for hierarchical GP.
             Default: `0`.
         max_depth (int): Maximum hierarchical depth; `0` means no children.
@@ -85,7 +87,9 @@ class BooleanGPConfig:
     mutation_factory: MutationExecutorFactory = field(
         default_factory=MutationExecutorFactory
     )
-    crossover_executor: CrossoverExecutor | None = None
+    crossover_factory: CrossoverExecutorFactory = field(
+        default_factory=CrossoverExecutorFactory
+    )
     selection: BaseSelection | None = None
     optimize_scorer: bool = True
     regeneration: bool = False
@@ -132,13 +136,21 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
 
     check_isinstance(config.population_factory, PopulationGeneratorFactory)
     check_isinstance(config.mutation_factory, MutationExecutorFactory)
+    check_isinstance(config.crossover_factory, CrossoverExecutorFactory)
 
-    if config.crossover_executor is not None:
-        check_isinstance(config.crossover_executor, CrossoverExecutor)
     if config.selection is not None:
         check_isinstance(config.selection, BaseSelection)
+
+    # TODO: Document that check_valid is called once
     if config.check_valid is not None:
-        validate_callable(config.check_valid)
+        error_msg = f"check_valid must be a callable that accepts a Rule and returns bool, is {type(config.check_valid)}"
+        validate_callable(config.check_valid, error_msg)
+        try:
+            boolean = config.check_valid(Literal(value=0))
+            if not isinstance(boolean, bool):
+                raise TypeError(error_msg)
+        except Exception as e:
+            raise TypeError(error_msg) from e
 
     check_isinstance(config.regeneration, bool)
     check_isinstance(config.regeneration_patience, int)

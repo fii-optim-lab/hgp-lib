@@ -1,5 +1,6 @@
 import doctest
 import unittest
+from typing import Tuple
 from unittest.mock import patch
 
 import hgp_lib
@@ -14,6 +15,7 @@ from hgp_lib.mutations import (
     RemoveIntermediateOperator,
     ReplaceOperator,
     AddLiteral,
+    MutationExecutorFactory,
 )
 from hgp_lib.rules import Rule, Literal, Or, And
 
@@ -356,83 +358,93 @@ class TestMutations(unittest.TestCase):
         self.assertEqual(str(rule), str(copy))
 
     def test_mutation_executor_validation(self):
-        literal_mutations = [NegateMutation()]
-        operator_mutations = [NegateMutation()]
-
         with self.subTest("mutation_p type"):
             with self.assertRaises(TypeError):
-                MutationExecutor(literal_mutations, operator_mutations, mutation_p=1)
+                MutationExecutorFactory(mutation_p=1)
 
         with self.subTest("mutation_p bounds"):
             with self.assertRaises(ValueError):
-                MutationExecutor(literal_mutations, operator_mutations, mutation_p=1.5)
+                MutationExecutorFactory(mutation_p=1.5)
 
         with self.subTest("literal mutations cannot be empty"):
             with self.assertRaises(ValueError):
-                MutationExecutor([], operator_mutations)
+
+                class BadMutationFactory(MutationExecutorFactory):
+                    def create_literal_mutations(
+                        self, num_literals: int
+                    ) -> Tuple[Mutation, ...]:
+                        return []
+
+                BadMutationFactory().create(5)
 
         with self.subTest("literal mutations must be Sequence"):
             with self.assertRaises(TypeError):
-                MutationExecutor(NegateMutation(), operator_mutations)
+
+                class BadMutationFactory(MutationExecutorFactory):
+                    def create_literal_mutations(
+                        self, num_literals: int
+                    ) -> Tuple[Mutation, ...]:
+                        return NegateMutation()
+
+                BadMutationFactory().create(5)
 
         with self.subTest("operator mutations cannot be empty"):
             with self.assertRaises(ValueError):
-                MutationExecutor(literal_mutations, [])
+
+                class BadMutationFactory(MutationExecutorFactory):
+                    def create_operator_mutations(
+                        self, num_literals: int
+                    ) -> Tuple[Mutation, ...]:
+                        return []
+
+                BadMutationFactory().create(5)
 
         with self.subTest("operator mutations must be Sequence"):
             with self.assertRaises(TypeError):
-                MutationExecutor(literal_mutations, NegateMutation())
+
+                class BadMutationFactory(MutationExecutorFactory):
+                    def create_operator_mutations(
+                        self, num_literals: int
+                    ) -> Tuple[Mutation, ...]:
+                        return NegateMutation()
+
+                BadMutationFactory().create(5)
 
         with self.subTest("literal mutations must contain literal mutations"):
             with self.assertRaises(TypeError):
-                MutationExecutor([_ToggleOperatorMutation()], operator_mutations)
+
+                class BadMutationFactory(MutationExecutorFactory):
+                    def create_literal_mutations(
+                        self, num_literals: int
+                    ) -> Tuple[Mutation, ...]:
+                        return [_ToggleOperatorMutation()]
+
+                BadMutationFactory().create(5)
 
         with self.subTest("operator mutations must contain operator mutations"):
             with self.assertRaises(TypeError):
-                MutationExecutor(literal_mutations, [_IncrementLiteralMutation()])
+
+                class BadMutationFactory(MutationExecutorFactory):
+                    def create_operator_mutations(
+                        self, num_literals: int
+                    ) -> Tuple[Mutation, ...]:
+                        return [_IncrementLiteralMutation()]
+
+                BadMutationFactory().create()
 
         with self.subTest("num_tries requires check_valid"):
             with self.assertRaises(ValueError):
-                MutationExecutor(
-                    literal_mutations,
-                    operator_mutations,
-                    mutation_p=0.5,
-                    num_tries=2,
-                )
-
-        with self.subTest("check_valid must be callable and return bool"):
-            with self.assertRaises(TypeError):
-                MutationExecutor(
-                    literal_mutations,
-                    operator_mutations,
-                    check_valid="not callable",
-                )
-
-            def invalid_return(_rule: Rule):
-                return "invalid"
-
-            with self.assertRaises(TypeError):
-                MutationExecutor(
-                    literal_mutations,
-                    operator_mutations,
-                    check_valid=invalid_return,
-                )
+                MutationExecutorFactory(num_tries=2).create(num_literals=2)
 
         with self.subTest("num_tries must be positive"):
             with self.assertRaises(ValueError):
-                MutationExecutor(
-                    literal_mutations,
-                    operator_mutations,
-                    check_valid=lambda r: True,
+                MutationExecutorFactory(
                     num_tries=0,
                 )
 
         with self.subTest("num_tries must be int"):
             with self.assertRaises(TypeError):
-                MutationExecutor(
-                    literal_mutations,
-                    operator_mutations,
-                    check_valid=lambda r: True,
+                MutationExecutorFactory(
                     num_tries=1.5,
                 )
 

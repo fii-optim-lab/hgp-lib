@@ -7,7 +7,7 @@ import numpy as np
 import hgp_lib.trainers.gp_trainer
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
 from hgp_lib.trainers import GPTrainer
-from hgp_lib.crossover import CrossoverExecutor
+from hgp_lib.crossover import CrossoverExecutor, CrossoverExecutorFactory
 from hgp_lib.metrics import PopulationHistory, GenerationMetrics
 from hgp_lib.populations import PopulationGeneratorFactory
 from hgp_lib.selections import RouletteSelection, TournamentSelection
@@ -208,9 +208,9 @@ class TestGPTrainer(unittest.TestCase):
         self.assertEqual(trainer.gp_algo.mutation_executor.mutation_p, 0.5)
 
     def test_custom_crossover_executor(self):
-        crossover_executor = CrossoverExecutor(crossover_p=0.5)
+        crossover_factory = CrossoverExecutorFactory(crossover_p=0.5)
 
-        gp_config = self._make_gp_config(crossover_executor=crossover_executor)
+        gp_config = self._make_gp_config(crossover_factory=crossover_factory)
         config = self._make_trainer_config(gp_config=gp_config, num_epochs=5)
         trainer = GPTrainer(config)
 

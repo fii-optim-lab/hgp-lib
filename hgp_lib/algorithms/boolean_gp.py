@@ -5,7 +5,6 @@ import numpy as np
 from numpy import ndarray
 
 from ..configs import BooleanGPConfig, validate_gp_config
-from ..crossover import CrossoverExecutor
 from ..metrics import GenerationMetrics
 from ..rules import Rule
 from ..selections import TournamentSelection
@@ -78,7 +77,7 @@ class BooleanGP:
 
         self.current_depth = current_depth
         num_features = train_data.shape[1]
-
+        # TODO: Direct assignment
         population_generator = config.population_factory.create(
             num_features, score_fn, train_data, train_labels
         )
@@ -86,9 +85,7 @@ class BooleanGP:
             num_features, config.check_valid
         )
 
-        crossover_executor = config.crossover_executor
-        if crossover_executor is None:
-            crossover_executor = CrossoverExecutor(check_valid=config.check_valid)
+        crossover_executor = config.crossover_factory.create(config.check_valid)
 
         selection = config.selection
         if selection is None:

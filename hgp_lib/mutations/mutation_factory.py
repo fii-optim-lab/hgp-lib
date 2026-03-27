@@ -126,7 +126,7 @@ class MutationExecutorFactory:
     """
 
     def __init__(
-        self, mutation_p: float = 0.1, num_tries: int = 1, operator_p: float = 0.9
+        self, mutation_p: float = 0.1, num_tries: int = 1, operator_p: float = 0.5
     ):
         check_isinstance(mutation_p, float)
         if mutation_p < 0.0 or mutation_p > 1.0:
@@ -145,7 +145,8 @@ class MutationExecutorFactory:
         self.num_tries = num_tries
         self.operator_p = operator_p
 
-    def create_literal_mutations(self, num_literals: int) -> Tuple[Mutation, ...]:
+    @staticmethod
+    def create_literal_mutations(num_literals: int) -> Tuple[Mutation, ...]:
         """
         Create the set of literal-level mutations.
 
@@ -175,6 +176,32 @@ class MutationExecutorFactory:
         """
         return create_standard_operator_mutations(num_literals)
 
+    @staticmethod
+    def _validate_mutations(
+        literal_mutations: Sequence[Mutation],
+        operator_mutations: Sequence[Mutation],
+    ):
+        check_isinstance(literal_mutations, Sequence)
+        check_isinstance(operator_mutations, Sequence)
+
+        if len(literal_mutations) == 0:
+            raise ValueError("literal_mutations must be a non-empty Sequence")
+        if len(operator_mutations) == 0:
+            raise ValueError("operator_mutations must be a non-empty Sequence")
+
+        for literal_mutation in literal_mutations:
+            check_isinstance(literal_mutation, Mutation)
+            if not literal_mutation.is_literal_mutation:
+                raise TypeError(
+                    f"Each literal_mutations must be a literal mutation, but '{type(literal_mutation)} is not'"
+                )
+        for operator_mutation in operator_mutations:
+            check_isinstance(operator_mutation, Mutation)
+            if not operator_mutation.is_operator_mutation:
+                raise TypeError(
+                    f"Each operator_mutations must be an operator mutation, but '{type(operator_mutation)} is not'"
+                )
+
     def create(
         self,
         num_literals: int,
@@ -191,9 +218,20 @@ class MutationExecutorFactory:
         Returns:
             MutationExecutor: Configured mutation executor.
         """
+        if check_valid is None and self.num_tries > 1:
+            raise ValueError("num_tries must be 1 if check_valid is None")
+
+        literal_mutations = self.create_literal_mutations(num_literals)
+        operator_mutations = self.create_operator_mutations(num_literals)
+
+        self._validate_mutations(
+            literal_mutations,
+            operator_mutations,
+        )
+
         return MutationExecutor(
-            literal_mutations=self.create_literal_mutations(num_literals),
-            operator_mutations=self.create_operator_mutations(num_literals),
+            literal_mutations=literal_mutations,
+            operator_mutations=operator_mutations,
             mutation_p=self.mutation_p,
             check_valid=check_valid,
             num_tries=self.num_tries,

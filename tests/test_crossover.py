@@ -6,7 +6,7 @@ import numpy as np
 
 import hgp_lib.crossover.crossover_executor
 import hgp_lib.rules.utils
-from hgp_lib.crossover import CrossoverExecutor
+from hgp_lib.crossover import CrossoverExecutor, CrossoverExecutorFactory
 from hgp_lib.rules import Rule, Literal, And, Or
 
 
@@ -14,38 +14,32 @@ class TestCrossoverExecutor(unittest.TestCase):
     def test_crossover_executor_validation(self):
         with self.subTest("crossover_p type"):
             with self.assertRaises(TypeError):
-                CrossoverExecutor(crossover_p=1)  # int instead of float
+                CrossoverExecutorFactory(crossover_p=1)  # int instead of float
 
         with self.subTest("crossover_p bounds"):
             with self.assertRaises(ValueError):
-                CrossoverExecutor(crossover_p=1.5)
+                CrossoverExecutorFactory(crossover_p=1.5)
             with self.assertRaises(ValueError):
-                CrossoverExecutor(crossover_p=-0.1)
+                CrossoverExecutorFactory(crossover_p=-0.1)
 
         with self.subTest("crossover_strategy invalid"):
             with self.assertRaises(ValueError):
-                CrossoverExecutor(crossover_strategy="invalid")
+                CrossoverExecutorFactory(crossover_strategy="invalid")
 
         with self.subTest("num_tries requires check_valid"):
             with self.assertRaises(ValueError):
-                CrossoverExecutor(num_tries=2)
-
-        with self.subTest("check_valid must be callable returning bool"):
-            with self.assertRaises(TypeError):
-                CrossoverExecutor(check_valid="not callable")
-            with self.assertRaises(TypeError):
-                CrossoverExecutor(check_valid=lambda r: "not bool")
+                CrossoverExecutorFactory(num_tries=2).create()
 
         with self.subTest("num_tries must be positive"):
             with self.assertRaises(ValueError):
-                CrossoverExecutor(check_valid=lambda r: True, num_tries=0)
+                CrossoverExecutorFactory(num_tries=0)
 
     def test_operator_p_validation(self):
         """Test that operator_p outside [0.0, 1.0] raises ValueError."""
         with self.assertRaises(ValueError):
-            CrossoverExecutor(operator_p=-0.1)
+            CrossoverExecutorFactory(operator_p=-0.1)
         with self.assertRaises(ValueError):
-            CrossoverExecutor(operator_p=1.1)
+            CrossoverExecutorFactory(operator_p=1.1)
 
     def test_operator_p_default(self):
         """Test that operator_p defaults to 0.9."""
@@ -193,9 +187,7 @@ class TestCrossoverExecutor(unittest.TestCase):
 
         def accept_first_crossover_child(rule: Rule) -> bool:
             call_count[0] += 1
-            # First call is during __init__ validation, accept it
-            # Then only accept first child during crossover (call 2)
-            return call_count[0] <= 2
+            return call_count[0] <= 1
 
         executor = CrossoverExecutor(
             check_valid=accept_first_crossover_child,
@@ -214,12 +206,12 @@ class TestCrossoverExecutor(unittest.TestCase):
     def test_crossover_strategy_validation(self):
         """Test that only valid strategies are accepted."""
         # Valid strategies
-        CrossoverExecutor(crossover_strategy="random")
-        CrossoverExecutor(crossover_strategy="best")
+        CrossoverExecutorFactory(crossover_strategy="random")
+        CrossoverExecutorFactory(crossover_strategy="best")
 
         # Invalid strategy
         with self.assertRaises(ValueError):
-            CrossoverExecutor(crossover_strategy="tournament")
+            CrossoverExecutorFactory(crossover_strategy="tournament")
 
     def test_crossover_preserves_rule_validity(self):
         """Test that crossover produces structurally valid rules."""

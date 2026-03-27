@@ -6,8 +6,10 @@ import argparse
 def save_pmlb_data(name: str, data_path: str):
     if not os.path.isdir(data_path):
         raise FileNotFoundError(f"'{data_path}' is not a directory")
-
-    data = pmlb.fetch_data(name)
+    try:
+        data = pmlb.fetch_data(name)
+    except ValueError as e:
+        raise FileNotFoundError(f"'{name}' not found") from e
     path = os.path.join(data_path, f"{name}.hdf")
     print(f"Writing {path}")
     data.to_hdf(path, key="data", mode="w", format="table")
