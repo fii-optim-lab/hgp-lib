@@ -137,9 +137,9 @@ def validate_benchmarker_config(config: BenchmarkerConfig) -> None:
             )
     check_isinstance(config.num_runs, int)
     if config.num_runs < 1:
-        raise ValueError("num_runs must be a positive integer")
+        raise ValueError(f"num_runs must be a positive integer, is {config.num_runs}")
     if not 0 < config.test_size < 1:
-        raise ValueError("test_size must be in (0, 1)")
+        raise ValueError(f"test_size must be in (0, 1), is {config.test_size}")
     check_isinstance(config.n_folds, int)
     if config.n_folds < 2:
-        raise ValueError("n_folds must be at least 2")
+        raise ValueError(f"n_folds must be at least 2, is {config.n_folds}")

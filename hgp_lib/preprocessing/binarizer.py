@@ -219,6 +219,13 @@ class StandardBinarizer:
                 binned_values = pd.cut(
                     X[column], bins=bins, labels=False, include_lowest=True
                 )
+                import warnings
+
+                # TODO: Fix this
+                warnings.simplefilter(
+                    action="ignore", category=pd.errors.PerformanceWarning
+                )
+
                 for bin_idx in range(len(bins) - 1):
                     result[
                         self._format_numeric_bin_name(

@@ -1,0 +1,320 @@
+"""
+==============================================================================
+BENCHMARKING METHODOLOGY
+==============================================================================
+
+The benchmarker runs multiple independent experiments to estimate performance:
+
+1. For each run (default 30):
+   - Split data into train (80%) and test (20%) sets
+   - Perform k-fold CV (default 5) on training set
+   - Select best rule from fold with the highest validation score
+   - Evaluate on held-out test set
+
+2. Report mean and std of test scores across all runs
+
+This methodology provides:
+- Robust performance estimates (not dependent on single random split)
+- Confidence intervals for comparing algorithms
+- Best rules from multiple random initializations
+
+==============================================================================
+USAGE EXAMPLES
+==============================================================================
+
+Basic benchmark with defaults:
+    python scripts/run_benchmark.py --data_path data/PaySim.hdf
+
+Quick benchmark (fewer runs/folds):
+    python scripts/run_benchmark.py --data_path data/PaySim.hdf --num_runs 5 --n_folds 3 --num_epochs 500
+
+Hierarchical GP benchmark:
+    python scripts/run_benchmark.py --data_path data/PaySim.hdf --max_depth 1 --num_child_populations 3
+
+Full benchmark with all CPUs:
+    python scripts/run_benchmark.py --data_path data/PaySim.hdf --num_runs 30 --n_folds 5 --n_jobs -1
+
+Compare configurations:
+    python scripts/run_benchmark.py --data_path data/PaySim.hdf --max_depth 0 --num_epochs 1000
+    python scripts/run_benchmark.py --data_path data/PaySim.hdf --max_depth 1 --num_epochs 1000
+"""
+
+import argparse
+
+import numpy as np
+
+from hgp_lib import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
+from hgp_lib.benchmarkers import GPBenchmarker
+from hgp_lib.populations import (
+    FeatureSamplingStrategy,
+    PopulationGeneratorFactory,
+)
+from hgp_lib.preprocessing import StandardBinarizer, load_data
+from hgp_lib.utils import complexity_check
+from hgp_lib.utils.metrics import fast_f1_score
+
+
+def main(args: argparse.Namespace):
+    """
+    Workflow:
+    1. Load and binarize data
+    2. Configure GP algorithm with specified parameters
+    3. Configure benchmarker (runs, folds, parallelization)
+    4. Run benchmark
+    5. Print results with statistics
+    """
+    data, labels = load_data(args.data_path)
+    is_valid = complexity_check(args.max_rule_size)
+
+    gp_config = BooleanGPConfig(
+        score_fn=fast_f1_score,
+        check_valid=is_valid,
+        population_factory=PopulationGeneratorFactory(
+            population_size=args.population_size
+        ),
+        optimize_scorer=args.optimize_scorer,
+        regeneration=args.regeneration,
+        regeneration_patience=args.regeneration_patience,
+    )
+
+    # Apply hierarchical GP settings if max_depth > 0
+    if args.max_depth > 0:
+        print("Hierarchical GP enabled:")
+        print(f"  max_depth: {args.max_depth}")
+        print(f"  num_child_populations: {args.num_child_populations}")
+        print(f"  feature_fraction: {args.feature_fraction}")
+
+        gp_config.max_depth = args.max_depth
+        gp_config.num_child_populations = args.num_child_populations
+        gp_config.sampling_strategy = FeatureSamplingStrategy(
+            feature_fraction=args.feature_fraction
+        )
+    else:
+        print("Standard GP (no hierarchy)")
+
+    print(f"\nPopulation size: {args.population_size}")
+    print(f"Max rule size: {args.max_rule_size}")
+    print(f"Optimize scorer: {args.optimize_scorer}")
+    print(f"Regeneration: {args.regeneration} (patience={args.regeneration_patience})")
+
+    trainer_config = TrainerConfig(
+        gp_config=gp_config,
+        num_epochs=args.num_epochs,
+        val_every=args.val_every,
+        progress_bar=not args.no_progress,
+    )
+
+    print(f"\nTraining epochs: {args.num_epochs}")
+    print(f"Validation every: {args.val_every} epochs")
+
+    binarizer = StandardBinarizer(num_bins=args.num_bins)
+
+    config = BenchmarkerConfig(
+        data=data,
+        labels=labels,
+        trainer_config=trainer_config,
+        binarizer=binarizer,
+        num_runs=args.num_runs,
+        n_folds=args.n_folds,
+        test_size=args.test_size,
+        n_jobs=args.n_jobs,
+        base_seed=args.base_seed,
+        show_run_progress=not args.no_progress,
+        show_fold_progress=not args.no_progress,
+        show_epoch_progress=not args.no_progress,
+    )
+
+    print(f"Number of runs: {config.num_runs}")
+    print(f"Folds per run: {config.n_folds}")
+    print(f"Test size: {config.test_size}")
+    print(f"Parallel jobs: {config.n_jobs} (-1 = all CPUs)")
+    print(f"Base seed: {config.base_seed}")
+
+    total_folds = config.num_runs * config.n_folds
+    total_epochs = total_folds * args.num_epochs
+    print("\nTotal training:")
+    print(
+        f"  {total_folds} fold trainings ({config.num_runs} runs × {config.n_folds} folds)"
+    )
+    print(f"  {total_epochs:,} total epochs")
+
+    benchmarker = GPBenchmarker(config)
+    result = benchmarker.fit()
+
+    print("\nConfiguration summary:")
+    print(
+        f"  max_depth={args.max_depth}, epochs={args.num_epochs}, "
+        f"pop_size={args.population_size}"
+    )
+    if args.max_depth > 0:
+        print(
+            f"  child_pops={args.num_child_populations}, "
+            f"feature_frac={args.feature_fraction}"
+        )
+
+    print("\nPerformance:")
+    test_scores = np.array(result.test_scores)
+    val_scores = np.array([run.mean_val_score for run in result.runs])
+    print(f"  Test F1 Score:  {test_scores.mean():.4f} ± {test_scores.std():.4f}")
+    print(f"  Val F1 Score:   {val_scores.mean():.4f} ± {val_scores.std():.4f}")
+
+    print("\nPer-run test scores:")
+    for i, score in enumerate(result.test_scores):
+        print(f"  Run {i:2d}: {score:.4f}")
+
+    scores = test_scores
+    print("\nStatistics:")
+    print(f"  Min:    {scores.min():.4f}")
+    print(f"  Max:    {scores.max():.4f}")
+    print(f"  Median: {np.median(scores):.4f}")
+    print(f"  IQR:    {np.percentile(scores, 75) - np.percentile(scores, 25):.4f}")
+
+    best_run_idx = int(np.argmax(result.test_scores))
+    best_run = result.runs[best_run_idx]
+    best_rule = best_run.best_rule
+    print(f"\nBest rule (from run {best_run_idx}, score={scores[best_run_idx]:.4f}):")
+    print(f"  {best_rule}")
+    print("\nReadable form:")
+    print(f"  {best_rule.to_str(best_run.feature_names)}")
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Benchmark Boolean GP on PaySim fraud detection data",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    # Data arguments
+    data_group = parser.add_argument_group("Data")
+    data_group.add_argument(
+        "--data_path",
+        type=str,
+        required=True,
+        help="Path to preprocessed data",
+    )
+    data_group.add_argument(
+        "--num_bins",
+        type=int,
+        default=5,
+        help="Number of bins for feature binarization",
+    )
+
+    # Training arguments
+    train_group = parser.add_argument_group("Training")
+    train_group.add_argument(
+        "--num_epochs",
+        type=int,
+        default=1000,
+        help="Number of training epochs per fold",
+    )
+    train_group.add_argument(
+        "--val_every",
+        type=int,
+        default=10,
+        help="Validate every N epochs",
+    )
+
+    # GP algorithm arguments
+    gp_group = parser.add_argument_group("GP Algorithm")
+    gp_group.add_argument(
+        "--population_size",
+        type=int,
+        default=100,
+        help="Size of the rule population",
+    )
+    gp_group.add_argument(
+        "--max_rule_size",
+        type=int,
+        default=100,
+        help="Maximum nodes in a rule tree",
+    )
+
+    # Hierarchical GP arguments
+    hier_group = parser.add_argument_group("Hierarchical GP")
+    hier_group.add_argument(
+        "--max_depth",
+        type=int,
+        default=0,
+        help="Maximum depth of population hierarchy (0 = standard GP)",
+    )
+    hier_group.add_argument(
+        "--num_child_populations",
+        type=int,
+        default=3,
+        help="Number of child populations per parent (when max_depth > 0)",
+    )
+    hier_group.add_argument(
+        "--feature_fraction",
+        type=float,
+        default=0.33,
+        help="Fraction of features for each child population (when max_depth > 0)",
+    )
+
+    # Optimization arguments
+    opt_group = parser.add_argument_group("Optimization")
+    opt_group.add_argument(
+        "--no_optimize_scorer",
+        action="store_false",
+        dest="optimize_scorer",
+        help="Disable scorer optimization",
+    )
+    opt_group.add_argument(
+        "--no_regeneration",
+        action="store_false",
+        dest="regeneration",
+        help="Disable population regeneration",
+    )
+    opt_group.add_argument(
+        "--regeneration_patience",
+        type=int,
+        default=200,
+        help="Epochs without improvement before regeneration",
+    )
+
+    # Benchmark arguments
+    bench_group = parser.add_argument_group("Benchmark")
+    bench_group.add_argument(
+        "--num_runs",
+        type=int,
+        default=30,
+        help="Number of independent benchmark runs",
+    )
+    bench_group.add_argument(
+        "--n_folds",
+        type=int,
+        default=5,
+        help="Number of cross-validation folds per run",
+    )
+    bench_group.add_argument(
+        "--test_size",
+        type=float,
+        default=0.2,
+        help="Fraction of data held out for testing",
+    )
+    bench_group.add_argument(
+        "--n_jobs",
+        type=int,
+        default=-1,
+        help="Number of parallel jobs (-1 = all CPUs, 1 = sequential)",
+    )
+    bench_group.add_argument(
+        "--base_seed",
+        type=int,
+        default=0,
+        help="Base random seed (run i uses seed base_seed + i)",
+    )
+
+    # Output arguments
+    out_group = parser.add_argument_group("Output")
+    out_group.add_argument(
+        "--no_progress",
+        action="store_true",
+        help="Disable progress bars (cleaner output for logging)",
+    )
+
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    main(args)

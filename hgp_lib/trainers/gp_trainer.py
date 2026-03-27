@@ -59,7 +59,7 @@ class GPTrainer:
         self.progress_callback = config.progress_callback
 
         self.score_fn = self.gp_algo.score_fn  # Maybe optimized
-        self._original_score_fn = self.gp_algo._original_score_fn
+        self._original_score_fn = self.gp_algo.original_score_fn
         if config.val_data is not None and config.gp_config.optimize_scorer:
             self.val_score_fn, self.val_data, self.val_labels = (
                 optimize_scorer_for_data(

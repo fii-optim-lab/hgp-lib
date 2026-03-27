@@ -1,11 +1,4 @@
-#!/usr/bin/env python3
 """
-Optuna Hyperparameter Tuning Script for Boolean GP and Hierarchical GP.
-
-This script uses Optuna to optimize hyperparameters for the BooleanGP algorithm.
-It integrates with GPBenchmarker for statistically robust evaluation (30 runs, k-fold CV).
-Results are stored in SQLite and viewable via Optuna Dashboard.
-
 Usage:
     python scripts/optuna_hypertuning.py --data-path data/PaySim.hdf --n-trials 100
 
@@ -15,16 +8,17 @@ View results:
 
 import argparse
 import logging
+import os
 import traceback
 from pathlib import Path
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict
 
-import matplotlib
 import numpy as np
 import optuna
 import pandas as pd
 from numpy import ndarray
 from optuna.artifacts import FileSystemArtifactStore
+from optuna.trial import TrialState
 
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
@@ -37,12 +31,13 @@ from hgp_lib.populations import (
     InstanceSamplingStrategy,
     PopulationGeneratorFactory,
 )
-from hgp_lib.preprocessing import StandardBinarizer
+from hgp_lib.preprocessing import StandardBinarizer, load_data
 from hgp_lib.selections import RouletteSelection, TournamentSelection
 from hgp_lib.utils.metrics import fast_f1_score
 from hgp_lib.utils.validation import complexity_check
 
-matplotlib.use("Agg")
+
+from preprocess.pmlb_preprocess import save_pmlb_data
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -50,95 +45,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def load_data(data_path: str) -> Tuple[pd.DataFrame, ndarray]:
-    """
-    Load and preprocess data from HDF file for benchmarking.
-
-    Args:
-        data_path: Path to HDF file containing data.
-
-    Returns:
-        Tuple of (data, labels).
-
-    Raises:
-        FileNotFoundError: If the file does not exist.
-        RuntimeError: If target column cannot be identified.
-    """
-    path = Path(data_path)
-    if not path.exists():
-        raise FileNotFoundError(f"Data file not found: {data_path}")
-
-    logger.info(f"Loading data from {data_path}...")
-
-    df: pd.DataFrame = pd.read_hdf(data_path)
-
-    # Detect target column - PaySim uses isFraud, others use target
-    if "isFraud" in df.columns:
-        target_column = "isFraud"
-    elif "target" in df.columns:
-        target_column = "target"
-    else:
-        raise RuntimeError(f"Unknown target column. Available: {df.columns.tolist()}")
-
-    labels = df[target_column].to_numpy(dtype=bool, copy=True)
-    data = df.drop([target_column], axis=1)
-
-    del df
-    return data, labels
-
-
-def create_argument_parser() -> argparse.ArgumentParser:
-    """Create and configure the argument parser for CLI."""
-    parser = argparse.ArgumentParser(
-        description="Optuna Hyperparameter Tuning for Boolean GP",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    parser.add_argument(
-        "--data-path", type=str, required=True, help="Path to HDF data file"
-    )
-    parser.add_argument(
-        "--n-trials", type=int, default=100, help="Number of optimization trials"
-    )
-    parser.add_argument(
-        "--study-name",
-        type=str,
-        default="gp_hypertuning",
-        help="Name for the Optuna study",
-    )
-    parser.add_argument(
-        "--storage-path",
-        type=str,
-        default="./optuna_study.db",
-        help="Path for SQLite database",
-    )
-    parser.add_argument(
-        "--artifact-dir",
-        type=str,
-        default="./artifacts",
-        help="Directory for storing trial artifacts (plots)",
-    )
-    parser.add_argument(
-        "--seed", type=int, default=42, help="Random seed for reproducibility"
-    )
-    parser.add_argument(
-        "--n-jobs", type=int, default=-1, help="Number of parallel jobs (-1 = all CPUs)"
-    )
-    parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="Show progress bars for runs/folds/epochs",
-    )
-    return parser
-
-
 def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
-    """Suggest all hyperparameters (base + hierarchical) in one function."""
+    # TODO: Use a hyperparameter_config.yaml to load the values of the hyperparameters.
     params = {}
 
-    params["num_bins"] = trial.suggest_int("num_bins", 4, 8)
+    params["num_bins"] = trial.suggest_int("num_bins", 2, 10)
 
     # Base GP parameters
-    params["population_size"] = trial.suggest_int("population_size", 50, 200, step=25)
+    params["population_size"] = trial.suggest_int("population_size", 50, 150, step=25)
     params["mutation_probability"] = trial.suggest_float(
         "mutation_probability", 0.001, 0.25, step=0.001
     )
@@ -182,16 +96,14 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
         if params["max_depth"] == 3:
             params["num_child_populations"] = 2
         elif params["max_depth"] == 2:
-            params["num_child_populations"] = trial.suggest_int(
-                "num_child_populations", 2, 3
-            )
+            params["num_child_populations"] = 2
         else:  # 1
             params["num_child_populations"] = trial.suggest_int(
-                "num_child_populations", 2, 8
+                "num_child_populations", 2, 5
             )
 
         params["top_k_transfer"] = trial.suggest_int(
-            "top_k_transfer", 10, min(100, params["population_size"]), step=5
+            "top_k_transfer", 10, min(100, params["population_size"] - 1), step=5
         )
         params["feedback_type"] = trial.suggest_categorical(
             "feedback_type", ["additive", "multiplicative"]
@@ -243,9 +155,10 @@ def build_config(
     labels: ndarray,
     score_fn: Callable,
     n_jobs: int,
+    n_runs: int,
+    n_folds: int,
     verbose: bool = False,
 ) -> BenchmarkerConfig:
-    """Build BenchmarkerConfig from suggested hyperparameters."""
     # Selection strategy
     if params["selection_type"] == "tournament":
         selection = TournamentSelection(
@@ -259,7 +172,7 @@ def build_config(
 
     # Mutation and crossover
     mutation_p = params["mutation_probability"]
-    check_valid = complexity_check()
+    check_valid = complexity_check(80)
     crossover_executor = CrossoverExecutor(
         crossover_p=params["crossover_rate"],
         check_valid=check_valid,
@@ -320,8 +233,9 @@ def build_config(
         labels=labels,
         trainer_config=trainer_config,
         binarizer=binarizer,
-        num_runs=10,
-        n_folds=5,
+        # TODO: we should make these configurable
+        num_runs=n_runs,
+        n_folds=n_folds,
         n_jobs=n_jobs,
         show_run_progress=verbose,
         show_fold_progress=verbose,
@@ -333,6 +247,8 @@ def create_objective(
     data: pd.DataFrame,
     labels: ndarray,
     n_jobs: int,
+    n_runs: int,
+    n_folds: int,
     artifact_store: FileSystemArtifactStore,
     verbose: bool = False,
 ) -> Callable[[optuna.Trial], float]:
@@ -342,48 +258,48 @@ def create_objective(
         params = suggest_hyperparameters(trial)
 
         try:
-            config = build_config(params, data, labels, fast_f1_score, n_jobs, verbose)
+            config = build_config(
+                params, data, labels, fast_f1_score, n_jobs, n_runs, n_folds, verbose
+            )
             result = GPBenchmarker(config).fit()
-
-            # Store trial attributes using new metrics system
-            store_trial_attributes(trial, result)
-
-            # Upload visualization artifacts
-            upload_trial_artifacts(
-                trial,
-                result,
-                artifact_store,
-                top_k_transfer=params.get("top_k_transfer", 10),
-            )
-
-            # Get mean validation score for optimization
-            mean_val_score = float(np.mean([run.mean_val_score for run in result.runs]))
-
-            mean_test_score = float(np.mean(result.test_scores))
-
-            logger.info(
-                f"Trial {trial.number}: val={mean_val_score:.4f}, "
-                f"test={mean_test_score:.4f}, "
-                f"hierarchical={params['max_depth'] > 0}"
-            )
-
-            return mean_val_score
-
         except Exception:
             logger.error(f"Trial {trial.number} failed: {traceback.format_exc()}")
             raise optuna.TrialPruned()
 
+        # Store trial attributes using new metrics system
+        store_trial_attributes(trial, result)
+
+        # Upload visualization artifacts
+        upload_trial_artifacts(
+            trial,
+            result,
+            artifact_store,
+            top_k_transfer=params.get("top_k_transfer", 10),
+        )
+
+        # Get mean validation score for optimization
+        mean_val_score = float(np.mean([run.mean_val_score for run in result.runs]))
+
+        mean_test_score = float(np.mean(result.test_scores))
+
+        logger.info(
+            f"Trial {trial.number}: val={mean_val_score:.4f}, "
+            f"test={mean_test_score:.4f}, "
+            f"hierarchical={params['max_depth'] > 0}"
+        )
+
+        return mean_val_score
+
     return objective
 
 
-def main() -> None:
-    """Main entry point for the hyperparameter tuning script."""
-    parser = create_argument_parser()
-    args = parser.parse_args()
-
+def main(args: argparse.Namespace) -> None:
     np.random.seed(args.seed)
 
     logger.info("Loading data...")
+    if not os.path.isfile(args.data_path):
+        data_path = Path(args.data_path)
+        save_pmlb_data(data_path.stem, str(data_path.parent))
     data, labels = load_data(args.data_path)
 
     # Initialize artifact store
@@ -402,23 +318,38 @@ def main() -> None:
 
     # Log info about existing trials
     existing_trials = study.trials
+    completed_trials = 0
     if existing_trials:
-        trials_with_attrs = sum(
-            1
-            for t in existing_trials
-            if t.user_attrs.get("06_hierarchy_is_hierarchical") is not None
+        completed_trials = sum(
+            [trial.state == TrialState.COMPLETE for trial in existing_trials]
         )
+        # TODO: Debug this and add remaining trials
         logger.info(
             f"Loaded existing study with {len(existing_trials)} trials "
-            f"({trials_with_attrs} with new attributes format)"
+            f"({completed_trials} completed trials)"
         )
 
+    max_n_trials = args.max_n_trials
+    if completed_trials >= max_n_trials:
+        logger.info(
+            f"Study {args.study_name} with {len(existing_trials)} trials already completed."
+        )
+        return
+
+    n_trials = min(args.n_trials, max_n_trials - completed_trials)
+
     objective = create_objective(
-        data, labels, args.n_jobs, artifact_store, args.verbose
+        data,
+        labels,
+        args.n_jobs,
+        args.n_runs,
+        args.n_folds,
+        artifact_store,
+        args.verbose,
     )
 
-    logger.info(f"Starting optimization with {args.n_trials} trials...")
-    study.optimize(objective, n_trials=args.n_trials, show_progress_bar=True)
+    logger.info(f"Starting optimization with {n_trials} trials...")
+    study.optimize(objective, n_trials=n_trials, show_progress_bar=True)
 
     print("\n" + "=" * 60)
     print("OPTIMIZATION COMPLETE")
@@ -449,13 +380,87 @@ def main() -> None:
     print("-" * 60)
 
 
+def parse_args() -> argparse.Namespace:
+    """Create and configure the argument parser for CLI."""
+    parser = argparse.ArgumentParser(
+        description="Optuna Hyperparameter Tuning for Boolean GP",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--data-path", type=str, required=True, help="Path to HDF data file"
+    )
+    parser.add_argument(
+        "--n-trials",
+        type=int,
+        default=100,
+        help="Number of optimization trials for this run",
+    )
+    parser.add_argument(
+        "--max-n-trials",
+        type=int,
+        default=100,
+        help="Maximum number of optimization trials for this study",
+    )
+    parser.add_argument(
+        "--study-name",
+        type=str,
+        required=True,
+        help="Name for the Optuna study",
+    )
+    parser.add_argument(
+        "--storage-path",
+        type=str,
+        default="./optuna_study.db",
+        help="Path for SQLite database",
+    )
+    parser.add_argument(
+        "--artifact-dir",
+        type=str,
+        default="./artifacts",
+        help="Directory for storing trial artifacts (plots)",
+    )
+    parser.add_argument(
+        "--seed", type=int, default=42, help="Random seed for reproducibility"
+    )
+    parser.add_argument(
+        "--n-jobs", type=int, default=-1, help="Number of parallel jobs (-1 = all CPUs)"
+    )
+    parser.add_argument(
+        "--n-runs",
+        type=int,
+        default=10,
+        help="Number of Monte-Carlo runs for GPBenchmarker",
+    )
+    parser.add_argument(
+        "--n-folds",
+        type=int,
+        default=5,
+        help="Number of folds for k-fold cross-validation in GPBenchmarker",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Show progress bars for runs/folds/epochs",
+    )
+    # TODO: We should add a path to a configuration for hyperparameter suggestion.
+    # The best solution would be to have a yaml files for hyperparameter search.
+    # The most suitable solution would be to have a hyperparameter_config folder, with a default.yaml inside.
+    # And we can add later paysim.yaml, or pmbl.yaml, to support multiple hyperparameter search configurations.
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    main()
+    args = parse_args()
+    main(args)
 
 # Example usage:
 # python scripts/optuna_hypertuning.py --data-path data/PaySim.hdf
 #                                      --n-trials 100
-#                                      --study-name 3_tests_3_val_folds
+#                                      --study-name PaySim
+#                                      --verbose --artifact-dir ./artifacts
+# python scripts/optuna_hypertuning.py --data-path data/breast_cancer.hdf
+#                                      --n-trials 100
+#                                      --study-name pmlb_breast_cancer
 #                                      --verbose --artifact-dir ./artifacts
 # optuna-dashboard sqlite:///optuna_study.db --artifact-dir ./artifacts
 

@@ -39,13 +39,14 @@ Issues = "https://github.com/fii-optim-lab/hgp-lib/issues"
 
 
 [project.optional-dependencies]
-docs = [
+dev = [
     "mkdocs",
     "mkdocstrings[python]",
     "mkdocs-material",
-]
-dev = [
     "pytest",
     "flake8",
     "ruff",
+    "seaborn",
 ]
+[tool.ruff]
+exclude = [".venv"]
