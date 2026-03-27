@@ -26,7 +26,6 @@ def get_commands_for_datasets(dataset_names):
             f"--study-name pmlb_{dataset_name} "
             "--artifact-dir ./artifacts"
         )
-        # TODO: Implement skipping experiment if there already are n_trials experiments
         commands.append(cmd)
     return commands
 
