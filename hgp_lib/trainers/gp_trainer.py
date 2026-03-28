@@ -5,7 +5,7 @@ from tqdm import tqdm
 from ..algorithms import BooleanGP
 from ..configs import TrainerConfig, validate_trainer_config
 from ..metrics import GenerationMetrics, PopulationHistory
-from ..utils.metrics import optimize_scorer_for_data
+from ..utils.metrics import confusion_matrix, optimize_scorers_for_data
 
 
 class GPTrainer:
@@ -60,13 +60,17 @@ class GPTrainer:
 
         self.score_fn = self.gp_algo.score_fn  # Maybe optimized
         if config.val_data is not None and config.gp_config.optimize_scorer:
-            self.val_score_fn, self.val_data, self.val_labels = (
-                optimize_scorer_for_data(
-                    config.gp_config.score_fn, config.val_data, config.val_labels
+            self.val_score_fn, self.val_cm, self.val_data, self.val_labels = (
+                optimize_scorers_for_data(
+                    config.gp_config.score_fn,
+                    confusion_matrix,
+                    data=config.val_data,
+                    labels=config.val_labels,
                 )
             )
         else:
             self.val_score_fn = config.gp_config.score_fn
+            self.val_cm = confusion_matrix
             self.val_data = config.val_data
             self.val_labels = config.val_labels
 
@@ -120,8 +124,25 @@ class GPTrainer:
         if remaining_epochs > 0 and self.progress_callback is not None:
             self.progress_callback(remaining_epochs)
 
+        tp, fp, fn, tn = self.gp_algo.train_cm(
+            self.gp_algo.global_best_rule.evaluate(self.gp_algo.train_data),
+            self.gp_algo.train_labels,
+        )
+        val_tp, val_fp, val_fn, val_tn = None, None, None, None
+        if self.val_data is not None:
+            val_tp, val_fp, val_fn, val_tn = self.val_cm(
+                self.gp_algo.global_best_rule.evaluate(self.val_data), self.val_labels
+            )
         return PopulationHistory(
             generations=parent_generations,
+            tp=tp,
+            fp=fp,
+            fn=fn,
+            tn=tn,
+            val_tp=val_tp,
+            val_fp=val_fp,
+            val_fn=val_fn,
+            val_tn=val_tn,
             global_best_rule=self.gp_algo.global_best_rule,
         )
 

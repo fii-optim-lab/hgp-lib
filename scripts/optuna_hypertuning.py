@@ -302,7 +302,7 @@ def main(args: argparse.Namespace) -> None:
         try:
             save_pmlb_data(data_path.stem, str(data_path.parent))
         except FileNotFoundError:
-            logging.error(f"Dataset {data_path.stem} not found")
+            logging.error(f"Dataset {data_path.stem} not found in PMLB")
             traceback.print_exc()
             return
     data, labels = load_data(args.data_path)

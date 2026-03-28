@@ -13,7 +13,13 @@ class TestPopulationHistory(unittest.TestCase):
 
     def test_empty_history(self):
         """Test empty history has zero generations."""
-        ph = PopulationHistory(global_best_rule=Literal(value=0))
+        ph = PopulationHistory(
+            global_best_rule=Literal(value=0),
+            tp=0,
+            fp=0,
+            fn=0,
+            tn=0,
+        )
         self.assertEqual(len(ph.generations), 0)
 
     def test_with_generations(self):
@@ -27,6 +33,10 @@ class TestPopulationHistory(unittest.TestCase):
         )
         ph = PopulationHistory(
             global_best_rule=Literal(value=0),
+            tp=0,
+            fp=0,
+            fn=0,
+            tn=0,
             generations=[gen],
         )
         self.assertEqual(len(ph.generations), 1)
@@ -43,6 +53,10 @@ class TestPopulationHistory(unittest.TestCase):
         ph = PopulationHistory(
             global_best_rule=Literal(value=0),
             generations=[gen],
+            tp=0,
+            fp=0,
+            fn=0,
+            tn=0,
         )
         self.assertIsNone(ph.best_val_score)
 
@@ -69,6 +83,10 @@ class TestPopulationHistory(unittest.TestCase):
         ph = PopulationHistory(
             global_best_rule=Literal(value=0),
             generations=[gen1, gen2],
+            tp=0,
+            fp=0,
+            fn=0,
+            tn=0,
         )
         self.assertAlmostEqual(ph.best_val_score, 0.75)
 

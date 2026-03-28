@@ -1,7 +1,7 @@
 import inspect
 import warnings
 from functools import partial
-from typing import Callable, Set
+from typing import Callable, Set, Tuple, Any
 
 import numpy as np
 from numpy import ndarray
@@ -14,6 +14,24 @@ from hgp_lib.utils.validation import validate_callable
 
 # Track scorers that have already been warned about missing sample_weight support
 _warned_scorers: Set[int] = set()
+
+
+def confusion_matrix(
+    y_pred: np.ndarray, y_true: np.ndarray, sample_weight: np.ndarray | None = None
+) -> Tuple[int, int, int, int]:
+    if sample_weight is None:
+        tp = (y_pred & y_true).sum()
+        fp = (y_pred & ~y_true).sum()
+        total_true = y_true.sum()
+        fn = total_true - tp
+        tn = len(y_pred) - total_true - fp
+    else:
+        tp = ((y_pred & y_true) * sample_weight).sum()
+        fp = ((y_pred & ~y_true) * sample_weight).sum()
+        total_true = (y_true * sample_weight).sum()
+        fn = total_true - tp
+        tn = sample_weight.sum() - total_true - fp
+    return int(tp), int(fp), int(fn), int(tn)
 
 
 def fast_f1_score(
@@ -108,8 +126,8 @@ def transform_duplicates_to_sample_weight(data: ndarray, labels: ndarray):
     return Xy_unique[:, :-1], Xy_unique[:, -1], sample_weight
 
 
-def optimize_scorer_for_data(
-    scorer: Callable[[ndarray, ndarray], float], data: ndarray, labels: ndarray
+def optimize_scorers_for_data(
+    *scorers: Callable[[ndarray, ndarray], Any], data: ndarray, labels: ndarray
 ):
     """
     Optimize a scorer for the given data by deduplicating and using sample weights.
@@ -119,28 +137,31 @@ def optimize_scorer_for_data(
     scorer/data are returned.
 
     Args:
-        scorer (Callable[[ndarray, ndarray], float]): Scoring function (predictions, labels) -> float.
+        scorers (Callable[[ndarray, ndarray], float]): Scoring functions (predictions, labels) -> Any.
         data (ndarray): Input data array (2D).
         labels (ndarray): Labels array (1D).
 
     Returns:
         Tuple of (optimized_scorer, optimized_data, optimized_labels).
     """
-    validate_callable(scorer)
-    if not accepts_sample_weight(scorer):
-        # Only warn once per scorer function to avoid repeated warnings
-        scorer_id = id(scorer)
-        if scorer_id not in _warned_scorers:
-            _warned_scorers.add(scorer_id)
-            warnings.warn(
-                'The scorer must accept "sample_weight" to be optimized by '
-                "removing duplicates in the data. Scorer optimization is disabled "
-                "for this scorer.",
-                stacklevel=2,
-            )
-    else:
+    scorers_ok = True
+    for scorer in scorers:
+        validate_callable(scorer)
+        if not accepts_sample_weight(scorer):
+            scorers_ok = False
+            # Only warn once per scorer function to avoid repeated warnings
+            scorer_id = id(scorer)
+            if scorer_id not in _warned_scorers:
+                _warned_scorers.add(scorer_id)
+                warnings.warn(
+                    'The scorer must accept "sample_weight" to be optimized by '
+                    "removing duplicates in the data. Scorer optimization is disabled "
+                    "for this scorer.",
+                    stacklevel=2,
+                )
+    if scorers_ok:
         data, labels, sample_weight = transform_duplicates_to_sample_weight(
             data, labels
         )
-        scorer = partial(scorer, sample_weight=sample_weight)
-    return scorer, data, labels
+        scorers = [partial(scorer, sample_weight=sample_weight) for scorer in scorers]
+    return *scorers, data, labels

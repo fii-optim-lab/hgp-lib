@@ -89,6 +89,15 @@ def store_trial_attributes(
     )
     trial.set_user_attr("05_rule_complexity", len(best_rule))
 
+    # 06_confusion
+    trial.set_user_attr(
+        "06_train_cms", [run.train_confusion_matrix for run in result.runs]
+    )
+    trial.set_user_attr("06_val_cms", [run.val_confusion_matrix for run in result.runs])
+    trial.set_user_attr(
+        "06_test_cms", [run.test_confusion_matrix for run in result.runs]
+    )
+
 
 def upload_trial_artifacts(
     trial: optuna.Trial,
@@ -124,6 +133,8 @@ def upload_trial_artifacts(
                 fig.savefig(plot_path, dpi=150, bbox_inches="tight")
                 plt.close(fig)
 
+                # TODO: FutureWarning: upload_artifact() got {'study_or_trial', 'artifact_store', 'file_path'} as positional arguments but they were expected to be given as keyword arguments.
+                # ositional arguments ['study_or_trial', 'file_path', 'artifact_store'] in upload_artifact() have been deprecated since v4.0.0. They will be replaced with the corresponding keyword arguments in v6.0.0, so please use the keyword specification
                 upload_artifact(trial, plot_path, artifact_store)
 
             except Exception as e:
