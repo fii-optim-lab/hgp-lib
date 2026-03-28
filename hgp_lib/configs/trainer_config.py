@@ -75,7 +75,14 @@ def validate_trainer_config(config: TrainerConfig, require_data: bool = True) ->
         >>> config = TrainerConfig(gp_config=gp_config, num_epochs=10)
         >>> validate_trainer_config(config)  # No error
     """
+    if hasattr(config, "_validated_with_data"):
+        return
+
     validate_gp_config(config.gp_config, require_data=require_data)
+
+    if hasattr(config, "_validated_without_data"):
+        return
+
     check_isinstance(config.num_epochs, int)
     if config.num_epochs < 1:
         raise ValueError(
@@ -101,3 +108,8 @@ def validate_trainer_config(config: TrainerConfig, require_data: bool = True) ->
         raise ValueError(
             f"progress_update_interval must be a positive integer, is {config.progress_update_interval}"
         )
+
+    if require_data:
+        setattr(config, "_validated_with_data", True)
+    else:
+        setattr(config, "_validated_without_data", True)

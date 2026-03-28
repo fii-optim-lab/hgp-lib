@@ -1,11 +1,10 @@
 import random
-from typing import Sequence, Type, Tuple
+from typing import Type, Tuple
 
 import numpy as np
 
 from .base_mutation import Mutation
 from .utils import MutationError
-from ..utils.validation import validate_num_literals, validate_operator_types
 from ..rules import Rule, Or, And, Literal
 
 
@@ -184,7 +183,7 @@ class ReplaceLiteral(Mutation):
     def __init__(self, num_literals: int):
         super().__init__(is_literal_mutation=True, is_operator_mutation=False)
 
-        validate_num_literals(num_literals)
+        # num_literals was validated
 
         self.num_literals = num_literals
 
@@ -247,15 +246,15 @@ class PromoteLiteral(Mutation):
     """
 
     def __init__(
-        self, num_literals: int, operator_types: Sequence[Type[Rule]] = (Or, And)
+        self, num_literals: int, operator_types: Tuple[Type[Rule], ...] = (Or, And)
     ):
         super().__init__(is_literal_mutation=True, is_operator_mutation=False)
 
-        validate_num_literals(num_literals)
-        validate_operator_types(operator_types)
+        # num_literals was validated
+        # operator_types was validated
 
         self.num_literals = num_literals
-        self.operator_types: Tuple[Type[Rule], ...] = tuple(operator_types)
+        self.operator_types = operator_types
 
     def apply(self, rule: Rule):
         """
