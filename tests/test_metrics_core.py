@@ -1,91 +1,106 @@
-"""Unit tests for GenerationMetrics construction."""
+"""Unit tests for GenerationMetrics."""
 
+import doctest
 import unittest
+from dataclasses import replace
 
+import hgp_lib.metrics.core
 from hgp_lib.metrics.core import GenerationMetrics
 from hgp_lib.rules import Literal, And
 
 
 class TestGenerationMetrics(unittest.TestCase):
-    """Tests for GenerationMetrics construction and properties."""
-
-    def test_from_population_basic(self):
-        """Test basic construction computes all derived fields correctly."""
-        best_rule = And([Literal(value=1), Literal(value=2)])
-        train_scores = [0.7, 0.9]
-        complexities = [1, 3]
-
-        metrics = GenerationMetrics.from_population(
-            best_idx=1,
-            best_rule=best_rule,
-            train_scores=train_scores,
-            complexities=complexities,
-            child_population_generation_metrics=[],
-        )
-
-        self.assertEqual(metrics.population_size, 2)
-        self.assertEqual(metrics.complexities, [1, 3])
-        self.assertEqual(str(metrics.best_rule), "And(1, 2)")
-        self.assertAlmostEqual(metrics.best_train_score, 0.9)
-
-    def test_from_population_with_val_score(self):
-        """Test construction with validation score via replace."""
-        from dataclasses import replace
-
-        best_rule = Literal(value=0)
-        metrics = GenerationMetrics.from_population(
+    def _make(self, **kwargs):
+        defaults = dict(
             best_idx=0,
-            best_rule=best_rule,
+            best_rule=Literal(value=0),
             train_scores=[0.8],
             complexities=[1],
             child_population_generation_metrics=[],
         )
+        defaults.update(kwargs)
+        return GenerationMetrics.from_population(**defaults)
 
-        metrics_with_val = replace(metrics, val_score=0.6)
-        self.assertEqual(metrics_with_val.val_score, 0.6)
-        self.assertIsNone(metrics.val_score)
-
-    def test_hierarchical_metrics(self):
-        """Test construction with child population metrics."""
-        child = GenerationMetrics.from_population(
-            best_idx=0,
-            best_rule=Literal(value=0),
-            train_scores=[0.5],
-            complexities=[1],
-            child_population_generation_metrics=[],
+    # ------------------------------------------------------------------ #
+    #  from_population
+    # ------------------------------------------------------------------ #
+    def test_from_population_basic(self):
+        m = self._make(
+            best_idx=1,
+            best_rule=And([Literal(value=1), Literal(value=2)]),
+            train_scores=[0.7, 0.9],
+            complexities=[1, 3],
         )
+        self.assertEqual(m.population_size, 2)
+        self.assertAlmostEqual(m.best_train_score, 0.9)
+        self.assertEqual(str(m.best_rule), "And(1, 2)")
 
-        metrics = GenerationMetrics.from_population(
-            best_idx=0,
-            best_rule=Literal(value=0),
+    def test_from_population_val_score_is_none(self):
+        m = self._make()
+        self.assertIsNone(m.val_score)
+
+    def test_from_population_with_val_score(self):
+        m = replace(self._make(), val_score=0.6)
+        self.assertEqual(m.val_score, 0.6)
+
+    # ------------------------------------------------------------------ #
+    #  best_train_score
+    # ------------------------------------------------------------------ #
+    def test_best_train_score(self):
+        m = self._make(best_idx=2, train_scores=[0.3, 0.5, 0.9], complexities=[1, 2, 3])
+        self.assertAlmostEqual(m.best_train_score, 0.9)
+
+    def test_best_train_score_first(self):
+        m = self._make(best_idx=0, train_scores=[1.0, 0.5])
+        self.assertAlmostEqual(m.best_train_score, 1.0)
+
+    # ------------------------------------------------------------------ #
+    #  best_rule_complexity
+    # ------------------------------------------------------------------ #
+    def test_best_rule_complexity(self):
+        m = self._make(best_idx=1, train_scores=[0.3, 0.9], complexities=[1, 5])
+        self.assertEqual(m.best_rule_complexity, 5)
+
+    def test_best_rule_complexity_single(self):
+        m = self._make(best_idx=0, complexities=[7])
+        self.assertEqual(m.best_rule_complexity, 7)
+
+    # ------------------------------------------------------------------ #
+    #  population_size
+    # ------------------------------------------------------------------ #
+    def test_population_size(self):
+        m = self._make(train_scores=[0.1, 0.2, 0.3], complexities=[1, 2, 3])
+        self.assertEqual(m.population_size, 3)
+
+    def test_population_size_single(self):
+        m = self._make()
+        self.assertEqual(m.population_size, 1)
+
+    # ------------------------------------------------------------------ #
+    #  child_population_generation_metrics
+    # ------------------------------------------------------------------ #
+    def test_hierarchical_metrics(self):
+        child = self._make(train_scores=[0.5])
+        parent = self._make(
             train_scores=[0.7],
-            complexities=[1],
             child_population_generation_metrics=[child],
         )
-
-        self.assertEqual(len(metrics.child_population_generation_metrics), 1)
-
-    def test_best_train_score(self):
-        """Test best_train_score property."""
-        metrics = GenerationMetrics.from_population(
-            best_idx=1,
-            best_rule=Literal(value=1),
-            train_scores=[0.3, 0.9, 0.5],
-            complexities=[1, 3, 2],
-            child_population_generation_metrics=[],
+        self.assertEqual(len(parent.child_population_generation_metrics), 1)
+        self.assertAlmostEqual(
+            parent.child_population_generation_metrics[0].best_train_score,
+            0.5,
         )
-        self.assertAlmostEqual(metrics.best_train_score, 0.9)
 
-    def test_best_rule_complexity(self):
-        """Test best_rule_complexity property."""
-        metrics = GenerationMetrics.from_population(
-            best_idx=1,
-            best_rule=Literal(value=1),
-            train_scores=[0.3, 0.9],
-            complexities=[1, 5],
-            child_population_generation_metrics=[],
-        )
-        self.assertEqual(metrics.best_rule_complexity, 5)
+    def test_empty_children(self):
+        m = self._make()
+        self.assertEqual(len(m.child_population_generation_metrics), 0)
+
+    # ------------------------------------------------------------------ #
+    #  Doctests
+    # ------------------------------------------------------------------ #
+    def test_doctests(self):
+        result = doctest.testmod(hgp_lib.metrics.core, verbose=False)
+        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 if __name__ == "__main__":
