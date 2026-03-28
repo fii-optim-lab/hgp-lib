@@ -163,15 +163,6 @@ class TestMutations(unittest.TestCase):
         with self.subTest("Validate Constructor"):
             with self.assertRaises(TypeError):
                 mutation = ReplaceLiteral()
-            with self.assertRaises(TypeError):
-                mutation = ReplaceLiteral("x")
-            with self.assertRaises(TypeError):
-                mutation = ReplaceLiteral(1.0)
-            with self.assertRaises(TypeError):
-                mutation = ReplaceLiteral([1])
-
-            with self.assertRaises(ValueError):
-                mutation = ReplaceLiteral(-1)
 
         rule = Or(
             [
@@ -206,26 +197,6 @@ class TestMutations(unittest.TestCase):
         with self.subTest("Validate Constructor"):
             with self.assertRaises(TypeError):
                 mutation = PromoteLiteral()
-            with self.assertRaises(TypeError):
-                mutation = PromoteLiteral("x")
-            with self.assertRaises(TypeError):
-                mutation = PromoteLiteral(1.0)
-            with self.assertRaises(TypeError):
-                mutation = PromoteLiteral([1])
-
-            with self.assertRaises(ValueError):
-                mutation = PromoteLiteral(-1)
-
-            with self.assertRaises(TypeError):
-                mutation = PromoteLiteral(2, dict())
-
-            with self.assertRaises(ValueError):
-                mutation = PromoteLiteral(2, [])
-            with self.assertRaises(ValueError):
-                mutation = PromoteLiteral(2, [Or])
-
-            with self.assertRaises(TypeError):
-                mutation = PromoteLiteral(2, [Or, 1])
 
         mutation = PromoteLiteral(2, [Or, And])
 
@@ -271,20 +242,6 @@ class TestMutations(unittest.TestCase):
         self.assertEqual(str(rule), "And(4, 0, 1, 2, 3)")
 
     def test_replace_operator(self):
-        with self.subTest("Validate Constructor"):
-            with self.assertRaises(TypeError):
-                mutation = ReplaceOperator(1)
-            with self.assertRaises(TypeError):
-                mutation = ReplaceOperator(dict())
-
-            with self.assertRaises(ValueError):
-                mutation = ReplaceOperator([])
-            with self.assertRaises(ValueError):
-                mutation = ReplaceOperator([Or])
-
-            with self.assertRaises(TypeError):
-                mutation = ReplaceOperator([Or, 1])
-
         mutation = ReplaceOperator()
 
         self.assertFalse(mutation.is_literal_mutation)
@@ -307,18 +264,6 @@ class TestMutations(unittest.TestCase):
         self.assertTrue(rule.negated)
 
     def test_add_literal(self):
-        with self.subTest("Validate Constructor"):
-            with self.assertRaises(TypeError):
-                mutation = AddLiteral()
-            with self.assertRaises(TypeError):
-                mutation = AddLiteral("x")
-            with self.assertRaises(TypeError):
-                mutation = AddLiteral(1.0)
-            with self.assertRaises(TypeError):
-                mutation = AddLiteral([1])
-
-            with self.assertRaises(ValueError):
-                mutation = AddLiteral(-1)
 
         mutation = AddLiteral(5)
 
@@ -373,7 +318,7 @@ class TestMutations(unittest.TestCase):
                     def create_literal_mutations(
                         self, num_literals: int
                     ) -> Tuple[Mutation, ...]:
-                        return []
+                        return tuple()
 
                 BadMutationFactory().create(5)
 
@@ -395,7 +340,7 @@ class TestMutations(unittest.TestCase):
                     def create_operator_mutations(
                         self, num_literals: int
                     ) -> Tuple[Mutation, ...]:
-                        return []
+                        return tuple()
 
                 BadMutationFactory().create(5)
 
@@ -415,9 +360,9 @@ class TestMutations(unittest.TestCase):
 
                 class BadMutationFactory(MutationExecutorFactory):
                     def create_literal_mutations(
-                        self, num_literals: int
+                        self, num_literals: int, operator_types
                     ) -> Tuple[Mutation, ...]:
-                        return [_ToggleOperatorMutation()]
+                        return (_ToggleOperatorMutation(),)
 
                 BadMutationFactory().create(5)
 
@@ -426,11 +371,11 @@ class TestMutations(unittest.TestCase):
 
                 class BadMutationFactory(MutationExecutorFactory):
                     def create_operator_mutations(
-                        self, num_literals: int
+                        self, num_literals: int, operator_types
                     ) -> Tuple[Mutation, ...]:
-                        return [_IncrementLiteralMutation()]
+                        return (_IncrementLiteralMutation(),)
 
-                BadMutationFactory().create()
+                BadMutationFactory().create(5)
 
         with self.subTest("num_tries requires check_valid"):
             with self.assertRaises(ValueError):

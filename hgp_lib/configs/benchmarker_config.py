@@ -120,6 +120,9 @@ def validate_benchmarker_config(config: BenchmarkerConfig) -> None:
         ... )
         >>> validate_benchmarker_config(config)  # No error
     """
+    if hasattr(config, "_validated"):
+        return
+
     check_X_y(config.data, config.labels, x_type=DataFrame)
 
     # Validate trainer config (without requiring data in gp_config)
@@ -143,3 +146,5 @@ def validate_benchmarker_config(config: BenchmarkerConfig) -> None:
     check_isinstance(config.n_folds, int)
     if config.n_folds < 2:
         raise ValueError(f"n_folds must be at least 2, is {config.n_folds}")
+
+    setattr(config, "validated", True)

@@ -128,10 +128,17 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
         >>> config = BooleanGPConfig(score_fn=accuracy, train_data=data, train_labels=labels)
         >>> validate_gp_config(config)  # No error
     """
+    if hasattr(config, "_validated_with_data"):
+        return
+
     if require_data:
         if config.train_data is None or config.train_labels is None:
             raise ValueError("train_data and train_labels are required")
         check_X_y(config.train_data, config.train_labels)
+
+    if hasattr(config, "_validated_without_data"):
+        return
+
     validate_callable(config.score_fn)
 
     check_isinstance(config.population_factory, PopulationGeneratorFactory)
@@ -178,6 +185,12 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
         raise ValueError(
             f"top_k_transfer must be at least 1, is {config.top_k_transfer}"
         )
+    if config.top_k_transfer > config.population_factory.population_size:
+        raise ValueError(
+            f"top_k_transfer ({config.top_k_transfer}) must be less than"
+            f" or equal to population_size ({config.population_factory.population_size})"
+        )
+
     check_isinstance(config.feedback_type, str)
     if config.feedback_type not in ("additive", "multiplicative"):
         raise ValueError(
@@ -195,3 +208,8 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
         raise ValueError(
             f"complexity_penalty must be non-negative, is {config.complexity_penalty}"
         )
+
+    if require_data:
+        setattr(config, "_validated_with_data", True)
+    else:
+        setattr(config, "_validated_without_data", True)

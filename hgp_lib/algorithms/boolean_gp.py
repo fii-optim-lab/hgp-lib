@@ -77,35 +77,26 @@ class BooleanGP:
 
         self.current_depth = current_depth
         num_features = train_data.shape[1]
-        # TODO: Direct assignment
-        population_generator = config.population_factory.create(
+
+        self.population_generator = config.population_factory.create(
             num_features, score_fn, train_data, train_labels
         )
-        mutation_executor = config.mutation_factory.create(
+        self.mutation_executor = config.mutation_factory.create(
             num_features, config.check_valid
         )
 
-        crossover_executor = config.crossover_factory.create(config.check_valid)
+        self.crossover_executor = config.crossover_factory.create(config.check_valid)
 
         selection = config.selection
         if selection is None:
             selection = TournamentSelection()
 
-        self.population_generator = population_generator
-        self.mutation_executor = mutation_executor
-        self.crossover_executor = crossover_executor
         self.selection = selection
         self.regeneration = config.regeneration
         self.regeneration_patience = config.regeneration_patience
 
         self.population = self.population_generator.generate()
         self.population_size = len(self.population)
-
-        if config.top_k_transfer > self.population_size:
-            raise ValueError(
-                f"top_k_transfer ({config.top_k_transfer}) must be less than"
-                f" or equal to population_size ({self.population_size})"
-            )
         self._top_k = config.top_k_transfer
 
         self.best_score = -float("inf")
@@ -121,9 +112,7 @@ class BooleanGP:
         self._transfer_size: int = 0
         self.parent_rule_indices: List[int] = []
 
-        # TODO: We should always have num_child_populations > 0 if max_depth si greater than 0.
-        # Check if this is true and add the check.
-        if config.max_depth > current_depth and config.num_child_populations > 0:
+        if config.max_depth > current_depth:
             self._create_child_populations()
 
     def _create_child_populations(self) -> None:
@@ -133,12 +122,6 @@ class BooleanGP:
         behavior controlled by the replace parameter. Each SamplingResult in the
         returned list is used to configure one child population.
         """
-        if self.config.sampling_strategy is None:
-            # TODO: We should have checked this in the validate function for the config.
-            raise RuntimeError(
-                "Cannot create child populations without a sampling strategy"
-            )
-
         results = self.config.sampling_strategy.sample(
             self.train_data,
             self.train_labels,

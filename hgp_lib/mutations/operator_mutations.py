@@ -1,11 +1,10 @@
 import random
-from typing import Tuple, Type, Sequence
+from typing import Tuple, Type
 
 import numpy as np
 
 from .base_mutation import Mutation
 from .utils import MutationError
-from ..utils.validation import validate_num_literals, validate_operator_types
 from ..rules import Rule, Or, And, Literal
 
 
@@ -114,10 +113,12 @@ class ReplaceOperator(Mutation):
         Or(0, 1)
     """
 
-    def __init__(self, operator_types: Sequence[Type[Rule]] = (Or, And)):
+    def __init__(self, operator_types: Tuple[Type[Rule], ...] = (Or, And)):
         super().__init__(is_literal_mutation=False, is_operator_mutation=True)
-        validate_operator_types(operator_types)
-        self.operator_types: Tuple[Type[Rule], ...] = tuple(operator_types)
+
+        # operator_types was validated
+
+        self.operator_types = operator_types
 
     def apply(self, rule: Rule):
         """
@@ -175,7 +176,7 @@ class AddLiteral(Mutation):
     def __init__(self, num_literals: int):
         super().__init__(is_literal_mutation=False, is_operator_mutation=True)
 
-        validate_num_literals(num_literals)
+        # num_literals was validated
 
         self.num_literals = num_literals
         self.available_literals = set(range(num_literals))

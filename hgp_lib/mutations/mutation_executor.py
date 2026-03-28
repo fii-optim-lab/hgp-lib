@@ -1,5 +1,5 @@
 import random
-from typing import Callable, Sequence, Tuple, List
+from typing import Callable, Tuple, List
 
 import numpy as np
 
@@ -18,10 +18,10 @@ class MutationExecutor:
     times when a `check_valid` predicate is provided.
 
     Args:
-        literal_mutations (Sequence[Mutation]):
+        literal_mutations (Tuple[Mutation, ...]):
             Mutations that can be applied to literal nodes. The sequence must be non-empty and
             each entry must declare `is_literal_mutation=True`.
-        operator_mutations (Sequence[Mutation]):
+        operator_mutations (Tuple[Mutation, ...]):
             Mutations that can be applied to operator nodes. The sequence must be non-empty and
             each entry must declare `is_operator_mutation=True`.
         mutation_p (float):
@@ -58,8 +58,8 @@ class MutationExecutor:
 
     def __init__(
         self,
-        literal_mutations: Sequence[Mutation],
-        operator_mutations: Sequence[Mutation],
+        literal_mutations: Tuple[Mutation, ...],
+        operator_mutations: Tuple[Mutation, ...],
         mutation_p: float = 0.1,
         check_valid: Callable[[Rule], bool] | None = None,
         num_tries: int = 1,
@@ -69,9 +69,11 @@ class MutationExecutor:
         # check_valid was checked
         # num_tries was checked
         # operator_p was checked
+        # literal_mutations was checked
+        # operator_mutations was checked
         self.mutation_p: float = mutation_p
-        self.literal_mutations: Tuple[Mutation, ...] = tuple(literal_mutations)
-        self.operator_mutations: Tuple[Mutation, ...] = tuple(operator_mutations)
+        self.literal_mutations: Tuple[Mutation, ...] = literal_mutations
+        self.operator_mutations: Tuple[Mutation, ...] = operator_mutations
         self.check_valid: Callable[[Rule], bool] | None = check_valid
         self.num_tries: int = num_tries
         self.operator_p: float = operator_p

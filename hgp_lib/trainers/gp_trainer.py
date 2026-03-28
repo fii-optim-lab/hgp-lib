@@ -59,7 +59,6 @@ class GPTrainer:
         self.progress_callback = config.progress_callback
 
         self.score_fn = self.gp_algo.score_fn  # Maybe optimized
-        self._original_score_fn = self.gp_algo.original_score_fn
         if config.val_data is not None and config.gp_config.optimize_scorer:
             self.val_score_fn, self.val_data, self.val_labels = (
                 optimize_scorer_for_data(
@@ -125,3 +124,5 @@ class GPTrainer:
             generations=parent_generations,
             global_best_rule=self.gp_algo.global_best_rule,
         )
+
+    # TODO: Maybe we should add predict to allow using GPTrainer in sklearn pipelines
