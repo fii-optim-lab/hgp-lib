@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Set
 
 import numpy as np
 import pandas as pd
@@ -10,38 +10,41 @@ from hgp_lib.utils.validation import check_isinstance
 
 class StandardBinarizer:
     """
-    A binarizer that transforms mixed-type data into binary format.
+    Converts a mixed-type DataFrame into a purely boolean DataFrame.
 
-    This binarizer:
-    - Preserves boolean columns
-    - Converts categorical columns to one-hot encoding
-    - Bins numerical columns using:
-        * Quantile-based approach for unlabeled data
-        * Decision tree-based approach for labeled data
+    Boolean columns are passed through unchanged. Categorical columns are one-hot encoded
+    into one boolean column per unique value. Numeric columns are discretised into bins and
+    then one-hot encoded, using either quantile-based or decision-tree-based binning depending
+    on whether target labels are supplied.
 
-    Attributes:
-        num_bins (int): Number of bins for numerical features. Default: `5`.
-        column_strategy (dict): Custom binning strategy for specific columns.
-        categorical_values_ (dict): Stores unique values for each categorical column.
-        numerical_bins_ (dict): Stores bin edges for each numerical column.
+    After ``fit_transform`` the binarizer stores the learned bin edges and categorical
+    mappings so that ``transform`` can apply the same encoding to new data.
+
+    Args:
+        num_bins (int):
+            Default number of bins for numeric columns. Must be >= 2. Default: `5`.
+        column_strategy (dict[str, int] | None):
+            Per-column override for the number of bins. Keys are column names, values are
+            the desired bin count (each >= 2). Default: `None`.
+        precision (int):
+            Number of decimal places used when formatting numeric bin boundary names.
+            Must be >= 0. Default: `3`.
 
     Examples:
         >>> import pandas as pd
-        >>> import numpy as np
-        >>> np.random.seed(42)
-        >>> data = pd.DataFrame({
-        ...     'bool_col': [True, False, True, False],
-        ...     'cat_col': pd.Categorical(['A', 'B', 'A', 'C']),
-        ...     'num_col': [1.0, 2.0, 3.0, 4.0]
-        ... })
+        >>> from hgp_lib.preprocessing import StandardBinarizer
+        >>> df = pd.DataFrame({"flag": [True, False, True], "val": [1.0, 2.0, 3.0]})
         >>> binarizer = StandardBinarizer(num_bins=2)
-        >>> result = binarizer.fit_transform(data)
+        >>> result = binarizer.fit_transform(df)
+        >>> "flag" in result.columns
+        True
+        >>> result["flag"].tolist()
+        [True, False, True]
         >>> result
-           bool_col  cat_col=A  cat_col=B  cat_col=C  num_col < 2.500  2.500 <= num_col
-        0      True       True      False      False             True             False
-        1     False      False       True      False             True             False
-        2      True       True      False      False            False              True
-        3     False      False      False       True            False              True
+            flag  val < 2.000  2.000 <= val
+        0   True         True         False
+        1  False         True         False
+        2   True        False          True
     """
 
     def __init__(
@@ -50,44 +53,23 @@ class StandardBinarizer:
         column_strategy: Optional[dict[str, int]] = None,
         precision: int = 3,
     ):
-        """
-        Initialize the StandardBinarizer.
-
-        Args:
-            num_bins (int): Number of bins for numerical features. Default: `5`.
-            column_strategy (dict[str, int] | None): Custom binning strategy for specific columns.
-                Format: {column_name: num_bins}. Default: `None`.
-            precision (int): Number of decimals to be included in the column name for numerical columns.
-                Default: `3`.
-
-        Raises:
-            ValueError: If num_bins is less than 2 or if column_strategy is invalid.
-
-        Examples:
-            >>> binarizer = StandardBinarizer(num_bins=3, column_strategy={'num_col': 4})
-            >>> binarizer.num_bins
-            3
-            >>> binarizer.column_strategy
-            {'num_col': 4}
-        """
         self._validate_params(num_bins, column_strategy, precision)
         self.num_bins = num_bins
         self.column_strategy = column_strategy or {}
         self.precision = precision
-        # TODO: Update documentation
-        # TODO: Add precision strategy
-        self.column_precision = {}
-        self.categorical_values_ = {}
-        self.numerical_bins_ = {}
+        self.column_precision: dict[str, int] = {}
+
+        self._categorical_values: dict = {}
+        self._numerical_bins: dict = {}
+        self._columns = tuple()
         self._is_fitted = False
 
     def _validate_params(
         self, num_bins: int, column_strategy: Optional[dict[str, int]], precision: int
     ) -> None:
-        """Validate initialization parameters."""
         check_isinstance(num_bins, int)
         if num_bins < 2:
-            raise ValueError("num_bins must be an integer >= 2")
+            raise ValueError(f"num_bins must be an integer >= 2, is {num_bins}")
 
         if column_strategy is not None:
             check_isinstance(column_strategy, dict)
@@ -95,36 +77,46 @@ class StandardBinarizer:
                 check_isinstance(bins, int)
                 if bins < 2:
                     raise ValueError(
-                        f"Number of bins for column {col} must be an integer >= 2"
+                        f"Number of bins for column {col} must be an integer >= 2, is {bins}"
                     )
 
-        # TODO: Add tests
         check_isinstance(precision, int)
         if precision < 0:
-            raise ValueError("precision must be an integer >= 0")
+            raise ValueError(f"precision must be an integer >= 0, is {precision}")
 
     def _get_tree_based_bins(
         self, X: np.ndarray, y: np.ndarray, n_bins: int
     ) -> np.ndarray:
         """
-        Get bin edges using decision tree splits.
+        Compute bin edges for a single numeric feature using a decision-tree classifier.
+
+        The tree is trained to predict ``y`` from ``X`` and its internal split thresholds
+        become the bin boundaries. If ``X`` has one or fewer unique values, a single
+        ``[-inf, inf]`` bin is returned.
 
         Args:
-            X (np.ndarray): Input feature to be binned.
-            y (np.ndarray): Target values for supervised binning.
-            n_bins (int): Number of bins to create.
+            X (np.ndarray):
+                1-D array of feature values.
+            y (np.ndarray):
+                1-D array of target labels, same length as ``X``.
+            n_bins (int):
+                Maximum number of bins (passed as ``max_leaf_nodes`` to the tree).
 
         Returns:
-            numpy.ndarray: Array of bin edges including -inf and inf
+            np.ndarray: Sorted bin edges starting with ``-inf`` and ending with ``inf``.
 
         Examples:
-            >>> X = np.array([1, 2, 3, 4, 5, 6, 7, 8])
-            >>> y = np.array([0, 0, 0, 0, 1, 1, 1, 1])
-            >>> binarizer = StandardBinarizer(num_bins=2)
-            >>> binarizer._get_tree_based_bins(X, y, 2)
-            array([-inf,  4.5,  inf])
+            >>> import numpy as np
+            >>> from hgp_lib.preprocessing import StandardBinarizer
+            >>> b = StandardBinarizer()
+            >>> bins = b._get_tree_based_bins(
+            ...     np.array([1.0, 2.0, 3.0, 4.0]),
+            ...     np.array([0, 0, 1, 1]),
+            ...     n_bins=2,
+            ... )
+            >>> bins.tolist()
+            [-inf, 2.5, inf]
         """
-        # TODO: Check for improvements
         if len(np.unique(X)) <= 1:
             return np.array([-np.inf, np.inf])
 
@@ -138,20 +130,28 @@ class StandardBinarizer:
 
     def _get_quantile_based_bins(self, X: np.ndarray, n_bins: int) -> np.ndarray:
         """
-        Get bin edges using quantile-based approach.
+        Compute bin edges for a single numeric feature using quantile percentiles.
+
+        Edges are placed at evenly spaced quantiles. Duplicate edges are removed so the
+        actual number of bins may be fewer than ``n_bins`` when many values are identical.
+        If ``X`` has one or fewer unique values, a single ``[-inf, inf]`` bin is returned.
 
         Args:
-            X (np.ndarray): Input feature to be binned.
-            n_bins (int): Number of bins to create.
+            X (np.ndarray):
+                1-D array of feature values.
+            n_bins (int):
+                Desired number of bins.
 
         Returns:
-            numpy.ndarray: Array of bin edges including -inf and inf
+            np.ndarray: Sorted unique bin edges starting with ``-inf`` and ending with ``inf``.
 
         Examples:
-            >>> X = np.array([1, 2, 3, 4, 5, 6, 7, 8])
-            >>> binarizer = StandardBinarizer(num_bins=4)
-            >>> binarizer._get_quantile_based_bins(X, 4)
-            array([-inf, 2.75, 4.5 , 6.25,  inf])
+            >>> import numpy as np
+            >>> from hgp_lib.preprocessing import StandardBinarizer
+            >>> b = StandardBinarizer()
+            >>> bins = b._get_quantile_based_bins(np.array([1.0, 2.0, 3.0, 4.0]), n_bins=2)
+            >>> bins.tolist()
+            [-inf, 2.5, inf]
         """
         if len(np.unique(X)) <= 1:
             return np.array([-np.inf, np.inf])
@@ -162,48 +162,105 @@ class StandardBinarizer:
         bins[-1] = np.inf
         return np.unique(bins)
 
+    def _ensure_unique_column_names(
+        self, column_names: Set[str], new_column_name: str
+    ) -> str:
+        """
+        Register ``new_column_name`` in ``column_names``, appending a numeric suffix if the
+        name already exists to avoid collisions.
+
+        The set is mutated in place: the chosen (possibly suffixed) name is added before
+        returning.
+
+        Args:
+            column_names (Set[str]):
+                Mutable set of names already in use.
+            new_column_name (str):
+                Desired column name.
+
+        Returns:
+            str: The original name if it was unique, otherwise a suffixed variant.
+
+        Examples:
+            >>> from hgp_lib.preprocessing import StandardBinarizer
+            >>> b = StandardBinarizer()
+            >>> names = set(["col", "col_0"])
+            >>> b._ensure_unique_column_names(names, "col")
+            'col_1'
+            >>> "col_1" in names
+            True
+        """
+        if new_column_name not in column_names:
+            column_names.add(new_column_name)
+            return new_column_name
+        for i in range(1_000):
+            version_i = f"{new_column_name}_{i}"
+            if version_i not in column_names:
+                column_names.add(version_i)
+                return version_i
+        # If we didn't find a unique column name by trying 1000 indices,
+        # We will use a random string extension until we find a string we didn't visit before
+        new_column_name = new_column_name + "_rand"
+        while True:
+            random_i = np.random.randint(len(column_names))
+            new_column_name = f"{new_column_name}_{random_i}"
+            if new_column_name not in column_names:
+                column_names.add(new_column_name)
+                return new_column_name
+
     def fit_transform(
         self, X: pd.DataFrame, y: Optional[np.ndarray] = None
     ) -> pd.DataFrame:
         """
-        Fit the binarizer and transform the input data.
+        Learn the binarisation mapping from ``X`` (and optionally ``y``) and return the
+        transformed boolean DataFrame.
+
+        When ``y`` is provided, numeric columns are binned using a decision-tree strategy
+        that maximises class separation. Otherwise, quantile-based binning is used.
 
         Args:
-            X (pd.DataFrame): Input data to be transformed.
-            y (np.ndarray | None): Target values for supervised binning of numerical features. Default: `None`.
+            X (pd.DataFrame):
+                Input DataFrame whose columns are boolean, categorical, or numeric.
+            y (np.ndarray | None):
+                Optional target labels used for supervised (tree-based) binning of numeric
+                columns. Default: `None`.
 
         Returns:
-            pandas.DataFrame: Transformed binary data
+            pd.DataFrame: A DataFrame with only boolean columns.
 
         Raises:
-            ValueError: If X is not a pandas DataFrame
+            TypeError: If ``X`` is not a DataFrame.
+            ValueError: If a column has an unsupported dtype.
 
         Examples:
-            >>> data = pd.DataFrame({
-            ...     'bool_col': [True, False, True, False],
-            ...     'cat_col': pd.Categorical(['A', 'B', 'A', 'C']),
-            ...     'num_col': [1.0, 2.0, 3.0, 4.0]
-            ... })
+            >>> import numpy as np
+            >>> import pandas as pd
+            >>> from hgp_lib.preprocessing import StandardBinarizer
+            >>> df = pd.DataFrame({"x": [1.0, 2.0, 3.0, 4.0]})
             >>> binarizer = StandardBinarizer(num_bins=2)
-            >>> result = binarizer.fit_transform(data)
-            >>> result.columns.tolist()
-            ['bool_col', 'cat_col=A', 'cat_col=B', 'cat_col=C', 'num_col < 2.500', '2.500 <= num_col']
-            >>> result.dtypes.unique()
-            array([dtype('bool')], dtype=object)
+            >>> result = binarizer.fit_transform(df)
+            >>> result.shape
+            (4, 2)
+            >>> all(result.dtypes == bool)
+            True
         """
-        # TODO: Check for improvements
         check_isinstance(X, pd.DataFrame)
-        result = pd.DataFrame(index=X.index)
+        columns = {}
+        column_names = set()
 
         for column in X.columns:
             if is_bool_dtype(X[column]):
-                result[column] = X[column]
+                new_column_name = self._ensure_unique_column_names(column_names, column)
+                columns[new_column_name] = X[column]
 
             elif isinstance(X[column].dtype, pd.CategoricalDtype):
                 unique_values = X[column].unique()
-                self.categorical_values_[column] = unique_values
+                self._categorical_values[column] = unique_values
                 for value in unique_values:
-                    result[f"{column}={value}"] = X[column] == value
+                    new_column_name = self._ensure_unique_column_names(
+                        column_names, f"{column}={value}"
+                    )
+                    columns[new_column_name] = X[column] == value
 
             elif is_numeric_dtype(X[column]):
                 n_bins = self.column_strategy.get(column, self.num_bins)
@@ -214,34 +271,66 @@ class StandardBinarizer:
                     else self._get_quantile_based_bins(X[column].values, n_bins)
                 )
 
-                self.numerical_bins_[column] = bins
+                self._numerical_bins[column] = bins
 
                 binned_values = pd.cut(
                     X[column], bins=bins, labels=False, include_lowest=True
                 )
-                import warnings
-
-                # TODO: Fix this
-                warnings.simplefilter(
-                    action="ignore", category=pd.errors.PerformanceWarning
-                )
 
                 for bin_idx in range(len(bins) - 1):
-                    result[
-                        self._format_numeric_bin_name(
-                            column, bins[bin_idx], bins[bin_idx + 1]
-                        )
-                    ] = binned_values == bin_idx
+                    new_column_name = self._format_numeric_bin_name(
+                        column, bins[bin_idx], bins[bin_idx + 1]
+                    )
+                    new_column_name = self._ensure_unique_column_names(
+                        column_names, new_column_name
+                    )
+                    columns[new_column_name] = binned_values == bin_idx
 
             else:
                 raise ValueError(
                     f"Unsupported column type for column {column} of type {X[column].dtype}"
                 )
 
+        self._original_columns = X.columns
+        self._columns = tuple(columns.keys())
         self._is_fitted = True
-        return result
+        return pd.DataFrame(columns, index=X.index)
 
     def _format_numeric_bin_name(self, column: str, left: float, right: float) -> str:
+        """
+        Build a human-readable label for a numeric bin.
+
+        The format depends on whether the left or right boundary is infinite:
+
+        - Left is ``-inf``: ``"column < right"``
+        - Right is ``inf``: ``"left <= column"``
+        - Both finite: ``"left <= column < right"``
+
+        Boundary values are formatted using the precision configured for the column
+        (falling back to ``self.precision``).
+
+        Args:
+            column (str):
+                Name of the original numeric column.
+            left (float):
+                Left (inclusive) boundary of the bin.
+            right (float):
+                Right (exclusive) boundary of the bin.
+
+        Returns:
+            str: Formatted bin label.
+
+        Examples:
+            >>> from hgp_lib.preprocessing import StandardBinarizer
+            >>> import numpy as np
+            >>> b = StandardBinarizer(precision=2)
+            >>> b._format_numeric_bin_name("x", -np.inf, 3.0)
+            'x < 3.00'
+            >>> b._format_numeric_bin_name("x", 1.0, np.inf)
+            '1.00 <= x'
+            >>> b._format_numeric_bin_name("x", 1.0, 3.0)
+            '1.00 <= x < 3.00'
+        """
         precision = self.column_precision.get(column, self.precision)
         if np.isneginf(left):
             return f"{column} < {right:.{precision}f}"
@@ -251,69 +340,76 @@ class StandardBinarizer:
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
-        Transform new data using the fitted binarizer.
+        Apply the previously learned binarisation to new data.
+
+        The binarizer must have been fitted via ``fit_transform`` before calling this method.
+        The input DataFrame must have the same columns (in the same order and with the same
+        dtypes) as the one used during fitting.
 
         Args:
-            X (pd.DataFrame): Input data to transform.
+            X (pd.DataFrame):
+                Input DataFrame with the same schema as the fitting data.
 
         Returns:
-            pandas.DataFrame: Transformed binary data
+            pd.DataFrame: A boolean DataFrame with the same column layout as the fitted output.
 
         Raises:
-            ValueError: If X is not a pandas DataFrame or if binarizer is not fitted
+            TypeError: If ``X`` is not a DataFrame.
+            ValueError: If the binarizer has not been fitted yet, or if a column has an
+                unsupported dtype.
 
         Examples:
-            >>> train_data = pd.DataFrame({
-            ...     'bool_col': [True, False, True, False],
-            ...     'cat_col': pd.Categorical(['A', 'B', 'A', 'C']),
-            ...     'num_col': [1.0, 2.0, 3.0, 4.0]
-            ... })
+            >>> import pandas as pd
+            >>> from hgp_lib.preprocessing import StandardBinarizer
+            >>> train = pd.DataFrame({"x": [1.0, 2.0, 3.0, 4.0]})
             >>> binarizer = StandardBinarizer(num_bins=2)
-            >>> _ = binarizer.fit_transform(train_data)
-            >>> new_data = pd.DataFrame({
-            ...     'bool_col': [True, False],
-            ...     'cat_col': pd.Categorical(['B', 'C']),
-            ...     'num_col': [1.5, 3.5]
-            ... })
-            >>> result = binarizer.transform(new_data)
-            >>> result
-               bool_col  cat_col=A  cat_col=B  cat_col=C  num_col < 2.500  2.500 <= num_col
-            0      True      False       True      False             True             False
-            1     False      False      False       True            False              True
+            >>> _ = binarizer.fit_transform(train)
+            >>> test = pd.DataFrame({"x": [1.5, 3.5]})
+            >>> result = binarizer.transform(test)
+            >>> result.shape
+            (2, 2)
         """
         check_isinstance(X, pd.DataFrame)
 
         if not self._is_fitted:
             raise ValueError("Binarizer must be fitted before calling transform")
+        if not self._original_columns.equals(X.columns):
+            raise RuntimeError(
+                f"Original columns do not match current columns. "
+                f"Original columns: {self._original_columns}. Current columns: {X.columns}."
+            )
 
-        result = pd.DataFrame(index=X.index)
+        columns = {}
+        column_index = 0
 
         for column in X.columns:
             if is_bool_dtype(X[column]):
-                result[column] = X[column]
+                column_name = self._columns[column_index]
+                column_index += 1
+                columns[column_name] = X[column]
 
             elif isinstance(X[column].dtype, pd.CategoricalDtype):
-                for value in self.categorical_values_[column]:
-                    result[f"{column}={value}"] = X[column] == value
+                for value in self._categorical_values[column]:
+                    column_name = self._columns[column_index]
+                    column_index += 1
+                    columns[column_name] = X[column] == value
 
             elif is_numeric_dtype(X[column]):
-                bins = self.numerical_bins_[column]
+                bins = self._numerical_bins[column]
                 binned_values = pd.cut(
                     X[column], bins=bins, labels=False, include_lowest=True
                 )
                 for bin_idx in range(len(bins) - 1):
-                    result[
-                        self._format_numeric_bin_name(
-                            column, bins[bin_idx], bins[bin_idx + 1]
-                        )
-                    ] = binned_values == bin_idx
+                    column_name = self._columns[column_index]
+                    column_index += 1
+                    columns[column_name] = binned_values == bin_idx
 
             else:
                 raise ValueError(
                     f"Unsupported column type for column {column} of type {X[column].dtype}"
                 )
 
-        return result
+        return pd.DataFrame(columns, index=X.index)
 
 
 if __name__ == "__main__":
