@@ -40,45 +40,29 @@ class GPBenchmarker:
             options. See `BenchmarkerConfig` for more details.
 
     Examples:
-        Basic usage with scorer optimization::
-
-            import numpy as np
-            import pandas as pd
-            from hgp_lib.configs import BooleanGPConfig, TrainerConfig, BenchmarkerConfig
-            from hgp_lib.benchmarkers import GPBenchmarker
-
-            def f1_score(predictions, labels, sample_weight=None):
-                if sample_weight is None:
-                    tp = (predictions & labels).sum()
-                    pred_sum, label_sum = predictions.sum(), labels.sum()
-                else:
-                    tp = np.dot(predictions & labels, sample_weight)
-                    pred_sum = np.dot(predictions, sample_weight)
-                    label_sum = np.dot(labels, sample_weight)
-                if pred_sum == 0 or label_sum == 0:
-                    return 1.0 if pred_sum == label_sum == 0 else 0.0
-                return 2 * tp / (pred_sum + label_sum)
-
-            data = pd.DataFrame(...)  # raw features (bool / categorical / numeric)
-            labels = np.array(...)    # 1-D target array
-
-            # Create template configs (data will be binarized and set per fold)
-            gp_config = BooleanGPConfig(score_fn=f1_score, optimize_scorer=True)
-            trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=100)
-
-            # Create benchmarker config (binarizer=None -> default StandardBinarizer)
-            config = BenchmarkerConfig(
-                data=data,
-                labels=labels,
-                trainer_config=trainer_config,
-            )
-            benchmarker = GPBenchmarker(config)
-            result = benchmarker.fit()
-
-            # Get the best rule
-            best_rule = result.best_rule
-            best_run = result.best_run
-            print(best_rule.to_str(best_run.feature_names))
+        >>> import numpy as np
+        >>> import pandas as pd
+        >>> from hgp_lib.configs import BooleanGPConfig, TrainerConfig, BenchmarkerConfig
+        >>> from hgp_lib.benchmarkers import GPBenchmarker
+        >>> from hgp_lib.rules import Rule
+        >>> data = pd.DataFrame({
+        ...     "f1": [True, False, True, False, True, False, True, False],
+        ...     "f2": [False, True, True, False, False, True, True, False],
+        ... })
+        >>> labels = np.array([1, 0, 1, 0, 1, 0, 1, 0])
+        >>> def acc(p, l): return float((p == l).mean())
+        >>> gp_config = BooleanGPConfig(score_fn=acc, optimize_scorer=False)
+        >>> trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=3, progress_bar=False)
+        >>> config = BenchmarkerConfig(
+        ...     data=data, labels=labels, trainer_config=trainer_config,
+        ...     num_runs=2, n_folds=2, n_jobs=1,
+        ... )
+        >>> benchmarker = GPBenchmarker(config)
+        >>> result = benchmarker.fit()
+        >>> len(result.runs)
+        2
+        >>> isinstance(result.best_rule, Rule)
+        True
     """
 
     def __init__(self, config: BenchmarkerConfig):
@@ -94,6 +78,21 @@ class GPBenchmarker:
 
         Returns:
             int: The number of parallel workers to use (always >= 1).
+
+        Examples:
+            >>> import numpy as np
+            >>> import pandas as pd
+            >>> from hgp_lib.configs import BooleanGPConfig, TrainerConfig, BenchmarkerConfig
+            >>> from hgp_lib.benchmarkers import GPBenchmarker
+            >>> data = pd.DataFrame({"f": [True, False, True, False, True, False, True, False]})
+            >>> labels = np.array([1, 0, 1, 0, 1, 0, 1, 0])
+            >>> def acc(p, l): return float((p == l).mean())
+            >>> gp = BooleanGPConfig(score_fn=acc, optimize_scorer=False)
+            >>> tc = TrainerConfig(gp_config=gp, num_epochs=1, progress_bar=False)
+            >>> cfg = BenchmarkerConfig(data=data, labels=labels, trainer_config=tc,
+            ...     num_runs=3, n_folds=2, n_jobs=1)
+            >>> GPBenchmarker(cfg)._effective_n_jobs()
+            1
         """
         n_jobs = self.config.n_jobs
         if n_jobs < 0:
