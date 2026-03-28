@@ -148,43 +148,65 @@ class BooleanGP:
 
     def step(self) -> GenerationMetrics:
         """
-        Performs one training step (generation) of the genetic programming algorithm.
+        Perform one training step (generation) of the genetic programming algorithm.
 
-        Uses the training data and labels from the config. Each step applies crossover
-        to create offspring, mutates the population, evaluates all rules, updates the
-        best rule, and selects individuals for the next generation. If regeneration
-        is enabled and no improvement has been observed for `regeneration_patience`
-        epochs, the population is regenerated.
+        Each step applies crossover to create offspring, mutates the population, evaluates
+        all rules, updates the best rule, and selects individuals for the next generation.
+        If regeneration is enabled and no improvement has been observed for
+        ``regeneration_patience`` epochs, the population is regenerated.
 
         Returns:
             GenerationMetrics: Metrics for this generation including rules, scores, etc.
+
+        Examples:
+            >>> import numpy as np
+            >>> from hgp_lib.configs import BooleanGPConfig
+            >>> from hgp_lib.algorithms import BooleanGP
+            >>> def accuracy(predictions, labels):
+            ...     return np.mean(predictions == labels)
+            >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
+            >>> labels = np.array([1, 0, 1, 0])
+            >>> config = BooleanGPConfig(
+            ...     score_fn=accuracy, train_data=data, train_labels=labels,
+            ...     optimize_scorer=False,
+            ... )
+            >>> gp = BooleanGP(config)
+            >>> metrics = gp.step()
+            >>> isinstance(metrics.best_train_score, float)
+            True
+            >>> len(metrics.train_scores) > 0
+            True
         """
-        # TODO: Add doctests here.
-        self.forward()
-        return self.backward()
+        self._forward()
+        return self._backward()
 
-    def forward(self) -> None:
+    def _forward(self) -> None:
         """
-        Performs the forward pass of the genetic programming algorithm.
+        Perform the forward pass: collect child rules, apply crossover, then mutate.
 
-        The forward pass consists of:
-        1. Recursively calling forward() on all child populations
-        2. Collecting rules from child populations with their feature mappings
-        3. Applying crossover to create offspring (combining rules from current
-           and child populations)
-        4. Applying mutations to the expanded population
+        Recursively calls ``_forward()`` on all child populations, collects their top-K
+        rules into a crossover pool alongside the current population, produces offspring
+        via crossover, and applies mutations to the expanded population.
 
-        In hierarchical GP, child populations may operate on different feature
-        subsets. Their rules are translated to the parent's feature space via
-        feature mappings before crossover.
-
-        This method updates:
-            - self._transfer_size: Total number of rules transferred from children
-            - self.parent_rule_indices: Indices tracking which parents contributed to children
-            - self.population: Extended with new offspring from crossover
+        Examples:
+            >>> import numpy as np
+            >>> from hgp_lib.configs import BooleanGPConfig
+            >>> from hgp_lib.algorithms import BooleanGP
+            >>> def accuracy(p, l): return np.mean(p == l)
+            >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
+            >>> labels = np.array([1, 0, 1, 0])
+            >>> config = BooleanGPConfig(
+            ...     score_fn=accuracy, train_data=data, train_labels=labels,
+            ...     optimize_scorer=False,
+            ... )
+            >>> gp = BooleanGP(config)
+            >>> pop_before = len(gp.population)
+            >>> gp._forward()
+            >>> len(gp.population) >= pop_before
+            True
         """
         for child in self.child_populations:
-            child.forward()
+            child._forward()
 
         crossover_pool = []
         feature_mappings = []
@@ -203,29 +225,38 @@ class BooleanGP:
         self.population += offspring
         self.mutation_executor.apply(self.population)
 
-    def backward(self, parent_scores: ndarray | None = None) -> GenerationMetrics:
+    def _backward(self, parent_scores: ndarray | None = None) -> GenerationMetrics:
         """
-        Performs the backward pass of the genetic programming algorithm.
+        Perform the backward pass: evaluate, propagate feedback, and select the next generation.
 
-        The backward pass consists of:
-        1. Evaluating all rules in the population against training data
-        2. Adding any scores propagated from parent populations (in hierarchical GP)
-        3. Propagating scores to child populations based on their contributions
-        4. Recursively calling backward() on child populations
-        5. Creating the next generation via selection
-
-        In hierarchical GP, scores flow bidirectionally: parent populations receive
-        rules from children during crossover (forward), and children receive fitness
-        signals based on how well their contributed rules performed (backward).
+        Evaluates all rules against training data, optionally incorporates feedback from a
+        parent population, propagates signals to child populations, and creates the next
+        generation via selection.
 
         Args:
-            parent_scores (ndarray | None): Optional scores propagated from a parent
-                population. These are added to the local evaluation scores. Used in
-                hierarchical GP to reward child rules that contributed to successful
-                offspring in the parent. Default: None.
+            parent_scores (ndarray | None):
+                Optional scores propagated from a parent population. Used in hierarchical GP
+                to reward child rules that contributed to successful offspring. Default: `None`.
 
         Returns:
             GenerationMetrics: Metrics for this generation.
+
+        Examples:
+            >>> import numpy as np
+            >>> from hgp_lib.configs import BooleanGPConfig
+            >>> from hgp_lib.algorithms import BooleanGP
+            >>> def accuracy(p, l): return np.mean(p == l)
+            >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
+            >>> labels = np.array([1, 0, 1, 0])
+            >>> config = BooleanGPConfig(
+            ...     score_fn=accuracy, train_data=data, train_labels=labels,
+            ...     optimize_scorer=False,
+            ... )
+            >>> gp = BooleanGP(config)
+            >>> gp._forward()
+            >>> metrics = gp._backward()
+            >>> isinstance(metrics.best_train_score, float)
+            True
         """
         scores = self.evaluate_population(
             self.train_data, self.train_labels, self.score_fn
@@ -238,7 +269,7 @@ class BooleanGP:
         if self.child_populations:
             child_feedbacks = self._generate_child_feedback(scores)
             for child, feedback in zip(self.child_populations, child_feedbacks):
-                children_metrics.append(child.backward(feedback))
+                children_metrics.append(child._backward(feedback))
 
         return self._new_generation(scores, children_metrics)
 
@@ -353,15 +384,40 @@ class BooleanGP:
     def _compute_regularized_scores(
         self, scores: ndarray, complexities: List[int]
     ) -> ndarray:
-        """Compute regularized scores with complexity penalty.
+        """
+        Compute regularized scores: ``score - complexity_penalty * ln(complexity)``.
 
-        regularized_score = score - complexity_penalty * ln(complexity)
+        When ``complexity_penalty`` is zero, returns ``scores`` unchanged.
 
         Args:
-            scores (ndarray): Scores for the population.
+            scores (ndarray):
+                Raw fitness scores for the population.
+            complexities (List[int]):
+                Number of nodes in each rule.
 
         Returns:
             ndarray: Regularized scores for selection.
+
+        Examples:
+            >>> import numpy as np
+            >>> from hgp_lib.configs import BooleanGPConfig
+            >>> from hgp_lib.algorithms import BooleanGP
+            >>> def accuracy(p, l): return np.mean(p == l)
+            >>> data = np.array([[True, False], [False, True]])
+            >>> labels = np.array([1, 0])
+            >>> config = BooleanGPConfig(
+            ...     score_fn=accuracy, train_data=data, train_labels=labels,
+            ...     optimize_scorer=False,
+            ... )
+            >>> gp = BooleanGP(config)
+            >>> gp.complexity_penalty = 0.0
+            >>> scores = np.array([0.9, 0.8])
+            >>> np.allclose(gp._compute_regularized_scores(scores, [3, 5]), scores)
+            True
+            >>> gp.complexity_penalty = 0.1
+            >>> reg = gp._compute_regularized_scores(np.array([1.0, 1.0]), [3, 5])
+            >>> bool(reg[0] > reg[1])
+            True
         """
         if self.complexity_penalty == 0:
             return scores
@@ -437,18 +493,37 @@ class BooleanGP:
         score_fn: Callable[[ndarray, ndarray], float],
     ) -> ndarray:
         """
-        Evaluates all rules in the population against the given data.
+        Evaluate all rules in the population against the given data.
 
         Args:
-            data (ndarray): Data to evaluate rules on (2D boolean array).
-            labels (ndarray): True labels (1D integer array).
-            score_fn (Callable): Function to compute fitness scores.
+            data (ndarray):
+                Data to evaluate rules on (2D boolean array).
+            labels (ndarray):
+                True labels (1D integer array).
+            score_fn (Callable[[ndarray, ndarray], float]):
+                Function to compute fitness scores.
 
         Returns:
             ndarray: Array of fitness scores, one for each rule in the population.
 
-        Note:
-            TODO: we should also support batched evaluation or free-threaded evaluation if needed.
+        Examples:
+            >>> import numpy as np
+            >>> from hgp_lib.configs import BooleanGPConfig
+            >>> from hgp_lib.algorithms import BooleanGP
+            >>> def accuracy(predictions, labels):
+            ...     return np.mean(predictions == labels)
+            >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
+            >>> labels = np.array([1, 0, 1, 0])
+            >>> config = BooleanGPConfig(
+            ...     score_fn=accuracy, train_data=data, train_labels=labels,
+            ...     optimize_scorer=False,
+            ... )
+            >>> gp = BooleanGP(config)
+            >>> scores = gp.evaluate_population(data, labels, accuracy)
+            >>> len(scores) == len(gp.population)
+            True
+            >>> all(0.0 <= s <= 1.0 for s in scores)
+            True
         """
         return np.array(
             [score_fn(rule.evaluate(data), labels) for rule in self.population]
@@ -456,18 +531,38 @@ class BooleanGP:
 
     def _update_best(self, current_best: float, current_best_rule: Rule):
         """
-        Updates the best rule tracking based on the current generation's best.
+        Update the best rule tracking based on the current generation's best.
 
-        If the current best score is greater than or equal to the stored best score,
-        updates the current run's best. Otherwise, increments the counter for epochs
-        without improvement.
+        If ``current_best`` is greater than or equal to the stored best score, resets the
+        stagnation counter and stores the new best. Otherwise, increments the counter.
 
         Args:
             current_best (float):
                 The best fitness score from the current generation.
             current_best_rule (Rule):
-                The rule that achieved the best score in the current generation.
-                This rule will be copied when stored.
+                The rule that achieved the best score.
+
+        Examples:
+            >>> import numpy as np
+            >>> from hgp_lib.configs import BooleanGPConfig
+            >>> from hgp_lib.algorithms import BooleanGP
+            >>> from hgp_lib.rules import Literal
+            >>> def accuracy(p, l): return np.mean(p == l)
+            >>> data = np.array([[True, False], [False, True]])
+            >>> labels = np.array([1, 0])
+            >>> config = BooleanGPConfig(
+            ...     score_fn=accuracy, train_data=data, train_labels=labels,
+            ...     optimize_scorer=False,
+            ... )
+            >>> gp = BooleanGP(config)
+            >>> gp._update_best(0.8, Literal(value=0))
+            >>> gp.best_score
+            0.8
+            >>> gp._update_best(0.5, Literal(value=1))
+            >>> gp.best_score
+            0.8
+            >>> gp.best_not_improved_epochs
+            1
         """
         if current_best >= self.best_score:
             self.best_not_improved_epochs = 0
@@ -486,23 +581,42 @@ class BooleanGP:
         score_fn: Callable[[ndarray, ndarray], float] | None = None,
     ) -> float:
         """
-        Evaluates the best rule on validation or test data.
+        Evaluate the global best rule on validation or test data.
 
         Args:
-            data (ndarray): Validation/test data (2D boolean array).
-            labels (ndarray): Validation/test labels (1D integer array).
-            score_fn (Callable | None): Optional; uses original score_fn if None.
-                Note: Uses the original (non-optimized) scorer by default since
-                the optimized scorer has sample_weight bound to training data.
-                Default: `None`.
+            data (ndarray):
+                Validation/test data (2D boolean array).
+            labels (ndarray):
+                Validation/test labels (1D integer array).
+            score_fn (Callable[[ndarray, ndarray], float] | None):
+                Optional scoring function. Uses the original (non-optimized) scorer when
+                ``None``, since the optimized scorer has ``sample_weight`` bound to training
+                data. Default: `None`.
 
         Returns:
-            float: best_score
+            float: Score of the global best rule on the provided data.
 
         Raises:
             RuntimeError: If no best rule is available (run at least one step first).
+
+        Examples:
+            >>> import numpy as np
+            >>> from hgp_lib.configs import BooleanGPConfig
+            >>> from hgp_lib.algorithms import BooleanGP
+            >>> def accuracy(predictions, labels):
+            ...     return np.mean(predictions == labels)
+            >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
+            >>> labels = np.array([1, 0, 1, 0])
+            >>> config = BooleanGPConfig(
+            ...     score_fn=accuracy, train_data=data, train_labels=labels,
+            ...     optimize_scorer=False,
+            ... )
+            >>> gp = BooleanGP(config)
+            >>> _ = gp.step()
+            >>> score = gp.evaluate_best(data, labels)
+            >>> isinstance(score, float)
+            True
         """
-        # TODO: Add doctests here.
         if self.global_best_rule is None:
             raise RuntimeError("No best rule available. Run at least one step first.")
 
