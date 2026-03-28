@@ -84,7 +84,7 @@ def execute_single_run(
     )
 
     best_fold_idx = 0
-    best_val_score = -float("inf")
+    best_fold_score = -float("inf")
     for fold_idx, (train_idx, val_idx) in enumerate(fold_splits):
         fold_train = train_data.iloc[train_idx]
         fold_train_labels = train_labels[train_idx]
@@ -116,11 +116,15 @@ def execute_single_run(
 
         trainer = GPTrainer(fold_trainer_config)
         history = trainer.fit()
-        if (
-            history.best_val_score is not None
-            and history.best_val_score > best_val_score
-        ):
-            best_val_score = history.best_val_score
+
+        # Prefer validation score; fall back to training score
+        fold_score = (
+            history.best_val_score
+            if history.best_val_score is not None
+            else history.best_train_score
+        )
+        if fold_score is not None and fold_score > best_fold_score:
+            best_fold_score = fold_score
             best_fold_idx = fold_idx
 
         folds.append(history)
