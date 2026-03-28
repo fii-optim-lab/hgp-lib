@@ -50,15 +50,20 @@ class ProgressListener:
         config: Progress configuration with totals and display settings.
 
     Example:
-        >>> from multiprocessing import Manager
-        >>> manager = Manager()
-        >>> queue = manager.Queue()
-        >>> config = ProgressConfig(total_runs=30, total_folds=150, total_epochs=150000)
-        >>> listener = ProgressListener(queue, config)
+        >>> from multiprocessing import Queue
+        >>> from hgp_lib.benchmarkers.progress import ProgressConfig, ProgressListener
+        >>> q = Queue()
+        >>> cfg = ProgressConfig(
+        ...     total_runs=1, total_folds=1, total_epochs=1,
+        ...     show_run_progress=False, show_fold_progress=False,
+        ...     show_epoch_progress=False,
+        ... )
+        >>> listener = ProgressListener(q, cfg)
         >>> listener.start()
-        >>> # ... workers send updates via queue.put(("epoch", 100)) ...
-        >>> listener.join()  # Wait for natural completion
-        >>> # Or: listener.stop()  # Force stop if needed
+        >>> q.put(("epoch", 1))
+        >>> q.put(("fold", 1))
+        >>> q.put(("run", 1))
+        >>> listener.join()
     """
 
     def __init__(self, progress_queue: Queue, config: ProgressConfig):
@@ -165,12 +170,24 @@ def send_progress(
     """
     Send a progress update to the listener queue.
 
-    This is a safe helper that no-ops if the queue is None (sequential mode).
+    This is a safe helper that no-ops if the queue is ``None`` (sequential mode).
 
     Args:
-        progress_queue: Multiprocessing queue or None for sequential mode.
-        msg_type: Type of progress ("epoch", "fold", or "run").
-        count: Number to increment by (default: 1).
+        progress_queue (Queue | None):
+            Multiprocessing queue or ``None`` for sequential mode.
+        msg_type (str):
+            Type of progress (``"epoch"``, ``"fold"``, or ``"run"``).
+        count (int):
+            Number to increment by. Default: `1`.
+
+    Examples:
+        >>> from hgp_lib.benchmarkers.progress import send_progress
+        >>> send_progress(None, "epoch", 5)  # no-op when queue is None
+        >>> from multiprocessing import Queue
+        >>> q = Queue()
+        >>> send_progress(q, "fold", 1)
+        >>> q.get()
+        ('fold', 1)
     """
     if progress_queue is not None:
         progress_queue.put((msg_type, count))
