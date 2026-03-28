@@ -12,7 +12,7 @@ from tqdm import tqdm
 from ..configs import BenchmarkerConfig
 from ..metrics import PopulationHistory, RunResult
 from ..trainers import GPTrainer
-from ..utils.metrics import optimize_scorer_for_data
+from ..utils.metrics import optimize_scorers_for_data, confusion_matrix
 
 from .progress import send_progress
 
@@ -137,17 +137,18 @@ def execute_single_run(
     test_data = binarizer_here.transform(test_data).to_numpy(dtype=bool)
 
     if gp_template.optimize_scorer:
-        test_score_fn, test_data_opt, test_labels_opt = optimize_scorer_for_data(
-            gp_template.score_fn, test_data, test_labels
+        test_score_fn, test_cm, test_data, test_labels = optimize_scorers_for_data(
+            gp_template.score_fn, confusion_matrix, data=test_data, labels=test_labels
         )
     else:
         test_score_fn = gp_template.score_fn
-        test_data_opt = test_data
-        test_labels_opt = test_labels
+        test_cm = confusion_matrix
 
-    test_score = float(
-        test_score_fn(best_rule.evaluate(test_data_opt), test_labels_opt)
-    )
+    test_pred = best_rule.evaluate(test_data)
+
+    test_score = float(test_score_fn(test_pred, test_labels))
+
+    tp, fp, fn, tn = test_cm(test_pred, test_labels)
 
     send_progress(progress_queue, "run", 1)
 
@@ -157,6 +158,10 @@ def execute_single_run(
         best_fold_idx=best_fold_idx,
         folds=folds,
         test_score=test_score,
+        test_tp=tp,
+        test_fp=fp,
+        test_fn=fn,
+        test_tn=tn,
         feature_names=feature_names,
     )
 

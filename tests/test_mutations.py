@@ -264,7 +264,6 @@ class TestMutations(unittest.TestCase):
         self.assertTrue(rule.negated)
 
     def test_add_literal(self):
-
         mutation = AddLiteral(5)
 
         self.assertFalse(mutation.is_literal_mutation)

@@ -14,6 +14,14 @@ class PopulationHistory:
     """Complete history of a population across all generations."""
 
     global_best_rule: Rule
+    tp: int
+    fp: int
+    fn: int
+    tn: int
+    val_tp: int | None = None
+    val_fp: int | None = None
+    val_fn: int | None = None
+    val_tn: int | None = None
     generations: List[GenerationMetrics] = field(default_factory=list)
 
     @property

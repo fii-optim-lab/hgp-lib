@@ -1,9 +1,14 @@
 import os
-import pmlb
+
 import argparse
 
 
 def save_pmlb_data(name: str, data_path: str):
+    try:
+        import pmlb
+    except ImportError as e:
+        raise ImportError("Can't load PMLB if pmlb is not installed") from e
+
     if not os.path.isdir(data_path):
         raise FileNotFoundError(f"'{data_path}' is not a directory")
     try:

@@ -2,13 +2,14 @@ from dataclasses import replace
 from typing import Callable, List
 
 import numpy as np
+from hgp_lib.utils.metrics import confusion_matrix
 from numpy import ndarray
 
 from ..configs import BooleanGPConfig, validate_gp_config
 from ..metrics import GenerationMetrics
 from ..rules import Rule
 from ..selections import TournamentSelection
-from ..utils.metrics import optimize_scorer_for_data
+from ..utils.metrics import optimize_scorers_for_data
 
 
 class BooleanGP:
@@ -66,11 +67,17 @@ class BooleanGP:
         self._original_score_fn = score_fn
 
         if config.optimize_scorer:
-            score_fn, train_data, train_labels = optimize_scorer_for_data(
-                config.score_fn, config.train_data, config.train_labels
+            score_fn, train_cm, train_data, train_labels = optimize_scorers_for_data(
+                config.score_fn,
+                confusion_matrix,
+                data=config.train_data,
+                labels=config.train_labels,
             )
+        else:
+            train_cm = confusion_matrix
 
         self.score_fn = score_fn
+        self.train_cm = train_cm
         self.complexity_penalty = config.complexity_penalty
         self.train_data = train_data
         self.train_labels = train_labels
