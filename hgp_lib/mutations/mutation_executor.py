@@ -112,6 +112,43 @@ class MutationExecutor:
                 rules[i] = self._mutate(rule, n_mutations)
 
     def _mutate(self, rule: Rule, n_mutations: int) -> Rule:
+        """
+        Apply ``n_mutations`` point mutations to a copy of ``rule``.
+
+        For each mutation attempt a random node is selected (biased by ``operator_p``),
+        a random mutation from the appropriate set (literal or operator) is applied, and
+        the result is validated if ``check_valid`` is set. Failed attempts (``MutationError``
+        or validation failure) are retried up to ``num_tries`` times per mutation slot.
+        If all retries fail for a given slot, the last valid state is kept.
+
+        Args:
+            rule (Rule):
+                The rule to mutate. A deep copy is made internally; the original is not
+                modified.
+            n_mutations (int):
+                Number of independent point mutations to attempt on the copy.
+
+        Returns:
+            Rule: The mutated copy, or the original ``rule`` if every mutation failed.
+
+        Examples:
+            >>> import random
+            >>> import numpy as np
+            >>> from hgp_lib.mutations import MutationExecutor, NegateMutation
+            >>> from hgp_lib.rules import Literal
+            >>> random.seed(0); np.random.seed(0)
+            >>> executor = MutationExecutor(
+            ...     literal_mutations=[NegateMutation()],
+            ...     operator_mutations=[NegateMutation()],
+            ...     mutation_p=1.0,
+            ... )
+            >>> rule = Literal(value=0)
+            >>> result = executor._mutate(rule, 1)
+            >>> str(result)
+            '~0'
+            >>> str(rule)
+            '0'
+        """
         new_rule = rule.copy()
 
         last_mutation = n_mutations - 1

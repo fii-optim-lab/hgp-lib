@@ -10,32 +10,46 @@ from ..rules import Rule, Or, And, Literal
 
 class DeleteMutation(Mutation):
     """
-    The `DeleteMutation` removes a given `Rule` node from its parent operator (e.g., an `And` or `Or` rule) inplace.
-    It is applicable to both literals and operator nodes, provided that removing the node does not leave the parent
-    operator with an invalid (empty) structure.
+    Remove a ``Rule`` node from its parent operator in-place.
+
+    Applicable to both literal and operator nodes. The mutation has two modes
+    depending on the parent's subrule count:
+
+    - Parent has **3+ subrules**: the target node is simply removed from the
+      parent's subrule list.
+    - Parent has **exactly 2 subrules** (collapse): the remaining sibling is
+      appended to the grandparent's subrule list and the now-redundant parent
+      operator is removed from the grandparent. This requires a grandparent to
+      exist; if there is none, a ``MutationError`` is raised.
+
+    A ``MutationError`` is also raised when the target node is the root of the
+    tree (has no parent).
 
     Attributes:
-        is_literal_mutation (bool): `True`.
-        is_operator_mutation (bool): `True`.
-
-    Notes:
-        - The mutation will raise a `MutationError` if:
-            - The rule has no parent (i.e., it is the root of the rule tree), or
-            - The parent operator has only two subrules and no grandparent exists,
-              since the collapse operation cannot be performed.
-        - When the parent has exactly two subrules, deleting one triggers a collapse:
-          the remaining sibling is moved up to the grandparent, and the now-empty
-          parent operator is also removed.
+        is_literal_mutation (bool): ``True``.
+        is_operator_mutation (bool): ``True``.
 
     Examples:
+        Simple removal (parent has 3 subrules):
+
         >>> from hgp_lib.mutations import DeleteMutation
         >>> from hgp_lib.rules import And, Literal
         >>> parent = And([Literal(value=0), Literal(value=1), Literal(value=2)])
-        >>> to_delete = parent.subrules[1]
         >>> mutation = DeleteMutation()
-        >>> mutation.apply(to_delete)
+        >>> mutation.apply(parent.subrules[1])
         >>> parent
         And(0, 2)
+
+        Collapse (parent has 2 subrules — sibling is appended to grandparent):
+
+        >>> from hgp_lib.rules import Or
+        >>> root = Or([
+        ...     Literal(value=0),
+        ...     And([Literal(value=1), Literal(value=2)]),
+        ... ])
+        >>> mutation.apply(root.subrules[1].subrules[0])
+        >>> root
+        Or(0, 2)
     """
 
     def __init__(self):
@@ -43,40 +57,45 @@ class DeleteMutation(Mutation):
 
     def apply(self, rule: Rule):
         """
-        Applies an inplace deletion mutation to the given `Rule`. Removes the target `rule` from its parent's list of
-        subrules, provided that doing so does not violate tree integrity constraints.
+        Delete ``rule`` from its parent's subrule list in-place.
+
+        When the parent has more than two subrules, the target is simply removed.
+        When the parent has exactly two subrules, the remaining sibling is appended
+        to the grandparent's subrule list and the parent operator is removed from
+        the grandparent (collapse).
 
         Args:
             rule (Rule):
-                The rule node to delete from its parent.
+                The rule node to delete.
 
         Raises:
             MutationError:
-                If the `rule` has no parent (is a root node), or if the parent has only two subrules and no
-                grandparent exists (preventing the collapse operation).
-            RuntimeError:
-                If the target rule is not found within its parent's subrule list, which should never occur during
-                normal operation.
+                If ``rule`` has no parent (root node), or if the parent has exactly
+                two subrules and no grandparent exists.
 
         Examples:
+            Simple removal:
+
             >>> from hgp_lib.mutations import DeleteMutation
             >>> from hgp_lib.rules import Or, Literal
-            >>> parent = Or([
-            ...     Literal(value=1),
-            ...     Literal(value=2),
-            ...     Or([
-            ...         Literal(value=3),
-            ...         Literal(value=4),
-            ...     ])
-            ... ])
-            >>> parent
-            Or(1, 2, Or(3, 4))
-            >>> mutation = DeleteMutation()
-            >>> mutation.apply(parent.subrules[2])
+            >>> parent = Or([Literal(value=1), Literal(value=2), Literal(value=3)])
+            >>> DeleteMutation().apply(parent.subrules[2])
             >>> parent
             Or(1, 2)
+
+            Collapse — the inner And is removed and its surviving child is
+            appended to the root:
+
+            >>> from hgp_lib.rules import And
+            >>> root = Or([
+            ...     Literal(value=0),
+            ...     And([Literal(value=1), Literal(value=2)]),
+            ...     Literal(value=3),
+            ... ])
+            >>> DeleteMutation().apply(root.subrules[1].subrules[1])
+            >>> root
+            Or(0, 3, 1)
         """
-        # TODO: Update documentation
         parent = rule.parent
         if parent is None:
             raise MutationError()
