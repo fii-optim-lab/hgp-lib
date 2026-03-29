@@ -7,10 +7,48 @@ from .literals import Literal
 
 
 def is_operator(op: Rule) -> bool:
+    """
+    Check whether a rule node is an operator (non-literal).
+
+    Args:
+        op (Rule):
+            The rule node to check.
+
+    Returns:
+        bool: ``True`` if ``op`` is a ``Rule`` but not a ``Literal``.
+
+    Examples:
+        >>> from hgp_lib.rules import And, Or, Literal
+        >>> from hgp_lib.rules.utils import is_operator
+        >>> is_operator(And([Literal(value=0), Literal(value=1)]))
+        True
+        >>> is_operator(Literal(value=0))
+        False
+    """
     return isinstance(op, Rule) and not isinstance(op, Literal)
 
 
 def is_operator_type(t: Type[Rule]) -> bool:
+    """
+    Check whether a type is an operator class (a ``Rule`` subclass that is not ``Literal``).
+
+    Args:
+        t (Type[Rule]):
+            The type to check.
+
+    Returns:
+        bool: ``True`` if ``t`` is a subclass of ``Rule`` but not of ``Literal``.
+
+    Examples:
+        >>> from hgp_lib.rules import And, Or, Literal
+        >>> from hgp_lib.rules.utils import is_operator_type
+        >>> is_operator_type(And)
+        True
+        >>> is_operator_type(Literal)
+        False
+        >>> is_operator_type(str)
+        False
+    """
     return isinstance(t, type) and issubclass(t, Rule) and not issubclass(t, Literal)
 
 
