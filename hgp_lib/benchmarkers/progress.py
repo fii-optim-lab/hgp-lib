@@ -49,7 +49,7 @@ class ProgressListener:
         progress_queue: Multiprocessing queue for receiving progress updates.
         config: Progress configuration with totals and display settings.
 
-    Example:
+    Examples:
         >>> from multiprocessing import Queue
         >>> from hgp_lib.benchmarkers.progress import ProgressConfig, ProgressListener
         >>> q = Queue()

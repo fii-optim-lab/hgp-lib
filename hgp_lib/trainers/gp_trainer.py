@@ -14,9 +14,11 @@ class GPTrainer:
     Accepts a TrainerConfig containing a BooleanGPConfig and training options.
     Runs the training loop and optionally validates every val_every epochs.
     Returns a HierarchicalHistory with GenerationMetrics per epoch.
+
     Args:
         config (TrainerConfig): Configuration with gp_config (BooleanGPConfig),
             num_epochs, optional val_data/val_labels, val_every, progress options.
+
     Examples:
         >>> import numpy as np
         >>> from hgp_lib.configs import BooleanGPConfig, TrainerConfig
