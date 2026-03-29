@@ -1,4 +1,5 @@
 import doctest
+import queue
 import unittest
 import random
 from multiprocessing import Queue
@@ -491,15 +492,17 @@ class TestGPBenchmarker(unittest.TestCase):
         run = execute_single_run(run_id=0, seed=42, config=config, progress_queue=q)
         self.assertIsInstance(run, RunResult)
 
-        # Drain the queue and check message types
+        # Drain the queue using get(timeout) to avoid the race where the
+        # feeder thread hasn't flushed the last put() to the pipe yet.
         messages = []
-        while not q.empty():
-            messages.append(q.get_nowait())
+        while True:
+            try:
+                messages.append(q.get(timeout=0.5))
+            except queue.Empty:
+                break
         msg_types = [m[0] for m in messages]
-        # Should have fold and run messages at minimum
         self.assertIn("fold", msg_types)
         self.assertIn("run", msg_types)
-        # Exactly n_folds fold messages and 1 run message
         self.assertEqual(msg_types.count("fold"), config.n_folds)
         self.assertEqual(msg_types.count("run"), 1)
 

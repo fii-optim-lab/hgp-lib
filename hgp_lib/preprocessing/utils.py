@@ -6,24 +6,41 @@ from numpy import ndarray
 from pathlib import Path
 
 
-# TODO: Add tests for this method.
 def load_data(data_path: str) -> Tuple[pd.DataFrame, ndarray]:
     """
-    Load data and labels from a CSV/HDF file.
-    The target column is assumed to be named "target".
-    All columns before the target column are considered features.
+    Load features and labels from a CSV or HDF file.
 
-    # TODO: Make documentation consistent with the rest of the library.
+    The file must contain a column named ``"target"`` which is used as the label
+    array. All other columns are returned as the feature DataFrame. Labels are
+    cast to ``bool``.
 
     Args:
-        data_path: Path to CSV/HDF file containing data.
+        data_path (str):
+            Path to a ``.csv`` or ``.hdf`` file.
 
     Returns:
-        Tuple of (data, labels) as pandas DataFrames and numpy arrays.
+        Tuple[pd.DataFrame, ndarray]: ``(data, labels)`` where ``data`` is the
+        feature DataFrame (without the target column) and ``labels`` is a 1-D
+        boolean numpy array.
 
     Raises:
-        FileNotFoundError: If the file does not exist.
-        RuntimeError: If target column cannot be identified.
+        FileNotFoundError: If ``data_path`` does not exist.
+        ValueError: If the file extension is not ``.csv`` or ``.hdf``.
+        RuntimeError: If no ``"target"`` column is found.
+
+    Examples:
+        >>> import tempfile, os
+        >>> import pandas as pd
+        >>> from hgp_lib.preprocessing.utils import load_data
+        >>> df = pd.DataFrame({"x": [1, 2, 3], "target": [1, 0, 1]})
+        >>> with tempfile.TemporaryDirectory() as d:
+        ...     path = os.path.join(d, "tmp.csv")
+        ...     df.to_csv(path, index=False)
+        ...     data, labels = load_data(path)
+        >>> list(data.columns)
+        ['x']
+        >>> labels.tolist()
+        [True, False, True]
     """
     path = Path(data_path)
     if not path.exists():
