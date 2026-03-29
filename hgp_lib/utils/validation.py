@@ -8,19 +8,51 @@ from ..rules import Rule
 
 
 def _check_complexity(rule: Rule, max_complexity: int) -> bool:
-    """Check if rule complexity is within limit."""
+    """
+    Check if rule complexity (node count) is within a limit.
+
+    Args:
+        rule (Rule): The rule to check.
+        max_complexity (int): Maximum allowed node count.
+
+    Returns:
+        bool: ``True`` if ``len(rule) <= max_complexity``.
+
+    Examples:
+        >>> from hgp_lib.rules import Literal, And
+        >>> from hgp_lib.utils.validation import _check_complexity
+        >>> _check_complexity(Literal(value=0), 5)
+        True
+        >>> _check_complexity(And([Literal(value=0), Literal(value=1)]), 2)
+        False
+    """
     return len(rule) <= max_complexity
 
 
 def complexity_check(max_complexity: int = 100) -> Callable[[Rule], bool]:
     """
-    Create a validity check that limits rule complexity.
+    Create a validity predicate that rejects rules exceeding ``max_complexity`` nodes.
 
-    Usage:
-        config = BooleanGPConfig(
-            check_valid=complexity_check(50),
-            ...
-        )
+    Intended for use as the ``check_valid`` argument of ``BooleanGPConfig``.
+
+    Args:
+        max_complexity (int):
+            Maximum allowed node count. Default: `100`.
+
+    Returns:
+        Callable[[Rule], bool]: A predicate that returns ``True`` when the rule's
+        node count is at most ``max_complexity``.
+
+    Examples:
+        >>> from hgp_lib.rules import Literal, And
+        >>> from hgp_lib.utils.validation import complexity_check
+        >>> check = complexity_check(3)
+        >>> check(Literal(value=0))
+        True
+        >>> check(And([Literal(value=0), Literal(value=1)]))
+        True
+        >>> check(And([Literal(value=0), And([Literal(value=1), Literal(value=2)])]))
+        False
     """
     return partial(_check_complexity, max_complexity=max_complexity)
 
@@ -35,6 +67,14 @@ def validate_callable(maybe_callable: Callable, error_message: str | None = None
 
     Raises:
         TypeError: If value is not callable.
+
+    Examples:
+        >>> from hgp_lib.utils.validation import validate_callable
+        >>> validate_callable(len)  # no error
+        >>> validate_callable(42)
+        Traceback (most recent call last):
+        ...
+        TypeError: score_fn must be callable, is <class 'int'>
     """
     if not callable(maybe_callable):
         if error_message is None:
@@ -74,7 +114,7 @@ def check_isinstance(value: Any, expected_type: Type | Tuple[Type, ...]):
 
 def validate_num_literals(num_literals: int):
     """
-    Validate num_literals parameter.
+    Validate ``num_literals`` parameter.
 
     Args:
         num_literals (int): Number of literals (must be > 1).
@@ -82,6 +122,14 @@ def validate_num_literals(num_literals: int):
     Raises:
         TypeError: If not an integer.
         ValueError: If <= 1.
+
+    Examples:
+        >>> from hgp_lib.utils.validation import validate_num_literals
+        >>> validate_num_literals(5)  # no error
+        >>> validate_num_literals(1)
+        Traceback (most recent call last):
+        ...
+        ValueError: Number of literals must be greater than 1, is '1'
     """
     check_isinstance(num_literals, int)
     if num_literals <= 1:
@@ -92,7 +140,7 @@ def validate_num_literals(num_literals: int):
 
 def validate_operator_types(operator_types: Sequence[Type[Rule]]):
     """
-    Validate operator_types parameter.
+    Validate ``operator_types`` parameter.
 
     Args:
         operator_types (Sequence[Type[Rule]]): Sequence of Rule subclasses.
@@ -100,6 +148,15 @@ def validate_operator_types(operator_types: Sequence[Type[Rule]]):
     Raises:
         TypeError: If not a sequence or contains non-Rule types.
         ValueError: If fewer than 2 types.
+
+    Examples:
+        >>> from hgp_lib.rules import And, Or
+        >>> from hgp_lib.utils.validation import validate_operator_types
+        >>> validate_operator_types((And, Or))  # no error
+        >>> validate_operator_types((And,))
+        Traceback (most recent call last):
+        ...
+        ValueError: operator_types must have at least two operator types
     """
     check_isinstance(operator_types, Sequence)
     if len(operator_types) < 2:
