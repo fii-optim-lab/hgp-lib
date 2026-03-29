@@ -48,6 +48,9 @@ dev = [
     "ruff",
     "seaborn",
     "tables",
+    "prettytable",
+    "timed-decorator",
+    "scikit-learn",
 ]
 [tool.ruff]
 exclude = [".venv"]
