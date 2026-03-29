@@ -1,5 +1,4 @@
 import inspect
-from functools import partial
 from typing import Sequence, Tuple, Type, Callable, Any
 import numpy as np
 import pandas as pd
@@ -7,29 +6,7 @@ import pandas as pd
 from ..rules import Rule
 
 
-def _check_complexity(rule: Rule, max_complexity: int) -> bool:
-    """
-    Check if rule complexity (node count) is within a limit.
-
-    Args:
-        rule (Rule): The rule to check.
-        max_complexity (int): Maximum allowed node count.
-
-    Returns:
-        bool: ``True`` if ``len(rule) <= max_complexity``.
-
-    Examples:
-        >>> from hgp_lib.rules import Literal, And
-        >>> from hgp_lib.utils.validation import _check_complexity
-        >>> _check_complexity(Literal(value=0), 5)
-        True
-        >>> _check_complexity(And([Literal(value=0), Literal(value=1)]), 2)
-        False
-    """
-    return len(rule) <= max_complexity
-
-
-def complexity_check(max_complexity: int = 100) -> Callable[[Rule], bool]:
+class ComplexityCheck:
     """
     Create a validity predicate that rejects rules exceeding ``max_complexity`` nodes.
 
@@ -39,22 +16,40 @@ def complexity_check(max_complexity: int = 100) -> Callable[[Rule], bool]:
         max_complexity (int):
             Maximum allowed node count. Default: `100`.
 
-    Returns:
-        Callable[[Rule], bool]: A predicate that returns ``True`` when the rule's
-        node count is at most ``max_complexity``.
-
     Examples:
-        >>> from hgp_lib.rules import Literal, And
-        >>> from hgp_lib.utils.validation import complexity_check
-        >>> check = complexity_check(3)
-        >>> check(Literal(value=0))
-        True
-        >>> check(And([Literal(value=0), Literal(value=1)]))
-        True
-        >>> check(And([Literal(value=0), And([Literal(value=1), Literal(value=2)])]))
-        False
+    >>> from hgp_lib.rules import Literal, And
+    >>> from hgp_lib.utils.validation import ComplexityCheck
+    >>> check = ComplexityCheck(3)
+    >>> check(Literal(value=0))
+    True
+    >>> check(And([Literal(value=0), Literal(value=1)]))
+    True
+    >>> check(And([Literal(value=0), And([Literal(value=1), Literal(value=2)])]))
+    False
     """
-    return partial(_check_complexity, max_complexity=max_complexity)
+
+    def __init__(self, max_complexity: int = 100):
+        self.max_complexity = max_complexity
+
+    def __call__(self, rule: Rule) -> bool:
+        """
+        Check if rule complexity (node count) is within a limit.
+
+        Args:
+            rule (Rule): The rule to check.
+
+        Returns:
+            bool: ``True`` if ``len(rule) <= self.max_complexity``.
+
+        Examples:
+            >>> from hgp_lib.rules import Literal, And
+            >>> from hgp_lib.utils.validation import ComplexityCheck
+            >>> ComplexityCheck(5)(Literal(value=0))
+            True
+            >>> ComplexityCheck(2)(And([Literal(value=0), Literal(value=1)]))
+            False
+        """
+        return len(rule) <= self.max_complexity
 
 
 def validate_callable(maybe_callable: Callable, error_message: str | None = None):

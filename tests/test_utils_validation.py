@@ -9,8 +9,7 @@ import pandas as pd
 import hgp_lib.utils.validation
 from hgp_lib.rules import Literal, And, Or
 from hgp_lib.utils.validation import (
-    _check_complexity,
-    complexity_check,
+    ComplexityCheck,
     validate_callable,
     check_isinstance,
     validate_num_literals,
@@ -21,33 +20,33 @@ from hgp_lib.utils.validation import (
 
 class TestCheckComplexity(unittest.TestCase):
     def test_within_limit(self):
-        self.assertTrue(_check_complexity(Literal(value=0), 5))
+        self.assertTrue(ComplexityCheck(5)(Literal(value=0)))
 
     def test_at_limit(self):
         rule = And([Literal(value=0), Literal(value=1)])  # 3 nodes
-        self.assertTrue(_check_complexity(rule, 3))
+        self.assertTrue(ComplexityCheck(3)(rule))
 
     def test_exceeds_limit(self):
         rule = And([Literal(value=0), Literal(value=1)])  # 3 nodes
-        self.assertFalse(_check_complexity(rule, 2))
+        self.assertFalse(ComplexityCheck(2)(rule))
 
 
 class TestComplexityCheck(unittest.TestCase):
     def test_returns_callable(self):
-        check = complexity_check(10)
+        check = ComplexityCheck(10)
         self.assertTrue(callable(check))
 
     def test_accepts_small_rule(self):
-        check = complexity_check(5)
+        check = ComplexityCheck(5)
         self.assertTrue(check(Literal(value=0)))
 
     def test_rejects_large_rule(self):
-        check = complexity_check(2)
+        check = ComplexityCheck(2)
         rule = And([Literal(value=0), Literal(value=1)])  # 3 nodes
         self.assertFalse(check(rule))
 
     def test_boundary(self):
-        check = complexity_check(3)
+        check = ComplexityCheck(3)
         rule = And([Literal(value=0), Literal(value=1)])  # exactly 3
         self.assertTrue(check(rule))
 

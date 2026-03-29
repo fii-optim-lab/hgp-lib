@@ -35,7 +35,7 @@ from hgp_lib.populations import (
 from hgp_lib.preprocessing import StandardBinarizer, load_data
 from hgp_lib.selections import RouletteSelection, TournamentSelection
 from hgp_lib.utils.metrics import fast_f1_score
-from hgp_lib.utils.validation import complexity_check
+from hgp_lib.utils.validation import ComplexityCheck
 
 from hypertuning import load_search_space
 from preprocess.pmlb_preprocess import save_pmlb_data
@@ -63,6 +63,12 @@ def suggest_hyperparameters(
         return a, {**(default_kw or {}), **k}
 
     params = {}
+
+    a, k = get("max_complexity", (80,))
+    if len(a) == 1:
+        params["max_complexity"] = a[0]
+    else:
+        params["max_complexity"] = trial.suggest_int("max_complexity", *a, **k)
 
     a, k = get("num_bins", (2, 10))
     params["num_bins"] = trial.suggest_int("num_bins", *a, **k)
@@ -211,7 +217,7 @@ def build_config(
 
     # Mutation and crossover
     mutation_p = params["mutation_probability"]
-    check_valid = complexity_check(80)
+    check_valid = ComplexityCheck(params["max_complexity"])
 
     # Sampling strategy for hierarchical GP
     sampling_strategy = None

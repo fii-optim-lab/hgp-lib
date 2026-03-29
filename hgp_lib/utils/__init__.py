@@ -1,5 +1,5 @@
-from hgp_lib.utils.validation import complexity_check
+from hgp_lib.utils.validation import ComplexityCheck
 
 __all__ = [
-    "complexity_check",
+    "ComplexityCheck",
 ]

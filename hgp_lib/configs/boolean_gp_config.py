@@ -44,7 +44,8 @@ class BooleanGPConfig:
         regeneration_patience (int): Epochs without improvement before regeneration.
             Default: `100`.
         check_valid (Callable[[Rule], bool] | None): Optional rule validator for
-            mutation/crossover. Default: `None`.
+            mutation/crossover. If a callable is passed, the callable will be called
+            once for validation. Default: `None`.
         num_child_populations (int): Number of child populations for hierarchical GP.
             Default: `0`.
         max_depth (int): Maximum hierarchical depth; `0` means no children.
@@ -148,7 +149,6 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
     if config.selection is not None:
         check_isinstance(config.selection, BaseSelection)
 
-    # TODO: Document that check_valid is called once
     if config.check_valid is not None:
         error_msg = f"check_valid must be a callable that accepts a Rule and returns bool, is {type(config.check_valid)}"
         validate_callable(config.check_valid, error_msg)

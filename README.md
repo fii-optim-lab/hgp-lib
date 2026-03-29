@@ -81,7 +81,7 @@ from hgp_lib.mutations import MutationExecutorFactory
 from hgp_lib.populations import PopulationGeneratorFactory, BestLiteralStrategy
 from hgp_lib.selections import TournamentSelection, RouletteSelection
 from hgp_lib.rules import Rule
-from hgp_lib.utils.validation import complexity_check
+from hgp_lib.utils.validation import ComplexityCheck
 
 population_size = 100
 mutation_p = 0.1
@@ -89,7 +89,7 @@ crossover_p = 0.7
 score_fn = ...  # My scoring function
 num_epochs = 1000
 
-check_valid = complexity_check(100)
+check_valid = ComplexityCheck(100)
 
 # Population factory (default uses RandomStrategy)
 population_factory = PopulationGeneratorFactory(population_size=population_size)

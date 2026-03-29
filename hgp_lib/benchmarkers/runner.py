@@ -1,7 +1,6 @@
 import random
 from copy import deepcopy
 from dataclasses import replace
-from functools import partial
 from multiprocessing import Queue
 from typing import List, Optional, Tuple
 
@@ -14,7 +13,7 @@ from ..metrics import PopulationHistory, RunResult
 from ..trainers import GPTrainer
 from ..utils.metrics import optimize_scorers_for_data, confusion_matrix
 
-from .progress import send_progress
+from .progress import send_progress, ProgressSender
 
 
 def execute_single_run(
@@ -79,9 +78,7 @@ def execute_single_run(
     if show_folds:
         fold_splits = tqdm(fold_splits, total=config.n_folds, desc="Folds", leave=False)
 
-    epoch_callback = (
-        partial(send_progress, progress_queue, "epoch") if use_queue else None
-    )
+    epoch_callback = ProgressSender(progress_queue, "epoch") if use_queue else None
 
     best_fold_idx = 0
     best_fold_score = -float("inf")

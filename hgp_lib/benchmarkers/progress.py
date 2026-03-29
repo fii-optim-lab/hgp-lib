@@ -191,3 +191,13 @@ def send_progress(
     """
     if progress_queue is not None:
         progress_queue.put((msg_type, count))
+
+
+class ProgressSender:
+    # TODO: Join Progress Sender with send_progress and keep only ProgressSender
+    def __init__(self, progress_queue: Optional[Queue], msg_type: str):
+        self.progress_queue = progress_queue
+        self.msg_type = msg_type
+
+    def __call__(self, count: int) -> None:
+        send_progress(self.progress_queue, self.msg_type, count)

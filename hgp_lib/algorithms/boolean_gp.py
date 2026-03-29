@@ -441,7 +441,6 @@ class BooleanGP:
         Returns:
             GenerationMetrics: Metrics about the generation step.
         """
-        # TODO: Check this
         best_idx = int(np.argmax(scores))
         current_best = float(scores[best_idx])
         current_best_rule = self.population[best_idx].copy()

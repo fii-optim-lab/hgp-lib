@@ -1,6 +1,5 @@
 import inspect
 import warnings
-from functools import partial
 from typing import Callable, Set, Tuple, Any
 
 import numpy as np
@@ -172,6 +171,18 @@ def transform_duplicates_to_sample_weight(data: ndarray, labels: ndarray):
     return Xy_unique[:, :-1], Xy_unique[:, -1], sample_weight
 
 
+class SampleWeightScorer:
+    # TODO: Add documentation
+    def __init__(
+        self, scorer: Callable[[ndarray, ndarray], Any], sample_weight: ndarray
+    ):
+        self.scorer = scorer
+        self.sample_weight = sample_weight
+
+    def __call__(self, data: ndarray, labels: ndarray):
+        return self.scorer(data, labels, sample_weight=self.sample_weight)
+
+
 def optimize_scorers_for_data(
     *scorers: Callable[[ndarray, ndarray], Any], data: ndarray, labels: ndarray
 ):
@@ -179,7 +190,7 @@ def optimize_scorers_for_data(
     Optimise scorers by deduplicating data and binding ``sample_weight``.
 
     If every scorer accepts ``sample_weight``, duplicate rows are removed and
-    each scorer is wrapped with ``functools.partial`` to inject the computed
+    each scorer is wrapped with ``SampleWeightScorer`` to inject the computed
     weights. Otherwise a warning is issued (once per scorer) and the original
     data is returned unchanged.
 
@@ -223,5 +234,5 @@ def optimize_scorers_for_data(
         data, labels, sample_weight = transform_duplicates_to_sample_weight(
             data, labels
         )
-        scorers = [partial(scorer, sample_weight=sample_weight) for scorer in scorers]
+        scorers = [SampleWeightScorer(scorer, sample_weight) for scorer in scorers]
     return *scorers, data, labels
