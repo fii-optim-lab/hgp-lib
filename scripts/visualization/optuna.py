@@ -133,9 +133,11 @@ def upload_trial_artifacts(
                 fig.savefig(plot_path, dpi=150, bbox_inches="tight")
                 plt.close(fig)
 
-                # TODO: FutureWarning: upload_artifact() got {'study_or_trial', 'artifact_store', 'file_path'} as positional arguments but they were expected to be given as keyword arguments.
-                # ositional arguments ['study_or_trial', 'file_path', 'artifact_store'] in upload_artifact() have been deprecated since v4.0.0. They will be replaced with the corresponding keyword arguments in v6.0.0, so please use the keyword specification
-                upload_artifact(trial, plot_path, artifact_store)
+                upload_artifact(
+                    study_or_trial=trial,
+                    file_path=plot_path,
+                    artifact_store=artifact_store,
+                )
 
             except Exception as e:
                 logger.warning(

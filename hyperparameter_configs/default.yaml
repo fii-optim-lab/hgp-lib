@@ -1,0 +1,112 @@
+# Default hyperparameter search space for Boolean GP.
+#
+# Each entry is a list of positional args and optional keyword args
+# that map directly to trial.suggest_int / suggest_float / suggest_categorical.
+#
+# Format:
+#   param_name:
+#     - low
+#     - high
+#     - step: N          # optional keyword arg
+#
+# Categorical params use a single list element:
+#   param_name:
+#     - [choice1, choice2, ...]
+#
+# Fixed params use a plain value:
+#   param_name: value
+
+num_bins:
+  - 2
+  - 10
+
+population_size:
+  - 50
+  - 150
+  - step: 25
+
+mutation_probability:
+  - 0.001
+  - 0.25
+  - step: 0.001
+
+crossover_rate:
+  - 0.1
+  - 0.95
+  - step: 0.05
+
+crossover_operator_p:
+  - 0.0
+  - 1.0
+  - step: 0.05
+
+mutation_operator_p:
+  - 0.0
+  - 1.0
+  - step: 0.05
+
+num_epochs:
+  - 500
+  - 3000
+  - step: 100
+
+selection_type: "tournament"
+
+tournament_size:
+  - 5
+  - 30
+
+selection_p:
+  - 0.2
+  - 0.9
+  - step: 0.05
+
+regeneration:
+  - [true, false]
+
+regeneration_patience_step: 50
+
+use_complexity_penalty:
+  - [true, false]
+
+complexity_penalty:
+  - 0.0
+  - 0.1
+  - step: 0.0001
+
+max_depth:
+  - 0
+  - 2
+  - step: 1
+
+num_child_populations:
+  - 2
+  - 5
+
+top_k_transfer:
+  - 10
+  - 100
+  - step: 5
+
+feedback_type:
+  - ["additive", "multiplicative"]
+
+feedback_strength:
+  - 0.0
+  - 0.2
+  - step: 0.01
+
+sampling_strategy_type:
+  - ["feature", "instance", "combined"]
+
+use_replace: true
+
+feature_fraction:
+  - 0.1
+  - 1.0
+  - step: 0.01
+
+sample_fraction:
+  - 0.1
+  - 1.0
+  - step: 0.01

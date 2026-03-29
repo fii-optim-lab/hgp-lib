@@ -37,7 +37,7 @@ from hgp_lib.selections import RouletteSelection, TournamentSelection
 from hgp_lib.utils.metrics import fast_f1_score
 from hgp_lib.utils.validation import complexity_check
 
-
+from hypertuning import load_search_space
 from preprocess.pmlb_preprocess import save_pmlb_data
 
 logging.basicConfig(
@@ -46,79 +46,111 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
-    # TODO: Use a hyperparameter_config.yaml to load the values of the hyperparameters.
+def suggest_hyperparameters(
+    trial: optuna.Trial, config: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Suggest hyperparameters using ranges from ``config``.
+
+    ``config`` maps parameter names to ``(args, kwargs)`` tuples as returned
+    by ``load_search_space``.  Each ``trial.suggest_*`` call unpacks them
+    directly.  Fallback defaults are provided so the function works even
+    with an empty config.
+    """
     warnings.simplefilter(action="ignore", category=UserWarning)
+
+    def get(name, default_args=(), default_kw=None):
+        a, k = config.get(name, (default_args, default_kw or {}))
+        return a, {**(default_kw or {}), **k}
+
     params = {}
 
-    params["num_bins"] = trial.suggest_int("num_bins", 2, 10)
+    a, k = get("num_bins", (2, 10))
+    params["num_bins"] = trial.suggest_int("num_bins", *a, **k)
 
     # Base GP parameters
-    params["population_size"] = trial.suggest_int("population_size", 50, 150, step=25)
+    a, k = get("population_size", (50, 150), {"step": 25})
+    params["population_size"] = trial.suggest_int("population_size", *a, **k)
+
+    a, k = get("mutation_probability", (0.001, 0.25), {"step": 0.001})
     params["mutation_probability"] = trial.suggest_float(
-        "mutation_probability", 0.001, 0.25, step=0.001
+        "mutation_probability", *a, **k
     )
-    params["crossover_rate"] = trial.suggest_float(
-        "crossover_rate", 0.1, 0.95, step=0.05
-    )
+
+    a, k = get("crossover_rate", (0.1, 0.95), {"step": 0.05})
+    params["crossover_rate"] = trial.suggest_float("crossover_rate", *a, **k)
+
+    a, k = get("crossover_operator_p", (0.0, 1.0), {"step": 0.05})
     params["crossover_operator_p"] = trial.suggest_float(
-        "crossover_operator_p", 0.0, 1.0, step=0.05
+        "crossover_operator_p", *a, **k
     )
-    params["mutation_operator_p"] = trial.suggest_float(
-        "mutation_operator_p", 0.0, 1.0, step=0.05
-    )
-    params["num_epochs"] = trial.suggest_int("num_epochs", 500, 3000, step=100)
 
-    params["selection_type"] = "tournament"
+    a, k = get("mutation_operator_p", (0.0, 1.0), {"step": 0.05})
+    params["mutation_operator_p"] = trial.suggest_float("mutation_operator_p", *a, **k)
+
+    a, k = get("num_epochs", (500, 3000), {"step": 100})
+    params["num_epochs"] = trial.suggest_int("num_epochs", *a, **k)
+
+    # Selection
+    params["selection_type"] = get("selection_type", ("tournament",))[0][0]
     if params["selection_type"] == "tournament":
-        params["tournament_size"] = trial.suggest_int("tournament_size", 5, 30)
-        params["selection_p"] = trial.suggest_float("selection_p", 0.2, 0.9, step=0.05)
+        a, k = get("tournament_size", (5, 30))
+        params["tournament_size"] = trial.suggest_int("tournament_size", *a, **k)
+        a, k = get("selection_p", (0.2, 0.9), {"step": 0.05})
+        params["selection_p"] = trial.suggest_float("selection_p", *a, **k)
 
-    params["regeneration"] = trial.suggest_categorical("regeneration", [True, False])
+    # Regeneration
+    a, k = get("regeneration", ([True, False],))
+    params["regeneration"] = trial.suggest_categorical("regeneration", *a, **k)
     if params["regeneration"]:
-        min_regen = 50
+        regen_step = get("regeneration_patience_step", (50,))[0][0]
         max_regen = params["num_epochs"] // 3
-        max_regen -= max_regen % min_regen
+        max_regen -= max_regen % regen_step
         params["regeneration_patience"] = trial.suggest_int(
-            "regeneration_patience", min_regen, max_regen, step=min_regen
+            "regeneration_patience", regen_step, max_regen, step=regen_step
         )
 
     # Complexity regularization
+    a, k = get("use_complexity_penalty", ([True, False],))
     params["use_complexity_penalty"] = trial.suggest_categorical(
-        "use_complexity_penalty", [True, False]
+        "use_complexity_penalty", *a, **k
     )
     if params["use_complexity_penalty"]:
+        a, k = get("complexity_penalty", (0.0, 0.1), {"step": 0.0001})
         params["complexity_penalty"] = trial.suggest_float(
-            "complexity_penalty", 0.0, 0.1, step=0.0001
+            "complexity_penalty", *a, **k
         )
 
-    # Hierarchical GP parameters (num_child_populations=0 means no hierarchy)
-    params["max_depth"] = trial.suggest_int("max_depth", 0, 2, step=1)
+    # Hierarchical GP
+    a, k = get("max_depth", (0, 2), {"step": 1})
+    params["max_depth"] = trial.suggest_int("max_depth", *a, **k)
+
     if params["max_depth"] > 0:
-        if params["max_depth"] == 3:
+        if params["max_depth"] >= 2:
             params["num_child_populations"] = 2
-        elif params["max_depth"] == 2:
-            params["num_child_populations"] = 2
-        else:  # 1
+        else:
+            a, k = get("num_child_populations", (2, 5))
             params["num_child_populations"] = trial.suggest_int(
-                "num_child_populations", 2, 5
+                "num_child_populations", *a, **k
             )
 
+        tk_args, tk_kw = get("top_k_transfer", (10, 100), {"step": 5})
+        tk_high = min(tk_args[1], params["population_size"] - 1)
         params["top_k_transfer"] = trial.suggest_int(
-            "top_k_transfer", 10, min(100, params["population_size"] - 1), step=5
-        )
-        params["feedback_type"] = trial.suggest_categorical(
-            "feedback_type", ["additive", "multiplicative"]
-        )
-        params["feedback_strength"] = trial.suggest_float(
-            "feedback_strength", 0.0, 0.2, step=0.01
+            "top_k_transfer", tk_args[0], tk_high, **tk_kw
         )
 
+        a, k = get("feedback_type", (["additive", "multiplicative"],))
+        params["feedback_type"] = trial.suggest_categorical("feedback_type", *a, **k)
+
+        a, k = get("feedback_strength", (0.0, 0.2), {"step": 0.01})
+        params["feedback_strength"] = trial.suggest_float("feedback_strength", *a, **k)
+
+        a, k = get("sampling_strategy_type", (["feature", "instance", "combined"],))
         params["sampling_strategy_type"] = trial.suggest_categorical(
-            "sampling_strategy_type", ["feature", "instance", "combined"]
+            "sampling_strategy_type", *a, **k
         )
-        # params["use_replace"] = trial.suggest_categorical("use_replace", [True, False])
-        params["use_replace"] = True
+
+        params["use_replace"] = get("use_replace", (True,))[0][0]
 
         if not params["use_replace"]:
             max_fraction = 1.0 / (
@@ -127,26 +159,31 @@ def suggest_hyperparameters(trial: optuna.Trial) -> Dict[str, Any]:
         else:
             max_fraction = 1.0
 
-        low = 0.1 * params["max_depth"]
+        low_frac = 0.1 * params["max_depth"]
 
         if params["sampling_strategy_type"] in ("feature", "combined"):
-            if max_fraction - 0.1 >= 0.01:
-                params["feature_fraction"] = trial.suggest_float(
-                    "feature_fraction", low, max_fraction, step=0.01
-                )
-            else:
-                params["feature_fraction"] = trial.suggest_float(
-                    "feature_fraction", low, max_fraction
-                )
+            ff_args, ff_kw = get(
+                "feature_fraction", (low_frac, max_fraction), {"step": 0.01}
+            )
+            ff_high = min(ff_args[1], max_fraction)
+            ff_low = ff_args[0]
+            if ff_high - ff_low < (ff_kw.get("step", 0.01)):
+                ff_kw.pop("step", None)
+            params["feature_fraction"] = trial.suggest_float(
+                "feature_fraction", ff_low, ff_high, **ff_kw
+            )
+
         if params["sampling_strategy_type"] in ("instance", "combined"):
-            if max_fraction - 0.1 >= 0.01:
-                params["sample_fraction"] = trial.suggest_float(
-                    "sample_fraction", low, max_fraction, step=0.01
-                )
-            else:
-                params["sample_fraction"] = trial.suggest_float(
-                    "sample_fraction", low, max_fraction
-                )
+            sf_args, sf_kw = get(
+                "sample_fraction", (low_frac, max_fraction), {"step": 0.01}
+            )
+            sf_high = min(sf_args[1], max_fraction)
+            sf_low = sf_args[0]
+            if sf_high - sf_low < (sf_kw.get("step", 0.01)):
+                sf_kw.pop("step", None)
+            params["sample_fraction"] = trial.suggest_float(
+                "sample_fraction", sf_low, sf_high, **sf_kw
+            )
 
     return params
 
@@ -250,12 +287,13 @@ def create_objective(
     n_runs: int,
     n_folds: int,
     artifact_store: FileSystemArtifactStore,
+    hp_config: Dict[str, Any],
     verbose: bool = False,
 ) -> Callable[[optuna.Trial], float]:
     """Create the Optuna objective function."""
 
     def objective(trial: optuna.Trial) -> float:
-        params = suggest_hyperparameters(trial)
+        params = suggest_hyperparameters(trial, hp_config)
 
         try:
             config = build_config(
@@ -313,6 +351,12 @@ def main(args: argparse.Namespace) -> None:
     artifact_store = FileSystemArtifactStore(base_path=str(artifact_dir))
     logger.info(f"Artifact store initialized at: {artifact_dir}")
 
+    # Load hyperparameter search space config
+    hp_config = {}
+    if args.hp_config is not None:
+        hp_config = load_search_space(args.hp_config)
+        logger.info(f"Loaded search space from: {args.hp_config}")
+
     storage = f"sqlite:///{args.storage_path}"
     study = optuna.create_study(
         study_name=args.study_name,
@@ -350,6 +394,7 @@ def main(args: argparse.Namespace) -> None:
         args.n_runs,
         args.n_folds,
         artifact_store,
+        hp_config,
         args.verbose,
     )
 
@@ -447,10 +492,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Show progress bars for runs/folds/epochs",
     )
-    # TODO: We should add a path to a configuration for hyperparameter suggestion.
-    # The best solution would be to have a yaml files for hyperparameter search.
-    # The most suitable solution would be to have a hyperparameter_config folder, with a default.yaml inside.
-    # And we can add later paysim.yaml, or pmbl.yaml, to support multiple hyperparameter search configurations.
+    parser.add_argument(
+        "--hp-config",
+        type=str,
+        default=None,
+        help="Path to YAML hyperparameter search space config",
+    )
     return parser.parse_args()
 
 
