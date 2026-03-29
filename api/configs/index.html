@@ -1,0 +1,2094 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Hierarchical Genetic Programming for rule-based classification">
+      
+      
+      
+      
+        <link rel="prev" href="../algorithms/">
+      
+      
+        <link rel="next" href="../trainers/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Configs - HGP Library</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#configs" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="HGP Library" class="md-header__button md-logo" aria-label="HGP Library" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            HGP Library
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Configs
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/fii-optim-lab/hgp-lib" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="HGP Library" class="md-nav__button md-logo" aria-label="HGP Library" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    HGP Library
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/fii-optim-lab/hgp-lib" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../algorithms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithms
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configs
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#hgp_lib.configs.boolean_gp_config.BooleanGPConfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BooleanGPConfig
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hgp_lib.configs.trainer_config.TrainerConfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TrainerConfig
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hgp_lib.configs.benchmarker_config.BenchmarkerConfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BenchmarkerConfig
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trainers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trainers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarkers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmarkers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mutations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mutations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../crossover/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Crossover
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../selections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Selections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../populations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Populations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../preprocessing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Preprocessing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Utils
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Experimental Results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#hgp_lib.configs.boolean_gp_config.BooleanGPConfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BooleanGPConfig
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hgp_lib.configs.trainer_config.TrainerConfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TrainerConfig
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hgp_lib.configs.benchmarker_config.BenchmarkerConfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BenchmarkerConfig
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="configs">Configs</h1>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="hgp_lib.configs.boolean_gp_config.BooleanGPConfig" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <code>hgp_lib.configs.boolean_gp_config.BooleanGPConfig</code>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+
+
+        <p>Configuration for BooleanGP.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.boolean_gp_config.BooleanGPConfig.score_fn">score_fn</span></code></td>
+            <td>
+                  <code><span title="typing.Callable">Callable</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Fitness function <code>(predictions, labels) -&gt; float</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.boolean_gp_config.BooleanGPConfig.train_data">train_data</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Training data (2-D boolean array). Can be <code>None</code> when
+used as a template in <code>BenchmarkerConfig</code> (data provided at benchmarker level).
+Default: <code>None</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.boolean_gp_config.BooleanGPConfig.train_labels">train_labels</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Training labels (1-D integer array). Can be <code>None</code>
+when used as a template in <code>BenchmarkerConfig</code>. Default: <code>None</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.boolean_gp_config.BooleanGPConfig.population_factory">population_factory</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            hgp_lib.populations.populations_factory.PopulationGeneratorFactory" href="../populations/#hgp_lib.populations.populations_factory.PopulationGeneratorFactory">PopulationGeneratorFactory</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Factory that creates the
+<code>PopulationGenerator</code> at runtime. Override <code>create_strategies</code> on the
+factory to use custom strategies (e.g., <code>BestLiteralStrategy</code>).
+Default: <code>PopulationGeneratorFactory()</code> (population_size=100, RandomStrategy).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.boolean_gp_config.BooleanGPConfig.mutation_factory">mutation_factory</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            hgp_lib.mutations.mutation_factory.MutationExecutorFactory" href="../mutations/#hgp_lib.mutations.mutation_factory.MutationExecutorFactory">MutationExecutorFactory</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Factory that creates the
+<code>MutationExecutor</code> at runtime. Override <code>create_literal_mutations</code> /
+<code>create_operator_mutations</code> on the factory to use custom mutations.
+Default: <code>MutationExecutorFactory()</code> (<code>mutation_p=0.1</code>, <code>num_tries=1</code>,
+<code>operator_p=0.5</code>).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.boolean_gp_config.BooleanGPConfig.crossover_factory">crossover_factory</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            hgp_lib.crossover.crossover_factory.CrossoverExecutorFactory (hgp_lib.crossover.CrossoverExecutorFactory)" href="../crossover/#hgp_lib.crossover.crossover_factory.CrossoverExecutorFactory">CrossoverExecutorFactory</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Factory that creates the
+<code>CrossoverExecutor</code> at runtime. Default: <code>CrossoverExecutorFactory()</code>
+(<code>crossover_p=0.7</code>, <code>crossover_strategy="random"</code>, <code>num_tries=1</code>, <code>operator_p=0.9</code>).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.boolean_gp_config.BooleanGPConfig.selection">selection</span></code></td>
+            <td>
+                  <code><span title="hgp_lib.selections.BaseSelection">BaseSelection</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional; default <code>TournamentSelection()</code>.
+Default: <code>None</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.boolean_gp_config.BooleanGPConfig.optimize_scorer">optimize_scorer</span></code></td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to optimize scorer via data deduplication and
+sample weights. Default: <code>True</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.boolean_gp_config.BooleanGPConfig.regeneration">regeneration</span></code></td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to regenerate population on plateau. Default: <code>False</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.boolean_gp_config.BooleanGPConfig.regeneration_patience">regeneration_patience</span></code></td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Epochs without improvement before regeneration.
+Default: <code>100</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.boolean_gp_config.BooleanGPConfig.check_valid">check_valid</span></code></td>
+            <td>
+                  <code><span title="typing.Callable">Callable</span>[[<a class="autorefs autorefs-internal" title="            hgp_lib.rules.rules.Rule (hgp_lib.rules.Rule)" href="../rules/#hgp_lib.rules.rules.Rule">Rule</a>], <span title="bool">bool</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional rule validator for
+mutation/crossover. Default: <code>None</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.boolean_gp_config.BooleanGPConfig.num_child_populations">num_child_populations</span></code></td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of child populations for hierarchical GP.
+Default: <code>0</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.boolean_gp_config.BooleanGPConfig.max_depth">max_depth</span></code></td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Maximum hierarchical depth; <code>0</code> means no children.
+Root population has current_depth=0, its children have current_depth=1, etc.
+Default: <code>0</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.boolean_gp_config.BooleanGPConfig.sampling_strategy">sampling_strategy</span></code></td>
+            <td>
+                  <code><span title="hgp_lib.populations.SamplingStrategy">SamplingStrategy</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Strategy for sampling data/features
+for children. Required when <code>max_depth &gt; 0</code>. Default: <code>None</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.boolean_gp_config.BooleanGPConfig.top_k_transfer">top_k_transfer</span></code></td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of top rules to transfer from each child to parent.
+Default: <code>10</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.boolean_gp_config.BooleanGPConfig.feedback_type">feedback_type</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>How to apply parent feedback: <code>"additive"</code> or
+<code>"multiplicative"</code>. Default: <code>"multiplicative"</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.boolean_gp_config.BooleanGPConfig.feedback_strength">feedback_strength</span></code></td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coefficient for feedback signal. Must be &gt; 0.
+Default: <code>0.1</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGPConfig</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">accuracy</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">l</span><span class="p">):</span> <span class="k">return</span> <span class="nb">float</span><span class="p">((</span><span class="n">p</span> <span class="o">==</span> <span class="n">l</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">BooleanGPConfig</span><span class="p">(</span><span class="n">score_fn</span><span class="o">=</span><span class="n">accuracy</span><span class="p">,</span> <span class="n">train_data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">train_labels</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span><span class="o">.</span><span class="n">train_data</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(4, 2)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span><span class="o">.</span><span class="n">optimize_scorer</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span><span class="o">.</span><span class="n">population_factory</span><span class="o">.</span><span class="n">population_size</span>
+<span class="go">100</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span><span class="o">.</span><span class="n">mutation_factory</span><span class="o">.</span><span class="n">mutation_p</span>
+<span class="go">0.1</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>hgp_lib/configs/boolean_gp_config.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 15</span>
+<span class="normal"> 16</span>
+<span class="normal"> 17</span>
+<span class="normal"> 18</span>
+<span class="normal"> 19</span>
+<span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">BooleanGPConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Configuration for BooleanGP.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        score_fn (Callable): Fitness function `(predictions, labels) -&gt; float`.</span>
+<span class="sd">        train_data (ndarray | None): Training data (2-D boolean array). Can be `None` when</span>
+<span class="sd">            used as a template in `BenchmarkerConfig` (data provided at benchmarker level).</span>
+<span class="sd">            Default: `None`.</span>
+<span class="sd">        train_labels (ndarray | None): Training labels (1-D integer array). Can be `None`</span>
+<span class="sd">            when used as a template in `BenchmarkerConfig`. Default: `None`.</span>
+<span class="sd">        population_factory (PopulationGeneratorFactory): Factory that creates the</span>
+<span class="sd">            `PopulationGenerator` at runtime. Override `create_strategies` on the</span>
+<span class="sd">            factory to use custom strategies (e.g., `BestLiteralStrategy`).</span>
+<span class="sd">            Default: `PopulationGeneratorFactory()` (population_size=100, RandomStrategy).</span>
+<span class="sd">        mutation_factory (MutationExecutorFactory): Factory that creates the</span>
+<span class="sd">            `MutationExecutor` at runtime. Override `create_literal_mutations` /</span>
+<span class="sd">            `create_operator_mutations` on the factory to use custom mutations.</span>
+<span class="sd">            Default: `MutationExecutorFactory()` (`mutation_p=0.1`, `num_tries=1`,</span>
+<span class="sd">            `operator_p=0.5`).</span>
+<span class="sd">        crossover_factory (CrossoverExecutorFactory): Factory that creates the</span>
+<span class="sd">            `CrossoverExecutor` at runtime. Default: `CrossoverExecutorFactory()`</span>
+<span class="sd">            (`crossover_p=0.7`, `crossover_strategy=&quot;random&quot;`, `num_tries=1`, `operator_p=0.9`).</span>
+<span class="sd">        selection (BaseSelection | None): Optional; default `TournamentSelection()`.</span>
+<span class="sd">            Default: `None`.</span>
+<span class="sd">        optimize_scorer (bool): Whether to optimize scorer via data deduplication and</span>
+<span class="sd">            sample weights. Default: `True`.</span>
+<span class="sd">        regeneration (bool): Whether to regenerate population on plateau. Default: `False`.</span>
+<span class="sd">        regeneration_patience (int): Epochs without improvement before regeneration.</span>
+<span class="sd">            Default: `100`.</span>
+<span class="sd">        check_valid (Callable[[Rule], bool] | None): Optional rule validator for</span>
+<span class="sd">            mutation/crossover. Default: `None`.</span>
+<span class="sd">        num_child_populations (int): Number of child populations for hierarchical GP.</span>
+<span class="sd">            Default: `0`.</span>
+<span class="sd">        max_depth (int): Maximum hierarchical depth; `0` means no children.</span>
+<span class="sd">            Root population has current_depth=0, its children have current_depth=1, etc.</span>
+<span class="sd">            Default: `0`.</span>
+<span class="sd">        sampling_strategy (SamplingStrategy | None): Strategy for sampling data/features</span>
+<span class="sd">            for children. Required when `max_depth &gt; 0`. Default: `None`.</span>
+<span class="sd">        top_k_transfer (int): Number of top rules to transfer from each child to parent.</span>
+<span class="sd">            Default: `10`.</span>
+<span class="sd">        feedback_type (str): How to apply parent feedback: `&quot;additive&quot;` or</span>
+<span class="sd">            `&quot;multiplicative&quot;`. Default: `&quot;multiplicative&quot;`.</span>
+<span class="sd">        feedback_strength (float): Coefficient for feedback signal. Must be &gt; 0.</span>
+<span class="sd">            Default: `0.1`.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">        &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig</span>
+<span class="sd">        &gt;&gt;&gt; data = np.array([[True, False], [False, True], [True, True], [False, False]])</span>
+<span class="sd">        &gt;&gt;&gt; labels = np.array([1, 0, 1, 0])</span>
+<span class="sd">        &gt;&gt;&gt; def accuracy(p, l): return float((p == l).mean())</span>
+<span class="sd">        &gt;&gt;&gt; config = BooleanGPConfig(score_fn=accuracy, train_data=data, train_labels=labels)</span>
+<span class="sd">        &gt;&gt;&gt; config.train_data.shape</span>
+<span class="sd">        (4, 2)</span>
+<span class="sd">        &gt;&gt;&gt; config.optimize_scorer</span>
+<span class="sd">        True</span>
+<span class="sd">        &gt;&gt;&gt; config.population_factory.population_size</span>
+<span class="sd">        100</span>
+<span class="sd">        &gt;&gt;&gt; config.mutation_factory.mutation_p</span>
+<span class="sd">        0.1</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># TODO: We should reconsider the ordering of the arguments for score fn. Pred, GT or GT, Pred?</span>
+    <span class="n">score_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ndarray</span><span class="p">],</span> <span class="nb">float</span><span class="p">]</span>
+    <span class="n">complexity_penalty</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">train_data</span><span class="p">:</span> <span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">train_labels</span><span class="p">:</span> <span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">population_factory</span><span class="p">:</span> <span class="n">PopulationGeneratorFactory</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">PopulationGeneratorFactory</span>
+    <span class="p">)</span>
+    <span class="n">mutation_factory</span><span class="p">:</span> <span class="n">MutationExecutorFactory</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">MutationExecutorFactory</span>
+    <span class="p">)</span>
+    <span class="n">crossover_factory</span><span class="p">:</span> <span class="n">CrossoverExecutorFactory</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">CrossoverExecutorFactory</span>
+    <span class="p">)</span>
+    <span class="n">selection</span><span class="p">:</span> <span class="n">BaseSelection</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">optimize_scorer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">regeneration</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">regeneration_patience</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">check_valid</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Rule</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">num_child_populations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">max_depth</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">sampling_strategy</span><span class="p">:</span> <span class="n">SamplingStrategy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">top_k_transfer</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">feedback_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;multiplicative&quot;</span>
+    <span class="n">feedback_strength</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="hgp_lib.configs.trainer_config.TrainerConfig" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <code>hgp_lib.configs.trainer_config.TrainerConfig</code>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+
+
+        <p>Configuration for GPTrainer. Wraps BooleanGPConfig.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.trainer_config.TrainerConfig.gp_config">gp_config</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            hgp_lib.configs.boolean_gp_config.BooleanGPConfig
+
+
+  
+      dataclass
+  " href="#hgp_lib.configs.boolean_gp_config.BooleanGPConfig">BooleanGPConfig</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Configuration for the underlying BooleanGP.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.trainer_config.TrainerConfig.num_epochs">num_epochs</span></code></td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of training epochs.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.trainer_config.TrainerConfig.val_data">val_data</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Validation data; optional.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.trainer_config.TrainerConfig.val_labels">val_labels</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Validation labels; optional.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.trainer_config.TrainerConfig.val_every">val_every</span></code></td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Validate every N epochs.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.trainer_config.TrainerConfig.progress_bar">progress_bar</span></code></td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to show progress bar.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.trainer_config.TrainerConfig.leave_progress_bar">leave_progress_bar</span></code></td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to show progress bar.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.trainer_config.TrainerConfig.progress_callback">progress_callback</span></code></td>
+            <td>
+                  <code><span title="typing.Callable">Callable</span>[[<span title="int">int</span>], None] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional callback for progress updates.
+Called every <code>progress_update_interval</code> epochs with the number of epochs completed.
+Useful for external progress tracking (e.g., multiprocessing progress bars).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.trainer_config.TrainerConfig.progress_update_interval">progress_update_interval</span></code></td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>How often to call progress_callback (in epochs).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGPConfig</span><span class="p">,</span> <span class="n">TrainerConfig</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">accuracy</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">l</span><span class="p">):</span> <span class="k">return</span> <span class="nb">float</span><span class="p">((</span><span class="n">p</span> <span class="o">==</span> <span class="n">l</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">gp_config</span> <span class="o">=</span> <span class="n">BooleanGPConfig</span><span class="p">(</span><span class="n">score_fn</span><span class="o">=</span><span class="n">accuracy</span><span class="p">,</span> <span class="n">train_data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">train_labels</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">TrainerConfig</span><span class="p">(</span><span class="n">gp_config</span><span class="o">=</span><span class="n">gp_config</span><span class="p">,</span> <span class="n">num_epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span><span class="o">.</span><span class="n">num_epochs</span>
+<span class="go">10</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span><span class="o">.</span><span class="n">val_every</span>
+<span class="go">100</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>hgp_lib/configs/trainer_config.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TrainerConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Configuration for GPTrainer. Wraps BooleanGPConfig.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        gp_config (BooleanGPConfig): Configuration for the underlying BooleanGP.</span>
+<span class="sd">        num_epochs (int): Number of training epochs.</span>
+<span class="sd">        val_data (ndarray | None): Validation data; optional.</span>
+<span class="sd">        val_labels (ndarray | None): Validation labels; optional.</span>
+<span class="sd">        val_every (int): Validate every N epochs.</span>
+<span class="sd">        progress_bar (bool): Whether to show progress bar.</span>
+<span class="sd">        leave_progress_bar (bool): Whether to show progress bar.</span>
+<span class="sd">        progress_callback (Callable[[int], None] | None): Optional callback for progress updates.</span>
+<span class="sd">            Called every `progress_update_interval` epochs with the number of epochs completed.</span>
+<span class="sd">            Useful for external progress tracking (e.g., multiprocessing progress bars).</span>
+<span class="sd">        progress_update_interval (int): How often to call progress_callback (in epochs).</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">        &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig, TrainerConfig</span>
+<span class="sd">        &gt;&gt;&gt; data = np.array([[True, False], [False, True], [True, True], [False, False]])</span>
+<span class="sd">        &gt;&gt;&gt; labels = np.array([1, 0, 1, 0])</span>
+<span class="sd">        &gt;&gt;&gt; def accuracy(p, l): return float((p == l).mean())</span>
+<span class="sd">        &gt;&gt;&gt; gp_config = BooleanGPConfig(score_fn=accuracy, train_data=data, train_labels=labels)</span>
+<span class="sd">        &gt;&gt;&gt; config = TrainerConfig(gp_config=gp_config, num_epochs=10)</span>
+<span class="sd">        &gt;&gt;&gt; config.num_epochs</span>
+<span class="sd">        10</span>
+<span class="sd">        &gt;&gt;&gt; config.val_every</span>
+<span class="sd">        100</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">gp_config</span><span class="p">:</span> <span class="n">BooleanGPConfig</span>
+    <span class="n">num_epochs</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">val_data</span><span class="p">:</span> <span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">val_labels</span><span class="p">:</span> <span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">val_every</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">progress_bar</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">leave_progress_bar</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">progress_callback</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">int</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">progress_update_interval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="hgp_lib.configs.benchmarker_config.BenchmarkerConfig" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <code>hgp_lib.configs.benchmarker_config.BenchmarkerConfig</code>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+
+
+        <p>Configuration for GPBenchmarker. Used for multi-run benchmarking with k-fold CV.</p>
+<p>Contains a TrainerConfig template that specifies all training settings. The benchmarker
+will create TrainerConfig instances for each fold, replacing the data with fold-specific
+train/validation splits.</p>
+<p>The benchmarker handles binarization internally: for each fold, it fits a fresh copy
+of the binarizer on the training fold and transforms validation/test data with it.
+This avoids data leakage (the binarizer never sees validation or test data during fitting).
+Pass raw (non-binarized) data as a <code>pandas.DataFrame</code>.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.benchmarker_config.BenchmarkerConfig.data">data</span></code></td>
+            <td>
+                  <code><span title="pandas.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Full dataset as a <code>pandas.DataFrame</code>. The benchmarker will
+binarize it per-fold using the configured <code>binarizer</code>, then convert to a
+boolean numpy array for the GP algorithm. Columns can be boolean, categorical,
+or numeric.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.benchmarker_config.BenchmarkerConfig.labels">labels</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Labels for the full dataset (1-D numpy array).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.benchmarker_config.BenchmarkerConfig.trainer_config">trainer_config</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            hgp_lib.configs.trainer_config.TrainerConfig
+
+
+  
+      dataclass
+  " href="#hgp_lib.configs.trainer_config.TrainerConfig">TrainerConfig</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Template configuration for training. The nested
+<code>gp_config</code> does not need <code>train_data</code>/<code>train_labels</code> (they will be set
+per fold by the benchmarker).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.benchmarker_config.BenchmarkerConfig.binarizer">binarizer</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            hgp_lib.preprocessing.binarizer.StandardBinarizer (hgp_lib.preprocessing.StandardBinarizer)" href="../preprocessing/#hgp_lib.preprocessing.binarizer.StandardBinarizer">StandardBinarizer</a> | <span title="sklearn.preprocessing.KBinsDiscretizer">KBinsDiscretizer</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Binarizer to transform
+features into boolean columns. A fresh <code>deepcopy</code> is fitted per fold so
+the original stays unfitted. When <code>None</code> (default), a
+<code>StandardBinarizer()</code> with default settings is used, which applies
+one-hot-encoding to categorical features and decision-tree-based binarization
+(5 bins) to numerical features. The binarizer must <strong>not</strong> be already fitted.
+Default: <code>None</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.benchmarker_config.BenchmarkerConfig.num_runs">num_runs</span></code></td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of benchmark runs with different random seeds. Default: <code>30</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.benchmarker_config.BenchmarkerConfig.test_size">test_size</span></code></td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Fraction of data to hold out for testing. Default: <code>0.2</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.benchmarker_config.BenchmarkerConfig.n_folds">n_folds</span></code></td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of folds for k-fold cross-validation. Default: <code>5</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.benchmarker_config.BenchmarkerConfig.n_jobs">n_jobs</span></code></td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of parallel jobs (<code>-1</code> = all CPUs, <code>1</code> = sequential).
+Default: <code>-1</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.benchmarker_config.BenchmarkerConfig.base_seed">base_seed</span></code></td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Base random seed; each run uses <code>base_seed + run_id</code>.
+Default: <code>0</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.benchmarker_config.BenchmarkerConfig.show_run_progress">show_run_progress</span></code></td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Show progress bar for runs. Default: <code>True</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.benchmarker_config.BenchmarkerConfig.show_fold_progress">show_fold_progress</span></code></td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Show progress bar for folds within each run.
+Default: <code>True</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hgp_lib.configs.benchmarker_config.BenchmarkerConfig.show_epoch_progress">show_epoch_progress</span></code></td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Show progress bar for epochs within each fold.
+Default: <code>True</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGPConfig</span><span class="p">,</span> <span class="n">TrainerConfig</span><span class="p">,</span> <span class="n">BenchmarkerConfig</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+<span class="gp">... </span>    <span class="s1">&#39;feature1&#39;</span><span class="p">:</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="s1">&#39;feature2&#39;</span><span class="p">:</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span>
+<span class="gp">... </span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">accuracy</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">l</span><span class="p">):</span> <span class="k">return</span> <span class="nb">float</span><span class="p">((</span><span class="n">p</span> <span class="o">==</span> <span class="n">l</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">gp_config</span> <span class="o">=</span> <span class="n">BooleanGPConfig</span><span class="p">(</span><span class="n">score_fn</span><span class="o">=</span><span class="n">accuracy</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trainer_config</span> <span class="o">=</span> <span class="n">TrainerConfig</span><span class="p">(</span><span class="n">gp_config</span><span class="o">=</span><span class="n">gp_config</span><span class="p">,</span> <span class="n">num_epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">BenchmarkerConfig</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">trainer_config</span><span class="o">=</span><span class="n">trainer_config</span><span class="p">,</span> <span class="n">n_folds</span><span class="o">=</span><span class="mi">2</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span><span class="o">.</span><span class="n">num_runs</span>
+<span class="go">30</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span><span class="o">.</span><span class="n">n_folds</span>
+<span class="go">2</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>hgp_lib/configs/benchmarker_config.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span>
+<span class="normal">74</span>
+<span class="normal">75</span>
+<span class="normal">76</span>
+<span class="normal">77</span>
+<span class="normal">78</span>
+<span class="normal">79</span>
+<span class="normal">80</span>
+<span class="normal">81</span>
+<span class="normal">82</span>
+<span class="normal">83</span>
+<span class="normal">84</span>
+<span class="normal">85</span>
+<span class="normal">86</span>
+<span class="normal">87</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">BenchmarkerConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Configuration for GPBenchmarker. Used for multi-run benchmarking with k-fold CV.</span>
+
+<span class="sd">    Contains a TrainerConfig template that specifies all training settings. The benchmarker</span>
+<span class="sd">    will create TrainerConfig instances for each fold, replacing the data with fold-specific</span>
+<span class="sd">    train/validation splits.</span>
+
+<span class="sd">    The benchmarker handles binarization internally: for each fold, it fits a fresh copy</span>
+<span class="sd">    of the binarizer on the training fold and transforms validation/test data with it.</span>
+<span class="sd">    This avoids data leakage (the binarizer never sees validation or test data during fitting).</span>
+<span class="sd">    Pass raw (non-binarized) data as a `pandas.DataFrame`.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        data (DataFrame): Full dataset as a `pandas.DataFrame`. The benchmarker will</span>
+<span class="sd">            binarize it per-fold using the configured `binarizer`, then convert to a</span>
+<span class="sd">            boolean numpy array for the GP algorithm. Columns can be boolean, categorical,</span>
+<span class="sd">            or numeric.</span>
+<span class="sd">        labels (ndarray): Labels for the full dataset (1-D numpy array).</span>
+<span class="sd">        trainer_config (TrainerConfig): Template configuration for training. The nested</span>
+<span class="sd">            `gp_config` does not need `train_data`/`train_labels` (they will be set</span>
+<span class="sd">            per fold by the benchmarker).</span>
+<span class="sd">        binarizer (StandardBinarizer | KBinsDiscretizer | None): Binarizer to transform</span>
+<span class="sd">            features into boolean columns. A fresh `deepcopy` is fitted per fold so</span>
+<span class="sd">            the original stays unfitted. When `None` (default), a</span>
+<span class="sd">            `StandardBinarizer()` with default settings is used, which applies</span>
+<span class="sd">            one-hot-encoding to categorical features and decision-tree-based binarization</span>
+<span class="sd">            (5 bins) to numerical features. The binarizer must **not** be already fitted.</span>
+<span class="sd">            Default: `None`.</span>
+<span class="sd">        num_runs (int): Number of benchmark runs with different random seeds. Default: `30`.</span>
+<span class="sd">        test_size (float): Fraction of data to hold out for testing. Default: `0.2`.</span>
+<span class="sd">        n_folds (int): Number of folds for k-fold cross-validation. Default: `5`.</span>
+<span class="sd">        n_jobs (int): Number of parallel jobs (`-1` = all CPUs, `1` = sequential).</span>
+<span class="sd">            Default: `-1`.</span>
+<span class="sd">        base_seed (int): Base random seed; each run uses `base_seed + run_id`.</span>
+<span class="sd">            Default: `0`.</span>
+<span class="sd">        show_run_progress (bool): Show progress bar for runs. Default: `True`.</span>
+<span class="sd">        show_fold_progress (bool): Show progress bar for folds within each run.</span>
+<span class="sd">            Default: `True`.</span>
+<span class="sd">        show_epoch_progress (bool): Show progress bar for epochs within each fold.</span>
+<span class="sd">            Default: `True`.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">        &gt;&gt;&gt; import pandas as pd</span>
+<span class="sd">        &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig, TrainerConfig, BenchmarkerConfig</span>
+<span class="sd">        &gt;&gt;&gt; data = pd.DataFrame({</span>
+<span class="sd">        ...     &#39;feature1&#39;: [True, False, True, False],</span>
+<span class="sd">        ...     &#39;feature2&#39;: [False, True, True, False],</span>
+<span class="sd">        ... })</span>
+<span class="sd">        &gt;&gt;&gt; labels = np.array([1, 0, 1, 0])</span>
+<span class="sd">        &gt;&gt;&gt; def accuracy(p, l): return float((p == l).mean())</span>
+<span class="sd">        &gt;&gt;&gt; gp_config = BooleanGPConfig(score_fn=accuracy)</span>
+<span class="sd">        &gt;&gt;&gt; trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=10)</span>
+<span class="sd">        &gt;&gt;&gt; config = BenchmarkerConfig(</span>
+<span class="sd">        ...     data=data, labels=labels, trainer_config=trainer_config, n_folds=2</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt; config.num_runs</span>
+<span class="sd">        30</span>
+<span class="sd">        &gt;&gt;&gt; config.n_folds</span>
+<span class="sd">        2</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">data</span><span class="p">:</span> <span class="n">DataFrame</span>
+    <span class="n">labels</span><span class="p">:</span> <span class="n">ndarray</span>
+    <span class="n">trainer_config</span><span class="p">:</span> <span class="n">TrainerConfig</span>
+    <span class="n">binarizer</span><span class="p">:</span> <span class="n">StandardBinarizer</span> <span class="o">|</span> <span class="n">KBinsDiscretizer</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">num_runs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span>
+    <span class="n">test_size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span>
+    <span class="n">n_folds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">n_jobs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">base_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">show_run_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">show_fold_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">show_epoch_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

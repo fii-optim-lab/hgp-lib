@@ -1,0 +1,2748 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Hierarchical Genetic Programming for rule-based classification">
+      
+      
+      
+      
+        <link rel="prev" href="../trainers/">
+      
+      
+        <link rel="next" href="../rules/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Benchmarkers - HGP Library</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#benchmarkers" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="HGP Library" class="md-header__button md-logo" aria-label="HGP Library" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            HGP Library
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Benchmarkers
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/fii-optim-lab/hgp-lib" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="HGP Library" class="md-nav__button md-logo" aria-label="HGP Library" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    HGP Library
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/fii-optim-lab/hgp-lib" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../algorithms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithms
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trainers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trainers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmarkers
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmarkers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GPBenchmarker
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="GPBenchmarker">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker.fit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fit
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hgp_lib.benchmarkers.runner.execute_single_run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        execute_single_run
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hgp_lib.benchmarkers.progress.ProgressListener" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ProgressListener
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ProgressListener">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hgp_lib.benchmarkers.progress.ProgressListener.start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        start
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hgp_lib.benchmarkers.progress.ProgressListener.stop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        stop
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hgp_lib.benchmarkers.progress.ProgressListener.join" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        join
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hgp_lib.benchmarkers.progress.send_progress" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        send_progress
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mutations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mutations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../crossover/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Crossover
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../selections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Selections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../populations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Populations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../preprocessing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Preprocessing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Utils
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Experimental Results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GPBenchmarker
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="GPBenchmarker">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker.fit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fit
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hgp_lib.benchmarkers.runner.execute_single_run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        execute_single_run
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hgp_lib.benchmarkers.progress.ProgressListener" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ProgressListener
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ProgressListener">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hgp_lib.benchmarkers.progress.ProgressListener.start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        start
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hgp_lib.benchmarkers.progress.ProgressListener.stop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        stop
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hgp_lib.benchmarkers.progress.ProgressListener.join" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        join
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hgp_lib.benchmarkers.progress.send_progress" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        send_progress
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="benchmarkers">Benchmarkers</h1>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <code>hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+
+
+        <p>Benchmarker for Boolean GP: runs multiple independent experiments with
+stratified train/test split and k-fold CV per run, then aggregates results.</p>
+<p>Data flow per run:</p>
+<ol>
+<li>Stratified train/test split (using <code>test_size</code>).</li>
+<li>For each of the <code>n_folds</code> folds:</li>
+</ol>
+<p>a. A fresh copy of the <code>binarizer</code> is fitted on the training fold.
+   b. The validation fold is transformed using the same fitted binarizer.
+   c. Binarized data is converted to boolean numpy arrays and used for GP
+      training.</p>
+<ol>
+<li>The best fold (highest validation score) is selected. Its binarizer is
+   used to transform the held-out test set for final evaluation.</li>
+</ol>
+<p>Raw (non-binarized) data should be passed as a
+<code>pandas.DataFrame</code> in <code>BenchmarkerConfig.data</code>. Binarization happens
+internally per fold to prevent data leakage.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>config</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            hgp_lib.configs.benchmarker_config.BenchmarkerConfig
+
+
+  
+      dataclass
+   (hgp_lib.configs.BenchmarkerConfig)" href="../configs/#hgp_lib.configs.benchmarker_config.BenchmarkerConfig">BenchmarkerConfig</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Configuration with data,
+labels, binarizer, trainer_config template, and benchmarker-specific
+options. See <code>BenchmarkerConfig</code> for more details.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGPConfig</span><span class="p">,</span> <span class="n">TrainerConfig</span><span class="p">,</span> <span class="n">BenchmarkerConfig</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.benchmarkers</span><span class="w"> </span><span class="kn">import</span> <span class="n">GPBenchmarker</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.rules</span><span class="w"> </span><span class="kn">import</span> <span class="n">Rule</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+<span class="gp">... </span>    <span class="s2">&quot;f1&quot;</span><span class="p">:</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="s2">&quot;f2&quot;</span><span class="p">:</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span>
+<span class="gp">... </span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">acc</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">l</span><span class="p">):</span> <span class="k">return</span> <span class="nb">float</span><span class="p">((</span><span class="n">p</span> <span class="o">==</span> <span class="n">l</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">gp_config</span> <span class="o">=</span> <span class="n">BooleanGPConfig</span><span class="p">(</span><span class="n">score_fn</span><span class="o">=</span><span class="n">acc</span><span class="p">,</span> <span class="n">optimize_scorer</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trainer_config</span> <span class="o">=</span> <span class="n">TrainerConfig</span><span class="p">(</span><span class="n">gp_config</span><span class="o">=</span><span class="n">gp_config</span><span class="p">,</span> <span class="n">num_epochs</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">BenchmarkerConfig</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">trainer_config</span><span class="o">=</span><span class="n">trainer_config</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">num_runs</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_folds</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">benchmarker</span> <span class="o">=</span> <span class="n">GPBenchmarker</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">benchmarker</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">runs</span><span class="p">)</span>
+<span class="go">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">best_rule</span><span class="p">,</span> <span class="n">Rule</span><span class="p">)</span>
+<span class="go">True</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>hgp_lib/benchmarkers/gp_benchmarker.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 15</span>
+<span class="normal"> 16</span>
+<span class="normal"> 17</span>
+<span class="normal"> 18</span>
+<span class="normal"> 19</span>
+<span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">GPBenchmarker</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Benchmarker for Boolean GP: runs multiple independent experiments with</span>
+<span class="sd">    stratified train/test split and k-fold CV per run, then aggregates results.</span>
+
+<span class="sd">    Data flow per run:</span>
+
+<span class="sd">    1. Stratified train/test split (using `test_size`).</span>
+<span class="sd">    2. For each of the `n_folds` folds:</span>
+
+<span class="sd">       a. A fresh copy of the `binarizer` is fitted on the training fold.</span>
+<span class="sd">       b. The validation fold is transformed using the same fitted binarizer.</span>
+<span class="sd">       c. Binarized data is converted to boolean numpy arrays and used for GP</span>
+<span class="sd">          training.</span>
+
+<span class="sd">    3. The best fold (highest validation score) is selected. Its binarizer is</span>
+<span class="sd">       used to transform the held-out test set for final evaluation.</span>
+
+<span class="sd">    Raw (non-binarized) data should be passed as a</span>
+<span class="sd">    `pandas.DataFrame` in `BenchmarkerConfig.data`. Binarization happens</span>
+<span class="sd">    internally per fold to prevent data leakage.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        config (BenchmarkerConfig): Configuration with data,</span>
+<span class="sd">            labels, binarizer, trainer_config template, and benchmarker-specific</span>
+<span class="sd">            options. See `BenchmarkerConfig` for more details.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">        &gt;&gt;&gt; import pandas as pd</span>
+<span class="sd">        &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig, TrainerConfig, BenchmarkerConfig</span>
+<span class="sd">        &gt;&gt;&gt; from hgp_lib.benchmarkers import GPBenchmarker</span>
+<span class="sd">        &gt;&gt;&gt; from hgp_lib.rules import Rule</span>
+<span class="sd">        &gt;&gt;&gt; data = pd.DataFrame({</span>
+<span class="sd">        ...     &quot;f1&quot;: [True, False, True, False, True, False, True, False],</span>
+<span class="sd">        ...     &quot;f2&quot;: [False, True, True, False, False, True, True, False],</span>
+<span class="sd">        ... })</span>
+<span class="sd">        &gt;&gt;&gt; labels = np.array([1, 0, 1, 0, 1, 0, 1, 0])</span>
+<span class="sd">        &gt;&gt;&gt; def acc(p, l): return float((p == l).mean())</span>
+<span class="sd">        &gt;&gt;&gt; gp_config = BooleanGPConfig(score_fn=acc, optimize_scorer=False)</span>
+<span class="sd">        &gt;&gt;&gt; trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=3, progress_bar=False)</span>
+<span class="sd">        &gt;&gt;&gt; config = BenchmarkerConfig(</span>
+<span class="sd">        ...     data=data, labels=labels, trainer_config=trainer_config,</span>
+<span class="sd">        ...     num_runs=2, n_folds=2, n_jobs=1,</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt; benchmarker = GPBenchmarker(config)</span>
+<span class="sd">        &gt;&gt;&gt; result = benchmarker.fit()</span>
+<span class="sd">        &gt;&gt;&gt; len(result.runs)</span>
+<span class="sd">        2</span>
+<span class="sd">        &gt;&gt;&gt; isinstance(result.best_rule, Rule)</span>
+<span class="sd">        True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">BenchmarkerConfig</span><span class="p">):</span>
+        <span class="n">validate_benchmarker_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">binarizer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">binarizer</span> <span class="o">=</span> <span class="n">StandardBinarizer</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_run_results</span><span class="p">:</span> <span class="n">ExperimentResult</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_effective_n_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the effective number of parallel jobs to use.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            int: The number of parallel workers to use (always &gt;= 1).</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">            &gt;&gt;&gt; import pandas as pd</span>
+<span class="sd">            &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig, TrainerConfig, BenchmarkerConfig</span>
+<span class="sd">            &gt;&gt;&gt; from hgp_lib.benchmarkers import GPBenchmarker</span>
+<span class="sd">            &gt;&gt;&gt; data = pd.DataFrame({&quot;f&quot;: [True, False, True, False, True, False, True, False]})</span>
+<span class="sd">            &gt;&gt;&gt; labels = np.array([1, 0, 1, 0, 1, 0, 1, 0])</span>
+<span class="sd">            &gt;&gt;&gt; def acc(p, l): return float((p == l).mean())</span>
+<span class="sd">            &gt;&gt;&gt; gp = BooleanGPConfig(score_fn=acc, optimize_scorer=False)</span>
+<span class="sd">            &gt;&gt;&gt; tc = TrainerConfig(gp_config=gp, num_epochs=1, progress_bar=False)</span>
+<span class="sd">            &gt;&gt;&gt; cfg = BenchmarkerConfig(data=data, labels=labels, trainer_config=tc,</span>
+<span class="sd">            ...     num_runs=3, n_folds=2, n_jobs=1)</span>
+<span class="sd">            &gt;&gt;&gt; GPBenchmarker(cfg)._effective_n_jobs()</span>
+<span class="sd">            1</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">n_jobs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">n_jobs</span>
+        <span class="k">if</span> <span class="n">n_jobs</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">n_jobs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span> <span class="ow">or</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">n_jobs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">num_runs</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_run_sequential</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExperimentResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run all benchmark runs sequentially with nested progress bars.&quot;&quot;&quot;</span>
+        <span class="n">run_results</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">RunResult</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">show_run_progress</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">trainer_config</span><span class="o">.</span><span class="n">leave_progress_bar</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">for</span> <span class="n">run_id</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span>
+            <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">num_runs</span><span class="p">),</span>
+            <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Benchmark Runs&quot;</span><span class="p">,</span>
+            <span class="n">disable</span><span class="o">=</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">show_run_progress</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">execute_single_run</span><span class="p">(</span>
+                <span class="n">run_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">base_seed</span> <span class="o">+</span> <span class="n">run_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span>
+            <span class="p">)</span>
+            <span class="n">run_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ExperimentResult</span><span class="p">(</span><span class="n">runs</span><span class="o">=</span><span class="n">run_results</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_run_parallel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExperimentResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run all benchmark runs in parallel with centralized progress bars.&quot;&quot;&quot;</span>
+        <span class="n">show_progress</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">trainer_config</span><span class="o">.</span><span class="n">progress_bar</span>
+
+        <span class="n">total_runs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">num_runs</span>
+        <span class="n">total_folds</span> <span class="o">=</span> <span class="n">total_runs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">n_folds</span>
+        <span class="n">total_epochs</span> <span class="o">=</span> <span class="n">total_folds</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">trainer_config</span><span class="o">.</span><span class="n">num_epochs</span>
+
+        <span class="n">progress_config</span> <span class="o">=</span> <span class="n">ProgressConfig</span><span class="p">(</span>
+            <span class="n">total_runs</span><span class="o">=</span><span class="n">total_runs</span><span class="p">,</span>
+            <span class="n">total_folds</span><span class="o">=</span><span class="n">total_folds</span><span class="p">,</span>
+            <span class="n">total_epochs</span><span class="o">=</span><span class="n">total_epochs</span><span class="p">,</span>
+            <span class="n">show_run_progress</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">show_run_progress</span> <span class="ow">and</span> <span class="n">show_progress</span><span class="p">,</span>
+            <span class="n">show_fold_progress</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">show_fold_progress</span> <span class="ow">and</span> <span class="n">show_progress</span><span class="p">,</span>
+            <span class="n">show_epoch_progress</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">show_epoch_progress</span> <span class="ow">and</span> <span class="n">show_progress</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">manager</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Manager</span><span class="p">()</span>
+        <span class="n">queue</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+
+        <span class="n">listener</span> <span class="o">=</span> <span class="n">ProgressListener</span><span class="p">(</span><span class="n">queue</span><span class="p">,</span> <span class="n">progress_config</span><span class="p">)</span>
+        <span class="n">listener</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+        <span class="n">run_args</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">run_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">base_seed</span> <span class="o">+</span> <span class="n">run_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="n">queue</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">run_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">num_runs</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="n">n_jobs</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+                <span class="n">run_results</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">single_run_wrapper</span><span class="p">,</span> <span class="n">run_args</span><span class="p">)</span>
+            <span class="c1"># Normal completion - wait for listener to finish processing</span>
+            <span class="n">listener</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="c1"># Error occurred - force stop the listener to prevent hang</span>
+            <span class="n">listener</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+            <span class="k">raise</span>
+
+        <span class="k">return</span> <span class="n">ExperimentResult</span><span class="p">(</span><span class="n">runs</span><span class="o">=</span><span class="n">run_results</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExperimentResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Run all benchmark runs (parallel or sequential) and aggregate results.</span>
+
+<span class="sd">        Each run performs a stratified train/test split, k-fold CV with per-fold</span>
+<span class="sd">        binarization, and test-set evaluation. Results across runs are aggregated</span>
+<span class="sd">        into an ExperimentResult.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ExperimentResult: Contains all run results with methods to get</span>
+<span class="sd">                best_run, best_rule, test scores statistics, etc.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">effective_n_jobs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_effective_n_jobs</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">effective_n_jobs</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">run_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_sequential</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">run_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_parallel</span><span class="p">(</span><span class="n">effective_n_jobs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_run_results</span> <span class="o">=</span> <span class="n">run_results</span>
+        <span class="k">return</span> <span class="n">run_results</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker.fit" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">fit</span><span class="p">()</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Run all benchmark runs (parallel or sequential) and aggregate results.</p>
+<p>Each run performs a stratified train/test split, k-fold CV with per-fold
+binarization, and test-set evaluation. Results across runs are aggregated
+into an ExperimentResult.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>ExperimentResult</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="            hgp_lib.metrics.results.ExperimentResult
+
+
+  
+      dataclass
+   (hgp_lib.metrics.ExperimentResult)" href="../metrics/#hgp_lib.metrics.results.ExperimentResult">ExperimentResult</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Contains all run results with methods to get
+best_run, best_rule, test scores statistics, etc.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>hgp_lib/benchmarkers/gp_benchmarker.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExperimentResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run all benchmark runs (parallel or sequential) and aggregate results.</span>
+
+<span class="sd">    Each run performs a stratified train/test split, k-fold CV with per-fold</span>
+<span class="sd">    binarization, and test-set evaluation. Results across runs are aggregated</span>
+<span class="sd">    into an ExperimentResult.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ExperimentResult: Contains all run results with methods to get</span>
+<span class="sd">            best_run, best_rule, test scores statistics, etc.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">effective_n_jobs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_effective_n_jobs</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">effective_n_jobs</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">run_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_sequential</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">run_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_parallel</span><span class="p">(</span><span class="n">effective_n_jobs</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_run_results</span> <span class="o">=</span> <span class="n">run_results</span>
+    <span class="k">return</span> <span class="n">run_results</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="hgp_lib.benchmarkers.runner.execute_single_run" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">hgp_lib</span><span class="o">.</span><span class="n">benchmarkers</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">execute_single_run</span><span class="p">(</span><span class="n">run_id</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">progress_queue</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Execute one benchmark run: stratified train/test split, per-fold binarization,
+k-fold CV training, best-fold selection, and test-set evaluation.</p>
+<p>This is a module-level function so it can be pickled for <code>multiprocessing</code>.</p>
+<p><strong>Per-fold binarization:</strong> For each fold a fresh <code>deepcopy</code> of the configured
+binarizer is fitted on the training fold (with labels, enabling supervised
+binning for numerical features) and used to transform the validation fold.
+After selecting the best fold, its binarizer transforms the held-out test
+data. This prevents data leakage across folds and between train/test sets.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>run_id</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Index of the run (0-based).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>seed</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Random seed for stratified split and k-fold.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>config</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            hgp_lib.configs.benchmarker_config.BenchmarkerConfig
+
+
+  
+      dataclass
+   (hgp_lib.configs.BenchmarkerConfig)" href="../configs/#hgp_lib.configs.benchmarker_config.BenchmarkerConfig">BenchmarkerConfig</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Configuration for the benchmark run.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>progress_queue</code>
+            </td>
+            <td>
+                  <code><span title="multiprocessing.Queue">Queue</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional queue for sending progress updates.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>RunResult</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="            hgp_lib.metrics.results.RunResult
+
+
+  
+      dataclass
+   (hgp_lib.metrics.RunResult)" href="../metrics/#hgp_lib.metrics.results.RunResult">RunResult</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Contains run_id, seed, folds, test_score, best_rule, feature_names.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="RuntimeError">RuntimeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If no best rule is available after training a fold.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>hgp_lib/benchmarkers/runner.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">execute_single_run</span><span class="p">(</span>
+    <span class="n">run_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">config</span><span class="p">:</span> <span class="n">BenchmarkerConfig</span><span class="p">,</span>
+    <span class="n">progress_queue</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Queue</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RunResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Execute one benchmark run: stratified train/test split, per-fold binarization,</span>
+<span class="sd">    k-fold CV training, best-fold selection, and test-set evaluation.</span>
+
+<span class="sd">    This is a module-level function so it can be pickled for `multiprocessing`.</span>
+
+<span class="sd">    **Per-fold binarization:** For each fold a fresh `deepcopy` of the configured</span>
+<span class="sd">    binarizer is fitted on the training fold (with labels, enabling supervised</span>
+<span class="sd">    binning for numerical features) and used to transform the validation fold.</span>
+<span class="sd">    After selecting the best fold, its binarizer transforms the held-out test</span>
+<span class="sd">    data. This prevents data leakage across folds and between train/test sets.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        run_id (int): Index of the run (0-based).</span>
+<span class="sd">        seed (int): Random seed for stratified split and k-fold.</span>
+<span class="sd">        config (BenchmarkerConfig): Configuration for the benchmark run.</span>
+<span class="sd">        progress_queue (Queue | None): Optional queue for sending progress updates.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        RunResult: Contains run_id, seed, folds, test_score, best_rule, feature_names.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        RuntimeError: If no best rule is available after training a fold.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">trainer_template</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">trainer_config</span>
+    <span class="n">gp_template</span> <span class="o">=</span> <span class="n">trainer_template</span><span class="o">.</span><span class="n">gp_config</span>
+
+    <span class="n">use_queue</span> <span class="o">=</span> <span class="n">progress_queue</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="n">show_folds</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">show_fold_progress</span> <span class="ow">and</span> <span class="n">trainer_template</span><span class="o">.</span><span class="n">progress_bar</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">use_queue</span>
+    <span class="p">)</span>
+    <span class="n">show_epochs</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">show_epoch_progress</span> <span class="ow">and</span> <span class="n">trainer_template</span><span class="o">.</span><span class="n">progress_bar</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">use_queue</span>
+    <span class="p">)</span>
+
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+    <span class="n">train_data</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">train_labels</span><span class="p">,</span> <span class="n">test_labels</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
+        <span class="n">test_size</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">test_size</span><span class="p">,</span>
+        <span class="n">stratify</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
+        <span class="n">random_state</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">skf</span> <span class="o">=</span> <span class="n">StratifiedKFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">n_folds</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+
+    <span class="n">folds</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">PopulationHistory</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">binarizers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">feature_names_per_binarizer</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">fold_splits</span> <span class="o">=</span> <span class="n">skf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">train_data</span><span class="p">,</span> <span class="n">train_labels</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">show_folds</span><span class="p">:</span>
+        <span class="n">fold_splits</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">fold_splits</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">n_folds</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Folds&quot;</span><span class="p">,</span> <span class="n">leave</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">epoch_callback</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">partial</span><span class="p">(</span><span class="n">send_progress</span><span class="p">,</span> <span class="n">progress_queue</span><span class="p">,</span> <span class="s2">&quot;epoch&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">use_queue</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="p">)</span>
+
+    <span class="n">best_fold_idx</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">best_fold_score</span> <span class="o">=</span> <span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">fold_idx</span><span class="p">,</span> <span class="p">(</span><span class="n">train_idx</span><span class="p">,</span> <span class="n">val_idx</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fold_splits</span><span class="p">):</span>
+        <span class="n">fold_train</span> <span class="o">=</span> <span class="n">train_data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">train_idx</span><span class="p">]</span>
+        <span class="n">fold_train_labels</span> <span class="o">=</span> <span class="n">train_labels</span><span class="p">[</span><span class="n">train_idx</span><span class="p">]</span>
+
+        <span class="n">binarizer</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">binarizer</span><span class="p">)</span>
+        <span class="n">fold_train</span> <span class="o">=</span> <span class="n">binarizer</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">fold_train</span><span class="p">,</span> <span class="n">fold_train_labels</span><span class="p">)</span>
+        <span class="n">binarizers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">binarizer</span><span class="p">)</span>
+        <span class="n">feature_names_per_binarizer</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="n">col</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fold_train</span><span class="o">.</span><span class="n">columns</span><span class="p">)}</span>
+        <span class="p">)</span>
+        <span class="n">fold_train</span> <span class="o">=</span> <span class="n">fold_train</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+        <span class="n">fold_val</span> <span class="o">=</span> <span class="n">binarizer</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">train_data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">val_idx</span><span class="p">])</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="n">fold_val_labels</span> <span class="o">=</span> <span class="n">train_labels</span><span class="p">[</span><span class="n">val_idx</span><span class="p">]</span>
+
+        <span class="n">fold_gp_config</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span>
+            <span class="n">gp_template</span><span class="p">,</span>
+            <span class="n">train_data</span><span class="o">=</span><span class="n">fold_train</span><span class="p">,</span>
+            <span class="n">train_labels</span><span class="o">=</span><span class="n">fold_train_labels</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">fold_trainer_config</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span>
+            <span class="n">trainer_template</span><span class="p">,</span>
+            <span class="n">gp_config</span><span class="o">=</span><span class="n">fold_gp_config</span><span class="p">,</span>
+            <span class="n">val_data</span><span class="o">=</span><span class="n">fold_val</span><span class="p">,</span>
+            <span class="n">val_labels</span><span class="o">=</span><span class="n">fold_val_labels</span><span class="p">,</span>
+            <span class="n">progress_bar</span><span class="o">=</span><span class="n">show_epochs</span><span class="p">,</span>
+            <span class="n">progress_callback</span><span class="o">=</span><span class="n">epoch_callback</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">trainer</span> <span class="o">=</span> <span class="n">GPTrainer</span><span class="p">(</span><span class="n">fold_trainer_config</span><span class="p">)</span>
+        <span class="n">history</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+
+        <span class="c1"># Prefer validation score; fall back to training score</span>
+        <span class="n">fold_score</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">history</span><span class="o">.</span><span class="n">best_val_score</span>
+            <span class="k">if</span> <span class="n">history</span><span class="o">.</span><span class="n">best_val_score</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="n">history</span><span class="o">.</span><span class="n">best_train_score</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">fold_score</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">fold_score</span> <span class="o">&gt;</span> <span class="n">best_fold_score</span><span class="p">:</span>
+            <span class="n">best_fold_score</span> <span class="o">=</span> <span class="n">fold_score</span>
+            <span class="n">best_fold_idx</span> <span class="o">=</span> <span class="n">fold_idx</span>
+
+        <span class="n">folds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">history</span><span class="p">)</span>
+
+        <span class="n">send_progress</span><span class="p">(</span><span class="n">progress_queue</span><span class="p">,</span> <span class="s2">&quot;fold&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">del</span> <span class="n">train_data</span><span class="p">,</span> <span class="n">train_labels</span>
+
+    <span class="n">best_rule</span> <span class="o">=</span> <span class="n">folds</span><span class="p">[</span><span class="n">best_fold_idx</span><span class="p">]</span><span class="o">.</span><span class="n">global_best_rule</span>
+
+    <span class="c1"># Transform test data using best fold&#39;s binarizer</span>
+    <span class="n">binarizer_here</span> <span class="o">=</span> <span class="n">binarizers</span><span class="p">[</span><span class="n">best_fold_idx</span><span class="p">]</span>
+    <span class="n">feature_names</span> <span class="o">=</span> <span class="n">feature_names_per_binarizer</span><span class="p">[</span><span class="n">best_fold_idx</span><span class="p">]</span>
+    <span class="n">test_data</span> <span class="o">=</span> <span class="n">binarizer_here</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">gp_template</span><span class="o">.</span><span class="n">optimize_scorer</span><span class="p">:</span>
+        <span class="n">test_score_fn</span><span class="p">,</span> <span class="n">test_cm</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">test_labels</span> <span class="o">=</span> <span class="n">optimize_scorers_for_data</span><span class="p">(</span>
+            <span class="n">gp_template</span><span class="o">.</span><span class="n">score_fn</span><span class="p">,</span> <span class="n">confusion_matrix</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">test_data</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">test_labels</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">test_score_fn</span> <span class="o">=</span> <span class="n">gp_template</span><span class="o">.</span><span class="n">score_fn</span>
+        <span class="n">test_cm</span> <span class="o">=</span> <span class="n">confusion_matrix</span>
+
+    <span class="n">test_pred</span> <span class="o">=</span> <span class="n">best_rule</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span>
+
+    <span class="n">test_score</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">test_score_fn</span><span class="p">(</span><span class="n">test_pred</span><span class="p">,</span> <span class="n">test_labels</span><span class="p">))</span>
+
+    <span class="n">tp</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">tn</span> <span class="o">=</span> <span class="n">test_cm</span><span class="p">(</span><span class="n">test_pred</span><span class="p">,</span> <span class="n">test_labels</span><span class="p">)</span>
+
+    <span class="n">send_progress</span><span class="p">(</span><span class="n">progress_queue</span><span class="p">,</span> <span class="s2">&quot;run&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">RunResult</span><span class="p">(</span>
+        <span class="n">run_id</span><span class="o">=</span><span class="n">run_id</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+        <span class="n">best_fold_idx</span><span class="o">=</span><span class="n">best_fold_idx</span><span class="p">,</span>
+        <span class="n">folds</span><span class="o">=</span><span class="n">folds</span><span class="p">,</span>
+        <span class="n">test_score</span><span class="o">=</span><span class="n">test_score</span><span class="p">,</span>
+        <span class="n">test_tp</span><span class="o">=</span><span class="n">tp</span><span class="p">,</span>
+        <span class="n">test_fp</span><span class="o">=</span><span class="n">fp</span><span class="p">,</span>
+        <span class="n">test_fn</span><span class="o">=</span><span class="n">fn</span><span class="p">,</span>
+        <span class="n">test_tn</span><span class="o">=</span><span class="n">tn</span><span class="p">,</span>
+        <span class="n">feature_names</span><span class="o">=</span><span class="n">feature_names</span><span class="p">,</span>
+    <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="hgp_lib.benchmarkers.progress.ProgressListener" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <code>hgp_lib.benchmarkers.progress.ProgressListener</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+
+
+        <p>Listener thread for aggregating progress updates from worker processes.</p>
+<p>Runs in the main process and listens to a multiprocessing queue for
+progress updates from worker processes. Updates three tqdm progress bars:
+- Experiments (runs)
+- Folds
+- Epochs</p>
+<p>The listener uses timeouts on queue.get() to periodically check for stop
+signals, preventing indefinite hangs if workers crash.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>progress_queue</code>
+            </td>
+            <td>
+                  <code><span title="multiprocessing.Queue">Queue</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Multiprocessing queue for receiving progress updates.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>config</code>
+            </td>
+            <td>
+                  <code><span title="hgp_lib.benchmarkers.progress.ProgressConfig">ProgressConfig</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Progress configuration with totals and display settings.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <blockquote>
+<blockquote>
+<blockquote>
+<p>from multiprocessing import Queue
+from hgp_lib.benchmarkers.progress import ProgressConfig, ProgressListener
+q = Queue()
+cfg = ProgressConfig(
+...     total_runs=1, total_folds=1, total_epochs=1,
+...     show_run_progress=False, show_fold_progress=False,
+...     show_epoch_progress=False,
+... )
+listener = ProgressListener(q, cfg)
+listener.start()
+q.put(("epoch", 1))
+q.put(("fold", 1))
+q.put(("run", 1))
+listener.join()</p>
+</blockquote>
+</blockquote>
+</blockquote>
+</details>
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>hgp_lib/benchmarkers/progress.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ProgressListener</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Listener thread for aggregating progress updates from worker processes.</span>
+
+<span class="sd">    Runs in the main process and listens to a multiprocessing queue for</span>
+<span class="sd">    progress updates from worker processes. Updates three tqdm progress bars:</span>
+<span class="sd">    - Experiments (runs)</span>
+<span class="sd">    - Folds</span>
+<span class="sd">    - Epochs</span>
+
+<span class="sd">    The listener uses timeouts on queue.get() to periodically check for stop</span>
+<span class="sd">    signals, preventing indefinite hangs if workers crash.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        progress_queue: Multiprocessing queue for receiving progress updates.</span>
+<span class="sd">        config: Progress configuration with totals and display settings.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; from multiprocessing import Queue</span>
+<span class="sd">        &gt;&gt;&gt; from hgp_lib.benchmarkers.progress import ProgressConfig, ProgressListener</span>
+<span class="sd">        &gt;&gt;&gt; q = Queue()</span>
+<span class="sd">        &gt;&gt;&gt; cfg = ProgressConfig(</span>
+<span class="sd">        ...     total_runs=1, total_folds=1, total_epochs=1,</span>
+<span class="sd">        ...     show_run_progress=False, show_fold_progress=False,</span>
+<span class="sd">        ...     show_epoch_progress=False,</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt; listener = ProgressListener(q, cfg)</span>
+<span class="sd">        &gt;&gt;&gt; listener.start()</span>
+<span class="sd">        &gt;&gt;&gt; q.put((&quot;epoch&quot;, 1))</span>
+<span class="sd">        &gt;&gt;&gt; q.put((&quot;fold&quot;, 1))</span>
+<span class="sd">        &gt;&gt;&gt; q.put((&quot;run&quot;, 1))</span>
+<span class="sd">        &gt;&gt;&gt; listener.join()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">progress_queue</span><span class="p">:</span> <span class="n">Queue</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">ProgressConfig</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">queue</span> <span class="o">=</span> <span class="n">progress_queue</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span><span class="p">:</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stop_event</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pbar_exp</span><span class="p">:</span> <span class="n">tqdm</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pbar_fold</span><span class="p">:</span> <span class="n">tqdm</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pbar_epoch</span><span class="p">:</span> <span class="n">tqdm</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Start the listener thread.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stop_event</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_listen</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Signal the listener to stop and wait for it to finish.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stop_event</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+        <span class="c1"># Send sentinel to unblock queue.get() if waiting</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">_SHUTDOWN_SENTINEL</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">BrokenPipeError</span><span class="p">,</span> <span class="ne">EOFError</span><span class="p">):</span>
+            <span class="k">pass</span>  <span class="c1"># Queue already closed</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mf">10.0</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">join</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Wait for the listener thread to finish naturally (all runs completed).&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_listen</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Main listener loop. Uses timeout to allow periodic stop checks.</span>
+
+<span class="sd">        Expected message format: (msg_type, count)</span>
+<span class="sd">        - (&quot;epoch&quot;, n): Update epoch bar by n</span>
+<span class="sd">        - (&quot;fold&quot;, n): Update fold bar by n</span>
+<span class="sd">        - (&quot;run&quot;, n): Update run bar by n</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Initialize progress bars (position=0 is bottom, position=2 is top)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pbar_exp</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span>
+            <span class="n">total</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">total_runs</span><span class="p">,</span>
+            <span class="n">position</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Runs&quot;</span><span class="p">,</span>
+            <span class="n">leave</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">disable</span><span class="o">=</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">show_run_progress</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pbar_fold</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span>
+            <span class="n">total</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">total_folds</span><span class="p">,</span>
+            <span class="n">position</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Folds&quot;</span><span class="p">,</span>
+            <span class="n">leave</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">disable</span><span class="o">=</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">show_fold_progress</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pbar_epoch</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span>
+            <span class="n">total</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">total_epochs</span><span class="p">,</span>
+            <span class="n">position</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Epochs&quot;</span><span class="p">,</span>
+            <span class="n">leave</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">disable</span><span class="o">=</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">show_epoch_progress</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">finished_runs</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">while</span> <span class="n">finished_runs</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">total_runs</span><span class="p">:</span>
+                <span class="c1"># Check if stop was requested</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stop_event</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+                    <span class="k">break</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">msg</span><span class="p">,</span> <span class="n">count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="n">_QUEUE_TIMEOUT_SECONDS</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">queue</span><span class="o">.</span><span class="n">Empty</span><span class="p">:</span>
+                    <span class="c1"># Timeout - loop back to check stop_event and continue waiting</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># Check for shutdown sentinel</span>
+                <span class="k">if</span> <span class="n">msg</span> <span class="o">==</span> <span class="n">_SHUTDOWN_SENTINEL</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                    <span class="k">break</span>
+
+                <span class="k">if</span> <span class="n">msg</span> <span class="o">==</span> <span class="s2">&quot;epoch&quot;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pbar_epoch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">count</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">msg</span> <span class="o">==</span> <span class="s2">&quot;fold&quot;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pbar_fold</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">count</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">msg</span> <span class="o">==</span> <span class="s2">&quot;run&quot;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pbar_exp</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">count</span><span class="p">)</span>
+                    <span class="n">finished_runs</span> <span class="o">+=</span> <span class="n">count</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="c1"># Ensure bars are closed properly</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pbar_epoch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_pbar_epoch</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pbar_fold</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_pbar_fold</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pbar_exp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_pbar_exp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="hgp_lib.benchmarkers.progress.ProgressListener.start" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">start</span><span class="p">()</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Start the listener thread.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>hgp_lib/benchmarkers/progress.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">78</span>
+<span class="normal">79</span>
+<span class="normal">80</span>
+<span class="normal">81</span>
+<span class="normal">82</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Start the listener thread.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_stop_event</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_listen</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="hgp_lib.benchmarkers.progress.ProgressListener.stop" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">stop</span><span class="p">()</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Signal the listener to stop and wait for it to finish.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>hgp_lib/benchmarkers/progress.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">84</span>
+<span class="normal">85</span>
+<span class="normal">86</span>
+<span class="normal">87</span>
+<span class="normal">88</span>
+<span class="normal">89</span>
+<span class="normal">90</span>
+<span class="normal">91</span>
+<span class="normal">92</span>
+<span class="normal">93</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Signal the listener to stop and wait for it to finish.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_stop_event</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+    <span class="c1"># Send sentinel to unblock queue.get() if waiting</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">_SHUTDOWN_SENTINEL</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">BrokenPipeError</span><span class="p">,</span> <span class="ne">EOFError</span><span class="p">):</span>
+        <span class="k">pass</span>  <span class="c1"># Queue already closed</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mf">10.0</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="hgp_lib.benchmarkers.progress.ProgressListener.join" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">join</span><span class="p">()</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Wait for the listener thread to finish naturally (all runs completed).</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>hgp_lib/benchmarkers/progress.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">95</span>
+<span class="normal">96</span>
+<span class="normal">97</span>
+<span class="normal">98</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">join</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Wait for the listener thread to finish naturally (all runs completed).&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="hgp_lib.benchmarkers.progress.send_progress" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">hgp_lib</span><span class="o">.</span><span class="n">benchmarkers</span><span class="o">.</span><span class="n">progress</span><span class="o">.</span><span class="n">send_progress</span><span class="p">(</span><span class="n">progress_queue</span><span class="p">,</span> <span class="n">msg_type</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Send a progress update to the listener queue.</p>
+<p>This is a safe helper that no-ops if the queue is <code>None</code> (sequential mode).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>progress_queue</code>
+            </td>
+            <td>
+                  <code><span title="multiprocessing.Queue">Queue</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Multiprocessing queue or <code>None</code> for sequential mode.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>msg_type</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type of progress (<code>"epoch"</code>, <code>"fold"</code>, or <code>"run"</code>).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>count</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number to increment by. Default: <code>1</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.benchmarkers.progress</span><span class="w"> </span><span class="kn">import</span> <span class="n">send_progress</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">send_progress</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;epoch&quot;</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>  <span class="c1"># no-op when queue is None</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Queue</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">q</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">send_progress</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="s2">&quot;fold&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">q</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">(&#39;fold&#39;, 1)</span>
+</code></pre></div>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>hgp_lib/benchmarkers/progress.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">send_progress</span><span class="p">(</span>
+    <span class="n">progress_queue</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Queue</span><span class="p">],</span> <span class="n">msg_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Send a progress update to the listener queue.</span>
+
+<span class="sd">    This is a safe helper that no-ops if the queue is ``None`` (sequential mode).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        progress_queue (Queue | None):</span>
+<span class="sd">            Multiprocessing queue or ``None`` for sequential mode.</span>
+<span class="sd">        msg_type (str):</span>
+<span class="sd">            Type of progress (``&quot;epoch&quot;``, ``&quot;fold&quot;``, or ``&quot;run&quot;``).</span>
+<span class="sd">        count (int):</span>
+<span class="sd">            Number to increment by. Default: `1`.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; from hgp_lib.benchmarkers.progress import send_progress</span>
+<span class="sd">        &gt;&gt;&gt; send_progress(None, &quot;epoch&quot;, 5)  # no-op when queue is None</span>
+<span class="sd">        &gt;&gt;&gt; from multiprocessing import Queue</span>
+<span class="sd">        &gt;&gt;&gt; q = Queue()</span>
+<span class="sd">        &gt;&gt;&gt; send_progress(q, &quot;fold&quot;, 1)</span>
+<span class="sd">        &gt;&gt;&gt; q.get()</span>
+<span class="sd">        (&#39;fold&#39;, 1)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">progress_queue</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">progress_queue</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">msg_type</span><span class="p">,</span> <span class="n">count</span><span class="p">))</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
