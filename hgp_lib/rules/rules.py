@@ -93,29 +93,6 @@ class Rule(ABC):
             queue.extend(current.subrules)
         return result
 
-    def r_flatten(self) -> List["Rule"]:
-        """
-        Recursively flattens the rule subtree into a single list of all `Rule` nodes  using a preorder traversal.
-
-        Returns:
-            List[Rule]: A flat list containing `self` followed by all descendant rules in left-to-right
-                preorder sequence.
-
-        Examples:
-            >>> from hgp_lib.rules import And, Or, Literal
-            >>> rule = And([
-            ...     Literal(value=0),
-            ...     Or([Literal(value=1, negated=True), Or([Literal(value=2), Literal(value=4)])]),
-            ...     Literal(value=3)
-            ... ])
-            >>> rule.r_flatten()
-            [And(0, Or(~1, Or(2, 4)), 3), 0, Or(~1, Or(2, 4)), ~1, Or(2, 4), 2, 4, 3]
-        """
-        result = [self]
-        for subrule in self.subrules:
-            result.extend(subrule.r_flatten())
-        return result
-
     def __len__(self) -> int:
         """
         Returns the total number of nodes in this rule subtree, including the current rule and all its descendants.
@@ -132,33 +109,16 @@ class Rule(ABC):
             >>> len(And([Literal(value=1), Or([Literal(value=2), Literal(value=3)])]))
             5
         """
-        # TODO: Check a 2 list approach for speed (no queue)
-        result = 1
+        result = 0
         queue = [self]
         while queue:
-            current = queue.pop()
-            if current.subrules:
-                result += len(current.subrules)
-                queue.extend(current.subrules)
+            result += len(queue)
+            next_queue = []
+            for current in queue:
+                if current.subrules:
+                    next_queue.extend(current.subrules)
+            queue = next_queue
         return result
-
-    def __len___r(self) -> int:
-        """
-        Returns the total number of nodes in this rule subtree, including the current rule and all its descendants.
-
-        Returns:
-            int: The total number of `Rule` nodes in this subtree.
-
-        Examples:
-            >>> from hgp_lib.rules import And, Or, Literal
-            >>> len(Literal(value=1))
-            1
-            >>> len(Or([Literal(value=2), Literal(value=3)]))
-            3
-            >>> len(And([Literal(value=1), Or([Literal(value=2), Literal(value=3)])]))
-            5
-        """
-        return 1 + sum([s.__len___r() for s in self.subrules])
 
     def to_str(
         self, feature_names: Dict[int, str] | None = None, indent: int = -1

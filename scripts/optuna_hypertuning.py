@@ -276,7 +276,6 @@ def build_config(
         labels=labels,
         trainer_config=trainer_config,
         binarizer=binarizer,
-        # TODO: we should make these configurable
         num_runs=n_runs,
         n_folds=n_folds,
         n_jobs=n_jobs,
@@ -378,7 +377,6 @@ def main(args: argparse.Namespace) -> None:
         completed_trials = sum(
             [trial.state == TrialState.COMPLETE for trial in existing_trials]
         )
-        # TODO: Debug this and add remaining trials
         logger.info(
             f"Loaded existing study with {len(existing_trials)} trials "
             f"({completed_trials} completed trials)"
