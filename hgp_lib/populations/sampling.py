@@ -271,6 +271,7 @@ class InstanceSamplingStrategy(SamplingStrategy):
         num_instances = len(data)
         samples_per_child = ceil(num_instances * self.sample_fraction)
         if samples_per_child < self.MIN_INSTANCES:
+            # ValueError: Cannot sample less than 2 instances. There are only 1 instances and sample_fraction is 0.39!
             raise ValueError(
                 f"Cannot sample less than {self.MIN_INSTANCES} instances. "
                 f"There are only {num_instances} instances and sample_fraction is {self.sample_fraction}!"
