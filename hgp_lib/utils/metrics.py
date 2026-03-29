@@ -9,9 +9,6 @@ from numpy import ndarray
 from hgp_lib.utils.validation import validate_callable
 
 
-# TODO: Add documentation
-# TODO: Add tests
-
 # Track scorers that have already been warned about missing sample_weight support
 _warned_scorers: Set[int] = set()
 
@@ -19,6 +16,28 @@ _warned_scorers: Set[int] = set()
 def confusion_matrix(
     y_pred: np.ndarray, y_true: np.ndarray, sample_weight: np.ndarray | None = None
 ) -> Tuple[int, int, int, int]:
+    """
+    Compute confusion matrix values from boolean prediction and label arrays.
+
+    Args:
+        y_pred (np.ndarray):
+            Boolean predictions.
+        y_true (np.ndarray):
+            Boolean ground-truth labels.
+        sample_weight (np.ndarray | None):
+            Optional per-sample weights. Default: `None`.
+
+    Returns:
+        Tuple[int, int, int, int]: ``(tp, fp, fn, tn)``.
+
+    Examples:
+        >>> import numpy as np
+        >>> from hgp_lib.utils.metrics import confusion_matrix
+        >>> y_pred = np.array([True, True, False, False])
+        >>> y_true = np.array([True, False, True, False])
+        >>> confusion_matrix(y_pred, y_true)
+        (1, 1, 1, 1)
+    """
     if sample_weight is None:
         tp = (y_pred & y_true).sum()
         fp = (y_pred & ~y_true).sum()
@@ -82,15 +101,26 @@ def fast_f1_score(
 
 def accepts_sample_weight(scorer: Callable) -> bool:
     """
-    Check if a scorer function accepts a sample_weight parameter.
+    Check if a scorer function accepts a ``sample_weight`` parameter.
 
-    First checks the function signature, then falls back to a runtime test.
+    Inspects the function signature first; falls back to a runtime probe if
+    signature inspection fails.
 
     Args:
-        scorer (Callable): The scoring function to check.
+        scorer (Callable):
+            The scoring function to check.
 
     Returns:
-        True if the scorer accepts sample_weight, False otherwise.
+        bool: ``True`` if the scorer accepts ``sample_weight``.
+
+    Examples:
+        >>> from hgp_lib.utils.metrics import accepts_sample_weight
+        >>> def with_sw(p, l, sample_weight=None): return 0.0
+        >>> accepts_sample_weight(with_sw)
+        True
+        >>> def without_sw(p, l): return 0.0
+        >>> accepts_sample_weight(without_sw)
+        False
     """
     try:
         sig = inspect.signature(scorer)
@@ -112,14 +142,30 @@ def accepts_sample_weight(scorer: Callable) -> bool:
 
 def transform_duplicates_to_sample_weight(data: ndarray, labels: ndarray):
     """
-    Transform data by removing duplicates and computing sample weights.
+    Remove duplicate rows from ``(data, labels)`` and return sample weights.
+
+    Rows that appear multiple times are collapsed into a single row with a
+    weight equal to the original count.
 
     Args:
-        data (ndarray): Input data array (2D).
-        labels (ndarray): Labels array (1D).
+        data (ndarray):
+            2-D input data.
+        labels (ndarray):
+            1-D label array (same length as ``data``).
 
     Returns:
-        Tuple of (unique_data, unique_labels, sample_weights).
+        Tuple[ndarray, ndarray, ndarray]: ``(unique_data, unique_labels, sample_weights)``.
+
+    Examples:
+        >>> import numpy as np
+        >>> from hgp_lib.utils.metrics import transform_duplicates_to_sample_weight
+        >>> data = np.array([[1, 0], [1, 0], [0, 1]])
+        >>> labels = np.array([1, 1, 0])
+        >>> ud, ul, sw = transform_duplicates_to_sample_weight(data, labels)
+        >>> len(ud) < len(data)
+        True
+        >>> bool(sw.sum() == len(data))
+        True
     """
     Xy = np.hstack((data, labels[:, None]))
     Xy_unique, sample_weight = np.unique(Xy, axis=0, return_counts=True)
@@ -130,19 +176,33 @@ def optimize_scorers_for_data(
     *scorers: Callable[[ndarray, ndarray], Any], data: ndarray, labels: ndarray
 ):
     """
-    Optimize a scorer for the given data by deduplicating and using sample weights.
+    Optimise scorers by deduplicating data and binding ``sample_weight``.
 
-    If the scorer supports sample_weight, duplicates are removed and weights are
-    computed. Otherwise, a warning is issued (once per scorer) and the original
-    scorer/data are returned.
+    If every scorer accepts ``sample_weight``, duplicate rows are removed and
+    each scorer is wrapped with ``functools.partial`` to inject the computed
+    weights. Otherwise a warning is issued (once per scorer) and the original
+    data is returned unchanged.
 
     Args:
-        scorers (Callable[[ndarray, ndarray], float]): Scoring functions (predictions, labels) -> Any.
-        data (ndarray): Input data array (2D).
-        labels (ndarray): Labels array (1D).
+        *scorers (Callable[[ndarray, ndarray], Any]):
+            One or more scoring functions.
+        data (ndarray):
+            2-D input data.
+        labels (ndarray):
+            1-D label array.
 
     Returns:
-        Tuple of (optimized_scorer, optimized_data, optimized_labels).
+        Tuple: ``(*optimised_scorers, data, labels)``.
+
+    Examples:
+        >>> import numpy as np
+        >>> from hgp_lib.utils.metrics import optimize_scorers_for_data
+        >>> def acc(p, l, sample_weight=None): return float((p == l).mean())
+        >>> data = np.array([[1, 0], [1, 0], [0, 1]])
+        >>> labels = np.array([1, 1, 0])
+        >>> opt_acc, opt_data, opt_labels = optimize_scorers_for_data(acc, data=data, labels=labels)
+        >>> len(opt_data) <= len(data)
+        True
     """
     scorers_ok = True
     for scorer in scorers:
