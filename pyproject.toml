@@ -41,7 +41,7 @@ Issues = "https://github.com/fii-optim-lab/hgp-lib/issues"
 [project.optional-dependencies]
 dev = [
     "mkdocs",
-    "mkdocstrings[python]",
+    "mkdocstrings-python",
     "mkdocs-material",
     "pytest",
     "flake8",

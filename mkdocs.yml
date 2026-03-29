@@ -1,11 +1,45 @@
-site_name:
-repo_url:
+site_name: HGP Library
+site_description: Hierarchical Genetic Programming for rule-based classification
+repo_url: https://github.com/fii-optim-lab/hgp-lib
 
 theme:
-  name: "material"
+  name: material
+  palette:
+    scheme: default
+    primary: teal
+  features:
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
 
 plugins:
-  - mkdocstrings
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+            show_root_heading: true
+            show_symbol_type_heading: true
+            members_order: source
+            docstring_style: google
+            merge_init_into_class: false
 
 nav:
-  - Home: README.md
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - API Reference:
+    - api/index.md
+    - Algorithms: api/algorithms.md
+    - Configs: api/configs.md
+    - Trainers: api/trainers.md
+    - Benchmarkers: api/benchmarkers.md
+    - Rules: api/rules.md
+    - Mutations: api/mutations.md
+    - Crossover: api/crossover.md
+    - Selections: api/selections.md
+    - Populations: api/populations.md
+    - Preprocessing: api/preprocessing.md
+    - Metrics: api/metrics.md
+    - Utils: api/utils.md
+  - Experimental Results: results.md
