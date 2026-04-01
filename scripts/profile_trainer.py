@@ -150,11 +150,15 @@ def setup_timing() -> Dict:
 def apply_timing_decorators() -> None:
     decorator = get_timed_decorator("GPTimer")
 
+    global fast_f1_score
+    fast_f1_score = decorator(fast_f1_score)
+
     # Rule evaluation - these are the hot paths
     # Literal.evaluate = decorator(Literal.evaluate)
-    Rule.flatten = decorator(Rule.flatten)
-    # Rule.copy = decorator(Rule.copy)  # Overhead!
-    # Rule.__len__ = decorator(Rule.__len__)  # Overhead!
+    # Rule.flatten = decorator(Rule.flatten)
+    # Rule.copy = decorator(Rule.copy)
+    Rule.__len__ = decorator(Rule.__len__)
+    ComplexityCheck.__call__ = decorator(ComplexityCheck.__call__)
     # And.evaluate = decorator(And.evaluate)
     # Or.evaluate = decorator(Or.evaluate)
 

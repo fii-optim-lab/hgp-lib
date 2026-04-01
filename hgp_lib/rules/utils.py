@@ -187,17 +187,18 @@ def select_crossover_point(rule: Rule, operator_p: float = 0.9) -> Rule:
 
     stack = [rule]
     while stack:
-        current = stack.pop()
-
-        if current.subrules:
-            count_operator += 1
-            if random.random() < (1.0 / count_operator):
-                selected_operator = current
-            stack.extend(current.subrules)
-        else:
-            count_literal += 1
-            if random.random() < (1.0 / count_literal):
-                selected_literal = current
+        new_stack = []
+        for current in stack:
+            if current.subrules:
+                count_operator += 1
+                if random.random() < (1.0 / count_operator):
+                    selected_operator = current
+                new_stack.extend(current.subrules)
+            else:
+                count_literal += 1
+                if random.random() < (1.0 / count_literal):
+                    selected_literal = current
+        stack = new_stack
 
     if selected_operator and random.random() < operator_p:
         return selected_operator
