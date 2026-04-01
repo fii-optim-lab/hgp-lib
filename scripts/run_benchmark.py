@@ -50,7 +50,7 @@ from hgp_lib.populations import (
     PopulationGeneratorFactory,
 )
 from hgp_lib.preprocessing import StandardBinarizer, load_data
-from hgp_lib.utils import complexity_check
+from hgp_lib.utils import ComplexityCheck
 from hgp_lib.utils.metrics import fast_f1_score
 
 
@@ -64,7 +64,7 @@ def main(args: argparse.Namespace):
     5. Print results with statistics
     """
     data, labels = load_data(args.data_path)
-    is_valid = complexity_check(args.max_rule_size)
+    is_valid = ComplexityCheck(args.max_rule_size)
 
     gp_config = BooleanGPConfig(
         score_fn=fast_f1_score,

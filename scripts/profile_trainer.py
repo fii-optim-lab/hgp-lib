@@ -51,7 +51,7 @@ from hgp_lib.preprocessing import StandardBinarizer, load_data
 from hgp_lib.rules import Rule
 from hgp_lib.selections import TournamentSelection
 from hgp_lib.trainers import GPTrainer
-from hgp_lib.utils import complexity_check
+from hgp_lib.utils import ComplexityCheck
 from hgp_lib.utils.metrics import fast_f1_score
 
 
@@ -280,7 +280,7 @@ def main(args: argparse.Namespace) -> None:
         feature_names,
     ) = preprocess_data(args.data_path, num_bins=args.num_bins)
 
-    is_valid = complexity_check(args.max_rule_size)
+    is_valid = ComplexityCheck(args.max_rule_size)
     gp_config = BooleanGPConfig(
         train_data=train_data,
         train_labels=train_labels,

@@ -510,14 +510,8 @@ if __name__ == "__main__":
     main(args)
 
 # Example usage:
-# python scripts/optuna_hypertuning.py --data-path data/PaySim.hdf
-#                                      --n-trials 100
-#                                      --study-name PaySim
-#                                      --verbose --artifact-dir ./artifacts
-# python scripts/optuna_hypertuning.py --data-path data/breast_cancer.hdf
-#                                      --n-trials 100
-#                                      --study-name pmlb_breast_cancer
-#                                      --verbose --artifact-dir ./artifacts
+# python scripts/optuna_hypertuning.py --data-path data/PaySim.hdf --n-trials 100 --study-name PaySim --verbose --artifact-dir ./artifacts
+# python scripts/optuna_hypertuning.py --data-path data/breast_cancer.hdf --n-trials 100 --study-name pmlb_breast_cancer --verbose --artifact-dir ./artifacts
 # optuna-dashboard sqlite:///optuna_study.db --artifact-dir ./artifacts
 
 
