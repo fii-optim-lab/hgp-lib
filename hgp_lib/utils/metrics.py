@@ -82,20 +82,15 @@ def fast_f1_score(
     if sample_weight is None:
         y_pred_sum = y_pred.sum()
         y_true_sum = y_true.sum()
-    else:
-        y_pred_sum = np.dot(y_pred, sample_weight)
-        y_true_sum = np.dot(y_true, sample_weight)
-
-    if y_pred_sum == 0 or y_true_sum == 0:
-        if y_pred_sum == 0 and y_true_sum == 0:
-            return 1.0
-        return 0.0
-
-    if sample_weight is None:
+        if y_pred_sum == 0 or y_true_sum == 0:
+            return 1.0 if y_pred_sum == 0 and y_true_sum == 0 else 0.0
         return float(2 * (y_pred & y_true).sum() / (y_pred_sum + y_true_sum))
-    return float(
-        2 * np.dot((y_pred & y_true), sample_weight) / (y_pred_sum + y_true_sum)
-    )
+
+    y_pred_sum = np.dot(y_pred, sample_weight)
+    y_true_sum = np.dot(y_true, sample_weight)
+    if y_pred_sum == 0 or y_true_sum == 0:
+        return 1.0 if y_pred_sum == 0 and y_true_sum == 0 else 0.0
+    return float(2 * np.dot(y_pred & y_true, sample_weight) / (y_pred_sum + y_true_sum))
 
 
 def accepts_sample_weight(scorer: Callable) -> bool:
