@@ -1,10 +1,10 @@
 import random
+from copy import deepcopy
 from dataclasses import replace
 from multiprocessing import Queue
 from typing import List, Optional, Tuple
 
 import numpy as np
-from sklearn import clone
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from tqdm import tqdm
 
@@ -85,7 +85,7 @@ def execute_single_run(
         fold_train = train_data.iloc[train_idx]
         fold_train_labels = train_labels[train_idx]
 
-        binarizer = clone(config.binarizer)
+        binarizer = deepcopy(config.binarizer)
         fold_train = binarizer.fit_transform(fold_train, fold_train_labels)
         binarizers.append(binarizer)
         feature_names_per_binarizer.append(
