@@ -54,14 +54,15 @@ class Rule(ABC):
         negated: bool = False,
         copy_subrules: bool = True,
     ):
-        self.subrules = []
         if subrules is not None:
             if copy_subrules:
-                self.subrules.extend([s.copy(self) for s in subrules])
+                self.subrules = [s.copy(self) for s in subrules]
             else:
                 for s in subrules:
                     s.parent = self
-                self.subrules.extend(subrules)
+                self.subrules = subrules
+        else:
+            self.subrules = []
 
         self.parent = parent
         self.value = value
