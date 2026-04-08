@@ -1,19 +1,18 @@
 import random
-from copy import deepcopy
 from dataclasses import replace
 from multiprocessing import Queue
 from typing import List, Optional, Tuple
 
 import numpy as np
+from sklearn import clone
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from tqdm import tqdm
 
+from .progress import send_progress, ProgressSender
 from ..configs import BenchmarkerConfig
 from ..metrics import PopulationHistory, RunResult
 from ..trainers import GPTrainer
 from ..utils.metrics import optimize_scorers_for_data, confusion_matrix
-
-from .progress import send_progress, ProgressSender
 
 
 def execute_single_run(
@@ -28,7 +27,7 @@ def execute_single_run(
 
     This is a module-level function so it can be pickled for `multiprocessing`.
 
-    **Per-fold binarization:** For each fold a fresh `deepcopy` of the configured
+    **Per-fold binarization:** For each fold a fresh `clone` of the configured
     binarizer is fitted on the training fold (with labels, enabling supervised
     binning for numerical features) and used to transform the validation fold.
     After selecting the best fold, its binarizer transforms the held-out test
@@ -86,7 +85,7 @@ def execute_single_run(
         fold_train = train_data.iloc[train_idx]
         fold_train_labels = train_labels[train_idx]
 
-        binarizer = deepcopy(config.binarizer)
+        binarizer = clone(config.binarizer)
         fold_train = binarizer.fit_transform(fold_train, fold_train_labels)
         binarizers.append(binarizer)
         feature_names_per_binarizer.append(

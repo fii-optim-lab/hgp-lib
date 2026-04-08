@@ -29,6 +29,7 @@ dependencies = [
     "optuna",
     "optuna-dashboard",
     "matplotlib",
+    "scikit-learn",
 ]
 [tool.setuptools.packages.find]
 include = ["hgp_lib*"]
@@ -50,7 +51,6 @@ dev = [
     "tables",
     "prettytable",
     "timed-decorator",
-    "scikit-learn",
 ]
 [tool.ruff]
 exclude = [".venv"]

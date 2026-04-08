@@ -172,13 +172,12 @@ class CrossoverExecutor:
         accepted = []
         for _ in range(self.num_tries):
             child_a, child_b = parent_a.copy(), parent_b.copy()
-
-            node_a = select_crossover_point(child_a, operator_p=self.operator_p)
-            node_b = select_crossover_point(child_b, operator_p=self.operator_p)
             # node_a = random.choice(child_a.flatten())
             # node_b = random.choice(child_b.flatten())
-
-            deep_swap(node_a, node_b)
+            deep_swap(
+                select_crossover_point(child_a, operator_p=self.operator_p),
+                select_crossover_point(child_b, operator_p=self.operator_p),
+            )
 
             if self.check_valid is None:
                 return child_a, child_b

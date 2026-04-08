@@ -137,12 +137,13 @@ class ReplaceOperator(Mutation):
             >>> rule
             And(2, 3)
         """
-        other_operators = [
-            operator_type
-            for operator_type in self.operator_types
-            if not isinstance(rule, operator_type)
-        ]
-        rule.__class__ = random.choice(other_operators)
+        rule.__class__ = random.choice(
+            [
+                operator_type
+                for operator_type in self.operator_types
+                if not isinstance(rule, operator_type)
+            ]
+        )
 
 
 class AddLiteral(Mutation):
