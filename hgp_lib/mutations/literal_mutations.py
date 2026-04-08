@@ -302,17 +302,12 @@ class PromoteLiteral(Mutation):
             ~0
         """
         rule.__class__ = random.choice(self.operator_types)  # Efficient class change
-        negated = (
-            np.random.rand(2) < 0.5
-        )  # Creating negated flag for the new operator and the new literal
-        new_value = np.random.randint(
-            self.num_literals
-        )  # Creating value for new literal
+        new_value = random.randint(0, self.num_literals - 1)
         if new_value == rule.value:
             new_value = (new_value + 1) % self.num_literals
         rule.subrules = [
             Literal(None, rule, rule.value, rule.negated),  # Old literal
-            Literal(None, rule, new_value, negated[0]),  # New literal
+            Literal(None, rule, new_value, random.random() < 0.5),  # New literal
         ]
-        rule.negated = negated[1]  # Operator negated flag
+        rule.negated = random.random() < 0.5
         rule.value = None  # Removing the value from the new operator

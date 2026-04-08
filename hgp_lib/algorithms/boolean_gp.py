@@ -264,12 +264,14 @@ class BooleanGP:
         if parent_scores is not None:
             self._apply_feedback(scores, parent_scores)
 
-        children_metrics = []
-
         if self.child_populations:
             child_feedbacks = self._generate_child_feedback(scores)
-            for child, feedback in zip(self.child_populations, child_feedbacks):
-                children_metrics.append(child._backward(feedback))
+            children_metrics = [
+                child._backward(feedback)
+                for child, feedback in zip(self.child_populations, child_feedbacks)
+            ]
+        else:
+            children_metrics = []
 
         return self._new_generation(scores, children_metrics)
 

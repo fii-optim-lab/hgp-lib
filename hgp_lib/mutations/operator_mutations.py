@@ -1,7 +1,6 @@
 import random
 from typing import Tuple, Type
 
-import numpy as np
 
 from .base_mutation import Mutation
 from .utils import MutationError
@@ -211,7 +210,5 @@ class AddLiteral(Mutation):
         if len(existing_rules) == self.num_literals:
             raise MutationError()
 
-        random_shot = np.random.randint(self.num_literals)
-        if random_shot in existing_rules:
-            random_shot = random.choice(tuple(self.available_literals - existing_rules))
+        random_shot = random.choice(tuple(self.available_literals - existing_rules))
         rule.subrules.append(Literal(None, rule, random_shot, random.random() < 0.5))
