@@ -188,6 +188,7 @@ def run_gp_default_benchmark(
     n_runs: int = 30,
     n_folds: int = 5,
     data_dir: str = "data",
+    num_epochs: int = 1000,
 ) -> dict:
     data_path = f"{data_dir}/{dataset_name}.hdf"
     if not os.path.isfile(data_path):
@@ -205,7 +206,7 @@ def run_gp_default_benchmark(
 
     gp_config = BooleanGPConfig(score_fn=fast_f1_score)
     trainer_config = TrainerConfig(
-        gp_config=gp_config, num_epochs=1000, progress_bar=False
+        gp_config=gp_config, num_epochs=num_epochs, progress_bar=False
     )
     config = BenchmarkerConfig(
         data=data,
@@ -230,9 +231,13 @@ def run_gp_default_benchmark(
 
 
 def _run_gp_default_wrapper(args_tuple):
-    dataset_name, n_runs, n_folds, data_dir = args_tuple
+    dataset_name, n_runs, n_folds, data_dir, num_epochs = args_tuple
     return run_gp_default_benchmark(
-        dataset_name, n_runs=n_runs, n_folds=n_folds, data_dir=data_dir
+        dataset_name,
+        n_runs=n_runs,
+        n_folds=n_folds,
+        data_dir=data_dir,
+        num_epochs=num_epochs,
     )
 
 
@@ -289,6 +294,12 @@ def main():
         default="standard",
         help="Binarizer type to use for boolxai.",
     )
+    parser.add_argument(
+        "--num-epochs",
+        type=int,
+        default=1000,
+        help="Number of epochs for GP default benchmark.",
+    )
     args = parser.parse_args()
 
     dataset_names = get_binary_classification_datasets()
@@ -303,7 +314,8 @@ def main():
         os.makedirs(args.data_dir, exist_ok=True)
 
         args_list = [
-            (name, args.n_runs, args.n_folds, args.data_dir) for name in dataset_names
+            (name, args.n_runs, args.n_folds, args.data_dir, args.num_epochs)
+            for name in dataset_names
         ]
 
         results = process_map(
@@ -317,7 +329,7 @@ def main():
         results = [res for res in results if res is not None]
 
         df_results = pd.DataFrame(results)
-        csv_filename = "pmlb_gp_default.csv"
+        csv_filename = f"pmlb_gp_default_epochs{args.num_epochs}.csv"
         df_results.to_csv(csv_filename, index=False)
         print(f"Saved results to {csv_filename}")
     elif args.model in ["dt", "boolxai"]:
