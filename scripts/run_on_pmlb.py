@@ -17,6 +17,13 @@ from preprocess.pmlb_preprocess import save_pmlb_data
 from tqdm.contrib.concurrent import process_map
 
 
+from sklearn.compose import make_column_transformer
+from sklearn.preprocessing import KBinsDiscretizer, OneHotEncoder
+from sklearn.compose import make_column_selector
+
+from hgp_lib.preprocessing import StandardBinarizer
+
+
 def get_binary_classification_datasets():
     from pmlb.dataset_lists import df_summary
 
@@ -53,6 +60,7 @@ def run_sklearn_benchmark(
     n_folds: int = 5,
     data_dir: str = "data",
     max_leaf_nodes: int = None,
+    binarizer_type: str = "standard",
 ) -> dict:
     data_path = f"{data_dir}/{dataset_name}.hdf"
     if not os.path.isfile(data_path):
@@ -86,7 +94,6 @@ def run_sklearn_benchmark(
         best_model = None
         best_discretizer = None
 
-        # K-fold CV
         for train_idx, val_idx in skf.split(X_train, y_train):
             X_fold_train = X_train.iloc[train_idx]
             y_fold_train = y_train[train_idx]
@@ -95,26 +102,47 @@ def run_sklearn_benchmark(
 
             discretizer = None
             if model_type == "boolxai":
-                # BOOLXAI works only with python 3.11!
-                from sklearn.preprocessing import KBinsDiscretizer
-                import warnings
+                if binarizer_type == "standard":
+                    discretizer = StandardBinarizer(num_bins=5)
+                    X_fold_train = discretizer.fit_transform(
+                        X_fold_train, y_fold_train
+                    ).to_numpy(dtype=bool)
+                    X_fold_val = discretizer.transform(X_fold_val).to_numpy(dtype=bool)
+                elif binarizer_type == "sklearn":
+                    import warnings
 
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    discretizer = KBinsDiscretizer(
-                        n_bins=5, encode="onehot-dense", strategy="quantile"
-                    )
-                    X_fold_train = discretizer.fit_transform(X_fold_train)
-                    X_fold_val = discretizer.transform(X_fold_val)
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore")
+                        discretizer = make_column_transformer(
+                            (
+                                KBinsDiscretizer(
+                                    n_bins=5, encode="onehot-dense", strategy="quantile"
+                                ),
+                                make_column_selector(dtype_include=np.number),
+                            ),
+                            (
+                                OneHotEncoder(
+                                    sparse_output=False, handle_unknown="ignore"
+                                ),
+                                make_column_selector(
+                                    dtype_include=[object, "category"]
+                                ),
+                            ),
+                            remainder="passthrough",
+                        )
+                        X_fold_train = discretizer.fit_transform(X_fold_train)
+                        X_fold_val = discretizer.transform(X_fold_val)
+                else:
+                    raise ValueError(f"Unknown binarizer type: {binarizer_type}")
 
             if model_type == "dt":
                 model = DecisionTreeClassifier(
                     random_state=seed, max_leaf_nodes=max_leaf_nodes
                 )
             elif model_type == "boolxai":
-                from boolxai import BoolXAI
+                from boolxai.classifiers import RuleClassifier
 
-                model = BoolXAI.RuleClassifier(random_state=seed, num_jobs=1)
+                model = RuleClassifier(random_state=seed, num_jobs=1)
             else:
                 raise ValueError(f"Unknown model type: {model_type}")
 
@@ -134,7 +162,12 @@ def run_sklearn_benchmark(
 
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                X_test_transformed = best_discretizer.transform(X_test)
+                if binarizer_type == "standard":
+                    X_test_transformed = best_discretizer.transform(X_test).to_numpy(
+                        dtype=bool
+                    )
+                else:
+                    X_test_transformed = best_discretizer.transform(X_test)
         else:
             X_test_transformed = X_test
 
@@ -150,7 +183,15 @@ def run_sklearn_benchmark(
 
 
 def _run_sklearn_wrapper(args_tuple):
-    dataset_name, model_type, n_runs, n_folds, data_dir, max_leaf_nodes = args_tuple
+    (
+        dataset_name,
+        model_type,
+        n_runs,
+        n_folds,
+        data_dir,
+        max_leaf_nodes,
+        binarizer_type,
+    ) = args_tuple
     return run_sklearn_benchmark(
         dataset_name,
         model_type=model_type,
@@ -158,6 +199,7 @@ def _run_sklearn_wrapper(args_tuple):
         n_folds=n_folds,
         data_dir=data_dir,
         max_leaf_nodes=max_leaf_nodes,
+        binarizer_type=binarizer_type,
     )
 
 
@@ -186,6 +228,13 @@ def main():
         default=None,
         help="Maximum number of leaf nodes for Decision Tree.",
     )
+    parser.add_argument(
+        "--binarizer",
+        type=str,
+        choices=["standard", "sklearn"],
+        default="standard",
+        help="Binarizer type to use for boolxai.",
+    )
     args = parser.parse_args()
 
     dataset_names = get_binary_classification_datasets()
@@ -207,6 +256,7 @@ def main():
                 args.n_folds,
                 args.data_dir,
                 args.max_leaf_nodes,
+                args.binarizer,
             )
             for name in dataset_names
         ]
@@ -225,6 +275,8 @@ def main():
 
         if args.model == "dt" and args.max_leaf_nodes is not None:
             csv_filename = f"pmlb_dt_{args.max_leaf_nodes}.csv"
+        elif args.model == "boolxai":
+            csv_filename = f"pmlb_boolxai_{args.binarizer}.csv"
         else:
             csv_filename = f"pmlb_{args.model}.csv"
 
