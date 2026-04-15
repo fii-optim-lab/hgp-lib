@@ -12,7 +12,10 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.metrics import f1_score
 
-from hgp_lib.preprocessing import load_data
+from hgp_lib.preprocessing import load_data, StandardBinarizer
+from hgp_lib.benchmarkers import GPBenchmarker
+from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
+from hgp_lib.utils.metrics import fast_f1_score
 from preprocess.pmlb_preprocess import save_pmlb_data
 from tqdm.contrib.concurrent import process_map
 
@@ -20,8 +23,6 @@ from tqdm.contrib.concurrent import process_map
 from sklearn.compose import make_column_transformer
 from sklearn.preprocessing import KBinsDiscretizer, OneHotEncoder
 from sklearn.compose import make_column_selector
-
-from hgp_lib.preprocessing import StandardBinarizer
 
 
 def get_binary_classification_datasets():
@@ -182,6 +183,59 @@ def run_sklearn_benchmark(
     }
 
 
+def run_gp_default_benchmark(
+    dataset_name: str,
+    n_runs: int = 30,
+    n_folds: int = 5,
+    data_dir: str = "data",
+) -> dict:
+    data_path = f"{data_dir}/{dataset_name}.hdf"
+    if not os.path.isfile(data_path):
+        try:
+            save_pmlb_data(dataset_name, data_dir)
+        except Exception as e:
+            print(f"Failed to load {dataset_name}: {e}")
+            return None
+
+    try:
+        data, labels = load_data(data_path)
+    except Exception as e:
+        print(f"Failed to read {dataset_name}: {e}")
+        return None
+
+    gp_config = BooleanGPConfig(score_fn=fast_f1_score)
+    trainer_config = TrainerConfig(
+        gp_config=gp_config, num_epochs=1000, progress_bar=False
+    )
+    config = BenchmarkerConfig(
+        data=data,
+        labels=labels,
+        trainer_config=trainer_config,
+        num_runs=n_runs,
+        n_folds=n_folds,
+        n_jobs=1,
+        show_run_progress=False,
+        show_fold_progress=False,
+        show_epoch_progress=False,
+    )
+
+    benchmarker = GPBenchmarker(config)
+    result = benchmarker.fit()
+
+    return {
+        "dataset": dataset_name,
+        "mean_test_score": np.mean(result.test_scores),
+        "std_test_score": np.std(result.test_scores),
+    }
+
+
+def _run_gp_default_wrapper(args_tuple):
+    dataset_name, n_runs, n_folds, data_dir = args_tuple
+    return run_gp_default_benchmark(
+        dataset_name, n_runs=n_runs, n_folds=n_folds, data_dir=data_dir
+    )
+
+
 def _run_sklearn_wrapper(args_tuple):
     (
         dataset_name,
@@ -209,9 +263,9 @@ def main():
     parser.add_argument(
         "--model",
         type=str,
-        choices=["gp", "dt", "boolxai"],
-        default="gp",
-        help="Model to run: 'gp' (default), 'dt' (Decision Tree), or 'boolxai'.",
+        choices=["gp_tuned", "gp_default", "dt", "boolxai"],
+        default="gp_tuned",
+        help="Model to run: 'gp_tuned' (default), 'gp_default', 'dt' (Decision Tree), or 'boolxai'.",
     )
     parser.add_argument(
         "--n-runs", type=int, default=5, help="Number of runs for DT benchmark."
@@ -239,12 +293,33 @@ def main():
 
     dataset_names = get_binary_classification_datasets()
 
-    if args.model == "gp":
+    if args.model == "gp_tuned":
         commands = get_commands_for_datasets(
             dataset_names, args.n_runs, args.n_folds, args.data_dir
         )
         with ProcessPoolExecutor(max_workers=args.n_jobs) as executor:
             executor.map(subprocess_runner, commands)
+    elif args.model == "gp_default":
+        os.makedirs(args.data_dir, exist_ok=True)
+
+        args_list = [
+            (name, args.n_runs, args.n_folds, args.data_dir) for name in dataset_names
+        ]
+
+        results = process_map(
+            _run_gp_default_wrapper,
+            args_list,
+            max_workers=args.n_jobs,
+            desc="Running GP_DEFAULT benchmarks",
+            chunksize=1,
+        )
+
+        results = [res for res in results if res is not None]
+
+        df_results = pd.DataFrame(results)
+        csv_filename = "pmlb_gp_default.csv"
+        df_results.to_csv(csv_filename, index=False)
+        print(f"Saved results to {csv_filename}")
     elif args.model in ["dt", "boolxai"]:
         os.makedirs(args.data_dir, exist_ok=True)
 
