@@ -46,8 +46,13 @@ def subprocess_runner(command: str):
     subprocess.run(command.split(" "), check=True)
 
 
-def run_dt_benchmark(
-    dataset_name: str, n_runs: int = 30, n_folds: int = 5, data_dir: str = "data"
+def run_sklearn_benchmark(
+    dataset_name: str,
+    model_type: str,
+    n_runs: int = 30,
+    n_folds: int = 5,
+    data_dir: str = "data",
+    max_leaf_nodes: int = None,
 ) -> dict:
     data_path = f"{data_dir}/{dataset_name}.hdf"
     if not os.path.isfile(data_path):
@@ -79,6 +84,7 @@ def run_dt_benchmark(
 
         best_val_score = -float("inf")
         best_model = None
+        best_discretizer = None
 
         # K-fold CV
         for train_idx, val_idx in skf.split(X_train, y_train):
@@ -87,18 +93,52 @@ def run_dt_benchmark(
             X_fold_val = X_train.iloc[val_idx]
             y_fold_val = y_train[val_idx]
 
-            dt = DecisionTreeClassifier(random_state=seed)
-            dt.fit(X_fold_train, y_fold_train)
+            discretizer = None
+            if model_type == "boolxai":
+                # BOOLXAI works only with python 3.11!
+                from sklearn.preprocessing import KBinsDiscretizer
+                import warnings
 
-            preds = dt.predict(X_fold_val)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    discretizer = KBinsDiscretizer(
+                        n_bins=5, encode="onehot-dense", strategy="quantile"
+                    )
+                    X_fold_train = discretizer.fit_transform(X_fold_train)
+                    X_fold_val = discretizer.transform(X_fold_val)
+
+            if model_type == "dt":
+                model = DecisionTreeClassifier(
+                    random_state=seed, max_leaf_nodes=max_leaf_nodes
+                )
+            elif model_type == "boolxai":
+                from boolxai import BoolXAI
+
+                model = BoolXAI.RuleClassifier(random_state=seed, num_jobs=1)
+            else:
+                raise ValueError(f"Unknown model type: {model_type}")
+
+            model.fit(X_fold_train, y_fold_train)
+
+            preds = model.predict(X_fold_val)
             val_score = f1_score(y_fold_val, preds)
 
             if val_score > best_val_score:
                 best_val_score = val_score
-                best_model = dt
+                best_model = model
+                best_discretizer = discretizer
 
         # Evaluate best model on test set
-        test_preds = best_model.predict(X_test)
+        if model_type == "boolxai" and best_discretizer is not None:
+            import warnings
+
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                X_test_transformed = best_discretizer.transform(X_test)
+        else:
+            X_test_transformed = X_test
+
+        test_preds = best_model.predict(X_test_transformed)
         test_score = f1_score(y_test, test_preds)
         test_scores.append(test_score)
 
@@ -109,10 +149,15 @@ def run_dt_benchmark(
     }
 
 
-def _run_dt_wrapper(args_tuple):
-    dataset_name, n_runs, n_folds, data_dir = args_tuple
-    return run_dt_benchmark(
-        dataset_name, n_runs=n_runs, n_folds=n_folds, data_dir=data_dir
+def _run_sklearn_wrapper(args_tuple):
+    dataset_name, model_type, n_runs, n_folds, data_dir, max_leaf_nodes = args_tuple
+    return run_sklearn_benchmark(
+        dataset_name,
+        model_type=model_type,
+        n_runs=n_runs,
+        n_folds=n_folds,
+        data_dir=data_dir,
+        max_leaf_nodes=max_leaf_nodes,
     )
 
 
@@ -122,9 +167,9 @@ def main():
     parser.add_argument(
         "--model",
         type=str,
-        choices=["gp", "dt"],
+        choices=["gp", "dt", "boolxai"],
         default="gp",
-        help="Model to run: 'gp' (default) or 'dt' (Decision Tree).",
+        help="Model to run: 'gp' (default), 'dt' (Decision Tree), or 'boolxai'.",
     )
     parser.add_argument(
         "--n-runs", type=int, default=5, help="Number of runs for DT benchmark."
@@ -134,6 +179,12 @@ def main():
     )
     parser.add_argument(
         "--data-dir", type=str, default="data", help="Directory for storing datasets."
+    )
+    parser.add_argument(
+        "--max-leaf-nodes",
+        type=int,
+        default=None,
+        help="Maximum number of leaf nodes for Decision Tree.",
     )
     args = parser.parse_args()
 
@@ -145,26 +196,40 @@ def main():
         )
         with ProcessPoolExecutor(max_workers=args.n_jobs) as executor:
             executor.map(subprocess_runner, commands)
-    elif args.model == "dt":
+    elif args.model in ["dt", "boolxai"]:
         os.makedirs(args.data_dir, exist_ok=True)
 
         args_list = [
-            (name, args.n_runs, args.n_folds, args.data_dir) for name in dataset_names
+            (
+                name,
+                args.model,
+                args.n_runs,
+                args.n_folds,
+                args.data_dir,
+                args.max_leaf_nodes,
+            )
+            for name in dataset_names
         ]
 
         results = process_map(
-            _run_dt_wrapper,
+            _run_sklearn_wrapper,
             args_list,
             max_workers=args.n_jobs,
-            desc="Running DT benchmarks",
+            desc=f"Running {args.model.upper()} benchmarks",
             chunksize=1,
         )
 
         results = [res for res in results if res is not None]
 
         df_results = pd.DataFrame(results)
-        df_results.to_csv("pmlb_dt.csv", index=False)
-        print("Saved results to pmlb_dt.csv")
+
+        if args.model == "dt" and args.max_leaf_nodes is not None:
+            csv_filename = f"pmlb_dt_{args.max_leaf_nodes}.csv"
+        else:
+            csv_filename = f"pmlb_{args.model}.csv"
+
+        df_results.to_csv(csv_filename, index=False)
+        print(f"Saved results to {csv_filename}")
 
 
 if __name__ == "__main__":
