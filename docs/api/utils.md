@@ -2,7 +2,7 @@
 
 ## Validation
 
-::: hgp_lib.utils.validation.complexity_check
+::: hgp_lib.utils.validation.ComplexityCheck
 
 ::: hgp_lib.utils.validation.validate_callable
 

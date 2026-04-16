@@ -4,6 +4,10 @@ A Python library for evolving interpretable boolean rule trees via genetic
 programming, with support for hierarchical populations, automatic binarization,
 and parallel benchmarking.
 
+## Documentation
+
+https://fii-optim-lab.github.io/hgp-lib/
+
 ## Usage
 
 ### Data preparation
