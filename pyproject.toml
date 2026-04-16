@@ -2,21 +2,24 @@
 name = "hgp-lib"
 version = "0.0.1"
 requires-python = ">=3.10"
-description = "" # TODO
+description = "hgp-lib: Hierarchical Genetic Programming Library for Generating Boolean Rules from Tabular Data"
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [
-    { name = "George Stoica", email = "george.stoica@info.uaic.ro"},
+    { name = "Ramona-Georgiana Albert", email = "george.stoica@info.uaic.ro"},
+    { name = "George Stoica", email = "ramona-georgiana.albert@info.uaic.ro"},
 ]
 maintainers = [
-    { name = "George Stoica", email = "george.stoica@info.uaic.ro"},
+    { name = "Ramona-Georgiana Albert", email = "george.stoica@info.uaic.ro"},
+    { name = "George Stoica", email = "ramona-georgiana.albert@info.uaic.ro"},
 ]
 classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: BSD License",  # TODO: APACHE licence or MIT
+    "License :: OSI Approved :: Apache 2.0",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Operating System :: OS Independent",
 ]
 keywords = [
 # TODO
