@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -1058,7 +1058,8 @@ Default: <code>100</code>.</p>
             <td>
               <div class="doc-md-description">
                 <p>Optional rule validator for
-mutation/crossover. Default: <code>None</code>.</p>
+mutation/crossover. If a callable is passed, the callable will be called
+once for validation. Default: <code>None</code>.</p>
               </div>
             </td>
           </tr>
@@ -1164,7 +1165,7 @@ Default: <code>0.1</code>.</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/configs/boolean_gp_config.py</code></summary>
+                <summary>Source code in <code>hgp_lib\configs\boolean_gp_config.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 15</span>
 <span class="normal"> 16</span>
 <span class="normal"> 17</span>
@@ -1253,7 +1254,8 @@ Default: <code>0.1</code>.</p>
 <span class="normal">100</span>
 <span class="normal">101</span>
 <span class="normal">102</span>
-<span class="normal">103</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">103</span>
+<span class="normal">104</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">BooleanGPConfig</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Configuration for BooleanGP.</span>
@@ -1285,7 +1287,8 @@ Default: <code>0.1</code>.</p>
 <span class="sd">        regeneration_patience (int): Epochs without improvement before regeneration.</span>
 <span class="sd">            Default: `100`.</span>
 <span class="sd">        check_valid (Callable[[Rule], bool] | None): Optional rule validator for</span>
-<span class="sd">            mutation/crossover. Default: `None`.</span>
+<span class="sd">            mutation/crossover. If a callable is passed, the callable will be called</span>
+<span class="sd">            once for validation. Default: `None`.</span>
 <span class="sd">        num_child_populations (int): Number of child populations for hierarchical GP.</span>
 <span class="sd">            Default: `0`.</span>
 <span class="sd">        max_depth (int): Maximum hierarchical depth; `0` means no children.</span>
@@ -1530,7 +1533,7 @@ Useful for external progress tracking (e.g., multiprocessing progress bars).</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/configs/trainer_config.py</code></summary>
+                <summary>Source code in <code>hgp_lib\configs\trainer_config.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">10</span>
 <span class="normal">11</span>
 <span class="normal">12</span>
@@ -1860,7 +1863,7 @@ Default: <code>True</code>.</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/configs/benchmarker_config.py</code></summary>
+                <summary>Source code in <code>hgp_lib\configs\benchmarker_config.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">12</span>
 <span class="normal">13</span>
 <span class="normal">14</span>

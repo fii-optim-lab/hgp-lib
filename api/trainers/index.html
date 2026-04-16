@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -901,38 +901,75 @@
         <p>High-level trainer for Boolean Genetic Programming.
 Accepts a TrainerConfig containing a BooleanGPConfig and training options.
 Runs the training loop and optionally validates every val_every epochs.
-Returns a HierarchicalHistory with GenerationMetrics per epoch.
-Args:
-    config (TrainerConfig): Configuration with gp_config (BooleanGPConfig),
-        num_epochs, optional val_data/val_labels, val_every, progress options.
-Examples:
-    &gt;&gt;&gt; import numpy as np
-    &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig, TrainerConfig
-    &gt;&gt;&gt; from hgp_lib.trainers import GPTrainer
-    &gt;&gt;&gt;
-    &gt;&gt;&gt; def accuracy(predictions, labels):
-    ...     return np.mean(predictions == labels)
-    &gt;&gt;&gt;
-    &gt;&gt;&gt; train_data = np.array([[True, False, True, False], [False, True, False, True]])
-    &gt;&gt;&gt; train_labels = np.array([1, 0])
-    &gt;&gt;&gt; val_data = np.array([[True, True, False, False]])
-    &gt;&gt;&gt; val_labels = np.array([1])
-    &gt;&gt;&gt; gp_config = BooleanGPConfig(
-    ...     score_fn=accuracy,
-    ...     train_data=train_data,
-    ...     train_labels=train_labels,
-    ...     optimize_scorer=False,
-    ... )
-    &gt;&gt;&gt; config = TrainerConfig(
-    ...     gp_config=gp_config,
-    ...     num_epochs=10,
-    ...     val_data=val_data,
-    ...     val_labels=val_labels,
-    ...     val_every=5,
-    ...     progress_bar=False,
-    ... )
-    &gt;&gt;&gt; trainer = GPTrainer(config)
-    &gt;&gt;&gt; trainer_result_history = trainer.fit()</p>
+Returns a HierarchicalHistory with GenerationMetrics per epoch.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>config</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            hgp_lib.configs.trainer_config.TrainerConfig
+
+
+  
+      dataclass
+   (hgp_lib.configs.TrainerConfig)" href="../configs/#hgp_lib.configs.trainer_config.TrainerConfig">TrainerConfig</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Configuration with gp_config (BooleanGPConfig),
+num_epochs, optional val_data/val_labels, val_every, progress options.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGPConfig</span><span class="p">,</span> <span class="n">TrainerConfig</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.trainers</span><span class="w"> </span><span class="kn">import</span> <span class="n">GPTrainer</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">accuracy</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">predictions</span> <span class="o">==</span> <span class="n">labels</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">train_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">train_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">val_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">val_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">gp_config</span> <span class="o">=</span> <span class="n">BooleanGPConfig</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">score_fn</span><span class="o">=</span><span class="n">accuracy</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">train_data</span><span class="o">=</span><span class="n">train_data</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">train_labels</span><span class="o">=</span><span class="n">train_labels</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">optimize_scorer</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">TrainerConfig</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">gp_config</span><span class="o">=</span><span class="n">gp_config</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">num_epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">val_data</span><span class="o">=</span><span class="n">val_data</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">val_labels</span><span class="o">=</span><span class="n">val_labels</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">val_every</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trainer</span> <span class="o">=</span> <span class="n">GPTrainer</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trainer_result_history</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+</code></pre></div>
 
 
 
@@ -942,7 +979,7 @@ Examples:
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/trainers/gp_trainer.py</code></summary>
+                <summary>Source code in <code>hgp_lib\trainers\gp_trainer.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 11</span>
 <span class="normal"> 12</span>
 <span class="normal"> 13</span>
@@ -1079,15 +1116,19 @@ Examples:
 <span class="normal">144</span>
 <span class="normal">145</span>
 <span class="normal">146</span>
-<span class="normal">147</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">GPTrainer</span><span class="p">:</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">GPTrainer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    High-level trainer for Boolean Genetic Programming.</span>
 <span class="sd">    Accepts a TrainerConfig containing a BooleanGPConfig and training options.</span>
 <span class="sd">    Runs the training loop and optionally validates every val_every epochs.</span>
 <span class="sd">    Returns a HierarchicalHistory with GenerationMetrics per epoch.</span>
+
 <span class="sd">    Args:</span>
 <span class="sd">        config (TrainerConfig): Configuration with gp_config (BooleanGPConfig),</span>
 <span class="sd">            num_epochs, optional val_data/val_labels, val_every, progress options.</span>
+
 <span class="sd">    Examples:</span>
 <span class="sd">        &gt;&gt;&gt; import numpy as np</span>
 <span class="sd">        &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig, TrainerConfig</span>
@@ -1249,10 +1290,8 @@ Returns:
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/trainers/gp_trainer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 77</span>
-<span class="normal"> 78</span>
-<span class="normal"> 79</span>
+              <summary>Source code in <code>hgp_lib\trainers\gp_trainer.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 79</span>
 <span class="normal"> 80</span>
 <span class="normal"> 81</span>
 <span class="normal"> 82</span>
@@ -1320,7 +1359,9 @@ Returns:
 <span class="normal">144</span>
 <span class="normal">145</span>
 <span class="normal">146</span>
-<span class="normal">147</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PopulationHistory</span><span class="p">:</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PopulationHistory</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Trains the Boolean GP model for the specified number of epochs.</span>
 <span class="sd">    Returns:</span>

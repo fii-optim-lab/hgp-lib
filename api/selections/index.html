@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -1071,7 +1071,7 @@ Default: <code>0.4</code>.</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/selections/tournament_selection.py</code></summary>
+                <summary>Source code in <code>hgp_lib\selections\tournament_selection.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 11</span>
 <span class="normal"> 12</span>
 <span class="normal"> 13</span>
@@ -1209,8 +1209,7 @@ Default: <code>0.4</code>.</p>
 <span class="normal">145</span>
 <span class="normal">146</span>
 <span class="normal">147</span>
-<span class="normal">148</span>
-<span class="normal">149</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">TournamentSelection</span><span class="p">(</span><span class="n">BaseSelection</span><span class="p">):</span>
+<span class="normal">148</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">TournamentSelection</span><span class="p">(</span><span class="n">BaseSelection</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Selection strategy that holds tournaments among randomly sampled subsets of the population.</span>
 
@@ -1327,7 +1326,6 @@ Default: <code>0.4</code>.</p>
         <span class="n">scores_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span>
         <span class="n">sorted_order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="o">-</span><span class="n">scores_array</span><span class="p">)</span>
 
-        <span class="c1"># TODO: n_select can be given from init. And winning_seats can be batch generated</span>
         <span class="n">winning_seats</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">tournament_size</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_select</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">probs</span>
         <span class="p">)</span>
@@ -1496,7 +1494,7 @@ fitness. Must have the same length as <code>rules</code>.</p>
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/selections/tournament_selection.py</code></summary>
+              <summary>Source code in <code>hgp_lib\selections\tournament_selection.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 73</span>
 <span class="normal"> 74</span>
 <span class="normal"> 75</span>
@@ -1572,8 +1570,7 @@ fitness. Must have the same length as <code>rules</code>.</p>
 <span class="normal">145</span>
 <span class="normal">146</span>
 <span class="normal">147</span>
-<span class="normal">148</span>
-<span class="normal">149</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">select</span><span class="p">(</span>
+<span class="normal">148</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">select</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">rules</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Rule</span><span class="p">],</span>
     <span class="n">scores</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
@@ -1628,7 +1625,6 @@ fitness. Must have the same length as <code>rules</code>.</p>
     <span class="n">scores_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span>
     <span class="n">sorted_order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="o">-</span><span class="n">scores_array</span><span class="p">)</span>
 
-    <span class="c1"># TODO: n_select can be given from init. And winning_seats can be batch generated</span>
     <span class="n">winning_seats</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tournament_size</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_select</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">probs</span>
     <span class="p">)</span>
@@ -1715,7 +1711,7 @@ in the result.</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/selections/roulette_selection.py</code></summary>
+                <summary>Source code in <code>hgp_lib\selections\roulette_selection.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 10</span>
 <span class="normal"> 11</span>
 <span class="normal"> 12</span>
@@ -2054,7 +2050,7 @@ fitness. Must have the same length as <code>rules</code>.</p>
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/selections/roulette_selection.py</code></summary>
+              <summary>Source code in <code>hgp_lib\selections\roulette_selection.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 38</span>
 <span class="normal"> 39</span>
 <span class="normal"> 40</span>

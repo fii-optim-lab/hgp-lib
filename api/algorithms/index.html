@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -1021,7 +1021,7 @@ number of epochs.</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/algorithms/boolean_gp.py</code></summary>
+                <summary>Source code in <code>hgp_lib\algorithms\boolean_gp.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 15</span>
 <span class="normal"> 16</span>
 <span class="normal"> 17</span>
@@ -1635,7 +1635,8 @@ number of epochs.</p>
 <span class="normal">625</span>
 <span class="normal">626</span>
 <span class="normal">627</span>
-<span class="normal">628</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">BooleanGP</span><span class="p">:</span>
+<span class="normal">628</span>
+<span class="normal">629</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">BooleanGP</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Boolean Genetic Programming algorithm for evolving rule-based classifiers.</span>
 
@@ -1887,12 +1888,14 @@ number of epochs.</p>
         <span class="k">if</span> <span class="n">parent_scores</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_apply_feedback</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">parent_scores</span><span class="p">)</span>
 
-        <span class="n">children_metrics</span> <span class="o">=</span> <span class="p">[]</span>
-
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">child_populations</span><span class="p">:</span>
             <span class="n">child_feedbacks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_child_feedback</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">child</span><span class="p">,</span> <span class="n">feedback</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">child_populations</span><span class="p">,</span> <span class="n">child_feedbacks</span><span class="p">):</span>
-                <span class="n">children_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">_backward</span><span class="p">(</span><span class="n">feedback</span><span class="p">))</span>
+            <span class="n">children_metrics</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">child</span><span class="o">.</span><span class="n">_backward</span><span class="p">(</span><span class="n">feedback</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">child</span><span class="p">,</span> <span class="n">feedback</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">child_populations</span><span class="p">,</span> <span class="n">child_feedbacks</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">children_metrics</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_new_generation</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">children_metrics</span><span class="p">)</span>
 
@@ -2064,7 +2067,6 @@ number of epochs.</p>
 <span class="sd">        Returns:</span>
 <span class="sd">            GenerationMetrics: Metrics about the generation step.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># TODO: Check this</span>
         <span class="n">best_idx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">scores</span><span class="p">))</span>
         <span class="n">current_best</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">scores</span><span class="p">[</span><span class="n">best_idx</span><span class="p">])</span>
         <span class="n">current_best_rule</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">population</span><span class="p">[</span><span class="n">best_idx</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -2333,7 +2335,7 @@ If regeneration is enabled and no improvement has been observed for
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/algorithms/boolean_gp.py</code></summary>
+              <summary>Source code in <code>hgp_lib\algorithms\boolean_gp.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">149</span>
 <span class="normal">150</span>
 <span class="normal">151</span>
@@ -2527,9 +2529,8 @@ If regeneration is enabled and no improvement has been observed for
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/algorithms/boolean_gp.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">489</span>
-<span class="normal">490</span>
+              <summary>Source code in <code>hgp_lib\algorithms\boolean_gp.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">490</span>
 <span class="normal">491</span>
 <span class="normal">492</span>
 <span class="normal">493</span>
@@ -2569,7 +2570,8 @@ If regeneration is enabled and no improvement has been observed for
 <span class="normal">527</span>
 <span class="normal">528</span>
 <span class="normal">529</span>
-<span class="normal">530</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate_population</span><span class="p">(</span>
+<span class="normal">530</span>
+<span class="normal">531</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate_population</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">data</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span>
     <span class="n">labels</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span>
@@ -2763,9 +2765,8 @@ data. Default: <code>None</code>.</p>
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/algorithms/boolean_gp.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">577</span>
-<span class="normal">578</span>
+              <summary>Source code in <code>hgp_lib\algorithms\boolean_gp.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">578</span>
 <span class="normal">579</span>
 <span class="normal">580</span>
 <span class="normal">581</span>
@@ -2811,7 +2812,8 @@ data. Default: <code>None</code>.</p>
 <span class="normal">621</span>
 <span class="normal">622</span>
 <span class="normal">623</span>
-<span class="normal">624</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate_best</span><span class="p">(</span>
+<span class="normal">624</span>
+<span class="normal">625</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate_best</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">data</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span>
     <span class="n">labels</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span>

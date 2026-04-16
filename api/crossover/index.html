@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -1107,7 +1107,7 @@ a crossover point in the rule tree. Must be in [0.0, 1.0]. Default: <code>0.9</c
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/crossover/crossover_executor.py</code></summary>
+                <summary>Source code in <code>hgp_lib\crossover\crossover_executor.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">  9</span>
 <span class="normal"> 10</span>
 <span class="normal"> 11</span>
@@ -1290,8 +1290,7 @@ a crossover point in the rule tree. Must be in [0.0, 1.0]. Default: <code>0.9</c
 <span class="normal">188</span>
 <span class="normal">189</span>
 <span class="normal">190</span>
-<span class="normal">191</span>
-<span class="normal">192</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">CrossoverExecutor</span><span class="p">:</span>
+<span class="normal">191</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">CrossoverExecutor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Coordinates subtree crossover operations across a collection of `Rule` trees.</span>
 
@@ -1457,13 +1456,12 @@ a crossover point in the rule tree. Must be in [0.0, 1.0]. Default: <code>0.9</c
         <span class="n">accepted</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_tries</span><span class="p">):</span>
             <span class="n">child_a</span><span class="p">,</span> <span class="n">child_b</span> <span class="o">=</span> <span class="n">parent_a</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">parent_b</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-
-            <span class="n">node_a</span> <span class="o">=</span> <span class="n">select_crossover_point</span><span class="p">(</span><span class="n">child_a</span><span class="p">,</span> <span class="n">operator_p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">operator_p</span><span class="p">)</span>
-            <span class="n">node_b</span> <span class="o">=</span> <span class="n">select_crossover_point</span><span class="p">(</span><span class="n">child_b</span><span class="p">,</span> <span class="n">operator_p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">operator_p</span><span class="p">)</span>
             <span class="c1"># node_a = random.choice(child_a.flatten())</span>
             <span class="c1"># node_b = random.choice(child_b.flatten())</span>
-
-            <span class="n">deep_swap</span><span class="p">(</span><span class="n">node_a</span><span class="p">,</span> <span class="n">node_b</span><span class="p">)</span>
+            <span class="n">deep_swap</span><span class="p">(</span>
+                <span class="n">select_crossover_point</span><span class="p">(</span><span class="n">child_a</span><span class="p">,</span> <span class="n">operator_p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">operator_p</span><span class="p">),</span>
+                <span class="n">select_crossover_point</span><span class="p">(</span><span class="n">child_b</span><span class="p">,</span> <span class="n">operator_p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">operator_p</span><span class="p">),</span>
+            <span class="p">)</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_valid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">child_a</span><span class="p">,</span> <span class="n">child_b</span>
@@ -1586,7 +1584,7 @@ Default: <code>None</code>.</p>
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/crossover/crossover_executor.py</code></summary>
+              <summary>Source code in <code>hgp_lib\crossover\crossover_executor.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 71</span>
 <span class="normal"> 72</span>
 <span class="normal"> 73</span>
@@ -1837,7 +1835,7 @@ is used.</p>
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/crossover/crossover_executor.py</code></summary>
+              <summary>Source code in <code>hgp_lib\crossover\crossover_executor.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">142</span>
 <span class="normal">143</span>
 <span class="normal">144</span>
@@ -1887,8 +1885,7 @@ is used.</p>
 <span class="normal">188</span>
 <span class="normal">189</span>
 <span class="normal">190</span>
-<span class="normal">191</span>
-<span class="normal">192</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">crossover</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent_a</span><span class="p">:</span> <span class="n">Rule</span><span class="p">,</span> <span class="n">parent_b</span><span class="p">:</span> <span class="n">Rule</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Rule</span><span class="p">]:</span>
+<span class="normal">191</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">crossover</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent_a</span><span class="p">:</span> <span class="n">Rule</span><span class="p">,</span> <span class="n">parent_b</span><span class="p">:</span> <span class="n">Rule</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Rule</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Performs subtree crossover between two parent rules.</span>
 
@@ -1921,13 +1918,12 @@ is used.</p>
     <span class="n">accepted</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_tries</span><span class="p">):</span>
         <span class="n">child_a</span><span class="p">,</span> <span class="n">child_b</span> <span class="o">=</span> <span class="n">parent_a</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">parent_b</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-
-        <span class="n">node_a</span> <span class="o">=</span> <span class="n">select_crossover_point</span><span class="p">(</span><span class="n">child_a</span><span class="p">,</span> <span class="n">operator_p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">operator_p</span><span class="p">)</span>
-        <span class="n">node_b</span> <span class="o">=</span> <span class="n">select_crossover_point</span><span class="p">(</span><span class="n">child_b</span><span class="p">,</span> <span class="n">operator_p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">operator_p</span><span class="p">)</span>
         <span class="c1"># node_a = random.choice(child_a.flatten())</span>
         <span class="c1"># node_b = random.choice(child_b.flatten())</span>
-
-        <span class="n">deep_swap</span><span class="p">(</span><span class="n">node_a</span><span class="p">,</span> <span class="n">node_b</span><span class="p">)</span>
+        <span class="n">deep_swap</span><span class="p">(</span>
+            <span class="n">select_crossover_point</span><span class="p">(</span><span class="n">child_a</span><span class="p">,</span> <span class="n">operator_p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">operator_p</span><span class="p">),</span>
+            <span class="n">select_crossover_point</span><span class="p">(</span><span class="n">child_b</span><span class="p">,</span> <span class="n">operator_p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">operator_p</span><span class="p">),</span>
+        <span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_valid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">child_a</span><span class="p">,</span> <span class="n">child_b</span>
@@ -2088,7 +2084,7 @@ a crossover point in the rule tree. Must be in [0.0, 1.0]. Default: <code>0.9</c
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/crossover/crossover_factory.py</code></summary>
+                <summary>Source code in <code>hgp_lib\crossover\crossover_factory.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">  8</span>
 <span class="normal">  9</span>
 <span class="normal"> 10</span>
@@ -2440,7 +2436,7 @@ child must pass validation or the crossover is retried up to
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/crossover/crossover_factory.py</code></summary>
+              <summary>Source code in <code>hgp_lib\crossover\crossover_factory.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 89</span>
 <span class="normal"> 90</span>
 <span class="normal"> 91</span>
