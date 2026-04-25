@@ -15,7 +15,8 @@ def plot_radar_performance(csv_files, output_path):
     dataframes = {}
     for csv_file in csv_files:
         try:
-            df = pd.read_csv(csv_file)
+            df = pd.read_csv(csv_file)[["dataset", "mean_test_score"]]
+            print(len(df), csv_file)
             # Extract classifier name from filename (e.g. pmlb_dt.csv -> dt)
             base_name = os.path.basename(csv_file)
             name_without_ext = os.path.splitext(base_name)[0]
@@ -37,6 +38,9 @@ def plot_radar_performance(csv_files, output_path):
 
     for clf_name in clf_names[1:]:
         df = dataframes[clf_name].copy()
+        if tuple(sorted(df["dataset"].values.tolist())) != tuple(sorted(merged_df["dataset"].values.tolist())):
+            print(set(df["dataset"].values) - set(merged_df["dataset"].values))
+            print(set(merged_df["dataset"].values) - set(df["dataset"].values))
         df = df.rename(columns={"mean_test_score": f"score_{clf_name}"})
         merged_df = pd.merge(merged_df, df, on="dataset")
 
@@ -67,15 +71,18 @@ def plot_radar_performance(csv_files, output_path):
     fig, ax = plt.subplots(figsize=(14, 14), subplot_kw={"projection": "polar"})
     ax.set_ylim(0, 1)
 
-    # Generate colors
-    if len(clf_names) == 2:
-        # Use blue and red for maximum contrast when comparing 2 elements
-        colors = ["royalblue", "crimson"]
-    else:
-        # Use tab10 for a larger number of classifiers
-        colors = matplotlib.colormaps.get_cmap("tab10")(
-            np.linspace(0, 1, len(clf_names))
-        )
+    colors = [
+        "royalblue",
+        "crimson",
+        "darkorange",
+        "forestgreen",
+        "purple",
+        "teal",
+        "gold",
+        "deeppink",
+        "navy",
+        "limegreen",
+    ]
 
     for idx, clf_name in enumerate(clf_names):
         scores = merged_df[f"score_{clf_name}"].values
