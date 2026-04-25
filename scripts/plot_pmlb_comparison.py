@@ -1,7 +1,6 @@
 import argparse
 import os
 
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -38,7 +37,9 @@ def plot_radar_performance(csv_files, output_path):
 
     for clf_name in clf_names[1:]:
         df = dataframes[clf_name].copy()
-        if tuple(sorted(df["dataset"].values.tolist())) != tuple(sorted(merged_df["dataset"].values.tolist())):
+        if tuple(sorted(df["dataset"].values.tolist())) != tuple(
+            sorted(merged_df["dataset"].values.tolist())
+        ):
             print(set(df["dataset"].values) - set(merged_df["dataset"].values))
             print(set(merged_df["dataset"].values) - set(df["dataset"].values))
         df = df.rename(columns={"mean_test_score": f"score_{clf_name}"})

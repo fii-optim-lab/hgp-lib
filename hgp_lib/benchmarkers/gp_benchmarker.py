@@ -121,6 +121,10 @@ class GPBenchmarker:
     def _run_parallel(self, n_jobs: int) -> ExperimentResult:
         """Run all benchmark runs in parallel with centralized progress bars."""
         show_progress = self.config.trainer_config.progress_bar
+        show_run_progress = show_progress and self.config.show_run_progress
+        show_fold_progress = show_progress and self.config.show_fold_progress
+        show_epoch_progress = show_progress and self.config.show_epoch_progress
+        show_progress = show_run_progress or show_fold_progress or show_epoch_progress
 
         total_runs = self.config.num_runs
         total_folds = total_runs * self.config.n_folds
@@ -130,16 +134,18 @@ class GPBenchmarker:
             total_runs=total_runs,
             total_folds=total_folds,
             total_epochs=total_epochs,
-            show_run_progress=self.config.show_run_progress and show_progress,
-            show_fold_progress=self.config.show_fold_progress and show_progress,
-            show_epoch_progress=self.config.show_epoch_progress and show_progress,
+            show_run_progress=show_run_progress,
+            show_fold_progress=show_fold_progress,
+            show_epoch_progress=show_epoch_progress,
         )
 
-        manager = multiprocessing.Manager()
-        queue = manager.Queue()
+        queue = None
+        if show_progress:
+            manager = multiprocessing.Manager()
+            queue = manager.Queue()
 
-        listener = ProgressListener(queue, progress_config)
-        listener.start()
+            listener = ProgressListener(queue, progress_config)
+            listener.start()
 
         run_args = [
             (run_id, self.config.base_seed + run_id, self.config, queue)
@@ -149,11 +155,13 @@ class GPBenchmarker:
         try:
             with multiprocessing.Pool(processes=n_jobs) as pool:
                 run_results = pool.map(single_run_wrapper, run_args)
-            # Normal completion - wait for listener to finish processing
-            listener.join()
+            if queue is not None:
+                # Normal completion - wait for listener to finish processing
+                listener.join()
         except Exception:
-            # Error occurred - force stop the listener to prevent hang
-            listener.stop()
+            if queue is not None:
+                # Error occurred - force stop the listener to prevent hang
+                listener.stop()
             raise
 
         return ExperimentResult(runs=run_results)
