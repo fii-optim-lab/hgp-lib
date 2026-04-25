@@ -1,4 +1,5 @@
-from typing import Dict
+from typing import Dict, Optional
+
 
 from .rules import Rule
 
@@ -85,3 +86,30 @@ class Literal(Rule):
         if feature_names is not None:
             value = feature_names[value]
         return f"~{value}" if self.negated else f"{value}"
+
+    def copy(self, parent: Optional["Rule"] = None) -> "Rule":
+        """
+        Creates a copy of this Literal, optionally assigning a new parent.
+        This uses a faster execution path to create literals.
+
+        Args:
+            parent (Optional[Rule]):
+                The parent rule for the new copy. If omitted, retains the current parent. Default: `None`.
+
+        Returns:
+            Rule: A copy of the current Literal.
+
+        Examples:
+            >>> from hgp_lib.rules import And, Literal
+            >>> a = Literal(value=1)
+            >>> b = a.copy()
+            >>> a is b
+            False
+        """
+        return Literal(
+            None,
+            self.parent if parent is None else parent,
+            self.value,
+            self.negated,
+            False,
+        )
