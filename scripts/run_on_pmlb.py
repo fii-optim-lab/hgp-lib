@@ -38,8 +38,8 @@ def get_commands_for_datasets(dataset_names, n_runs, n_folds, data_dir):
             f"{sys.executable} "
             "scripts/optuna_hypertuning.py "
             f"--data-path {data_dir}/{dataset_name}.hdf "
-            "--n-trials 25 "
-            "--max-n-trials 25 "
+            "--n-trials 50 "
+            "--max-n-trials 100 "
             f"--n-runs {n_runs} "
             f"--n-folds {n_folds} "
             f"--study-name pmlb_{dataset_name} "
@@ -51,7 +51,9 @@ def get_commands_for_datasets(dataset_names, n_runs, n_folds, data_dir):
 
 def subprocess_runner(command: str):
     sleep(random.randint(1, 5))
-    subprocess.run(command.split(" "), check=True)
+    subprocess.run(
+        command.split(" "), check=True, env={**os.environ, "PYTHONOPTIMIZE": "2"}
+    )
 
 
 def run_sklearn_benchmark(
