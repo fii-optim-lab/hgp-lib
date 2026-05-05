@@ -154,6 +154,8 @@ class ProgressListener:
                 elif msg == "run":
                     self._pbar_exp.update(count)
                     finished_runs += count
+                elif msg == "done":
+                    break
         finally:
             # Ensure bars are closed properly
             if self._pbar_epoch is not None:

@@ -141,8 +141,9 @@ class GPBenchmarker:
 
         queue = None
         if show_progress:
-            manager = multiprocessing.Manager()
-            queue = manager.Queue()
+            # TODO: Write tests that verify the progress listener
+            #  and the parallel gp benchmarking with show_progress
+            queue = multiprocessing.Queue()
 
             listener = ProgressListener(queue, progress_config)
             listener.start()
@@ -157,6 +158,7 @@ class GPBenchmarker:
                 run_results = pool.map(single_run_wrapper, run_args)
             if queue is not None:
                 # Normal completion - wait for listener to finish processing
+                queue.put(("__done__", 0))
                 listener.join()
         except Exception:
             if queue is not None:

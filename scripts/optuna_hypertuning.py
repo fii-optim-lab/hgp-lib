@@ -11,6 +11,7 @@ import logging
 import os
 import traceback
 import warnings
+from multiprocessing import freeze_support
 from pathlib import Path
 from typing import Any, Callable, Dict
 
@@ -326,7 +327,7 @@ def create_objective(
         mean_test_score = float(np.mean(result.test_scores))
 
         logger.info(
-            f"Trial {trial.number}: val={mean_val_score:.4f}, "
+            f"Trial {trial.study.study_name}-{trial.number}: val={mean_val_score:.4f}, "
             f"test={mean_test_score:.4f}, "
             f"hierarchical={params['max_depth'] > 0}"
         )
@@ -378,7 +379,7 @@ def main(args: argparse.Namespace) -> None:
             [trial.state == TrialState.COMPLETE for trial in existing_trials]
         )
         logger.info(
-            f"Loaded existing study with {len(existing_trials)} trials "
+            f"Loaded existing study {args.study_name} with {len(existing_trials)} trials "
             f"({completed_trials} completed trials)"
         )
 
@@ -506,6 +507,7 @@ def parse_args() -> argparse.Namespace:
 
 
 if __name__ == "__main__":
+    freeze_support()
     args = parse_args()
     main(args)
 

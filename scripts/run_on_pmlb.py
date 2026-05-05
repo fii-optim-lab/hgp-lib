@@ -4,6 +4,7 @@ import subprocess
 import sys
 import os
 from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import freeze_support
 from time import sleep
 
 import pandas as pd
@@ -374,4 +375,5 @@ def main():
 
 
 if __name__ == "__main__":
+    freeze_support()
     main()
