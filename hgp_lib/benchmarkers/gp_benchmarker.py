@@ -1,3 +1,4 @@
+import contextlib
 import multiprocessing
 import os
 from typing import List
@@ -10,6 +11,21 @@ from ..metrics import ExperimentResult, RunResult
 from .progress import ProgressConfig, ProgressListener
 from .runner import execute_single_run, single_run_wrapper
 from ..preprocessing import StandardBinarizer
+
+
+@contextlib.contextmanager
+def _graceful_pool(n_jobs: int):
+    """Pool that uses close()+join() on success, terminate()+join() on error."""
+    pool = multiprocessing.Pool(processes=n_jobs, maxtasksperchild=1)
+    try:
+        yield pool
+    except BaseException:
+        pool.terminate()
+        raise
+    else:
+        pool.close()
+    finally:
+        pool.join()
 
 
 class GPBenchmarker:
@@ -124,7 +140,7 @@ class GPBenchmarker:
         show_run_progress = show_progress and self.config.show_run_progress
         show_fold_progress = show_progress and self.config.show_fold_progress
         show_epoch_progress = show_progress and self.config.show_epoch_progress
-        show_progress = show_run_progress or show_fold_progress or show_epoch_progress
+        any_progress = show_run_progress or show_fold_progress or show_epoch_progress
 
         total_runs = self.config.num_runs
         total_folds = total_runs * self.config.n_folds
@@ -139,32 +155,23 @@ class GPBenchmarker:
             show_epoch_progress=show_epoch_progress,
         )
 
-        queue = None
-        if show_progress:
-            # TODO: Write tests that verify the progress listener
-            #  and the parallel gp benchmarking with show_progress
-            queue = multiprocessing.Queue()
+        # LIFO cleanup: pool first (so workers stop emitting progress), then the listener, then the manager
+        with contextlib.ExitStack() as stack:
+            queue = None
+            if any_progress:
+                manager = stack.enter_context(multiprocessing.Manager())
+                queue = manager.Queue()
+                listener = ProgressListener(queue, progress_config)
+                listener.start()
+                stack.callback(listener.stop)
 
-            listener = ProgressListener(queue, progress_config)
-            listener.start()
+            run_args = [
+                (run_id, self.config.base_seed + run_id, self.config, queue)
+                for run_id in range(self.config.num_runs)
+            ]
 
-        run_args = [
-            (run_id, self.config.base_seed + run_id, self.config, queue)
-            for run_id in range(self.config.num_runs)
-        ]
-
-        try:
-            with multiprocessing.Pool(processes=n_jobs) as pool:
-                run_results = pool.map(single_run_wrapper, run_args)
-            if queue is not None:
-                # Normal completion - wait for listener to finish processing
-                queue.put(("__done__", 0))
-                listener.join()
-        except Exception:
-            if queue is not None:
-                # Error occurred - force stop the listener to prevent hang
-                listener.stop()
-            raise
+            pool = stack.enter_context(_graceful_pool(n_jobs))
+            run_results = pool.map(single_run_wrapper, run_args)
 
         return ExperimentResult(runs=run_results)
 
