@@ -1,6 +1,6 @@
 """
 Usage:
-    python scripts/optuna_hypertuning.py --data-path data/PaySim.hdf --n-trials 100
+    python scripts/optuna_hypertuning.py --data_path data/PaySim.hdf --n_trials 100
 
 View results:
     optuna-dashboard sqlite:///optuna_study.db --artifact-dir ./artifacts
@@ -442,34 +442,34 @@ def parse_args() -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--data-path", type=str, required=True, help="Path to HDF data file"
+        "--data_path", type=str, required=True, help="Path to HDF data file"
     )
     parser.add_argument(
-        "--n-trials",
+        "--n_trials",
         type=int,
         default=100,
         help="Number of optimization trials for this run",
     )
     parser.add_argument(
-        "--max-n-trials",
+        "--max_n_trials",
         type=int,
         default=100,
         help="Maximum number of optimization trials for this study",
     )
     parser.add_argument(
-        "--study-name",
+        "--study_name",
         type=str,
         required=True,
         help="Name for the Optuna study",
     )
     parser.add_argument(
-        "--storage-path",
+        "--storage_path",
         type=str,
         default="./optuna_study.db",
         help="Path for SQLite database",
     )
     parser.add_argument(
-        "--artifact-dir",
+        "--artifact_dir",
         type=str,
         default="./artifacts",
         help="Directory for storing trial artifacts (plots)",
@@ -478,16 +478,16 @@ def parse_args() -> argparse.Namespace:
         "--seed", type=int, default=42, help="Random seed for reproducibility"
     )
     parser.add_argument(
-        "--n-jobs", type=int, default=-1, help="Number of parallel jobs (-1 = all CPUs)"
+        "--n_jobs", type=int, default=-1, help="Number of parallel jobs (-1 = all CPUs)"
     )
     parser.add_argument(
-        "--n-runs",
+        "--n_runs",
         type=int,
         default=10,
         help="Number of Monte-Carlo runs for GPBenchmarker",
     )
     parser.add_argument(
-        "--n-folds",
+        "--n_folds",
         type=int,
         default=5,
         help="Number of folds for k-fold cross-validation in GPBenchmarker",
@@ -498,7 +498,7 @@ def parse_args() -> argparse.Namespace:
         help="Show progress bars for runs/folds/epochs",
     )
     parser.add_argument(
-        "--hp-config",
+        "--hp_config",
         type=str,
         default=None,
         help="Path to YAML hyperparameter search space config",
@@ -512,8 +512,14 @@ if __name__ == "__main__":
     main(args)
 
 # Example usage:
-# python scripts/optuna_hypertuning.py --data-path data/PaySim.hdf --n-trials 100 --study-name PaySim --verbose --artifact-dir ./artifacts
-# python scripts/optuna_hypertuning.py --data-path data/breast_cancer.hdf --n-trials 100 --study-name pmlb_breast_cancer --verbose --artifact-dir ./artifacts
+# python scripts/optuna_hypertuning.py --data_path data/PaySim.hdf
+#                                      --n_trials 100
+#                                      --study_name PaySim
+#                                      --verbose --artifact_dir ./artifacts
+# python scripts/optuna_hypertuning.py --data_path data/breast_cancer.hdf
+#                                      --n_trials 100
+#                                      --study_name pmlb_breast_cancer
+#                                      --verbose --artifact_dir ./artifacts
 # optuna-dashboard sqlite:///optuna_study.db --artifact-dir ./artifacts
 
 

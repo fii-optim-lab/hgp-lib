@@ -6,52 +6,25 @@
 pip install -e .
 ```
 
-## Data preparation
+## A first run
 
-Boolean GP operates on boolean data. The `StandardBinarizer` converts
-numeric, categorical, and boolean columns into a purely boolean DataFrame.
-
-```python
-from hgp_lib.preprocessing import StandardBinarizer
-from sklearn.model_selection import train_test_split
-
-data, labels = ...  # pandas DataFrame + numpy array
-
-train_data, test_data, train_labels, test_labels = train_test_split(
-    data, labels, test_size=0.2, stratify=labels, random_state=42,
-)
-
-binarizer = StandardBinarizer(num_bins=5)
-train_bin = binarizer.fit_transform(train_data, train_labels)
-test_bin = binarizer.transform(test_data)
-```
-
-When using `GPBenchmarker`, binarization is handled automatically per fold.
-
-## Training with GPTrainer
+`hgp_lib` evolves boolean rules that classify tabular data. The fastest way to
+get a result is `GPBenchmarker`, which handles binarization, splitting, and
+aggregation for you. Pass a raw `pandas.DataFrame` and a scoring function.
 
 ```python
-from hgp_lib.configs import BooleanGPConfig, TrainerConfig
-from hgp_lib.trainers import GPTrainer
-
-gp_config = BooleanGPConfig(
-    score_fn=my_score_fn,
-    train_data=train_bin.to_numpy(dtype=bool),
-    train_labels=train_labels,
-)
-config = TrainerConfig(gp_config=gp_config, num_epochs=500)
-result = GPTrainer(config).fit()
-```
-
-## Benchmarking with GPBenchmarker
-
-```python
+import numpy as np
 import pandas as pd
-from hgp_lib.configs import BenchmarkerConfig
+from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.benchmarkers import GPBenchmarker
 
+data = pd.DataFrame(...)  # raw features (bool / categorical / numeric)
+labels = np.array(...)    # 1-D target array
+
+gp_config = BooleanGPConfig(score_fn=my_score_fn)
+trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=1000, val_every=100)
 config = BenchmarkerConfig(
-    data=data,           # raw DataFrame (not binarized)
+    data=data,
     labels=labels,
     trainer_config=trainer_config,
     num_runs=30,
@@ -59,17 +32,18 @@ config = BenchmarkerConfig(
     n_jobs=-1,
 )
 result = GPBenchmarker(config).fit()
-print(result.test_scores)
+print(result.best_rule.to_str(result.best_run.feature_names))
 ```
 
-## Hyperparameter tuning
+## Where to go next
 
-Use the Optuna-based tuning script with a YAML search space config:
-
-```bash
-python scripts/optuna_hypertuning.py \
-    --data-path data/PaySim.hdf \
-    --study-name PaySim \
-    --hp-config hyperparameter_configs/default.yaml \
-    --n-trials 100
-```
+- [Theory](theory.md): how the GP search works and why it beats greedy trees
+- [Interpretability](interpretability.md): readable rules and explainable models
+- [Data Preparation](guide/data-preparation.md): binarization and avoiding leakage
+- [Training](guide/training.md): `GPTrainer` and run configuration
+- [Benchmarking](guide/benchmarking.md): aggregated runs and scorer optimization
+- [Configuring HGP](guide/configuring.md): factories and hierarchical GP settings
+- [Extending HGP](guide/extending.md): custom strategies, mutations, and low-level use
+- [Rule Trees](guide/rule-trees.md): the rule data structure and its speed optimizations
+- [Experiments](experiments/index.md): reproducing dataset experiments
+- [API Reference](api/index.md): full module documentation

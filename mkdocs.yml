@@ -1,5 +1,5 @@
 site_name: HGP Library
-site_description: Hierarchical Genetic Programming for rule-based classification
+site_description: Explainable rule-based classification via hierarchical genetic programming
 repo_url: https://github.com/fii-optim-lab/hgp-lib
 
 theme:
@@ -8,9 +8,13 @@ theme:
     scheme: default
     primary: teal
   features:
-    - navigation.sections
     - navigation.expand
     - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
 
 plugins:
   - search
@@ -28,6 +32,21 @@ plugins:
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
+  - Background:
+    - Theory: theory.md
+    - Interpretability: interpretability.md
+  - User Guide:
+    - Data Preparation: guide/data-preparation.md
+    - Training: guide/training.md
+    - Benchmarking: guide/benchmarking.md
+    - Configuring HGP: guide/configuring.md
+    - Extending HGP: guide/extending.md
+    - Rule Trees: guide/rule-trees.md
+  - Experiments:
+    - experiments/index.md
+    - PMLB: experiments/pmlb.md
+    - PaySim: experiments/paysim.md
+    - AEAC: experiments/aeac.md
   - API Reference:
     - api/index.md
     - Algorithms: api/algorithms.md
@@ -42,4 +61,3 @@ nav:
     - Preprocessing: api/preprocessing.md
     - Metrics: api/metrics.md
     - Utils: api/utils.md
-  - Experimental Results: results.md
