@@ -1370,7 +1370,7 @@ It has 6,362,620 transactions, of which only 8,213 are fraudulent and 6,354,407 
 The strong class imbalance makes it a good test for fraud detection, and the size makes runs slower than on the smaller benchmark datasets.</p>
 <h2 id="data-preparation">Data preparation</h2>
 <p>Download <code>PaySim.csv</code> from <a href="https://www.kaggle.com/datasets/ealaxi/paysim1">Kaggle</a> and place it in the <code>./data</code> folder.
-Then run the preprocessing script at <a href="https://github.com/fii-optim-lab/hgp-lib/blob/main/scripts/preprocess/paysim_preprocess.py"><code>scripts/preprocess/paysim_preprocess.py</code></a>.</p>
+Then run the preprocessing script at <a href="https://github.com/fii-optim-lab/hgp-lib/blob/master/scripts/preprocess/paysim_preprocess.py"><code>scripts/preprocess/paysim_preprocess.py</code></a>.</p>
 <div class="highlight"><pre><span></span><code>python<span class="w"> </span>scripts/preprocess/paysim_preprocess.py<span class="w"> </span>--data_path<span class="w"> </span>data
 </code></pre></div>
 <p>The script renames the <code>isFraud</code> column to <code>target</code>, adds two boolean features for external origin and destination accounts, and writes <code>data/PaySim.hdf</code>.</p>

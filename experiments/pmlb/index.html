@@ -1388,7 +1388,7 @@
 <p>The <a href="https://github.com/EpistasisLab/pmlb">Penn Machine Learning Benchmarks</a> (PMLB) is a curated collection of benchmark datasets for evaluating machine learning methods.
 HGP is evaluated on the binary classification datasets in the suite.</p>
 <h2 id="data-preparation">Data preparation</h2>
-<p>The preprocessing script lives at <a href="https://github.com/fii-optim-lab/hgp-lib/blob/main/scripts/preprocess/pmlb_preprocess.py"><code>scripts/preprocess/pmlb_preprocess.py</code></a>.
+<p>The preprocessing script lives at <a href="https://github.com/fii-optim-lab/hgp-lib/blob/master/scripts/preprocess/pmlb_preprocess.py"><code>scripts/preprocess/pmlb_preprocess.py</code></a>.
 It fetches a named dataset with the <code>pmlb</code> package and writes it to the data folder as an HDF file.</p>
 <div class="highlight"><pre><span></span><code>python<span class="w"> </span>scripts/preprocess/pmlb_preprocess.py<span class="w"> </span>breast_cancer<span class="w"> </span>--data_path<span class="w"> </span>data
 </code></pre></div>
@@ -1423,7 +1423,7 @@ The study name keeps trials grouped, and artifacts are written to the artifact d
 <span class="w">    </span>--artifact_dir<span class="w"> </span>./artifacts
 </code></pre></div>
 <h2 id="running-on-all-datasets">Running on all datasets</h2>
-<p>The <a href="https://github.com/fii-optim-lab/hgp-lib/blob/main/scripts/run_on_pmlb.py"><code>scripts/run_on_pmlb.py</code></a> script runs the Optuna tuning across every binary classification dataset.
+<p>The <a href="https://github.com/fii-optim-lab/hgp-lib/blob/master/scripts/run_on_pmlb.py"><code>scripts/run_on_pmlb.py</code></a> script runs the Optuna tuning across every binary classification dataset.
 It fetches the dataset names, builds one <code>optuna_hypertuning.py</code> command per dataset, and runs them in parallel.</p>
 <div class="highlight"><pre><span></span><code>python<span class="w"> </span>scripts/run_on_pmlb.py<span class="w"> </span>--n_jobs<span class="w"> </span><span class="m">4</span>
 </code></pre></div>
