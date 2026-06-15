@@ -64,7 +64,9 @@ def build_ucv_dataset(df: pd.DataFrame, resource: int) -> pd.DataFrame:
 
 
 def main():
-    parser = argparse.ArgumentParser("AEAC (Amazon Employee Access Challenge) preprocessor")
+    parser = argparse.ArgumentParser(
+        "AEAC (Amazon Employee Access Challenge) preprocessor"
+    )
     parser.add_argument(
         "--data_path",
         type=str,

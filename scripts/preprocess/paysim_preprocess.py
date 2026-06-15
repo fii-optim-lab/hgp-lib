@@ -26,9 +26,7 @@ def process_paysim(path):
 
 def main():
     parser = argparse.ArgumentParser("PaySim preprocessor")
-    parser.add_argument(
-        "--data_path", type=str, default="data", help="Datasets folder"
-    )
+    parser.add_argument("--data_path", type=str, default="data", help="Datasets folder")
     args = parser.parse_args()
     if not os.path.isdir(args.data_path):
         raise FileNotFoundError(f"'{args.data_path}' is not a directory")

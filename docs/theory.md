@@ -46,6 +46,6 @@ Hierarchical GP adds structure to the search.
 Child populations evolve on sampled subsets of features, then their rules are combined into larger rules in a parent population.
 Sampling features narrows each child's search space, which makes the sub-search easier, and composing the children builds expressive rules from parts that were each optimized on a focused slice of the problem.
 
-<!-- TODO: Replace this section's summary with the formal treatment and refer
+TODO: Replace this section's summary with the formal treatment and refer
 to the paper once it is published. Cite the paper that introduces the
-hierarchical GP formulation and its theoretical analysis. -->
+hierarchical GP formulation and its theoretical analysis.
