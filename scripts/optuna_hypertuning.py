@@ -185,6 +185,25 @@ def suggest_hyperparameters(
                 "sample_fraction", sf_low, sf_high, **sf_kw
             )
 
+    # ILP-seeded initialization
+    a, k = get("use_ilp_init", ([True, False],))
+    params["use_ilp_init"] = trial.suggest_categorical("use_ilp_init", *a, **k)
+
+    if params["use_ilp_init"]:
+        a, k = get("ilp_weight", (0.1, 0.5), {"step": 0.05})
+        params["ilp_weight"] = trial.suggest_float("ilp_weight", *a, **k)
+
+        a, k = get("ilp_max_literals", (2, 6))
+        params["ilp_max_literals"] = trial.suggest_int("ilp_max_literals", *a, **k)
+
+        a, k = get("ilp_operator_type", (["and", "or", "random"],))
+        params["ilp_operator_type"] = trial.suggest_categorical(
+            "ilp_operator_type", *a, **k
+        )
+
+        a, k = get("ilp_sample_size", (0.1, 0.5), {"step": 0.05})
+        params["ilp_sample_size"] = trial.suggest_float("ilp_sample_size", *a, **k)
+
     return params
 
 
@@ -208,6 +227,9 @@ def build_config(
 
     # Population generator
     population_size = params["population_size"]
+    population_factory = PopulationGeneratorFactory(
+        population_size=population_size
+    )
 
     # Mutation and crossover
     mutation_p = params["mutation_probability"]
@@ -239,7 +261,7 @@ def build_config(
     gp_config = BooleanGPConfig(
         score_fn=score_fn,
         selection=selection,
-        population_factory=PopulationGeneratorFactory(population_size=population_size),
+        population_factory=population_factory,
         mutation_factory=MutationExecutorFactory(
             mutation_p=mutation_p, operator_p=params.get("mutation_operator_p", 0.5)
         ),

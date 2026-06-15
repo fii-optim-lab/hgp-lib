@@ -9,7 +9,7 @@ from hgp_lib.populations import (
     BestLiteralStrategy,
 )
 from hgp_lib.mutations import MutationExecutorFactory
-from hgp_lib.rules import And, Or, Literal
+from hgp_lib.rules import And, Or, Literal, Rule
 
 
 class TestPopulations(unittest.TestCase):
@@ -394,7 +394,7 @@ class TestPopulationGeneratorFactory(unittest.TestCase):
         )
         population = gen.generate()
         for rule in population:
-            self.assertIsInstance(rule, (And, Or))
+            self.assertIsInstance(rule, Rule)
 
     def test_subclass_override(self):
         class BestLiteralFactory(PopulationGeneratorFactory):

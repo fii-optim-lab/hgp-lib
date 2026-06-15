@@ -3,7 +3,7 @@ from typing import Callable, List
 import numpy as np
 
 from .generator import PopulationGenerator
-from .strategies import RandomStrategy
+from .strategies import RandomStrategy, BestLiteralStrategy, ILPStrategy
 from .base_strategy import PopulationStrategy
 from ..utils.validation import check_isinstance
 
@@ -45,13 +45,14 @@ class PopulationGeneratorFactory:
         20
     """
 
-    def __init__(self, population_size: int = 100):
+    def __init__(self, population_size: int = 100, strategy_weights: List[float] | None = None):
         check_isinstance(population_size, int)
         if population_size <= 0:
             raise ValueError(
                 f"population_size must be a positive integer, got {population_size}"
             )
         self.population_size = population_size
+        self.strategy_weights = strategy_weights
 
     def create_strategies(
         self,
@@ -75,7 +76,20 @@ class PopulationGeneratorFactory:
         Returns:
             List[PopulationStrategy]: Strategies to pass to `PopulationGenerator`.
         """
-        return [RandomStrategy(num_literals=num_literals)]
+        return [
+            RandomStrategy(num_literals=num_literals),
+            BestLiteralStrategy(
+                num_literals=num_literals,
+                score_fn=score_fn,
+                train_data=train_data,
+                train_labels=train_labels,
+            ),
+            ILPStrategy(
+                num_literals=num_literals,
+                train_data=train_data,
+                train_labels=train_labels,
+            ),
+        ]
 
     def create(
         self,
@@ -100,5 +114,7 @@ class PopulationGeneratorFactory:
             num_literals, score_fn, train_data, train_labels
         )
         return PopulationGenerator(
-            strategies=strategies, population_size=self.population_size
+            strategies=strategies,
+            population_size=self.population_size,
+            weights=self.strategy_weights,
         )

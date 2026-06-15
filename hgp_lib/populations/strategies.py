@@ -3,6 +3,7 @@ from typing import Sequence, Type, Callable, List
 import numpy as np
 
 from .base_strategy import PopulationStrategy
+from .ilp_model import solve_best_rule_ilp
 from ..rules import Rule, Literal, And, Or
 from ..utils.validation import (
     validate_num_literals,
@@ -219,3 +220,201 @@ class BestLiteralStrategy(PopulationStrategy):
             rules.append(best_rule)
 
         return rules
+
+
+class ILPStrategy(PopulationStrategy):
+    """
+    Generates rules by solving an ILP that finds the best AND or OR rule
+    on a random subset of data and features.
+
+    For each rule to generate, a fresh data/feature subsample is drawn and
+    a Pyomo MIP is solved with HiGHS to select which literals (and their
+    negations) to include in an AND or OR combination that maximises
+    accuracy on that subsample.
+
+    Attributes:
+        num_literals (int): Total number of available literals (features).
+            This equals the number of columns in the binarized training data.
+        train_data (np.ndarray): Training data (2-D boolean array).
+        train_labels (np.ndarray): Training labels (1-D integer array).
+        sample_size (int | float | None): Row subsample size. ``int`` for
+            absolute count, ``float`` in (0, 1] for fraction, ``None`` for all.
+            Default: ``100``.
+        feature_size (int | float | None): Column subsample size. Same
+            semantics as ``sample_size``. Default: ``20``.
+        max_literals (int): Maximum number of literals allowed in a rule.
+        min_literals (int): Minimum number of literals in a rule.
+        operator_type (str): ``"and"``, ``"or"``, or ``"random"`` (coin-flip
+            per rule).
+        time_limit (float): Solver wall-clock limit in seconds per rule.
+
+    Examples:
+        >>> import numpy as np
+        >>> np.random.seed(42)
+        >>> data = np.random.rand(100, 10) > 0.5
+        >>> labels = np.random.randint(0, 2, 100)
+        >>> strategy = ILPStrategy(
+        ...     num_literals=10,
+        ...     train_data=data,
+        ...     train_labels=labels,
+        ...     sample_size=50,
+        ...     feature_size=5,
+        ... )
+        >>> rules = strategy.generate(n=2)
+        >>> all(isinstance(r, (And, Or)) for r in rules)
+        True
+    """
+
+    def __init__(
+        self,
+        num_literals: int,
+        train_data: np.ndarray,
+        train_labels: np.ndarray,
+        sample_size: int | float | None = 100,
+        feature_size: int | float | None = 20,
+        max_literals: int = 5,
+        min_literals: int = 2,
+        operator_type: str = "random",
+        time_limit: float = 2.0,
+    ):
+        validate_num_literals(num_literals)
+        check_X_y(train_data, train_labels)
+
+        if len(train_data[0]) != num_literals:
+            raise ValueError(
+                f"Number of features in train_data must equal num_literals, "
+                f"got {len(train_data[0])} != {num_literals}"
+            )
+        if operator_type not in ("and", "or", "random"):
+            raise ValueError(
+                f"operator_type must be 'and', 'or', or 'random', got '{operator_type}'"
+            )
+        if min_literals < 2:
+            raise ValueError(f"min_literals must be >= 2, got {min_literals}")
+        if max_literals < min_literals:
+            raise ValueError(
+                f"max_literals ({max_literals}) must be >= min_literals ({min_literals})"
+            )
+
+        self.num_literals = num_literals
+        self.train_data = train_data
+        self.train_labels = train_labels
+        self.max_literals = max_literals
+        self.min_literals = min_literals
+        self.operator_type = operator_type
+        self.time_limit = time_limit
+
+        self._sample_count = self._resolve_size(sample_size, len(train_data))
+        self._feature_count = self._resolve_size(feature_size, num_literals)
+
+    @staticmethod
+    def _resolve_size(size: int | float | None, total: int) -> int:
+        if size is None:
+            return total
+        if isinstance(size, float):
+            if not (0.0 < size <= 1.0):
+                raise ValueError(f"Float size must be in (0.0, 1.0], got {size}")
+            return ceil(total * size)
+        if isinstance(size, int):
+            if size <= 0:
+                raise ValueError(f"Int size must be > 0, got {size}")
+            return min(size, total)
+        raise TypeError(f"size must be int, float or None, got {type(size)}")
+
+    def generate(self, n: int) -> List[Rule]:
+        """
+        Generate *n* rules by solving one ILP per rule.
+
+        Args:
+            n (int): Number of rules to generate.
+
+        Returns:
+            List[Rule]: Generated AND / OR rules.
+        """
+        if n <= 0:
+            return []
+
+        rules: List[Rule] = []
+        for _ in range(n):
+            rule = self._generate_one()
+            rules.append(rule)
+        return rules
+
+    def _generate_one(self) -> Rule:
+        """Sample data, solve ILP, convert solution to a Rule."""
+        # --- subsample rows ---
+        total_samples = len(self.train_data)
+        if self._sample_count == total_samples:
+            row_idx = np.arange(total_samples)
+        else:
+            row_idx = np.random.choice(total_samples, self._sample_count, replace=False)
+
+        # --- subsample features ---
+        if self._feature_count == self.num_literals:
+            feat_idx = np.arange(self.num_literals)
+        else:
+            feat_idx = np.random.choice(
+                self.num_literals, self._feature_count, replace=False
+            )
+
+        sub_data = self.train_data[np.ix_(row_idx, feat_idx)]
+        sub_labels = self.train_labels[row_idx]
+
+        # --- choose operator ---
+        if self.operator_type == "random":
+            use_and = bool(np.random.randint(0, 2))
+        else:
+            use_and = self.operator_type == "and"
+
+        # --- solve ILP ---
+        solution = solve_best_rule_ilp(
+            data=sub_data,
+            labels=sub_labels,
+            use_and=use_and,
+            min_literals=self.min_literals,
+            max_literals=self.max_literals,
+            time_limit=self.time_limit,
+        )
+
+        # --- convert to Rule ---
+        if not solution.feasible:
+            selected, negations = self._random_fallback(len(feat_idx))
+            return self._build_rule(feat_idx, selected, negations, use_and)
+
+        return self._build_rule(
+            feat_idx, solution.selected_features, solution.negations, use_and
+        )
+
+    @staticmethod
+    def _random_fallback(
+        n_features: int,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Return two random literals as a fallback when the solver fails."""
+        idxs = np.random.choice(n_features, size=2, replace=False)
+        negs = np.random.randint(0, 2, size=2).astype(bool)
+        return idxs, negs
+
+    @staticmethod
+    def _build_rule(
+        feat_idx: np.ndarray,
+        selected: np.ndarray,
+        negations: np.ndarray,
+        use_and: bool,
+    ) -> Rule:
+        """Convert ILP solution indices back to a Rule in the full feature space.
+
+        Args:
+            feat_idx: Mapping from subsample feature index to global feature index.
+            selected: Indices into the subsampled feature space.
+            negations: Whether each selected literal is negated.
+            use_and: True for AND rule, False for OR rule.
+
+        Returns:
+            An And or Or Rule instance.
+        """
+        subrules = [
+            Literal(value=int(feat_idx[j]), negated=bool(neg))
+            for j, neg in zip(selected, negations)
+        ]
+        op_class = And if use_and else Or
+        return op_class(subrules=subrules, negated=False, copy_subrules=False)
