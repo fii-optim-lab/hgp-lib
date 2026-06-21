@@ -555,6 +555,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../guide/binarization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Binarization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../guide/training/" class="md-nav__link">
         
   
@@ -1368,7 +1396,7 @@
 </code></pre></div>
 <h2 id="a-first-run">A first run</h2>
 <p><code>hgp_lib</code> evolves boolean rules that classify tabular data. The fastest way to
-get a result is <code>GPBenchmarker</code>, which handles binarization, splitting, and
+get a result is <a href="../api/benchmarkers/#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker"><code>GPBenchmarker</code></a>, which handles binarization, splitting, and
 aggregation for you. Pass a raw <code>pandas.DataFrame</code> and a scoring function.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
@@ -1396,7 +1424,7 @@ aggregation for you. Pass a raw <code>pandas.DataFrame</code> and a scoring func
 <li><a href="../theory/">Theory</a>: how the GP search works and why it beats greedy trees</li>
 <li><a href="../interpretability/">Interpretability</a>: readable rules and explainable models</li>
 <li><a href="../guide/data-preparation/">Data Preparation</a>: binarization and avoiding leakage</li>
-<li><a href="../guide/training/">Training</a>: <code>GPTrainer</code> and run configuration</li>
+<li><a href="../guide/training/">Training</a>: <a href="../api/trainers/#hgp_lib.trainers.gp_trainer.GPTrainer"><code>GPTrainer</code></a> and run configuration</li>
 <li><a href="../guide/benchmarking/">Benchmarking</a>: aggregated runs and scorer optimization</li>
 <li><a href="../guide/configuring/">Configuring HGP</a>: factories and hierarchical GP settings</li>
 <li><a href="../guide/extending/">Extending HGP</a>: custom strategies, mutations, and low-level use</li>

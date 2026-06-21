@@ -11,7 +11,7 @@
       
       
       
-        <link rel="prev" href="../data-preparation/">
+        <link rel="prev" href="../binarization/">
       
       
         <link rel="next" href="../benchmarking/">
@@ -455,6 +455,34 @@
     
   
     Data Preparation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../binarization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Binarization
   
 
     
@@ -1341,15 +1369,15 @@
 
 
 <h1 id="training">Training</h1>
-<p>The library uses dataclass configs (<code>BooleanGPConfig</code>, <code>TrainerConfig</code>, <code>BenchmarkerConfig</code>) for all main components.
+<p>The library uses dataclass configs (<a href="../../api/configs/#hgp_lib.configs.boolean_gp_config.BooleanGPConfig"><code>BooleanGPConfig</code></a>, <a href="../../api/configs/#hgp_lib.configs.trainer_config.TrainerConfig"><code>TrainerConfig</code></a>, <a href="../../api/configs/#hgp_lib.configs.benchmarker_config.BenchmarkerConfig"><code>BenchmarkerConfig</code></a>) for all main components.
 When you pass training data in a config, the number of features is derived from the data (<code>train_data.shape[1]</code>).
-It is then passed to the configured <code>PopulationGeneratorFactory</code> and <code>MutationExecutorFactory</code> at runtime.
+It is then passed to the configured <a href="../../api/populations/#hgp_lib.populations.populations_factory.PopulationGeneratorFactory"><code>PopulationGeneratorFactory</code></a> and <a href="../../api/mutations/#hgp_lib.mutations.mutation_factory.MutationExecutorFactory"><code>MutationExecutorFactory</code></a> at runtime.
 You do not need to pass <code>num_literals</code> when using the default factories.</p>
 <p>Data passed to a trainer must be binarized first.
 See <a href="../data-preparation/">Data Preparation</a>.</p>
 <h2 id="simple-training">Simple training</h2>
 <p>This runs a training with default hyperparameters.
-Use <code>BooleanGPConfig</code> and <code>TrainerConfig</code> to configure the run.</p>
+Use <a href="../../api/configs/#hgp_lib.configs.boolean_gp_config.BooleanGPConfig"><code>BooleanGPConfig</code></a> and <a href="../../api/configs/#hgp_lib.configs.trainer_config.TrainerConfig"><code>TrainerConfig</code></a> to configure the run.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGPConfig</span><span class="p">,</span> <span class="n">TrainerConfig</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.trainers</span><span class="w"> </span><span class="kn">import</span> <span class="n">GPTrainer</span>
 
@@ -1371,8 +1399,8 @@ Use <code>BooleanGPConfig</code> and <code>TrainerConfig</code> to configure the
 <span class="n">result</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>  <span class="c1"># Returns PopulationHistory</span>
 </code></pre></div>
 <h2 id="configured-training">Configured training</h2>
-<p>Build a <code>BooleanGPConfig</code> with custom factories and components, then wrap it in a <code>TrainerConfig</code>.
-The trainer accepts only <code>TrainerConfig</code>.
+<p>Build a <a href="../../api/configs/#hgp_lib.configs.boolean_gp_config.BooleanGPConfig"><code>BooleanGPConfig</code></a> with custom factories and components, then wrap it in a <a href="../../api/configs/#hgp_lib.configs.trainer_config.TrainerConfig"><code>TrainerConfig</code></a>.
+The trainer accepts only <a href="../../api/configs/#hgp_lib.configs.trainer_config.TrainerConfig"><code>TrainerConfig</code></a>.
 See <a href="../configuring/">Configuring HGP</a> and <a href="../extending/">Extending HGP</a> for how to build the factories and components used below.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGPConfig</span><span class="p">,</span> <span class="n">TrainerConfig</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.trainers</span><span class="w"> </span><span class="kn">import</span> <span class="n">GPTrainer</span>

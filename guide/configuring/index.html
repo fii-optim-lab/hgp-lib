@@ -475,6 +475,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../binarization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Binarization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../training/" class="md-nav__link">
         
   
@@ -598,6 +626,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Factories">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#validity-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validity checks
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1307,6 +1352,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Factories">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#validity-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validity checks
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1341,14 +1403,14 @@
 
 
 <h1 id="configuring-hgp">Configuring HGP</h1>
-<p>The population, mutation, and crossover behavior is configured through factories passed to <code>BooleanGPConfig</code>.
+<p>The population, mutation, and crossover behavior is configured through factories passed to <a href="../../api/configs/#hgp_lib.configs.boolean_gp_config.BooleanGPConfig"><code>BooleanGPConfig</code></a>.
 A factory holds config-time parameters and builds the actual component at runtime, once the number of features is known from the data.
 This page covers the built-in factories and the hierarchical GP settings.
 To replace a component with custom behavior, see <a href="../extending/">Extending HGP</a>.</p>
 <h2 id="factories">Factories</h2>
-<p>The <code>PopulationGeneratorFactory</code> and <code>MutationExecutorFactory</code> defer construction until <code>num_features</code> is known.
+<p>The <a href="../../api/populations/#hgp_lib.populations.populations_factory.PopulationGeneratorFactory"><code>PopulationGeneratorFactory</code></a> and <a href="../../api/mutations/#hgp_lib.mutations.mutation_factory.MutationExecutorFactory"><code>MutationExecutorFactory</code></a> defer construction until <code>num_features</code> is known.
 The default factories cover the common case.
-<code>PopulationGeneratorFactory</code> uses <code>RandomStrategy</code>, and <code>MutationExecutorFactory</code> uses the standard literal and operator mutations.</p>
+<a href="../../api/populations/#hgp_lib.populations.populations_factory.PopulationGeneratorFactory"><code>PopulationGeneratorFactory</code></a> uses <a href="../../api/populations/#hgp_lib.populations.strategies.RandomStrategy"><code>RandomStrategy</code></a>, and <a href="../../api/mutations/#hgp_lib.mutations.mutation_factory.MutationExecutorFactory"><code>MutationExecutorFactory</code></a> uses the standard literal and operator mutations.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.crossover</span><span class="w"> </span><span class="kn">import</span> <span class="n">CrossoverExecutorFactory</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.mutations</span><span class="w"> </span><span class="kn">import</span> <span class="n">MutationExecutorFactory</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.populations</span><span class="w"> </span><span class="kn">import</span> <span class="n">PopulationGeneratorFactory</span>
@@ -1362,7 +1424,7 @@ The default factories cover the common case.
 <span class="p">)</span>
 <span class="n">selection</span> <span class="o">=</span> <span class="n">TournamentSelection</span><span class="p">(</span><span class="n">tournament_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">selection_p</span><span class="o">=</span><span class="mf">0.4</span><span class="p">)</span>
 </code></pre></div>
-<p>Pass these to <code>BooleanGPConfig</code> to assemble a configured run.</p>
+<p>Pass these to <a href="../../api/configs/#hgp_lib.configs.boolean_gp_config.BooleanGPConfig"><code>BooleanGPConfig</code></a> to assemble a configured run.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGPConfig</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.utils.validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComplexityCheck</span>
 
@@ -1374,14 +1436,29 @@ The default factories cover the common case.
     <span class="n">mutation_factory</span><span class="o">=</span><span class="n">mutation_factory</span><span class="p">,</span>
     <span class="n">crossover_factory</span><span class="o">=</span><span class="n">crossover_factory</span><span class="p">,</span>
     <span class="n">selection</span><span class="o">=</span><span class="n">selection</span><span class="p">,</span>
-    <span class="n">check_valid</span><span class="o">=</span><span class="n">ComplexityCheck</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+    <span class="n">check_valid</span><span class="o">=</span><span class="n">ComplexityCheck</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>  <span class="c1"># caps the rule at 100 nodes</span>
     <span class="n">regeneration</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">regeneration_patience</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
+<h3 id="validity-checks">Validity checks</h3>
+<p><code>check_valid</code> is a predicate that takes a rule and returns <code>True</code> if the rule is allowed.
+It is called after each mutation and crossover, and any rule it rejects is discarded.
+The operation that produced it is retried, so <code>check_valid</code> shapes which rules the search is allowed to keep.</p>
+<p><a href="../../api/utils/#hgp_lib.utils.validation.ComplexityCheck"><code>ComplexityCheck</code></a> is the built-in case.
+It rejects any rule larger than a node count, which caps the size of the evolved rules.</p>
+<p>You can pass any callable with the same signature to enforce stricter constraints.
+For example, a check that rejects redundant rules, where the same literal appears more than once, or one that rejects tautologies, where a rule is always true or always false.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.rules</span><span class="w"> </span><span class="kn">import</span> <span class="n">Rule</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">no_repeated_literals</span><span class="p">(</span><span class="n">rule</span><span class="p">:</span> <span class="n">Rule</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">rule</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">values</span><span class="p">))</span>
+</code></pre></div>
+<p>The check receives valid rules and decides which ones to keep, so it is the place to encode preferences the GP operators do not enforce on their own.</p>
 <h2 id="hierarchical-gp">Hierarchical GP</h2>
 <p>Hierarchical GP adds child populations that evolve on sampled subsets of features, then combine into larger rules.
-Enable it through <code>max_depth</code>, <code>num_child_populations</code>, and a feature sampling strategy in <code>BooleanGPConfig</code>.</p>
+Enable it through <code>max_depth</code>, <code>num_child_populations</code>, and a feature sampling strategy in <a href="../../api/configs/#hgp_lib.configs.boolean_gp_config.BooleanGPConfig"><code>BooleanGPConfig</code></a>.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.populations</span><span class="w"> </span><span class="kn">import</span> <span class="n">FeatureSamplingStrategy</span>
 
 <span class="n">gp_config</span><span class="o">.</span><span class="n">max_depth</span> <span class="o">=</span> <span class="mi">1</span>

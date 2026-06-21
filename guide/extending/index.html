@@ -475,6 +475,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../binarization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Binarization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../training/" class="md-nav__link">
         
   
@@ -623,6 +651,17 @@
     <span class="md-ellipsis">
       
         Custom population strategies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-mutations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom mutations
       
     </span>
   </a>
@@ -1310,6 +1349,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#custom-mutations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom mutations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#low-level-use-of-booleangp" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1345,9 +1395,9 @@
 To change how rules are initialized or mutated, subclass a factory and override its construction hook.
 For the built-in factories and hierarchical settings, see <a href="../configuring/">Configuring HGP</a>.</p>
 <h2 id="custom-population-strategies">Custom population strategies</h2>
-<p>The <code>PopulationGenerator</code> creates the initial set of rules.
+<p>The <a href="../../api/populations/#hgp_lib.populations.generator.PopulationGenerator"><code>PopulationGenerator</code></a> creates the initial set of rules.
 It uses a strategy pattern to allow different initialization methods.</p>
-<p>When using <code>BooleanGPConfig</code>, pass a <code>PopulationGeneratorFactory</code> rather than a <code>PopulationGenerator</code> directly.
+<p>When using <a href="../../api/configs/#hgp_lib.configs.boolean_gp_config.BooleanGPConfig"><code>BooleanGPConfig</code></a>, pass a <a href="../../api/populations/#hgp_lib.populations.populations_factory.PopulationGeneratorFactory"><code>PopulationGeneratorFactory</code></a> rather than a <a href="../../api/populations/#hgp_lib.populations.generator.PopulationGenerator"><code>PopulationGenerator</code></a> directly.
 Override <code>create_strategies</code> to use custom strategies.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.populations</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">PopulationGeneratorFactory</span><span class="p">,</span>
@@ -1370,7 +1420,7 @@ Override <code>create_strategies</code> to use custom strategies.</p>
 
 <span class="n">factory</span> <span class="o">=</span> <span class="n">MyFactory</span><span class="p">(</span><span class="n">population_size</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
 </code></pre></div>
-<p>You can also create a <code>PopulationGenerator</code> directly for standalone use, outside of <code>BooleanGPConfig</code>.</p>
+<p>You can also create a <a href="../../api/populations/#hgp_lib.populations.generator.PopulationGenerator"><code>PopulationGenerator</code></a> directly for standalone use, outside of <a href="../../api/configs/#hgp_lib.configs.boolean_gp_config.BooleanGPConfig"><code>BooleanGPConfig</code></a>.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.populations</span><span class="w"> </span><span class="kn">import</span> <span class="n">PopulationGenerator</span><span class="p">,</span> <span class="n">RandomStrategy</span>
 
 <span class="n">random_strategy</span> <span class="o">=</span> <span class="n">RandomStrategy</span><span class="p">(</span><span class="n">num_literals</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
@@ -1380,8 +1430,42 @@ Override <code>create_strategies</code> to use custom strategies.</p>
 <span class="p">)</span>
 <span class="n">initial_population</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">generate</span><span class="p">()</span>
 </code></pre></div>
+<h2 id="custom-mutations">Custom mutations</h2>
+<p>A mutation subclasses <a href="../../api/mutations/#hgp_lib.mutations.base_mutation.Mutation"><code>Mutation</code></a> and edits a rule node in place inside <code>apply</code>.
+The base class needs two flags that say whether the mutation can apply to literals, to operators, or to both.</p>
+<p>The example below adds a <code>RandomNegate</code> mutation that flips a node's negation only some of the time, unlike the built-in <a href="../../api/mutations/#hgp_lib.mutations.literal_mutations.NegateMutation"><code>NegateMutation</code></a> that always flips it.
+It works on both literals and operators, so both flags are <code>True</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.mutations</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mutation</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.rules</span><span class="w"> </span><span class="kn">import</span> <span class="n">Rule</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">RandomNegate</span><span class="p">(</span><span class="n">Mutation</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">negate_p</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">is_literal_mutation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">is_operator_mutation</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">negate_p</span> <span class="o">=</span> <span class="n">negate_p</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rule</span><span class="p">:</span> <span class="n">Rule</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">negate_p</span><span class="p">:</span>
+            <span class="n">rule</span><span class="o">.</span><span class="n">negated</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">rule</span><span class="o">.</span><span class="n">negated</span>
+</code></pre></div>
+<p>To use it, subclass <a href="../../api/mutations/#hgp_lib.mutations.mutation_factory.MutationExecutorFactory"><code>MutationExecutorFactory</code></a> and add the mutation in the relevant hook.
+<code>create_literal_mutations</code> returns the mutations applied to literal nodes, and <code>create_operator_mutations</code> returns those applied to operator nodes.
+Since <code>RandomNegate</code> handles both, add it to each.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.mutations</span><span class="w"> </span><span class="kn">import</span> <span class="n">MutationExecutorFactory</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">MyMutationFactory</span><span class="p">(</span><span class="n">MutationExecutorFactory</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_literal_mutations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_literals</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">create_literal_mutations</span><span class="p">(</span><span class="n">num_literals</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">RandomNegate</span><span class="p">(),)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_operator_mutations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_literals</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">create_operator_mutations</span><span class="p">(</span><span class="n">num_literals</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">RandomNegate</span><span class="p">(),)</span>
+
+<span class="n">mutation_factory</span> <span class="o">=</span> <span class="n">MyMutationFactory</span><span class="p">(</span><span class="n">mutation_p</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+</code></pre></div>
+<p>Pass <code>mutation_factory</code> to <a href="../../api/configs/#hgp_lib.configs.boolean_gp_config.BooleanGPConfig"><code>BooleanGPConfig</code></a> as shown in <a href="../configuring/">Configuring HGP</a>.
+The factory builds the executor at runtime, once the number of features is known.</p>
 <h2 id="low-level-use-of-booleangp">Low-level use of BooleanGP</h2>
-<p>For full control over the training loop, use <code>BooleanGP</code> directly.
+<p>For full control over the training loop, use <a href="../../api/algorithms/#hgp_lib.algorithms.boolean_gp.BooleanGP"><code>BooleanGP</code></a> directly.
 Training data is passed in the config, and <code>num_features</code> is derived from the data shape.
 The number of features is then passed to the configured factories for runtime construction.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGPConfig</span>

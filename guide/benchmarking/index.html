@@ -475,6 +475,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../binarization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Binarization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../training/" class="md-nav__link">
         
   
@@ -581,6 +609,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Feature names">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-best-run-means" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What "best run" means
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1351,6 +1396,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Feature names">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-best-run-means" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What "best run" means
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1410,13 +1472,16 @@
 <p>The benchmarker runs multiple full runs (default 30), each with a stratified train/test split and k-fold CV on the training set.
 Results are aggregated across runs.
 Runs execute in parallel by default.
-The benchmarker accepts a <code>BenchmarkerConfig</code> containing a <code>TrainerConfig</code> template.</p>
+The benchmarker accepts a <a href="../../api/configs/#hgp_lib.configs.benchmarker_config.BenchmarkerConfig"><code>BenchmarkerConfig</code></a> containing a <a href="../../api/configs/#hgp_lib.configs.trainer_config.TrainerConfig"><code>TrainerConfig</code></a> template.</p>
 <h2 id="automatic-binarization">Automatic binarization</h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
 <p>Pass raw (non-binarized) data as a <code>pandas.DataFrame</code> in <code>BenchmarkerConfig.data</code>.
 For each fold, a fresh copy of the binarizer is fit on the training fold (with labels for supervised binning) and used to transform the validation fold.
 The best fold's binarizer is then used to transform the held-out test set.
 This prevents data leakage across folds and between train/test splits.</p>
-<p>By default a <code>StandardBinarizer()</code> is used.
+</div>
+<p>By default a <a href="../../api/preprocessing/#hgp_lib.preprocessing.binarizer.StandardBinarizer"><code>StandardBinarizer</code></a> is used.
 You can pass a custom binarizer (unfitted) via the <code>binarizer</code> parameter:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">StandardBinarizer</span>
 
@@ -1428,17 +1493,29 @@ You can pass a custom binarizer (unfitted) via the <code>binarizer</code> parame
     <span class="n">binarizer</span><span class="o">=</span><span class="n">binarizer</span><span class="p">,</span>  <span class="c1"># None -&gt; default StandardBinarizer(num_bins=5)</span>
 <span class="p">)</span>
 </code></pre></div>
+<p>See <a href="../binarization/">Binarization</a> for how the binarizer works and its parameters.</p>
 <h2 id="feature-names">Feature names</h2>
-<p>The <code>RunResult</code> includes <code>feature_names</code>, a <code>Dict[int, str]</code> mapping from literal indices to the binarized column names.
+<p>The <a href="../../api/metrics/#hgp_lib.metrics.results.RunResult"><code>RunResult</code></a> includes <code>feature_names</code>, a <code>Dict[int, str]</code> mapping from literal indices to the binarized column names.
 Use this to display rules in human-readable form:</p>
 <div class="highlight"><pre><span></span><code><span class="n">best_run</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">best_run</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">best_rule</span><span class="o">.</span><span class="n">to_str</span><span class="p">(</span><span class="n">best_run</span><span class="o">.</span><span class="n">feature_names</span><span class="p">))</span>
 </code></pre></div>
+<h3 id="what-best-run-means">What "best run" means</h3>
+<p>In a k-fold setup there is no single obvious best run, so the selection is defined in two steps.</p>
+<p>Within a run, the best fold is the fold with the highest validation score.
+The best rule of that run is the best rule found in that fold.</p>
+<p>Across runs, the best run is the one with the highest mean validation score across its folds.
+The best rule of the whole experiment is the best rule from the best fold of that best run.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The best run is chosen by validation score, not by test score.
+The test score is held out and only measures the selected rule, so it does not drive the selection.</p>
+</div>
 <h2 id="scorer-optimization">Scorer optimization</h2>
 <p>The benchmarker can optimize scorers per fold by deduplicating data and using sample weights.
 This speeds up scoring for datasets with many duplicate rows.
-To use it, pass a base scorer (not pre-optimized) that accepts a <code>sample_weight</code> parameter, and set <code>optimize_scorer=True</code> in <code>BooleanGPConfig</code> (the default).</p>
-<p>Do not pass pre-optimized scorers (e.g. from <code>optimize_scorers_for_data</code>) to the benchmarker.
+To use it, pass a base scorer (not pre-optimized) that accepts a <code>sample_weight</code> parameter, and set <code>optimize_scorer=True</code> in <a href="../../api/configs/#hgp_lib.configs.boolean_gp_config.BooleanGPConfig"><code>BooleanGPConfig</code></a> (the default).</p>
+<p>Do not pass pre-optimized scorers (e.g. from <a href="../../api/utils/#hgp_lib.utils.metrics.optimize_scorers_for_data"><code>optimize_scorers_for_data</code></a>) to the benchmarker.
 Pre-optimized scorers have sample weights bound to the original data, which become invalid after train/test/fold splits.
 Either pass a base scorer with <code>optimize_scorer=True</code> (default), or use <code>optimize_scorer=False</code> for scorers without <code>sample_weight</code> support.</p>
 <p>A scorer that supports sample weights looks like this:</p>

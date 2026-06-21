@@ -475,6 +475,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../binarization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Binarization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../training/" class="md-nav__link">
         
   
@@ -1430,7 +1458,7 @@
 
 <h1 id="rule-trees">Rule Trees</h1>
 <p>A rule is a tree of nodes.
-Operators (<code>And</code>, <code>Or</code>) combine subrules, and literals (<code>Literal</code>) test a single feature.
+Operators (<a href="../../api/rules/#hgp_lib.rules.operators.And"><code>And</code></a>, <a href="../../api/rules/#hgp_lib.rules.operators.Or"><code>Or</code></a>) combine subrules, and literals (<a href="../../api/rules/#hgp_lib.rules.literals.Literal"><code>Literal</code></a>) test a single feature.
 Any node can be negated.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.rules</span><span class="w"> </span><span class="kn">import</span> <span class="n">And</span><span class="p">,</span> <span class="n">Or</span><span class="p">,</span> <span class="n">Literal</span>
 
@@ -1450,7 +1478,7 @@ Operators assume they hold valid subrules, literals assume a valid feature index
 The genetic operators that build rules are responsible for keeping them well-formed.
 This removes per-node branching and lets evaluation stay tight.</p>
 <h2 id="slotted-nodes">Slotted nodes</h2>
-<p><code>Rule</code> defines <code>__slots__</code> for its four fields (<code>subrules</code>, <code>parent</code>, <code>value</code>, <code>negated</code>).
+<p><a href="../../api/rules/#hgp_lib.rules.rules.Rule"><code>Rule</code></a> defines <code>__slots__</code> for its four fields (<code>subrules</code>, <code>parent</code>, <code>value</code>, <code>negated</code>).
 Slots drop the per-instance <code>__dict__</code>, which lowers memory per node and speeds up attribute access.
 With populations of many rules, each holding many nodes, this adds up.</p>
 <h2 id="vectorized-evaluation">Vectorized evaluation</h2>
@@ -1458,7 +1486,7 @@ With populations of many rules, each holding many nodes, this adds up.</p>
 A literal indexes its column once and returns the boolean vector for all instances at once.
 Operators combine these vectors with NumPy boolean operations, so a whole rule resolves without Python-level loops over instances.</p>
 <h2 id="batched-literal-evaluation">Batched literal evaluation</h2>
-<p>The default <code>And</code> and <code>Or</code> separate literal children from operator children before combining them.
+<p>The default <a href="../../api/rules/#hgp_lib.rules.operators.And"><code>And</code></a> and <a href="../../api/rules/#hgp_lib.rules.operators.Or"><code>Or</code></a> separate literal children from operator children before combining them.
 All literal columns are gathered in a single fancy-index into the data, then reduced with <code>all</code> or <code>any</code> along one axis.
 Negation is applied to the gathered block with a precomputed mask using XOR.
 This evaluates the literal part of a node in one pass instead of one operation per literal, which is the common case for shallow rules.</p>
@@ -1467,7 +1495,7 @@ This evaluates the literal part of a node in one pass instead of one operation p
 <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">sub_operators</span><span class="p">:</span>                  <span class="c1"># then fold in nested operators</span>
     <span class="n">mask</span> <span class="o">&amp;=</span> <span class="n">op</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 </code></pre></div>
-<p><code>Or</code> mirrors this with <code>any</code> and <code>|=</code>.
+<p><a href="../../api/rules/#hgp_lib.rules.operators.Or"><code>Or</code></a> mirrors this with <code>any</code> and <code>|=</code>.
 Negation of the whole node is done in place with <code>np.logical_not(mask, out=mask)</code> to avoid a fresh allocation.</p>
 <h2 id="two-operator-implementations">Two operator implementations</h2>
 <p>There are two operator backends with the same behavior but different trade-offs.</p>
@@ -1480,7 +1508,7 @@ Negation of the whole node is done in place with <code>np.logical_not(mask, out=
 <p>Select the low-memory backend with an environment variable before importing the package.</p>
 <div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">HGP_LOW_MEMORY</span><span class="o">=</span><span class="m">1</span>
 </code></pre></div>
-<p>The <code>hgp_lib.rules</code> package reads <code>HGP_LOW_MEMORY</code> at import time and binds <code>And</code> and <code>Or</code> to the chosen backend.</p>
+<p>The <code>hgp_lib.rules</code> package reads <code>HGP_LOW_MEMORY</code> at import time and binds <a href="../../api/rules/#hgp_lib.rules.operators.And"><code>And</code></a> and <a href="../../api/rules/#hgp_lib.rules.operators.Or"><code>Or</code></a> to the chosen backend.</p>
 <h2 id="traversal-helpers">Traversal helpers</h2>
 <p><code>flatten</code> collects all nodes iteratively with a queue, which avoids Python recursion overhead and stack limits on deep trees.
 A recursive variant (<code>r_flatten</code>) is also available when a left-to-right preorder is needed.

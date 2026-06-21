@@ -475,6 +475,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guide/binarization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Binarization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guide/training/" class="md-nav__link">
         
   
@@ -815,6 +843,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#policy-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Policy generation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#data-preparation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -847,6 +886,17 @@
     <span class="md-ellipsis">
       
         Running a benchmark
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
       
     </span>
   </a>
@@ -1316,6 +1366,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#policy-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Policy generation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#data-preparation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1354,6 +1415,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1377,9 +1449,16 @@
 <h1 id="aeac-amazon-employee-access-challenge">AEAC (Amazon Employee Access Challenge)</h1>
 <p>The <a href="https://www.kaggle.com/c/amazon-employee-access-challenge">Amazon Employee Access Challenge</a> (AEAC) is a binary classification dataset.
 The task is to predict whether an employee should be granted access to a given resource based on their role attributes.</p>
-<p>TODO: Describe policy generation. Unlike standard classifiers, HGP produces
-readable boolean rules that can be turned into access-control policies for a
-resource. Explain this use case and reference the paper once it is available.</p>
+<h2 id="policy-generation">Policy generation</h2>
+<p>AEAC is more than a classification benchmark.
+Each resource has a set of access logs, and the goal is to mine an access-control policy that decides who may use it.
+HGP fits this task because its model is a boolean rule, which reads directly as an attribute-based access control (ABAC) policy.<sup id="fnref:albert2026geneabac"><a class="footnote-ref" href="#fn:albert2026geneabac">1</a></sup>
+A rule such as <code>Or(ROLE_TITLE=119409, And(MGR_ID IN (4850, 17640), ~ROLE_TITLE=126085))</code> is a policy a security administrator can read, check, and edit.</p>
+<p>This is where HGP differs from black-box classifiers.
+A model like XGBoost can score access requests, but it cannot be turned into a policy that a human can review or that a system can enforce as explicit rules.
+Decision trees are interpretable, but they express policies in disjunctive normal form, which tends to produce long rules.
+HGP optimizes the rule against the access logs under a complexity constraint, so it yields compact policies that balance under-permissioning and over-permissioning while staying readable.<sup id="fnref2:albert2026geneabac"><a class="footnote-ref" href="#fn:albert2026geneabac">1</a></sup></p>
+<p>The per-resource UCV datasets built below are the standard way to evaluate such policies, since they test whether a mined policy generalizes to access requests that were never seen in the logs.</p>
 <h2 id="data-preparation">Data preparation</h2>
 <ol>
 <li>Download the Amazon Employee Access Challenge dataset from <a href="https://www.kaggle.com/c/amazon-employee-access-challenge">Kaggle</a>.</li>
@@ -1395,7 +1474,7 @@ resource. Explain this use case and reference the paper once it is available.</p
 <li>Renames the <code>ACTION</code> column to <code>target</code>, which is the label expected by the library.</li>
 <li>Casts every column to the pandas <code>category</code> dtype.</li>
 <li>Writes the full dataset to <code>data/AEAC.hdf</code>.</li>
-<li>Builds a per-resource "unseen class value" (UCV) dataset for a fixed list of resources (<code>75078</code>, <code>25993</code>, <code>79092</code>, <code>4675</code>).</li>
+<li>Builds a per-resource "universal cross-validation" (UCV) dataset, introduced by Cotrini et al.<sup id="fnref:cotrini2018mining"><a class="footnote-ref" href="#fn:cotrini2018mining">2</a></sup>, for a fixed list of resources (<code>75078</code>, <code>25993</code>, <code>79092</code>, <code>4675</code>).</li>
 </ul>
 <p>Each UCV dataset contains the rows for that resource plus the users that never appear for it, added as negative (<code>target == 0</code>) examples.
 These are written to <code>data/AEAC_&lt;resource&gt;_ucv.hdf</code>.</p>
@@ -1419,6 +1498,18 @@ It is used both as the folder that holds <code>train.csv</code> and as the desti
 <span class="w">    </span>--num_child_populations<span class="w"> </span><span class="m">3</span>
 </code></pre></div>
 <p>See <code>python scripts/run_benchmark.py --help</code> for the full list of options.</p>
+<h2 id="references">References</h2>
+<div class="footnote">
+<hr />
+<ol>
+<li id="fn:albert2026geneabac">
+<p>Ramona-Georgiana Albert and Mihaela Elena Breabăn. Geneabac: abac policy generation optimized by genetic programming. In <em>Parallel Problem Solving from Nature (PPSN XIX), 19th International Conference, PPSN 2026, Trento, Italy</em>. 2026. To appear.&#160;<a class="footnote-backref" href="#fnref:albert2026geneabac" title="Jump back to footnote 1 in the text">&#8617;</a><a class="footnote-backref" href="#fnref2:albert2026geneabac" title="Jump back to footnote 1 in the text">&#8617;</a></p>
+</li>
+<li id="fn:cotrini2018mining">
+<p>Carlos Cotrini, Thilo Weghorn, and David Basin. Mining abac rules from sparse logs. In <em>2018 IEEE European Symposium on Security and Privacy (EuroS&amp;P)</em>, 31–46. IEEE, 2018.&#160;<a class="footnote-backref" href="#fnref:cotrini2018mining" title="Jump back to footnote 2 in the text">&#8617;</a></p>
+</li>
+</ol>
+</div>
 
 
 

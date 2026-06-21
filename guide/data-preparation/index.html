@@ -14,7 +14,7 @@
         <link rel="prev" href="../../interpretability/">
       
       
-        <link rel="next" href="../training/">
+        <link rel="next" href="../binarization/">
       
       
         
@@ -532,6 +532,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../binarization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Binarization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1342,13 +1370,17 @@
 
 <h1 id="data-preparation">Data Preparation</h1>
 <p>Boolean GP operates on boolean data.
-The <code>StandardBinarizer</code> converts numeric, categorical, and boolean columns into a purely boolean DataFrame.
+The <a href="../../api/preprocessing/#hgp_lib.preprocessing.binarizer.StandardBinarizer"><code>StandardBinarizer</code></a> converts numeric, categorical, and boolean columns into a purely boolean DataFrame.
 Boolean columns are kept as is, categorical columns are one-hot encoded, and numeric columns are split into bins.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
 <p>Binarization is label-aware.
 Numeric columns use class-aware bins computed from the training labels, which produces splits that separate the classes.
-To prevent data leakage, the binarizer is fit only on the training data, then applied to the validation and test data.</p>
+To prevent data leakage, the binarizer is fit only on the training data, then applied to the validation and test data.
+See <a href="../binarization/">Binarization</a> for how the binarizer works and its parameters.</p>
+</div>
 <h2 id="manual-binarization">Manual binarization</h2>
-<p>For manual training with <code>GPTrainer</code> or <code>BooleanGP</code>, binarize the data yourself.
+<p>For manual training with <a href="../../api/trainers/#hgp_lib.trainers.gp_trainer.GPTrainer"><code>GPTrainer</code></a> or <a href="../../api/algorithms/#hgp_lib.algorithms.boolean_gp.BooleanGP"><code>BooleanGP</code></a>, binarize the data yourself.
 Fit the binarizer on the training split and transform the rest.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">StandardBinarizer</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">train_test_split</span>
@@ -1372,7 +1404,7 @@ Fit the binarizer on the training split and transform the rest.</p>
 <p>Depending on usage, data preparation may vary.
 For k-fold cross-validation, a fresh binarizer must be fit on each training fold.</p>
 <h2 id="automatic-binarization">Automatic binarization</h2>
-<p>If you use <code>GPBenchmarker</code>, you do not need to binarize manually.
+<p>If you use <a href="../../api/benchmarkers/#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker"><code>GPBenchmarker</code></a>, you do not need to binarize manually.
 The benchmarker fits a fresh binarizer on each training fold and applies it to the matching validation fold.
 The best fold's binarizer is then used on the held-out test set.
 This keeps binarization free of leakage across folds and splits.

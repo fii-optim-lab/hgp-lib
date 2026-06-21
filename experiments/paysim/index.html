@@ -475,6 +475,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guide/binarization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Binarization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guide/training/" class="md-nav__link">
         
   
@@ -813,6 +841,28 @@
     <span class="md-ellipsis">
       
         Hyperparameter tuning
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Results
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
       
     </span>
   </a>
@@ -1342,6 +1392,28 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Results
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1367,7 +1439,7 @@
 The task is to predict whether a transaction is fraudulent.</p>
 <p>This dataset is large.
 It has 6,362,620 transactions, of which only 8,213 are fraudulent and 6,354,407 are not.
-The strong class imbalance makes it a good test for fraud detection, and the size makes runs slower than on the smaller benchmark datasets.</p>
+The strong class imbalance makes it a good test for fraud detection, and the size makes it suitable for large scale boolean rules mining.</p>
 <h2 id="data-preparation">Data preparation</h2>
 <p>Download <code>PaySim.csv</code> from <a href="https://www.kaggle.com/datasets/ealaxi/paysim1">Kaggle</a> and place it in the <code>./data</code> folder.
 Then run the preprocessing script at <a href="https://github.com/fii-optim-lab/hgp-lib/blob/master/scripts/preprocess/paysim_preprocess.py"><code>scripts/preprocess/paysim_preprocess.py</code></a>.</p>
@@ -1395,6 +1467,73 @@ Then run the preprocessing script at <a href="https://github.com/fii-optim-lab/h
 <span class="w">    </span>--n_trials<span class="w"> </span><span class="m">100</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--artifact_dir<span class="w"> </span>./artifacts
 </code></pre></div>
+<h2 id="results">Results</h2>
+<p>The table below reports the F1 score on the validation set for black-box and explainable classifiers on PaySim.<sup id="fnref:albert2025evolving"><a class="footnote-ref" href="#fn:albert2025evolving">1</a></sup></p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Algorithm</th>
+<th style="text-align: right;">F1 score</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>black-box</td>
+<td>k-NN</td>
+<td style="text-align: right;">0.16</td>
+</tr>
+<tr>
+<td>black-box</td>
+<td>SVM</td>
+<td style="text-align: right;">0.47</td>
+</tr>
+<tr>
+<td>black-box</td>
+<td>Random Forest</td>
+<td style="text-align: right;">0.81</td>
+</tr>
+<tr>
+<td>black-box</td>
+<td>Autoencoder + MLP</td>
+<td style="text-align: right;">0.82</td>
+</tr>
+<tr>
+<td>black-box</td>
+<td>XGBoost</td>
+<td style="text-align: right;">0.84</td>
+</tr>
+<tr>
+<td>explainable</td>
+<td>DSC</td>
+<td style="text-align: right;">0.78</td>
+</tr>
+<tr>
+<td>explainable</td>
+<td>DSC + Fuzzy logic</td>
+<td style="text-align: right;">0.19</td>
+</tr>
+<tr>
+<td>explainable</td>
+<td>hgp-lib (depth=0)<sup id="fnref2:albert2025evolving"><a class="footnote-ref" href="#fn:albert2025evolving">1</a></sup></td>
+<td style="text-align: right;">0.81</td>
+</tr>
+<tr>
+<td>explainable</td>
+<td>hgp-lib + hypertuning</td>
+<td style="text-align: right;">0.82</td>
+</tr>
+</tbody>
+</table>
+<h2 id="references">References</h2>
+<div class="footnote">
+<hr />
+<ol>
+<li id="fn:albert2025evolving">
+<p>Ramona-Georgiana Albert, George Stoica, and Mihaela Elena Breabăn. Evolving boolean rule-based classifiers for fraud detection via genetic programming. In <em>2025 27th International Symposium on Symbolic and Numeric Algorithms for Scientific Computing (SYNASC)</em>, 524–531. 2025. URL: <a href="https://ieeexplore.ieee.org/abstract/document/11479552">https://ieeexplore.ieee.org/abstract/document/11479552</a>, <a href="https://doi.org/10.1109/SYNASC69064.2025.00076">doi:10.1109/SYNASC69064.2025.00076</a>.&#160;<a class="footnote-backref" href="#fnref:albert2025evolving" title="Jump back to footnote 1 in the text">&#8617;</a><a class="footnote-backref" href="#fnref2:albert2025evolving" title="Jump back to footnote 1 in the text">&#8617;</a></p>
+</li>
+</ol>
+</div>
 
 
 
