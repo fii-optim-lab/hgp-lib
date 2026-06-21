@@ -64,10 +64,8 @@ The table below reports the F1 score on the validation set for black-box and exp
 | black-box | XGBoost | 0.84 |
 | explainable | DSC | 0.78 |
 | explainable | DSC + Fuzzy logic | 0.19 |
-| explainable | hgp-lib (depth=0) | 0.81 |
-| explainable | hgp-lib + hypertuning |  |
-
-TODO: Add the hypertuning results.
+| explainable | hgp-lib (depth=0)[@albert2025evolving] | 0.81 |
+| explainable | hgp-lib + hypertuning | 0.82 |
 
 
 ## References

@@ -3,9 +3,19 @@
 The [Amazon Employee Access Challenge](https://www.kaggle.com/c/amazon-employee-access-challenge) (AEAC) is a binary classification dataset.
 The task is to predict whether an employee should be granted access to a given resource based on their role attributes.
 
-TODO: Describe policy generation. Unlike standard classifiers, HGP produces
-readable boolean rules that can be turned into access-control policies for a
-resource. Explain this use case and reference the paper once it is available.
+## Policy generation
+
+AEAC is more than a classification benchmark.
+Each resource has a set of access logs, and the goal is to mine an access-control policy that decides who may use it.
+HGP fits this task because its model is a boolean rule, which reads directly as an attribute-based access control (ABAC) policy.[@albert2026geneabac]
+A rule such as `Or(ROLE_TITLE=119409, And(MGR_ID IN (4850, 17640), ~ROLE_TITLE=126085))` is a policy a security administrator can read, check, and edit.
+
+This is where HGP differs from black-box classifiers.
+A model like XGBoost can score access requests, but it cannot be turned into a policy that a human can review or that a system can enforce as explicit rules.
+Decision trees are interpretable, but they express policies in disjunctive normal form, which tends to produce long rules.
+HGP optimizes the rule against the access logs under a complexity constraint, so it yields compact policies that balance under-permissioning and over-permissioning while staying readable.[@albert2026geneabac]
+
+The per-resource UCV datasets built below are the standard way to evaluate such policies, since they test whether a mined policy generalizes to access requests that were never seen in the logs.
 
 ## Data preparation
 
