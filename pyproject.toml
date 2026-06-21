@@ -4,7 +4,8 @@ version = "0.0.1"
 requires-python = ">=3.10"
 description = "hgp-lib: Hierarchical Genetic Programming Library for Generating Boolean Rules from Tabular Data"
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 authors = [
     { name = "Ramona-Georgiana Albert", email = "george.stoica@info.uaic.ro"},
     { name = "George Stoica", email = "ramona-georgiana.albert@info.uaic.ro"},
@@ -14,15 +15,32 @@ maintainers = [
     { name = "George Stoica", email = "ramona-georgiana.albert@info.uaic.ro"},
 ]
 classifiers = [
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: Apache 2.0",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Software Development :: Libraries :: Python Modules",
     "Operating System :: OS Independent",
+    "Natural Language :: English",
 ]
 keywords = [
-# TODO
+    "explainable ai",
+    "xai",
+    "interpretable machine learning",
+    "rule-based classification",
+    "boolean rules",
+    "genetic programming",
+    "hierarchical genetic programming",
+    "evolutionary computation",
+    "glass-box model",
+    "binary classification",
 ]
 dependencies = [
     "numpy",
@@ -32,7 +50,6 @@ dependencies = [
     "optuna",
     "optuna-dashboard",
     "matplotlib",
-    "scikit-learn",
 ]
 [tool.setuptools.packages.find]
 include = ["hgp_lib*"]
@@ -47,6 +64,7 @@ dev = [
     "mkdocs",
     "mkdocstrings-python",
     "mkdocs-material",
+    "mkdocs-bibtex",
     "pytest",
     "flake8",
     "ruff",

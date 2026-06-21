@@ -26,18 +26,18 @@ def process_paysim(path):
 
 def main():
     parser = argparse.ArgumentParser("PaySim preprocessor")
-    parser.add_argument("-data", type=str, default="data", help="Datasets folder")
+    parser.add_argument("--data_path", type=str, default="data", help="Datasets folder")
     args = parser.parse_args()
-    if not os.path.isdir(args.data):
-        raise FileNotFoundError(f"'{args.data}' is not a directory")
-    paysim_csv = os.path.join(args.data, "PaySim.csv")
+    if not os.path.isdir(args.data_path):
+        raise FileNotFoundError(f"'{args.data_path}' is not a directory")
+    paysim_csv = os.path.join(args.data_path, "PaySim.csv")
     if not os.path.isfile(paysim_csv):
         raise FileNotFoundError(f"'{paysim_csv}' not found")
 
     df = process_paysim(paysim_csv)
     print("Writing PaySim.hdf")
     df.to_hdf(
-        os.path.join(args.data, "PaySim.hdf"), key="data", mode="w", format="table"
+        os.path.join(args.data_path, "PaySim.hdf"), key="data", mode="w", format="table"
     )
     print("Done")
 

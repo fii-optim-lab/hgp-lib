@@ -24,7 +24,7 @@ def save_pmlb_data(name: str, data_path: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("name", type=str)
-    parser.add_argument("-data", type=str, default="data", help="Datasets folder")
+    parser.add_argument("--data_path", type=str, default="data", help="Datasets folder")
     args = parser.parse_args()
 
-    save_pmlb_data(args.name, args.data)
+    save_pmlb_data(args.name, args.data_path)
