@@ -9,7 +9,7 @@ pip install -e .
 ## A first run
 
 `hgp_lib` evolves boolean rules that classify tabular data. The fastest way to
-get a result is `GPBenchmarker`, which handles binarization, splitting, and
+get a result is [`GPBenchmarker`](api/benchmarkers.md#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker), which handles binarization, splitting, and
 aggregation for you. Pass a raw `pandas.DataFrame` and a scoring function.
 
 ```python
@@ -40,7 +40,7 @@ print(result.best_rule.to_str(result.best_run.feature_names))
 - [Theory](theory.md): how the GP search works and why it beats greedy trees
 - [Interpretability](interpretability.md): readable rules and explainable models
 - [Data Preparation](guide/data-preparation.md): binarization and avoiding leakage
-- [Training](guide/training.md): `GPTrainer` and run configuration
+- [Training](guide/training.md): [`GPTrainer`](api/trainers.md#hgp_lib.trainers.gp_trainer.GPTrainer) and run configuration
 - [Benchmarking](guide/benchmarking.md): aggregated runs and scorer optimization
 - [Configuring HGP](guide/configuring.md): factories and hierarchical GP settings
 - [Extending HGP](guide/extending.md): custom strategies, mutations, and low-level use

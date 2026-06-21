@@ -15,7 +15,7 @@ USER_COLUMNS = [
     "ROLE_CODE",
 ]
 
-# Resources for which a per-resource "unseen class value" (UCV) dataset is built.
+# Resources for which a per-resource "universal-cross-validation" (UCV) dataset is built.
 RESOURCE_LIST = [75078, 25993, 79092, 4675]
 
 
@@ -29,7 +29,7 @@ def process_aeac(train_csv: str) -> pd.DataFrame:
 
 def build_ucv_dataset(df: pd.DataFrame, resource: int) -> pd.DataFrame:
     """
-    Build a per-resource dataset augmented with "unseen class value" (UCV) rows.
+    Build a per-resource dataset augmented with "universal cross-validation" (UCV) rows.
 
     UCV rows are users that never appear for the given resource. They are added
     as negative (target == 0) examples so the model also learns from users that

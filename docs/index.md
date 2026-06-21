@@ -75,7 +75,7 @@ See [Interpretability](interpretability.md) for why this matters.
 - [Theory](theory.md): how the GP search works and why it beats greedy trees
 - [Interpretability](interpretability.md): readable rules and explainable models
 - [Data Preparation](guide/data-preparation.md): binarization and avoiding leakage
-- [Training](guide/training.md): `GPTrainer` and run configuration
+- [Training](guide/training.md): [`GPTrainer`](api/trainers.md#hgp_lib.trainers.gp_trainer.GPTrainer) and run configuration
 - [Benchmarking](guide/benchmarking.md): aggregated runs and scorer optimization
 - [Configuring HGP](guide/configuring.md): factories and hierarchical GP settings
 - [Extending HGP](guide/extending.md): custom strategies, mutations, and low-level use

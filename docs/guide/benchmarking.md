@@ -3,16 +3,17 @@
 The benchmarker runs multiple full runs (default 30), each with a stratified train/test split and k-fold CV on the training set.
 Results are aggregated across runs.
 Runs execute in parallel by default.
-The benchmarker accepts a `BenchmarkerConfig` containing a `TrainerConfig` template.
+The benchmarker accepts a [`BenchmarkerConfig`](../api/configs.md#hgp_lib.configs.benchmarker_config.BenchmarkerConfig) containing a [`TrainerConfig`](../api/configs.md#hgp_lib.configs.trainer_config.TrainerConfig) template.
 
 ## Automatic binarization
 
-Pass raw (non-binarized) data as a `pandas.DataFrame` in `BenchmarkerConfig.data`.
-For each fold, a fresh copy of the binarizer is fit on the training fold (with labels for supervised binning) and used to transform the validation fold.
-The best fold's binarizer is then used to transform the held-out test set.
-This prevents data leakage across folds and between train/test splits.
+!!! note
+    Pass raw (non-binarized) data as a `pandas.DataFrame` in `BenchmarkerConfig.data`.
+    For each fold, a fresh copy of the binarizer is fit on the training fold (with labels for supervised binning) and used to transform the validation fold.
+    The best fold's binarizer is then used to transform the held-out test set.
+    This prevents data leakage across folds and between train/test splits.
 
-By default a `StandardBinarizer()` is used.
+By default a [`StandardBinarizer`](../api/preprocessing.md#hgp_lib.preprocessing.binarizer.StandardBinarizer) is used.
 You can pass a custom binarizer (unfitted) via the `binarizer` parameter:
 
 ```python
@@ -27,9 +28,11 @@ config = BenchmarkerConfig(
 )
 ```
 
+See [Binarization](binarization.md) for how the binarizer works and its parameters.
+
 ## Feature names
 
-The `RunResult` includes `feature_names`, a `Dict[int, str]` mapping from literal indices to the binarized column names.
+The [`RunResult`](../api/metrics.md#hgp_lib.metrics.results.RunResult) includes `feature_names`, a `Dict[int, str]` mapping from literal indices to the binarized column names.
 Use this to display rules in human-readable form:
 
 ```python
@@ -37,13 +40,27 @@ best_run = result.best_run
 print(result.best_rule.to_str(best_run.feature_names))
 ```
 
+### What "best run" means
+
+In a k-fold setup there is no single obvious best run, so the selection is defined in two steps.
+
+Within a run, the best fold is the fold with the highest validation score.
+The best rule of that run is the best rule found in that fold.
+
+Across runs, the best run is the one with the highest mean validation score across its folds.
+The best rule of the whole experiment is the best rule from the best fold of that best run.
+
+!!! note
+    The best run is chosen by validation score, not by test score.
+    The test score is held out and only measures the selected rule, so it does not drive the selection.
+
 ## Scorer optimization
 
 The benchmarker can optimize scorers per fold by deduplicating data and using sample weights.
 This speeds up scoring for datasets with many duplicate rows.
-To use it, pass a base scorer (not pre-optimized) that accepts a `sample_weight` parameter, and set `optimize_scorer=True` in `BooleanGPConfig` (the default).
+To use it, pass a base scorer (not pre-optimized) that accepts a `sample_weight` parameter, and set `optimize_scorer=True` in [`BooleanGPConfig`](../api/configs.md#hgp_lib.configs.boolean_gp_config.BooleanGPConfig) (the default).
 
-Do not pass pre-optimized scorers (e.g. from `optimize_scorers_for_data`) to the benchmarker.
+Do not pass pre-optimized scorers (e.g. from [`optimize_scorers_for_data`](../api/utils.md#hgp_lib.utils.metrics.optimize_scorers_for_data)) to the benchmarker.
 Pre-optimized scorers have sample weights bound to the original data, which become invalid after train/test/fold splits.
 Either pass a base scorer with `optimize_scorer=True` (default), or use `optimize_scorer=False` for scorers without `sample_weight` support.
 

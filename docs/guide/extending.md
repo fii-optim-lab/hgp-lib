@@ -6,10 +6,10 @@ For the built-in factories and hierarchical settings, see [Configuring HGP](conf
 
 ## Custom population strategies
 
-The `PopulationGenerator` creates the initial set of rules.
+The [`PopulationGenerator`](../api/populations.md#hgp_lib.populations.generator.PopulationGenerator) creates the initial set of rules.
 It uses a strategy pattern to allow different initialization methods.
 
-When using `BooleanGPConfig`, pass a `PopulationGeneratorFactory` rather than a `PopulationGenerator` directly.
+When using [`BooleanGPConfig`](../api/configs.md#hgp_lib.configs.boolean_gp_config.BooleanGPConfig), pass a [`PopulationGeneratorFactory`](../api/populations.md#hgp_lib.populations.populations_factory.PopulationGeneratorFactory) rather than a [`PopulationGenerator`](../api/populations.md#hgp_lib.populations.generator.PopulationGenerator) directly.
 Override `create_strategies` to use custom strategies.
 
 ```python
@@ -35,7 +35,7 @@ class MyFactory(PopulationGeneratorFactory):
 factory = MyFactory(population_size=100)
 ```
 
-You can also create a `PopulationGenerator` directly for standalone use, outside of `BooleanGPConfig`.
+You can also create a [`PopulationGenerator`](../api/populations.md#hgp_lib.populations.generator.PopulationGenerator) directly for standalone use, outside of [`BooleanGPConfig`](../api/configs.md#hgp_lib.configs.boolean_gp_config.BooleanGPConfig).
 
 ```python
 from hgp_lib.populations import PopulationGenerator, RandomStrategy
@@ -48,9 +48,52 @@ generator = PopulationGenerator(
 initial_population = generator.generate()
 ```
 
+## Custom mutations
+
+A mutation subclasses [`Mutation`](../api/mutations.md#hgp_lib.mutations.base_mutation.Mutation) and edits a rule node in place inside `apply`.
+The base class needs two flags that say whether the mutation can apply to literals, to operators, or to both.
+
+The example below adds a `RandomNegate` mutation that flips a node's negation only some of the time, unlike the built-in [`NegateMutation`](../api/mutations.md#hgp_lib.mutations.literal_mutations.NegateMutation) that always flips it.
+It works on both literals and operators, so both flags are `True`.
+
+```python
+import random
+from hgp_lib.mutations import Mutation
+from hgp_lib.rules import Rule
+
+class RandomNegate(Mutation):
+    def __init__(self, negate_p: float = 0.5):
+        super().__init__(is_literal_mutation=True, is_operator_mutation=True)
+        self.negate_p = negate_p
+
+    def apply(self, rule: Rule):
+        if random.random() < self.negate_p:
+            rule.negated = not rule.negated
+```
+
+To use it, subclass [`MutationExecutorFactory`](../api/mutations.md#hgp_lib.mutations.mutation_factory.MutationExecutorFactory) and add the mutation in the relevant hook.
+`create_literal_mutations` returns the mutations applied to literal nodes, and `create_operator_mutations` returns those applied to operator nodes.
+Since `RandomNegate` handles both, add it to each.
+
+```python
+from hgp_lib.mutations import MutationExecutorFactory
+
+class MyMutationFactory(MutationExecutorFactory):
+    def create_literal_mutations(self, num_literals):
+        return super().create_literal_mutations(num_literals) + (RandomNegate(),)
+
+    def create_operator_mutations(self, num_literals):
+        return super().create_operator_mutations(num_literals) + (RandomNegate(),)
+
+mutation_factory = MyMutationFactory(mutation_p=0.1)
+```
+
+Pass `mutation_factory` to [`BooleanGPConfig`](../api/configs.md#hgp_lib.configs.boolean_gp_config.BooleanGPConfig) as shown in [Configuring HGP](configuring.md).
+The factory builds the executor at runtime, once the number of features is known.
+
 ## Low-level use of BooleanGP
 
-For full control over the training loop, use `BooleanGP` directly.
+For full control over the training loop, use [`BooleanGP`](../api/algorithms.md#hgp_lib.algorithms.boolean_gp.BooleanGP) directly.
 Training data is passed in the config, and `num_features` is derived from the data shape.
 The number of features is then passed to the configured factories for runtime construction.
 

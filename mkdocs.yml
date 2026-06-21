@@ -13,11 +13,14 @@ theme:
 
 markdown_extensions:
   - admonition
+  - footnotes
   - pymdownx.details
   - pymdownx.superfences
 
 plugins:
   - search
+  - bibtex:
+      bib_file: docs/references.bib
   - mkdocstrings:
       handlers:
         python:
@@ -37,6 +40,7 @@ nav:
     - Interpretability: interpretability.md
   - User Guide:
     - Data Preparation: guide/data-preparation.md
+    - Binarization: guide/binarization.md
     - Training: guide/training.md
     - Benchmarking: guide/benchmarking.md
     - Configuring HGP: guide/configuring.md

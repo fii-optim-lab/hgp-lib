@@ -64,6 +64,7 @@ dev = [
     "mkdocs",
     "mkdocstrings-python",
     "mkdocs-material",
+    "mkdocs-bibtex",
     "pytest",
     "flake8",
     "ruff",

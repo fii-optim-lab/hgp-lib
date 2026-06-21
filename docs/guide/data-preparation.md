@@ -1,16 +1,18 @@
 # Data Preparation
 
 Boolean GP operates on boolean data.
-The `StandardBinarizer` converts numeric, categorical, and boolean columns into a purely boolean DataFrame.
+The [`StandardBinarizer`](../api/preprocessing.md#hgp_lib.preprocessing.binarizer.StandardBinarizer) converts numeric, categorical, and boolean columns into a purely boolean DataFrame.
 Boolean columns are kept as is, categorical columns are one-hot encoded, and numeric columns are split into bins.
 
-Binarization is label-aware.
-Numeric columns use class-aware bins computed from the training labels, which produces splits that separate the classes.
-To prevent data leakage, the binarizer is fit only on the training data, then applied to the validation and test data.
+!!! note
+    Binarization is label-aware.
+    Numeric columns use class-aware bins computed from the training labels, which produces splits that separate the classes.
+    To prevent data leakage, the binarizer is fit only on the training data, then applied to the validation and test data.
+    See [Binarization](binarization.md) for how the binarizer works and its parameters.
 
 ## Manual binarization
 
-For manual training with `GPTrainer` or `BooleanGP`, binarize the data yourself.
+For manual training with [`GPTrainer`](../api/trainers.md#hgp_lib.trainers.gp_trainer.GPTrainer) or [`BooleanGP`](../api/algorithms.md#hgp_lib.algorithms.boolean_gp.BooleanGP), binarize the data yourself.
 Fit the binarizer on the training split and transform the rest.
 
 ```python
@@ -39,7 +41,7 @@ For k-fold cross-validation, a fresh binarizer must be fit on each training fold
 
 ## Automatic binarization
 
-If you use `GPBenchmarker`, you do not need to binarize manually.
+If you use [`GPBenchmarker`](../api/benchmarkers.md#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker), you do not need to binarize manually.
 The benchmarker fits a fresh binarizer on each training fold and applies it to the matching validation fold.
 The best fold's binarizer is then used on the held-out test set.
 This keeps binarization free of leakage across folds and splits.

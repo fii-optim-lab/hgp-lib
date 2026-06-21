@@ -25,7 +25,7 @@ The preprocessing script is located at [`scripts/preprocess/aeac_preprocess.py`]
 - Renames the `ACTION` column to `target`, which is the label expected by the library.
 - Casts every column to the pandas `category` dtype.
 - Writes the full dataset to `data/AEAC.hdf`.
-- Builds a per-resource "unseen class value" (UCV) dataset for a fixed list of resources (`75078`, `25993`, `79092`, `4675`).
+- Builds a per-resource "universal cross-validation" (UCV) dataset, introduced by Cotrini et al.[@cotrini2018mining], for a fixed list of resources (`75078`, `25993`, `79092`, `4675`).
 
 Each UCV dataset contains the rows for that resource plus the users that never appear for it, added as negative (`target == 0`) examples.
 These are written to `data/AEAC_<resource>_ucv.hdf`.
@@ -61,3 +61,7 @@ python scripts/run_benchmark.py \
 ```
 
 See `python scripts/run_benchmark.py --help` for the full list of options.
+
+## References
+
+\bibliography

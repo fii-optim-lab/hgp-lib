@@ -5,7 +5,7 @@ The task is to predict whether a transaction is fraudulent.
 
 This dataset is large.
 It has 6,362,620 transactions, of which only 8,213 are fraudulent and 6,354,407 are not.
-The strong class imbalance makes it a good test for fraud detection, and the size makes runs slower than on the smaller benchmark datasets.
+The strong class imbalance makes it a good test for fraud detection, and the size makes it suitable for large scale boolean rules mining.
 
 ## Data preparation
 
@@ -50,3 +50,26 @@ python scripts/optuna_hypertuning.py \
     --n_trials 100 \
     --artifact_dir ./artifacts
 ```
+
+## Results
+
+The table below reports the F1 score on the validation set for black-box and explainable classifiers on PaySim.[@albert2025evolving]
+
+| Type | Algorithm | F1 score |
+|------|-----------|---------:|
+| black-box | k-NN | 0.16 |
+| black-box | SVM | 0.47 |
+| black-box | Random Forest | 0.81 |
+| black-box | Autoencoder + MLP | 0.82 |
+| black-box | XGBoost | 0.84 |
+| explainable | DSC | 0.78 |
+| explainable | DSC + Fuzzy logic | 0.19 |
+| explainable | hgp-lib (depth=0) | 0.81 |
+| explainable | hgp-lib + hypertuning |  |
+
+TODO: Add the hypertuning results.
+
+
+## References
+
+\bibliography
