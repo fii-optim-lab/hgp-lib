@@ -1,5 +1,9 @@
 # Mutations
 
+## Base
+
+::: hgp_lib.mutations.base_mutation.Mutation
+
 ## Executor
 
 ::: hgp_lib.mutations.mutation_executor.MutationExecutor
@@ -25,3 +29,7 @@
 ::: hgp_lib.mutations.operator_mutations.ReplaceOperator
 
 ::: hgp_lib.mutations.operator_mutations.AddLiteral
+
+## Errors
+
+::: hgp_lib.mutations.utils.MutationError

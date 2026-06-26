@@ -1,64 +1,44 @@
 # Hierarchical Genetic Programming Library
 
-A Python library for evolving interpretable boolean rule trees via genetic
-programming, with support for hierarchical populations, automatic binarization,
-and parallel benchmarking.
+A Python library for explainable rule-based classification.
+It evolves human-readable boolean rule trees via hierarchical genetic programming, with automatic binarization and parallel benchmarking.
 
-## Documentation
+Full documentation: <https://fii-optim-lab.github.io/hgp-lib/>
 
-https://fii-optim-lab.github.io/hgp-lib/
+## What it does
 
-## Usage
+`hgp_lib` evolves boolean rules that classify tabular data.
+A rule is a tree of logical operators (`And`, `Or`) over literals, for example `And(age < 50, Or(income >= 30k, employed))`.
+Rules are readable, so a trained classifier can be inspected and explained.
 
-### Data preparation
+The method is genetic programming.
+A population of candidate rules is scored against the data, the best rules are selected, and crossover and mutation produce the next generation.
+Over many epochs the population converges toward rules with high fitness.
+Hierarchical GP extends this with child populations that evolve on sampled subsets of features, then combine into larger rules.
 
-Data must be binarized before using a boolean GP.
-Binarization keeps boolean columns and transforms categorical and numeric features into bins given the configured setup.
+Boolean GP operates on boolean data.
+Numeric and categorical columns are binarized first, so a numeric feature becomes a set of boolean bins.
+See [Data Preparation](https://fii-optim-lab.github.io/hgp-lib/guide/data-preparation/) for details.
 
-Label-aware binarization is usually employed to create class-aware bins for numerical columns.
-The binarizer must be fit only on the training data to prevent data leakage.
+The model is a single boolean rule, so it is readable on its own and needs no separate explanation.
+See [Theory](https://fii-optim-lab.github.io/hgp-lib/theory/) for how the search works and [Interpretability](https://fii-optim-lab.github.io/hgp-lib/interpretability/) for why this matters.
 
-Depending on usage, data preparation may vary (i.e. when doing k-fold cross-validation).
+## Installation
 
-> **Note:** If you are using the **GPBenchmarker**, you do **not** need to binarize manually.
-> The benchmarker handles per-fold binarization internally to prevent data leakage.
-> See [Benchmarking Boolean GP](#benchmarking-boolean-gp) for details.
-
-For manual training (GPTrainer / BooleanGP), binarize the data yourself:
-
-```python
-from hgp_lib.preprocessing import StandardBinarizer
-from sklearn.model_selection import train_test_split
-
-data, labels = ...  # Load data and labels
-
-train_data, test_data, train_labels, test_labels = train_test_split(
-    data, labels, test_size=0.2, random_state=42, stratify=labels,
-)
-train_data, val_data, train_labels, val_labels = train_test_split(
-    train_data, train_labels, test_size=0.2, random_state=42, stratify=train_labels,
-)
-
-binarizer = StandardBinarizer(
-    num_bins=5,  # Optional, num_bins is applied only to numerical features
-)
-train_data = binarizer.fit_transform(train_data, train_labels)
-val_data = binarizer.transform(val_data)
-test_data = binarizer.transform(test_data)
+```bash
+pip install -e .
 ```
 
-**Config-based API**: The library uses dataclass configs (`BooleanGPConfig`, `TrainerConfig`, `BenchmarkerConfig`) for all main components. When you pass training data in a config, **the number of features is derived from the data** (`train_data.shape[1]`) and passed to the configured `PopulationGeneratorFactory` and `MutationExecutorFactory` at runtime, so you do not need to pass `num_literals` when using the default factories.
+## Quickstart
 
-### Simple training
-
-The snippet below will run a training with default hyperparameters. Use `BooleanGPConfig` and `TrainerConfig` to configure the run.
+Train a classifier with `GPTrainer`.
+Pass training data through a `BooleanGPConfig`, wrap it in a `TrainerConfig`, and call `fit`.
 
 ```python
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
 from hgp_lib.trainers import GPTrainer
 
-score_fn = ...  # My scoring function
-num_epochs = 1000
+score_fn = ...  # scoring function: (predictions, labels) -> float
 
 gp_config = BooleanGPConfig(
     train_data=train_data.to_numpy(dtype=bool),
@@ -67,7 +47,7 @@ gp_config = BooleanGPConfig(
 )
 config = TrainerConfig(
     gp_config=gp_config,
-    num_epochs=num_epochs,
+    num_epochs=1000,
     val_data=val_data.to_numpy(dtype=bool),
     val_labels=val_labels,
 )
@@ -75,189 +55,16 @@ trainer = GPTrainer(config)
 result = trainer.fit()  # Returns PopulationHistory
 ```
 
-### Hyperparameter configuration
+Data passed to `GPTrainer` must be binarized first.
+The [Data Preparation](https://fii-optim-lab.github.io/hgp-lib/guide/data-preparation/) guide shows how to use `StandardBinarizer` without leaking data between splits.
 
-The `PopulationGeneratorFactory` and `MutationExecutorFactory` hold config-time parameters and build the actual `PopulationGenerator` / `MutationExecutor` at runtime (when `num_features` is known from the data). Subclass either factory to use custom strategies or mutations.
+## Benchmarking
 
-```python
-from hgp_lib.crossover import CrossoverExecutorFactory
-from hgp_lib.mutations import MutationExecutorFactory
-from hgp_lib.populations import PopulationGeneratorFactory, BestLiteralStrategy
-from hgp_lib.selections import TournamentSelection, RouletteSelection
-from hgp_lib.rules import Rule
-from hgp_lib.utils.validation import ComplexityCheck
+`GPBenchmarker` runs multiple independent experiments and aggregates the results.
+Each run takes a stratified train/test split, performs k-fold cross-validation on the training set, and evaluates the best rule on the held-out test set.
+Runs execute in parallel by default.
 
-population_size = 100
-mutation_p = 0.1
-crossover_p = 0.7
-score_fn = ...  # My scoring function
-num_epochs = 1000
-
-check_valid = ComplexityCheck(100)
-
-# Population factory (default uses RandomStrategy)
-population_factory = PopulationGeneratorFactory(population_size=population_size)
-
-# Subclass to use custom strategies (e.g. BestLiteralStrategy)
-class MyPopulationFactory(PopulationGeneratorFactory):
-    def create_strategies(self, num_literals, score_fn, train_data, train_labels):
-        return [BestLiteralStrategy(
-            num_literals=num_literals,
-            score_fn=score_fn,
-            train_data=train_data,
-            train_labels=train_labels,
-            sample_size=0.1,
-            feature_size=0.5,
-        )]
-
-# Mutation factory (default uses standard literal and operator mutations)
-mutation_factory = MutationExecutorFactory(mutation_p=mutation_p)
-
-# Crossover factory
-crossover_factory = CrossoverExecutorFactory(
-    crossover_p=crossover_p,
-    crossover_strategy="random",  # or "best"
-)
-
-selection = TournamentSelection(tournament_size=10, selection_p=0.4)
-```
-
-### Population Generation
-
-The `PopulationGenerator` creates the initial set of rules. It uses a strategy pattern to allow for different initialization methods.
-
-When using `BooleanGPConfig`, pass a `PopulationGeneratorFactory` instead of a `PopulationGenerator` directly. The factory defers construction until the number of features is known from the data. Override `create_strategies` to use custom strategies:
-
-```python
-from hgp_lib.populations import (
-    PopulationGeneratorFactory, PopulationGenerator,
-    RandomStrategy, BestLiteralStrategy,
-)
-
-# Default factory: uses RandomStrategy, constructs the generator at runtime
-factory = PopulationGeneratorFactory(population_size=100)
-
-# Custom factory with BestLiteralStrategy
-class MyFactory(PopulationGeneratorFactory):
-    def create_strategies(self, num_literals, score_fn, train_data, train_labels):
-        random = RandomStrategy(num_literals=num_literals)
-        best = BestLiteralStrategy(
-            num_literals=num_literals,
-            score_fn=score_fn,
-            train_data=train_data,
-            train_labels=train_labels,
-            sample_size=100,
-            feature_size=None,
-        )
-        return [random, best]
-
-factory = MyFactory(population_size=100)
-```
-
-You can also create a `PopulationGenerator` directly for standalone use (outside of `BooleanGPConfig`):
-
-```python
-random_strategy = RandomStrategy(num_literals=10)
-generator = PopulationGenerator(
-    strategies=[random_strategy],
-    population_size=100,
-)
-initial_population = generator.generate()
-```
-
-### Low level usage with fine control
-
-Use `BooleanGPConfig` to configure the algorithm. Training data is passed in the config; **the number of features (`num_features`) is derived from the data shape** and passed to the configured `population_factory` and `mutation_factory` for runtime construction.
-
-```python
-from hgp_lib.configs import BooleanGPConfig
-from hgp_lib.algorithms import BooleanGP
-
-gp_config = BooleanGPConfig(
-    train_data=train_data.to_numpy(dtype=bool),
-    train_labels=train_labels,
-    score_fn=score_fn,
-    population_factory=population_factory,
-    mutation_factory=mutation_factory,
-    crossover_factory=crossover_factory,
-    selection=selection,
-    check_valid=check_valid,
-    regeneration=True,
-    regeneration_patience=100,
-)
-gp_algo = BooleanGP(gp_config)
-
-for i in range(num_epochs):
-    gen_metrics = gp_algo.step()
-    if i % 100 == 0:
-        val_score = gp_algo.evaluate_best(val_data.to_numpy(dtype=bool), val_labels)
-        print(f"Epoch {i} -> val_best: {val_score:.4f}")
-
-test_score = gp_algo.evaluate_best(test_data.to_numpy(dtype=bool), test_labels)
-print(f"Test result: {test_score:.4f}")
-```
-
-### Using a Boolean GP Trainer
-
-Build a `BooleanGPConfig` and wrap it in a `TrainerConfig`. The trainer accepts only `TrainerConfig`.
-
-```python
-from hgp_lib.configs import BooleanGPConfig, TrainerConfig
-from hgp_lib.trainers import GPTrainer
-
-gp_config = BooleanGPConfig(
-    train_data=train_data.to_numpy(dtype=bool),
-    train_labels=train_labels,
-    score_fn=score_fn,
-    population_factory=population_factory,
-    mutation_factory=mutation_factory,
-    crossover_factory=crossover_factory,
-    selection=selection,
-    check_valid=check_valid,
-    regeneration=True,
-    regeneration_patience=100,
-)
-config = TrainerConfig(
-    gp_config=gp_config,
-    num_epochs=num_epochs,
-    val_data=val_data.to_numpy(dtype=bool),
-    val_labels=val_labels,
-    val_every=100,
-)
-trainer = GPTrainer(config)
-result = trainer.fit()  # Returns PopulationHistory
-```
-
-### Benchmarking Boolean GP
-
-The benchmarker runs multiple full runs (default 30), each with a stratified train/test split and k-fold CV on the training set. Results are aggregated across runs. Runs execute in parallel by default. The benchmarker accepts a `BenchmarkerConfig` containing a `TrainerConfig` template.
-
-**Automatic binarization**: Pass raw (non-binarized) data as a `pandas.DataFrame` in `BenchmarkerConfig.data`. The benchmarker binarizes internally: for each fold, a fresh copy of the binarizer is fitted on the training fold (with labels for supervised binning) and used to transform the validation fold. The best fold's binarizer is then used to transform the held-out test set. This prevents data leakage across folds and between train/test splits.
-
-By default a `StandardBinarizer()` is used. You can pass a custom binarizer (unfitted) via the `binarizer` parameter:
-
-```python
-from hgp_lib.preprocessing import StandardBinarizer
-
-binarizer = StandardBinarizer(num_bins=10)  # must be unfitted
-config = BenchmarkerConfig(
-    data=data,
-    labels=labels,
-    trainer_config=trainer_config,
-    binarizer=binarizer,  # None -> default StandardBinarizer(num_bins=5)
-)
-```
-
-**Feature names**: The `RunResult` includes `feature_names`, a `Dict[int, str]` mapping from literal indices to the binarized column names. Use this to display rules in human-readable form:
-
-```python
-best_run = result.best_run
-print(result.best_rule.to_str(best_run.feature_names))
-```
-
-**Scorer Optimization**: The benchmarker can automatically optimize scorers per fold by deduplicating data and using sample weights. This significantly speeds up scoring for datasets with many duplicate rows. To use this feature, pass a base scorer (not pre-optimized) that accepts a `sample_weight` parameter, and set `optimize_scorer=True` in `BooleanGPConfig` (this is the default).
-
-**Full example**:
+The benchmarker binarizes data internally, per fold, so you pass a raw `pandas.DataFrame` and skip manual binarization.
 
 ```python
 import numpy as np
@@ -265,46 +72,22 @@ import pandas as pd
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.benchmarkers import GPBenchmarker
 
-def f1_score(predictions, labels, sample_weight=None):
-    if sample_weight is None:
-        tp = (predictions & labels).sum()
-        pred_sum, label_sum = predictions.sum(), labels.sum()
-    else:
-        tp = np.dot(predictions & labels, sample_weight)
-        pred_sum = np.dot(predictions, sample_weight)
-        label_sum = np.dot(labels, sample_weight)
-    if pred_sum == 0 or label_sum == 0:
-        return 1.0 if pred_sum == label_sum == 0 else 0.0
-    return 2 * tp / (pred_sum + label_sum)
-
-data = pd.DataFrame(...)  # raw features as a DataFrame (bool / categorical / numeric)
+data = pd.DataFrame(...)  # raw features (bool / categorical / numeric)
 labels = np.array(...)    # 1-D target array
 
-# Create nested configs: BooleanGPConfig -> TrainerConfig -> BenchmarkerConfig
-# Note: train_data/train_labels are not needed in gp_config here;
-# the benchmarker will binarize and set them per fold.
-gp_config = BooleanGPConfig(
-    score_fn=f1_score,
-    optimize_scorer=True,  # Default; enables scorer optimization per fold
-)
-trainer_config = TrainerConfig(
-    gp_config=gp_config,
-    num_epochs=1000,
-    val_every=100,
-)
+gp_config = BooleanGPConfig(score_fn=score_fn)
+trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=1000, val_every=100)
 config = BenchmarkerConfig(
     data=data,
     labels=labels,
     trainer_config=trainer_config,
     num_runs=30,
-    test_size=0.2,
     n_folds=5,
+    test_size=0.2,
     n_jobs=-1,
 )
-benchmarker = GPBenchmarker(config)
-result = benchmarker.fit()
+result = GPBenchmarker(config).fit()
 
-# Aggregated metrics
 test_scores = result.test_scores
 print(f"Test score: {np.mean(test_scores):.4f} ± {np.std(test_scores):.4f}")
 
@@ -312,4 +95,37 @@ print(f"Test score: {np.mean(test_scores):.4f} ± {np.std(test_scores):.4f}")
 print(result.best_rule.to_str(result.best_run.feature_names))
 ```
 
-**Important**: Do NOT pass pre-optimized scorers (e.g., from `optimize_scorers_for_data`) when using the benchmarker. Pre-optimized scorers have sample weights bound to the original data, which become invalid after train/test/fold splits. Either pass a base scorer with `optimize_scorer=True` (default), or use `optimize_scorer=False` for scorers without `sample_weight` support.
+See [Benchmarking](https://fii-optim-lab.github.io/hgp-lib/guide/benchmarking/) for scorer optimization, custom binarizers, and the aggregated result fields.
+
+## Customizing the algorithm
+
+The population, mutation, and crossover behavior is configured through factories passed to `BooleanGPConfig`.
+The default factories cover the common case.
+To use custom initialization strategies or mutations, subclass a factory and override its construction hook.
+
+```python
+from hgp_lib.populations import PopulationGeneratorFactory
+
+factory = PopulationGeneratorFactory(population_size=100)
+```
+
+The [Configuring HGP](https://fii-optim-lab.github.io/hgp-lib/guide/configuring/) guide covers the built-in factories and hierarchical GP.
+The [Extending HGP](https://fii-optim-lab.github.io/hgp-lib/guide/extending/) guide covers custom strategies, mutations, and low-level use of `BooleanGP` directly.
+
+## Documentation
+
+- [Getting Started](https://fii-optim-lab.github.io/hgp-lib/getting-started/)
+- [Theory](https://fii-optim-lab.github.io/hgp-lib/theory/)
+- [Interpretability](https://fii-optim-lab.github.io/hgp-lib/interpretability/)
+- [Data Preparation](https://fii-optim-lab.github.io/hgp-lib/guide/data-preparation/)
+- [Training](https://fii-optim-lab.github.io/hgp-lib/guide/training/)
+- [Benchmarking](https://fii-optim-lab.github.io/hgp-lib/guide/benchmarking/)
+- [Configuring HGP](https://fii-optim-lab.github.io/hgp-lib/guide/configuring/)
+- [Extending HGP](https://fii-optim-lab.github.io/hgp-lib/guide/extending/)
+- [Rule Trees](https://fii-optim-lab.github.io/hgp-lib/guide/rule-trees/)
+- [Experiments](https://fii-optim-lab.github.io/hgp-lib/experiments/)
+- [API Reference](https://fii-optim-lab.github.io/hgp-lib/api/)
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).

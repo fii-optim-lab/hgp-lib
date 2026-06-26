@@ -38,13 +38,13 @@ def get_commands_for_datasets(dataset_names, n_runs, n_folds, data_dir):
         cmd = (
             f"{sys.executable} "
             "scripts/optuna_hypertuning.py "
-            f"--data-path {data_dir}/{dataset_name}.hdf "
-            "--n-trials 50 "
-            "--max-n-trials 100 "
-            f"--n-runs {n_runs} "
-            f"--n-folds {n_folds} "
-            f"--study-name pmlb_{dataset_name} "
-            "--artifact-dir ./artifacts"
+            f"--data_path {data_dir}/{dataset_name}.hdf "
+            "--n_trials 50 "
+            "--max_n_trials 100 "
+            f"--n_runs {n_runs} "
+            f"--n_folds {n_folds} "
+            f"--study_name pmlb_{dataset_name} "
+            "--artifact_dir ./artifacts"
         )
         commands.append(cmd)
     return commands
@@ -267,7 +267,7 @@ def _run_sklearn_wrapper(args_tuple):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-n_jobs", type=int, default=4)
+    parser.add_argument("--n_jobs", type=int, default=4)
     parser.add_argument(
         "--model",
         type=str,
@@ -276,16 +276,16 @@ def main():
         help="Model to run: 'gp_tuned' (default), 'gp_default', 'dt' (Decision Tree), or 'boolxai'.",
     )
     parser.add_argument(
-        "--n-runs", type=int, default=5, help="Number of runs for DT benchmark."
+        "--n_runs", type=int, default=5, help="Number of runs for DT benchmark."
     )
     parser.add_argument(
-        "--n-folds", type=int, default=3, help="Number of folds for DT benchmark."
+        "--n_folds", type=int, default=3, help="Number of folds for DT benchmark."
     )
     parser.add_argument(
-        "--data-dir", type=str, default="data", help="Directory for storing datasets."
+        "--data_dir", type=str, default="data", help="Directory for storing datasets."
     )
     parser.add_argument(
-        "--max-leaf-nodes",
+        "--max_leaf_nodes",
         type=int,
         default=None,
         help="Maximum number of leaf nodes for Decision Tree.",
@@ -298,7 +298,7 @@ def main():
         help="Binarizer type to use for boolxai.",
     )
     parser.add_argument(
-        "--num-epochs",
+        "--num_epochs",
         type=int,
         default=1000,
         help="Number of epochs for GP default benchmark.",
