@@ -121,7 +121,7 @@ class StandardBinarizer:
             return np.array([-np.inf, np.inf])
 
         tree = DecisionTreeClassifier(max_leaf_nodes=n_bins)
-        tree.fit(X.reshape(-1, 1), y)
+        tree.fit(X.reshape(-1, 1), y, check_input=False)
 
         thresholds = tree.tree_.threshold[tree.tree_.feature == 0]
         thresholds = np.sort(thresholds[thresholds != -2])

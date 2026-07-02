@@ -106,10 +106,9 @@ class Literal(Rule):
             >>> a is b
             False
         """
-        return Literal(
-            None,
-            self.parent if parent is None else parent,
-            self.value,
-            self.negated,
-            False,
-        )
+        new = object.__new__(Literal)
+        new.subrules = []
+        new.parent = self.parent if parent is None else parent
+        new.value = self.value
+        new.negated = self.negated
+        return new

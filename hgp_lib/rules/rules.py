@@ -190,13 +190,38 @@ class Rule(ABC):
             >>> all([(x.value is None and y.value is None) or (x.value == y.value) for x, y in zip(a.flatten(), b.flatten())])
             True
         """
+        new = object.__new__(type(self))
+        new.subrules = [s.copy(new) for s in self.subrules]
+        new.parent = self.parent if parent is None else parent
+        new.value = self.value
+        new.negated = self.negated
+        return new
 
-        return self.__class__(
-            self.subrules,
-            self.parent if parent is None else parent,
-            self.value,
-            self.negated,
-        )
+    def detach_subtree(self) -> "Rule":
+        """
+        Creates a shallow copy of this rule and its entire subtree, without referencing the parent of the current rule.
+        Can be used for a fast swap between two subtrees without resorting to deep copy.
+
+        Returns:
+            Rule: A new instance of the same rule type, keeping the same subrules as the original rule.
+
+        Examples:
+            >>> from hgp_lib.rules import And, Literal
+            >>> a = And([Literal(value=1), Literal(value=2)])
+            >>> b = a.detach_subtree()
+            >>> a is b
+            False
+            >>> a.subrules[0] is b.subrules[0]
+            True
+            >>> all([(x.value is None and y.value is None) or (x.value == y.value) for x, y in zip(a.flatten(), b.flatten())])
+            True
+        """
+        new = object.__new__(type(self))
+        new.subrules = self.subrules
+        new.parent = None
+        new.value = self.value
+        new.negated = self.negated
+        return new
 
     @abstractmethod
     def evaluate(self, data: np.ndarray) -> np.ndarray:

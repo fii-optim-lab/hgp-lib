@@ -80,7 +80,6 @@ def replace_with_rule(target: Rule, rule: Rule) -> None:
     for s in rule.subrules:
         s.parent = target
     target.subrules = rule.subrules
-    # Should we delete the original subrules from target?
 
     target.negated = rule.negated
 
@@ -106,8 +105,8 @@ def deep_swap(node_a: Rule, node_b: Rule) -> None:
         >>> str(node_b)
         'And(0, 1)'
     """
-    copy_node_a = node_a.copy()
-    copy_node_b = node_b.copy()
+    copy_node_a = node_a.detach_subtree()
+    copy_node_b = node_b.detach_subtree()
     replace_with_rule(node_a, copy_node_b)
     replace_with_rule(node_b, copy_node_a)
 
@@ -182,6 +181,7 @@ def select_crossover_point(rule: Rule, operator_p: float = 0.9) -> Rule:
         >>> isinstance(selected, Literal)
         True
     """
+    # TODO: Perf against a flatten in operators and literals list, and 2 random calls.
     selected_operator = selected_literal = None
     count_operator = count_literal = 0
 

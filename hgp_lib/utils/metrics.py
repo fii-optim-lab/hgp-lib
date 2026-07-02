@@ -161,9 +161,20 @@ def transform_duplicates_to_sample_weight(data: ndarray, labels: ndarray):
         >>> bool(sw.sum() == len(data))
         True
     """
-    Xy = np.hstack((data, labels[:, None]))
-    Xy_unique, sample_weight = np.unique(Xy, axis=0, return_counts=True)
-    return Xy_unique[:, :-1], Xy_unique[:, -1], sample_weight
+    Xy_packed = np.ascontiguousarray(
+        np.packbits(np.hstack((data, labels[:, None])), axis=1)
+    )
+
+    row_dtype = np.dtype((np.void, Xy_packed.shape[1]))
+    row_view = Xy_packed.view(row_dtype).ravel()
+
+    _, unique_idx, sample_weight = np.unique(
+        row_view,
+        return_index=True,
+        return_counts=True,
+    )
+
+    return data[unique_idx], labels[unique_idx], sample_weight
 
 
 class SampleWeightScorer:
