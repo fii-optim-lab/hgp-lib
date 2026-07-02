@@ -6,6 +6,7 @@ import numpy as np
 from .base_mutation import Mutation
 from .utils import MutationError
 from ..rules import Rule, Or, And, Literal
+from ..rules.utils import _create_unsafe_rule
 
 
 class DeleteMutation(Mutation):
@@ -306,8 +307,12 @@ class PromoteLiteral(Mutation):
         if new_value == rule.value:
             new_value = (new_value + 1) % self.num_literals
         rule.subrules = [
-            Literal(None, rule, rule.value, rule.negated),  # Old literal
-            Literal(None, rule, new_value, random.random() < 0.5),  # New literal
+            _create_unsafe_rule(
+                Literal, [], rule, rule.value, rule.negated
+            ),  # Old literal
+            _create_unsafe_rule(
+                Literal, [], rule, new_value, random.random() < 0.5
+            ),  # New literal
         ]
         rule.negated = random.random() < 0.5
         rule.value = None  # Removing the value from the new operator

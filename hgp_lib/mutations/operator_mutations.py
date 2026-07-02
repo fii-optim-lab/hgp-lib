@@ -5,6 +5,7 @@ from typing import Tuple, Type
 from .base_mutation import Mutation
 from .utils import MutationError
 from ..rules import Rule, Or, And, Literal
+from ..rules.utils import _create_unsafe_rule
 
 
 class RemoveIntermediateOperator(Mutation):
@@ -212,4 +213,6 @@ class AddLiteral(Mutation):
             raise MutationError()
 
         random_shot = random.choice(tuple(self.available_literals - existing_rules))
-        rule.subrules.append(Literal(None, rule, random_shot, random.random() < 0.5))
+        rule.subrules.append(
+            _create_unsafe_rule(Literal, [], rule, random_shot, random.random() < 0.5)
+        )

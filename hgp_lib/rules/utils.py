@@ -1,6 +1,5 @@
 import random
-from typing import Dict, Type
-
+from typing import Dict, Type, List
 
 from .rules import Rule
 from .literals import Literal
@@ -203,3 +202,28 @@ def select_crossover_point(rule: Rule, operator_p: float = 0.9) -> Rule:
     if selected_operator and random.random() < operator_p:
         return selected_operator
     return selected_literal
+
+
+def _create_unsafe_rule(
+    rule_type: Type[Rule], subrules: List[Rule], parent: Rule, value: int, negated: bool
+) -> Rule:
+    """
+    Creates a new rule while skipping subrules assignment and constructor validation. To be used internally.
+
+    Attributes:
+        subrules (Optional[List[Rule]]):
+            The list of child rules, for operators, or `None`, for literals. Default: `None`.
+        parent (Optional[Rule]):
+            A reference to the parent rule in the tree (if any). Default: `None`.
+        value (Optional[int]):
+            The value held by this rule (e.g., for literals). Should be `None` for operators. Default: `None`.
+        negated (bool):
+            Whether this rule or literal is logically negated (e.g., `~A`). Default: `False`.
+
+    """
+    new = object.__new__(rule_type)
+    new.subrules = subrules
+    new.parent = parent
+    new.value = value
+    new.negated = negated
+    return new
