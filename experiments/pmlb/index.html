@@ -830,6 +830,89 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#results-on-pmlb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Results on PMLB
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Results on PMLB">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#per-dataset-scores" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-dataset scores
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tuned-vs-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tuned vs default
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tuned-vs-decision-tree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tuned vs decision tree
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#default-vs-decision-tree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default vs decision tree
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tuned-vs-decision-tree-vs-boolxai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tuned vs decision tree vs BoolXAI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1392,6 +1475,89 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#results-on-pmlb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Results on PMLB
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Results on PMLB">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#per-dataset-scores" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-dataset scores
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tuned-vs-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tuned vs default
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tuned-vs-decision-tree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tuned vs decision tree
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#default-vs-decision-tree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default vs decision tree
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tuned-vs-decision-tree-vs-boolxai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tuned vs decision tree vs BoolXAI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1458,6 +1624,59 @@ It fetches the dataset names, builds one <code>optuna_hypertuning.py</code> comm
 <p>The <code>--n_jobs</code> argument sets how many datasets are processed at the same time.
 Preprocessing is not required beforehand.
 When a dataset file is missing, <code>optuna_hypertuning.py</code> downloads it from PMLB and writes the HDF file before tuning.</p>
+<h2 id="results-on-pmlb">Results on PMLB</h2>
+<p>This case study evaluates HGP on 70 binary classification datasets from PMLB.
+We compare two HGP variants against two interpretable baselines.</p>
+<p>The HGP variants are:</p>
+<ul>
+<li>HGP (default): run with <code>run_on_pmlb.py --model gp_default --num_epochs 10000</code>, using the library defaults.</li>
+<li>HGP (tuned): run with <code>run_on_pmlb.py --model gp_tuned</code>, which tunes each dataset with the Optuna script for 100 trials using the standard Optuna hyperparameter search.</li>
+</ul>
+<p>The baselines are:</p>
+<ul>
+<li>Decision trees from scikit-learn<sup id="fnref:sklearn"><a class="footnote-ref" href="#fn:sklearn">1</a></sup>, an interpretable tree-based classifier.</li>
+<li>BoolXAI<sup id="fnref:boolxai"><a class="footnote-ref" href="#fn:boolxai">2</a></sup>, a local-search method that also evolves expressive boolean formulas.<sup id="fnref:boolxai2023"><a class="footnote-ref" href="#fn:boolxai2023">3</a></sup><sup id="fnref:boolxai2025"><a class="footnote-ref" href="#fn:boolxai2025">4</a></sup></li>
+</ul>
+<p>All results use F1 score on the held-out test set, averaged across runs.
+Each comparison counts, per dataset, which method reached the best (or tied for best) score.</p>
+<h3 id="per-dataset-scores">Per-dataset scores</h3>
+<p>The score of each variant across all datasets.</p>
+<p><img alt="HGP default F1 scores across PMLB datasets" src="../images/pmlb/hgp_lib_default.png" /></p>
+<p><img alt="HGP tuned F1 scores across PMLB datasets" src="../images/pmlb/hgp_lib_tuned.png" /></p>
+<h3 id="tuned-vs-default">Tuned vs default</h3>
+<p>Tuning helps on most datasets.
+HGP (tuned) was best or tied on 59 of 70 datasets, and HGP (default) on 19 of 70.</p>
+<p><img alt="HGP tuned vs HGP default" src="../images/pmlb/gp_tuned_vs_gp_default.png" /></p>
+<h3 id="tuned-vs-decision-tree">Tuned vs decision tree</h3>
+<p>HGP (tuned) outperforms the decision tree baseline.
+HGP (tuned) was best or tied on 51 of 70 datasets, and the decision tree on 27 of 70.</p>
+<p><img alt="HGP tuned vs decision tree" src="../images/pmlb/gp_tuned_vs_dt.png" /></p>
+<h3 id="default-vs-decision-tree">Default vs decision tree</h3>
+<p>Without tuning, HGP is on par with the decision tree.
+Each was best or tied on 38 of 70 datasets.</p>
+<p><img alt="HGP default vs decision tree" src="../images/pmlb/gp_default_vs_dt.png" /></p>
+<h3 id="tuned-vs-decision-tree-vs-boolxai">Tuned vs decision tree vs BoolXAI</h3>
+<p>Against both baselines at once, HGP (tuned) leads.
+HGP (tuned) was best or tied on 48 of 70 datasets, the decision tree on 20 of 70, and BoolXAI on 12 of 70.</p>
+<p><img alt="HGP tuned vs decision tree vs BoolXAI" src="../images/pmlb/gp_tuned_vs_dt_vs_boolxai.png" /></p>
+<h2 id="references">References</h2>
+<div class="footnote">
+<hr />
+<ol>
+<li id="fn:sklearn">
+<p>scikit-learn <code>DecisionTreeClassifier</code>, <a href="https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html">https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html</a>.&#160;<a class="footnote-backref" href="#fnref:sklearn" title="Jump back to footnote 1 in the text">&#8617;</a></p>
+</li>
+<li id="fn:boolxai">
+<p>BoolXAI, <a href="https://github.com/fidelity/boolxai">https://github.com/fidelity/boolxai</a>.&#160;<a class="footnote-backref" href="#fnref:boolxai" title="Jump back to footnote 2 in the text">&#8617;</a></p>
+</li>
+<li id="fn:boolxai2023">
+<p>Gili Rosenberg, John Kyle Brubaker, Martin J. A. Schuetz, Grant Salton, Zhihuai Zhu, Elton Yechao Zhu, Serdar Kadıoğlu, Sima E. Borujeni, and Helmut G. Katzgraber. Explainable artificial intelligence using expressive boolean formulas. <em>Machine Learning and Knowledge Extraction</em>, 5(4):1760–1795, 2023. <a href="https://doi.org/10.3390/make5040086">doi:10.3390/make5040086</a>.&#160;<a class="footnote-backref" href="#fnref:boolxai2023" title="Jump back to footnote 3 in the text">&#8617;</a></p>
+</li>
+<li id="fn:boolxai2025">
+<p>Serdar Kadioglu, Elton Yechao Zhu, Gili Rosenberg, John Kyle Brubaker, Martin J. A. Schuetz, Grant Salton, Zhihuai Zhu, and Helmut G. Katzgraber. Boolxai: explainable ai using expressive boolean formulas. <em>Proceedings of the AAAI Conference on Artificial Intelligence</em>, 39(28):28900–28906, Apr. 2025. <a href="https://doi.org/10.1609/aaai.v39i28.35157">doi:10.1609/aaai.v39i28.35157</a>.&#160;<a class="footnote-backref" href="#fnref:boolxai2025" title="Jump back to footnote 4 in the text">&#8617;</a></p>
+</li>
+</ol>
+</div>
 
 
 
