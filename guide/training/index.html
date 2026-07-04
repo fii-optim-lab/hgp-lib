@@ -584,6 +584,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#from-raw-data-to-a-readable-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        From raw data to a readable rule
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1348,6 +1359,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#from-raw-data-to-a-readable-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        From raw data to a readable rule
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1427,6 +1449,31 @@ See <a href="../configuring/">Configuring HGP</a> and <a href="../extending/">Ex
 <span class="n">trainer</span> <span class="o">=</span> <span class="n">GPTrainer</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>  <span class="c1"># Returns PopulationHistory</span>
 </code></pre></div>
+<h2 id="from-raw-data-to-a-readable-rule">From raw data to a readable rule</h2>
+<p>This example runs the full path on a single split.
+It binarizes the data once, trains a rule with <a href="../../api/trainers/#hgp_lib.trainers.gp_trainer.GPTrainer"><code>GPTrainer</code></a>, predicts on the test set, and prints the rule as a readable expression.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">StandardBinarizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGPConfig</span><span class="p">,</span> <span class="n">TrainerConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.trainers</span><span class="w"> </span><span class="kn">import</span> <span class="n">GPTrainer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.utils.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">fast_f1_score</span>
+
+<span class="n">binarizer</span> <span class="o">=</span> <span class="n">StandardBinarizer</span><span class="p">(</span><span class="n">num_bins</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">train_bin</span> <span class="o">=</span> <span class="n">binarizer</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">train_data</span><span class="p">,</span> <span class="n">train_labels</span><span class="p">)</span>
+<span class="n">test_bin</span> <span class="o">=</span> <span class="n">binarizer</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span>
+
+<span class="n">gp</span> <span class="o">=</span> <span class="n">BooleanGPConfig</span><span class="p">(</span>
+    <span class="n">score_fn</span><span class="o">=</span><span class="n">fast_f1_score</span><span class="p">,</span>
+    <span class="n">train_data</span><span class="o">=</span><span class="n">train_bin</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span>
+    <span class="n">train_labels</span><span class="o">=</span><span class="n">train_labels</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">history</span> <span class="o">=</span> <span class="n">GPTrainer</span><span class="p">(</span><span class="n">TrainerConfig</span><span class="p">(</span><span class="n">gp_config</span><span class="o">=</span><span class="n">gp</span><span class="p">,</span> <span class="n">num_epochs</span><span class="o">=</span><span class="mi">1000</span><span class="p">))</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+
+<span class="n">rule</span> <span class="o">=</span> <span class="n">history</span><span class="o">.</span><span class="n">global_best_rule</span>
+<span class="n">predictions</span> <span class="o">=</span> <span class="n">rule</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">test_bin</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span>
+<span class="n">column_names</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">train_bin</span><span class="o">.</span><span class="n">columns</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">rule</span><span class="o">.</span><span class="n">to_str</span><span class="p">(</span><span class="n">column_names</span><span class="p">))</span>
+</code></pre></div>
+<p>The <code>column_names</code> map turns the literal indices back into the binarized column names, so the printed rule reads as plain logic.</p>
 <p>For end-to-end examples on real datasets, see the <a href="../../experiments/">Experiments</a> section.</p>
 
 
