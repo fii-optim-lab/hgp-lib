@@ -66,3 +66,64 @@ python scripts/run_on_pmlb.py --n_jobs 4
 The `--n_jobs` argument sets how many datasets are processed at the same time.
 Preprocessing is not required beforehand.
 When a dataset file is missing, `optuna_hypertuning.py` downloads it from PMLB and writes the HDF file before tuning.
+
+## Results on PMLB
+
+This case study evaluates HGP on 70 binary classification datasets from PMLB.
+We compare two HGP variants against two interpretable baselines.
+
+The HGP variants are:
+
+- HGP (default): run with `run_on_pmlb.py --model gp_default --num_epochs 10000`, using the library defaults.
+- HGP (tuned): run with `run_on_pmlb.py --model gp_tuned`, which tunes each dataset with the Optuna script for 100 trials using the standard Optuna hyperparameter search.
+
+The baselines are:
+
+- Decision trees from scikit-learn[^sklearn], an interpretable tree-based classifier.
+- BoolXAI[^boolxai], a local-search method that also evolves expressive boolean formulas.[@boolxai2023][@boolxai2025]
+
+All results use F1 score on the held-out test set, averaged across runs.
+Each comparison counts, per dataset, which method reached the best (or tied for best) score.
+
+### Per-dataset scores
+
+The score of each variant across all datasets.
+
+![HGP default F1 scores across PMLB datasets](images/pmlb/hgp_lib_default.png)
+
+![HGP tuned F1 scores across PMLB datasets](images/pmlb/hgp_lib_tuned.png)
+
+### Tuned vs default
+
+Tuning helps on most datasets.
+HGP (tuned) was best or tied on 59 of 70 datasets, and HGP (default) on 19 of 70.
+
+![HGP tuned vs HGP default](images/pmlb/gp_tuned_vs_gp_default.png)
+
+### Tuned vs decision tree
+
+HGP (tuned) outperforms the decision tree baseline.
+HGP (tuned) was best or tied on 51 of 70 datasets, and the decision tree on 27 of 70.
+
+![HGP tuned vs decision tree](images/pmlb/gp_tuned_vs_dt.png)
+
+### Default vs decision tree
+
+Without tuning, HGP is on par with the decision tree.
+Each was best or tied on 38 of 70 datasets.
+
+![HGP default vs decision tree](images/pmlb/gp_default_vs_dt.png)
+
+### Tuned vs decision tree vs BoolXAI
+
+Against both baselines at once, HGP (tuned) leads.
+HGP (tuned) was best or tied on 48 of 70 datasets, the decision tree on 20 of 70, and BoolXAI on 12 of 70.
+
+![HGP tuned vs decision tree vs BoolXAI](images/pmlb/gp_tuned_vs_dt_vs_boolxai.png)
+
+[^sklearn]: scikit-learn `DecisionTreeClassifier`, <https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html>.
+[^boolxai]: BoolXAI, <https://github.com/fidelity/boolxai>.
+
+## References
+
+\bibliography
