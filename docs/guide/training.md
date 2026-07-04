@@ -68,4 +68,34 @@ trainer = GPTrainer(config)
 result = trainer.fit()  # Returns PopulationHistory
 ```
 
+## From raw data to a readable rule
+
+This example runs the full path on a single split.
+It binarizes the data once, trains a rule with [`GPTrainer`](../api/trainers.md#hgp_lib.trainers.gp_trainer.GPTrainer), predicts on the test set, and prints the rule as a readable expression.
+
+```python
+from hgp_lib.preprocessing import StandardBinarizer
+from hgp_lib.configs import BooleanGPConfig, TrainerConfig
+from hgp_lib.trainers import GPTrainer
+from hgp_lib.utils.metrics import fast_f1_score
+
+binarizer = StandardBinarizer(num_bins=5)
+train_bin = binarizer.fit_transform(train_data, train_labels)
+test_bin = binarizer.transform(test_data)
+
+gp = BooleanGPConfig(
+    score_fn=fast_f1_score,
+    train_data=train_bin.to_numpy(),
+    train_labels=train_labels,
+)
+history = GPTrainer(TrainerConfig(gp_config=gp, num_epochs=1000)).fit()
+
+rule = history.global_best_rule
+predictions = rule.evaluate(test_bin.to_numpy())
+column_names = dict(enumerate(train_bin.columns))
+print(rule.to_str(column_names))
+```
+
+The `column_names` map turns the literal indices back into the binarized column names, so the printed rule reads as plain logic.
+
 For end-to-end examples on real datasets, see the [Experiments](../experiments/index.md) section.

@@ -31,31 +31,32 @@ pip install -e .
 
 ## Quickstart
 
-Train a classifier with `GPTrainer`.
-Pass training data through a `BooleanGPConfig`, wrap it in a `TrainerConfig`, and call `fit`.
+Binarize the data, train a rule with `GPTrainer`, then use it to predict and print it as plain logic.
 
 ```python
+from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
 from hgp_lib.trainers import GPTrainer
+from hgp_lib.utils.metrics import fast_f1_score
 
-score_fn = ...  # scoring function: (predictions, labels) -> float
+binarizer = StandardBinarizer(num_bins=5)
+train_bin = binarizer.fit_transform(train_data, train_labels)
+test_bin = binarizer.transform(test_data)
 
-gp_config = BooleanGPConfig(
-    train_data=train_data.to_numpy(dtype=bool),
+gp = BooleanGPConfig(
+    score_fn=fast_f1_score,
+    train_data=train_bin.to_numpy(),
     train_labels=train_labels,
-    score_fn=score_fn,
 )
-config = TrainerConfig(
-    gp_config=gp_config,
-    num_epochs=1000,
-    val_data=val_data.to_numpy(dtype=bool),
-    val_labels=val_labels,
-)
-trainer = GPTrainer(config)
-result = trainer.fit()  # Returns PopulationHistory
+history = GPTrainer(TrainerConfig(gp_config=gp, num_epochs=1000)).fit()
+
+rule = history.global_best_rule
+predictions = rule.evaluate(test_bin.to_numpy())
+column_names = dict(enumerate(train_bin.columns))
+print(rule.to_str(column_names))
 ```
 
-Data passed to `GPTrainer` must be binarized first.
+The `column_names` map turns literal indices back into the binarized column names, so the printed rule reads as plain logic.
 The [Data Preparation](https://fii-optim-lab.github.io/hgp-lib/guide/data-preparation/) guide shows how to use `StandardBinarizer` without leaking data between splits.
 
 ## Benchmarking
