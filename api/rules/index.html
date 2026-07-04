@@ -1123,6 +1123,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#hgp_lib.rules.rules.Rule.detach_subtree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        detach_subtree
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#hgp_lib.rules.rules.Rule.evaluate" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1543,6 +1554,17 @@
     <span class="md-ellipsis">
       
         copy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hgp_lib.rules.rules.Rule.detach_subtree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        detach_subtree
       
     </span>
   </a>
@@ -2069,7 +2091,32 @@ Default: <code>True</code>.</p>
 <span class="normal">246</span>
 <span class="normal">247</span>
 <span class="normal">248</span>
-<span class="normal">249</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Rule</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span>
+<span class="normal">260</span>
+<span class="normal">261</span>
+<span class="normal">262</span>
+<span class="normal">263</span>
+<span class="normal">264</span>
+<span class="normal">265</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Rule</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Abstract base class for logical rule nodes used in rule trees.</span>
 
@@ -2254,13 +2301,38 @@ Default: <code>True</code>.</p>
 <span class="sd">            &gt;&gt;&gt; all([(x.value is None and y.value is None) or (x.value == y.value) for x, y in zip(a.flatten(), b.flatten())])</span>
 <span class="sd">            True</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+        <span class="n">new</span><span class="o">.</span><span class="n">subrules</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">new</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">subrules</span><span class="p">]</span>
+        <span class="n">new</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">parent</span>
+        <span class="n">new</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">new</span><span class="o">.</span><span class="n">negated</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">negated</span>
+        <span class="k">return</span> <span class="n">new</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">subrules</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">parent</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">negated</span><span class="p">,</span>
-        <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">detach_subtree</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Rule&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a shallow copy of this rule and its entire subtree, without referencing the parent of the current rule.</span>
+<span class="sd">        Can be used for a fast swap between two subtrees without resorting to deep copy.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Rule: A new instance of the same rule type, keeping the same subrules as the original rule.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; from hgp_lib.rules import And, Literal</span>
+<span class="sd">            &gt;&gt;&gt; a = And([Literal(value=1), Literal(value=2)])</span>
+<span class="sd">            &gt;&gt;&gt; b = a.detach_subtree()</span>
+<span class="sd">            &gt;&gt;&gt; a is b</span>
+<span class="sd">            False</span>
+<span class="sd">            &gt;&gt;&gt; a.subrules[0] is b.subrules[0]</span>
+<span class="sd">            True</span>
+<span class="sd">            &gt;&gt;&gt; all([(x.value is None and y.value is None) or (x.value == y.value) for x, y in zip(a.flatten(), b.flatten())])</span>
+<span class="sd">            True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+        <span class="n">new</span><span class="o">.</span><span class="n">subrules</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subrules</span>
+        <span class="n">new</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">new</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">new</span><span class="o">.</span><span class="n">negated</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">negated</span>
+        <span class="k">return</span> <span class="n">new</span>
 
     <span class="nd">@abstractmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
@@ -2835,8 +2907,7 @@ For standard indentation, use <code>0</code>. Default: <code>-1</code>.</p>
 <span class="normal">195</span>
 <span class="normal">196</span>
 <span class="normal">197</span>
-<span class="normal">198</span>
-<span class="normal">199</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;Rule&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Rule&quot;</span><span class="p">:</span>
+<span class="normal">198</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;Rule&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Rule&quot;</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates a deep copy of this rule and its entire subtree, optionally assigning a new parent.</span>
 
@@ -2858,13 +2929,120 @@ For standard indentation, use <code>0</code>. Default: <code>-1</code>.</p>
 <span class="sd">        &gt;&gt;&gt; all([(x.value is None and y.value is None) or (x.value == y.value) for x, y in zip(a.flatten(), b.flatten())])</span>
 <span class="sd">        True</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">new</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+    <span class="n">new</span><span class="o">.</span><span class="n">subrules</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">new</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">subrules</span><span class="p">]</span>
+    <span class="n">new</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">parent</span>
+    <span class="n">new</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span>
+    <span class="n">new</span><span class="o">.</span><span class="n">negated</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">negated</span>
+    <span class="k">return</span> <span class="n">new</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
 
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">subrules</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">parent</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">negated</span><span class="p">,</span>
-    <span class="p">)</span>
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="hgp_lib.rules.rules.Rule.detach_subtree" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">detach_subtree</span><span class="p">()</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Creates a shallow copy of this rule and its entire subtree, without referencing the parent of the current rule.
+Can be used for a fast swap between two subtrees without resorting to deep copy.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>Rule</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="            hgp_lib.rules.rules.Rule" href="#hgp_lib.rules.rules.Rule">Rule</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A new instance of the same rule type, keeping the same subrules as the original rule.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.rules</span><span class="w"> </span><span class="kn">import</span> <span class="n">And</span><span class="p">,</span> <span class="n">Literal</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">And</span><span class="p">([</span><span class="n">Literal</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">Literal</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mi">2</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">detach_subtree</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="ow">is</span> <span class="n">b</span>
+<span class="go">False</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span><span class="o">.</span><span class="n">subrules</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="n">b</span><span class="o">.</span><span class="n">subrules</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">all</span><span class="p">([(</span><span class="n">x</span><span class="o">.</span><span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">y</span><span class="o">.</span><span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">y</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span> <span class="n">b</span><span class="o">.</span><span class="n">flatten</span><span class="p">())])</span>
+<span class="go">True</span>
+</code></pre></div>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>hgp_lib/rules/rules.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">detach_subtree</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Rule&quot;</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a shallow copy of this rule and its entire subtree, without referencing the parent of the current rule.</span>
+<span class="sd">    Can be used for a fast swap between two subtrees without resorting to deep copy.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Rule: A new instance of the same rule type, keeping the same subrules as the original rule.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; from hgp_lib.rules import And, Literal</span>
+<span class="sd">        &gt;&gt;&gt; a = And([Literal(value=1), Literal(value=2)])</span>
+<span class="sd">        &gt;&gt;&gt; b = a.detach_subtree()</span>
+<span class="sd">        &gt;&gt;&gt; a is b</span>
+<span class="sd">        False</span>
+<span class="sd">        &gt;&gt;&gt; a.subrules[0] is b.subrules[0]</span>
+<span class="sd">        True</span>
+<span class="sd">        &gt;&gt;&gt; all([(x.value is None and y.value is None) or (x.value == y.value) for x, y in zip(a.flatten(), b.flatten())])</span>
+<span class="sd">        True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">new</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+    <span class="n">new</span><span class="o">.</span><span class="n">subrules</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subrules</span>
+    <span class="n">new</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">new</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span>
+    <span class="n">new</span><span class="o">.</span><span class="n">negated</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">negated</span>
+    <span class="k">return</span> <span class="n">new</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2951,22 +3129,22 @@ The boolean result of evaluating this rule vectorized across all instances.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>hgp_lib/rules/rules.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">201</span>
-<span class="normal">202</span>
-<span class="normal">203</span>
-<span class="normal">204</span>
-<span class="normal">205</span>
-<span class="normal">206</span>
-<span class="normal">207</span>
-<span class="normal">208</span>
-<span class="normal">209</span>
-<span class="normal">210</span>
-<span class="normal">211</span>
-<span class="normal">212</span>
-<span class="normal">213</span>
-<span class="normal">214</span>
-<span class="normal">215</span>
-<span class="normal">216</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@abstractmethod</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span>
+<span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@abstractmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Abstract method to evaluate this rule against the given data, in a vectorized manner.</span>
@@ -3094,38 +3272,38 @@ For literals, <code>self.value</code> is replaced with <code>feature_mapping[sel
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>hgp_lib/rules/rules.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">218</span>
-<span class="normal">219</span>
-<span class="normal">220</span>
-<span class="normal">221</span>
-<span class="normal">222</span>
-<span class="normal">223</span>
-<span class="normal">224</span>
-<span class="normal">225</span>
-<span class="normal">226</span>
-<span class="normal">227</span>
-<span class="normal">228</span>
-<span class="normal">229</span>
-<span class="normal">230</span>
-<span class="normal">231</span>
-<span class="normal">232</span>
-<span class="normal">233</span>
-<span class="normal">234</span>
-<span class="normal">235</span>
-<span class="normal">236</span>
-<span class="normal">237</span>
-<span class="normal">238</span>
-<span class="normal">239</span>
-<span class="normal">240</span>
-<span class="normal">241</span>
-<span class="normal">242</span>
-<span class="normal">243</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">243</span>
 <span class="normal">244</span>
 <span class="normal">245</span>
 <span class="normal">246</span>
 <span class="normal">247</span>
 <span class="normal">248</span>
-<span class="normal">249</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">apply_feature_mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature_mapping</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]):</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span>
+<span class="normal">260</span>
+<span class="normal">261</span>
+<span class="normal">262</span>
+<span class="normal">263</span>
+<span class="normal">264</span>
+<span class="normal">265</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">apply_feature_mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature_mapping</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Applies a feature mapping to this rule and all its subrules in-place.</span>
 
@@ -3382,8 +3560,7 @@ It may optionally be negated, in which case its logical value is inverted.</p>
 <span class="normal">111</span>
 <span class="normal">112</span>
 <span class="normal">113</span>
-<span class="normal">114</span>
-<span class="normal">115</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Literal</span><span class="p">(</span><span class="n">Rule</span><span class="p">):</span>
+<span class="normal">114</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Literal</span><span class="p">(</span><span class="n">Rule</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Represents a single literal condition in a rule tree.</span>
 
@@ -3485,13 +3662,12 @@ It may optionally be negated, in which case its logical value is inverted.</p>
 <span class="sd">            &gt;&gt;&gt; a is b</span>
 <span class="sd">            False</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">Literal</span><span class="p">(</span>
-            <span class="kc">None</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">parent</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">negated</span><span class="p">,</span>
-            <span class="kc">False</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">Literal</span><span class="p">)</span>
+        <span class="n">new</span><span class="o">.</span><span class="n">subrules</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">new</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">parent</span>
+        <span class="n">new</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">new</span><span class="o">.</span><span class="n">negated</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">negated</span>
+        <span class="k">return</span> <span class="n">new</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -3899,8 +4075,7 @@ This uses a faster execution path to create literals.</p>
 <span class="normal">111</span>
 <span class="normal">112</span>
 <span class="normal">113</span>
-<span class="normal">114</span>
-<span class="normal">115</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;Rule&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Rule&quot;</span><span class="p">:</span>
+<span class="normal">114</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;Rule&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Rule&quot;</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates a copy of this Literal, optionally assigning a new parent.</span>
 <span class="sd">    This uses a faster execution path to create literals.</span>
@@ -3919,13 +4094,12 @@ This uses a faster execution path to create literals.</p>
 <span class="sd">        &gt;&gt;&gt; a is b</span>
 <span class="sd">        False</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">Literal</span><span class="p">(</span>
-        <span class="kc">None</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">parent</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">negated</span><span class="p">,</span>
-        <span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="n">new</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">Literal</span><span class="p">)</span>
+    <span class="n">new</span><span class="o">.</span><span class="n">subrules</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">new</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">parent</span>
+    <span class="n">new</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span>
+    <span class="n">new</span><span class="o">.</span><span class="n">negated</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">negated</span>
+    <span class="k">return</span> <span class="n">new</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
