@@ -3,6 +3,7 @@ from typing import List, Optional, Set, Tuple
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_bool_dtype, is_numeric_dtype
+from tqdm import tqdm
 
 from hgp_lib.utils.validation import check_isinstance
 from hgp_lib.utils.warnings import warn_once
@@ -60,6 +61,11 @@ class StandardBinarizer(Binarizer):
             Strategy for computing numeric bin edges. When `None`, the binarizer uses
             :class:`SupervisedTreeBinning` if labels are provided to ``fit_transform``
             and :class:`QuantileBinning` otherwise. Default: `None`.
+        progress_bar (bool):
+            Whether to show progress bar. Default: `True`.
+        leave_progress_bar (bool):
+            Whether to leave progress bar. Default: `False`.
+
 
     Examples:
         >>> import pandas as pd
@@ -84,6 +90,8 @@ class StandardBinarizer(Binarizer):
         column_strategy: Optional[dict[str, int]] = None,
         precision: int = 3,
         numeric_binning: Optional[BinningStrategy] = None,
+        progress_bar: bool = True,
+        leave_progress_bar: bool = False,
     ):
         self._validate_params(num_bins, column_strategy, precision, numeric_binning)
         self.num_bins = num_bins
@@ -91,6 +99,8 @@ class StandardBinarizer(Binarizer):
         self.precision = precision
         self.numeric_binning = numeric_binning
         self.column_precision: dict[str, int] = {}
+        self.progress_bar = progress_bar
+        self.leave_progress_bar = leave_progress_bar
 
         self._categorical_values: dict = {}
         self._numerical_bins: dict = {}
@@ -129,9 +139,6 @@ class StandardBinarizer(Binarizer):
         if numeric_binning is not None:
             check_isinstance(numeric_binning, BinningStrategy)
 
-    # ------------------------------------------------------------------ #
-    #  Public API
-    # ------------------------------------------------------------------ #
     def fit_transform(
         self, X: pd.DataFrame, y: Optional[np.ndarray] = None
     ) -> pd.DataFrame:
@@ -170,7 +177,12 @@ class StandardBinarizer(Binarizer):
         outputs: dict = {}
         used_names: Set[str] = set()
 
-        for column in X.columns:
+        for column in tqdm(
+            X.columns,
+            disable=not self.progress_bar,
+            desc="Fitting binarizer",
+            leave=self.leave_progress_bar,
+        ):
             series = X[column]
             nan_mask = series.isna().to_numpy()
 
@@ -231,7 +243,12 @@ class StandardBinarizer(Binarizer):
             )
 
         outputs: dict = {}
-        for column in X.columns:
+        for column in tqdm(
+            X.columns,
+            disable=not self.progress_bar,
+            desc="Transforming binarizer",
+            leave=self.leave_progress_bar,
+        ):
             series = X[column]
             names = self._output_names[column]
             values_list: List[np.ndarray] = []
@@ -255,9 +272,6 @@ class StandardBinarizer(Binarizer):
 
         return pd.DataFrame(outputs, index=X.index)
 
-    # ------------------------------------------------------------------ #
-    #  Per-dtype fit hooks (override to customise behaviour)
-    # ------------------------------------------------------------------ #
     def _fit_column(
         self,
         column: str,
@@ -332,9 +346,6 @@ class StandardBinarizer(Binarizer):
             for i in range(len(edges) - 1)
         ]
 
-    # ------------------------------------------------------------------ #
-    #  Per-dtype transform hooks (override to customise behaviour)
-    # ------------------------------------------------------------------ #
     def _transform_column(self, column: str, series: pd.Series) -> List[np.ndarray]:
         """Apply the learned encoding for a single column, verifying its dtype."""
         expected = self._original_column_dtypes[column]
@@ -367,9 +378,6 @@ class StandardBinarizer(Binarizer):
         )
         return [binned == i for i in range(len(edges) - 1)]
 
-    # ------------------------------------------------------------------ #
-    #  Helpers
-    # ------------------------------------------------------------------ #
     def _resolve_numeric_binning(self, y: Optional[np.ndarray]) -> BinningStrategy:
         """Pick the numeric binning strategy: the configured one, or a default by ``y``."""
         if self.numeric_binning is not None:

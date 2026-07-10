@@ -37,7 +37,7 @@ class BenchmarkerConfig:
             settings is used, which applies one-hot-encoding to categorical features
             and decision-tree-based binarization (5 bins) to numerical features. To use
             a scikit-learn discretizer instead, wrap it in `SklearnBinarizer`. The
-            binarizer must **not** be already fitted. Default: `None`.
+            binarizer must not be already fitted. Default: `None`.
         num_runs (int): Number of benchmark runs with different random seeds. Default: `30`.
         test_size (float): Fraction of data to hold out for testing. Default: `0.2`.
         n_folds (int): Number of folds for k-fold cross-validation. Default: `5`.

@@ -121,6 +121,7 @@ class GPBenchmarker:
 
         if self.config.show_run_progress:
             self.config.trainer_config.leave_progress_bar = False
+            self.config.binarizer.leave_progress_bar = False
 
         for run_id in tqdm(
             range(self.config.num_runs),

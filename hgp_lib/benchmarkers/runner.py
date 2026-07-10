@@ -55,6 +55,7 @@ def execute_single_run(
     show_epochs = (
         config.show_epoch_progress and trainer_template.progress_bar and not use_queue
     )
+    config.binarizer.progress_bar = show_epochs
 
     np.random.seed(seed)
     random.seed(seed)
