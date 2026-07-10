@@ -17,9 +17,6 @@ from .warnings import (
     UnseenNaNWarning,
 )
 
-# A produced boolean feature: its base name and the boolean values.
-Piece = Tuple[str, np.ndarray]
-
 
 class StandardBinarizer(Binarizer):
     """
@@ -186,7 +183,7 @@ class StandardBinarizer(Binarizer):
             series = X[column]
             nan_mask = series.isna().to_numpy()
 
-            pieces: List[Piece] = []
+            pieces = []
             if nan_mask.any():
                 self._na_columns.add(column)
                 pieces.append((f"{column}_is_NA", nan_mask))
@@ -278,7 +275,7 @@ class StandardBinarizer(Binarizer):
         series: pd.Series,
         y: Optional[np.ndarray],
         nan_mask: np.ndarray,
-    ) -> List[Piece]:
+    ):
         """Dispatch a single column to the matching dtype hook and record its dtype."""
         if is_bool_dtype(series):
             self._original_column_dtypes[column] = "bool"
@@ -293,11 +290,11 @@ class StandardBinarizer(Binarizer):
             f"Unsupported column type for column {column} of type {series.dtype}"
         )
 
-    def _fit_boolean(self, column: str, series: pd.Series) -> List[Piece]:
+    def _fit_boolean(self, column: str, series: pd.Series):
         """Pass a boolean column through as a single feature."""
         return [(column, series.to_numpy(dtype=bool))]
 
-    def _fit_categorical(self, column: str, series: pd.Series) -> List[Piece]:
+    def _fit_categorical(self, column: str, series: pd.Series):
         """One-hot encode a categorical, string, or object column."""
         if not isinstance(series.dtype, pd.CategoricalDtype):
             warn_once(StringColumnWarning(column))
@@ -320,7 +317,7 @@ class StandardBinarizer(Binarizer):
         series: pd.Series,
         y: Optional[np.ndarray],
         nan_mask: np.ndarray,
-    ) -> List[Piece]:
+    ):
         """Bin a numeric column and one-hot encode the bins."""
         n_bins = self.column_strategy.get(column, self.num_bins)
         values = series.to_numpy()
