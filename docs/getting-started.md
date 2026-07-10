@@ -3,7 +3,7 @@
 ## Installation
 
 ```bash
-pip install -e .
+pip install hgp-lib
 ```
 
 ## A first run

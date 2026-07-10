@@ -26,7 +26,7 @@ See [Theory](https://fii-optim-lab.github.io/hgp-lib/theory/) for how the search
 ## Installation
 
 ```bash
-pip install -e .
+pip install hgp-lib
 ```
 
 ## Quickstart
