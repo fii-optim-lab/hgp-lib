@@ -3,7 +3,7 @@ from typing import Optional, Set
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_bool_dtype, is_numeric_dtype
-from pandas.core.dtypes.common import is_string_dtype
+from pandas.core.dtypes.common import is_string_dtype, is_object_dtype
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.tree._tree import TREE_UNDEFINED
 
@@ -66,6 +66,8 @@ class StandardBinarizer:
         self._columns = tuple()
         self._na_columns: Set[str] = set()
         self._is_fitted = False
+        self._original_columns = None
+        self._original_column_dtypes: dict = {}
 
     def _validate_params(
         self, num_bins: int, column_strategy: Optional[dict[str, int]], precision: int
@@ -86,6 +88,14 @@ class StandardBinarizer:
         check_isinstance(precision, int)
         if precision < 0:
             raise ValueError(f"precision must be an integer >= 0, is {precision}")
+
+    @staticmethod
+    def _is_category(column_values: pd.Series) -> bool:
+        return (
+            isinstance(column_values.dtype, pd.CategoricalDtype)
+            or is_string_dtype(column_values)
+            or is_object_dtype(column_values)
+        )
 
     def _get_tree_based_bins(
         self, X: np.ndarray, y: np.ndarray, n_bins: int
@@ -264,13 +274,17 @@ class StandardBinarizer:
                 columns[new_column_name] = nan_mask
 
             if is_bool_dtype(current_column):
+                self._original_column_dtypes[column] = "bool"
                 new_column_name = self._ensure_unique_column_names(column_names, column)
                 columns[new_column_name] = current_column
                 # Ignore NaN values for boolean dtypes. They should not exist in the first place
 
-            elif isinstance(
-                current_column.dtype, pd.CategoricalDtype
-            ) or is_string_dtype(current_column):
+            elif self._is_category(current_column):
+                # TODO: Raise a warning that we treat strings as categories.
+                #  Alert users that they should set the strings as objects
+                # We should also check that the number of unique values is not equal to the number of possible values
+                # If it matches, we should raise a warning and skip this column.
+                self._original_column_dtypes[column] = "category"
                 # TODO: Update the documentation for Nan columns and string dtypes
                 unique_values = current_column.unique().dropna()
                 self._categorical_values[column] = unique_values
@@ -281,6 +295,7 @@ class StandardBinarizer:
                     columns[new_column_name] = current_column == value
 
             elif is_numeric_dtype(current_column):
+                self._original_column_dtypes[column] = "numeric"
                 n_bins = self.column_strategy.get(column, self.num_bins)
                 values = current_column.values
 
@@ -365,6 +380,15 @@ class StandardBinarizer:
             return f"{left:.{precision}f} <= {column}"
         return f"{left:.{precision}f} <= {column} < {right:.{precision}f}"
 
+    def _verify_column_dtype(self, column_name, column_type: str):
+        original_dtype = self._original_column_dtypes[column_name]
+        if original_dtype != column_type:
+            raise ValueError(
+                f"Original column {column_name} was {original_dtype}. "
+                f"Current column is {column_type}. "
+                f"Current column must be {original_dtype}."
+            )
+
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
         Apply the previously learned binarisation to new data.
@@ -411,6 +435,7 @@ class StandardBinarizer:
 
         for column in X.columns:
             current_column = X[column]
+            # TODO: We should check if we have nan but we didn't have nan when fitting
 
             if column in self._na_columns:
                 column_name = self._columns[column_index]
@@ -418,19 +443,20 @@ class StandardBinarizer:
                 columns[column_name] = current_column.isna()
 
             if is_bool_dtype(current_column):
+                self._verify_column_dtype(column, "bool")
                 column_name = self._columns[column_index]
                 column_index += 1
                 columns[column_name] = current_column
 
-            elif isinstance(
-                current_column.dtype, pd.CategoricalDtype
-            ) or is_string_dtype(current_column):
+            elif self._is_category(current_column):
+                self._verify_column_dtype(column, "category")
                 for value in self._categorical_values[column]:
                     column_name = self._columns[column_index]
                     column_index += 1
                     columns[column_name] = current_column == value
 
             elif is_numeric_dtype(current_column):
+                self._verify_column_dtype(column, "numeric")
                 bins = self._numerical_bins[column]
                 binned_values = pd.cut(
                     current_column, bins=bins, labels=False, include_lowest=True

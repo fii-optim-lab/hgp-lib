@@ -68,6 +68,7 @@ class TestStandardBinarizer(unittest.TestCase):
             b.fit_transform(df)
 
     def test_unsupported_dtype_transform(self):
+        # TODO: We should add a test in which the data type changes
         b = StandardBinarizer()
         train = pd.DataFrame({"x": [True, False]})
         b.fit_transform(train)
