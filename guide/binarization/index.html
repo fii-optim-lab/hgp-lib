@@ -1558,7 +1558,7 @@ The default implementation is <a href="../../api/preprocessing/#hgp_lib.preproce
 </ul>
 <p><a href="../../api/benchmarkers/#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker"><code>GPBenchmarker</code></a> relies on this contract, fitting a fresh copy per fold.</p>
 <h2 id="how-columns-are-converted">How columns are converted</h2>
-<p>The [<code>StandardBinarizer</code>(../api/preprocessing.md#hgp_lib.preprocessing.binarizer.StandardBinarizer)] handles three kinds of columns.</p>
+<p>The <a href="../../api/preprocessing/#hgp_lib.preprocessing.binarizer.StandardBinarizer"><code>StandardBinarizer</code></a> handles three kinds of columns.</p>
 <ul>
 <li>Boolean columns pass through unchanged.</li>
 <li>Categorical, string, and object columns are one-hot encoded into one boolean column per unique value.</li>
@@ -1586,7 +1586,7 @@ A larger <code>k</code> captures finer decision boundaries, but it produces more
 A smaller <code>k</code> keeps rules simple and training fast, at the cost of granularity.
 Treat <code>k</code> as a hyperparameter to tune.</p>
 <h2 id="parameters">Parameters</h2>
-<p>The [<code>StandardBinarizer</code>(../api/preprocessing.md#hgp_lib.preprocessing.binarizer.StandardBinarizer)] exposes the following parameters.</p>
+<p>The <a href="../../api/preprocessing/#hgp_lib.preprocessing.binarizer.StandardBinarizer"><code>StandardBinarizer</code></a> exposes the following parameters.</p>
 <ul>
 <li><code>num_bins</code>: the default number of bins for numeric columns. Must be at least 2. Default is 5.</li>
 <li><code>column_strategy</code>: a per-column override for the number of bins, as a dict of column name to bin count. Default is none.</li>
@@ -1638,7 +1638,7 @@ The strategy receives the feature values, the optional labels, and the number of
 
 <span class="n">binarizer</span> <span class="o">=</span> <span class="n">StandardBinarizer</span><span class="p">(</span><span class="n">numeric_binning</span><span class="o">=</span><span class="n">MedianSplit</span><span class="p">())</span>
 </code></pre></div>
-<p>To change how a whole column type is handled, subclass [<code>StandardBinarizer</code>(../api/preprocessing.md#hgp_lib.preprocessing.binarizer.StandardBinarizer)] and override the matching hooks: <code>_fit_boolean</code> / <code>_transform_boolean</code>, <code>_fit_categorical</code> / <code>_transform_categorical</code>, or <code>_fit_numeric</code> / <code>_transform_numeric</code>.
+<p>To change how a whole column type is handled, subclass <a href="../../api/preprocessing/#hgp_lib.preprocessing.binarizer.StandardBinarizer"><code>StandardBinarizer</code></a> and override the matching hooks: <code>_fit_boolean</code> / <code>_transform_boolean</code>, <code>_fit_categorical</code> / <code>_transform_categorical</code>, or <code>_fit_numeric</code> / <code>_transform_numeric</code>.
 The <code>_fit_*</code> hooks return <code>(name, values)</code> pairs, and the <code>_transform_*</code> hooks return the values in the same order.</p>
 <h2 id="using-a-scikit-learn-discretizer">Using a scikit-learn discretizer</h2>
 <p>To use a scikit-learn transformer instead, wrap it in <a href="../../api/preprocessing/#hgp_lib.preprocessing.sklearn_binarizer.SklearnBinarizer"><code>SklearnBinarizer</code></a>.
