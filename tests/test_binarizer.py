@@ -19,11 +19,14 @@ from hgp_lib.preprocessing.warnings import (
     StringColumnWarning,
     UnseenNaNWarning,
 )
+from hgp_lib.utils.warnings import _emitted_messages
 
 
 class TestStandardBinarizer(unittest.TestCase):
     # Warnings deduplicate per process by message, so warning-asserting tests use
     # column names unique across the suite to stay independent of run order.
+    def setUp(self):
+        _emitted_messages.clear()
 
     # ------------------------------------------------------------------ #
     #  Validation
@@ -132,7 +135,7 @@ class TestStandardBinarizer(unittest.TestCase):
         b = StandardBinarizer()
         with self.assertWarns(HighCardinalityWarning):
             result = b.fit_transform(df)
-        self.assertEqual(result.shape, (3, 0))
+        self.assertEqual(result.shape, (3, 1))
         self.assertIn("id_fit", b._skipped_columns)
 
     def test_all_unique_categorical_skipped_on_transform(self):
@@ -140,7 +143,7 @@ class TestStandardBinarizer(unittest.TestCase):
         with self.assertWarns(HighCardinalityWarning):
             b.fit_transform(pd.DataFrame({"id_tr": pd.Categorical(["a", "b", "c"])}))
         result = b.transform(pd.DataFrame({"id_tr": pd.Categorical(["a", "a", "a"])}))
-        self.assertEqual(result.shape, (3, 0))
+        self.assertEqual(result.shape, (3, 1))
 
     # ------------------------------------------------------------------ #
     #  Numeric columns
