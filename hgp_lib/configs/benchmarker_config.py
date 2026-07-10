@@ -2,9 +2,8 @@ from dataclasses import dataclass
 
 from numpy import ndarray
 from pandas import DataFrame
-from sklearn.preprocessing import KBinsDiscretizer
 
-from ..preprocessing import StandardBinarizer
+from ..preprocessing import Binarizer
 from ..utils.validation import check_isinstance, check_X_y
 from .trainer_config import TrainerConfig, validate_trainer_config
 
@@ -32,13 +31,13 @@ class BenchmarkerConfig:
         trainer_config (TrainerConfig): Template configuration for training. The nested
             `gp_config` does not need `train_data`/`train_labels` (they will be set
             per fold by the benchmarker).
-        binarizer (StandardBinarizer | KBinsDiscretizer | None): Binarizer to transform
-            features into boolean columns. A fresh `deepcopy` is fitted per fold so
-            the original stays unfitted. When `None` (default), a
-            `StandardBinarizer()` with default settings is used, which applies
-            one-hot-encoding to categorical features and decision-tree-based binarization
-            (5 bins) to numerical features. The binarizer must **not** be already fitted.
-            Default: `None`.
+        binarizer (Binarizer | None): Binarizer to transform features into boolean
+            columns. A fresh `deepcopy` is fitted per fold so the original stays
+            unfitted. When `None` (default), a `StandardBinarizer()` with default
+            settings is used, which applies one-hot-encoding to categorical features
+            and decision-tree-based binarization (5 bins) to numerical features. To use
+            a scikit-learn discretizer instead, wrap it in `SklearnBinarizer`. The
+            binarizer must **not** be already fitted. Default: `None`.
         num_runs (int): Number of benchmark runs with different random seeds. Default: `30`.
         test_size (float): Fraction of data to hold out for testing. Default: `0.2`.
         n_folds (int): Number of folds for k-fold cross-validation. Default: `5`.
@@ -76,7 +75,7 @@ class BenchmarkerConfig:
     data: DataFrame
     labels: ndarray
     trainer_config: TrainerConfig
-    binarizer: StandardBinarizer | KBinsDiscretizer | None = None
+    binarizer: Binarizer | None = None
     num_runs: int = 30
     test_size: float = 0.2
     n_folds: int = 5
@@ -128,13 +127,9 @@ def validate_benchmarker_config(config: BenchmarkerConfig) -> None:
     # Validate trainer config (without requiring data in gp_config)
     validate_trainer_config(config.trainer_config, require_data=False)
 
-    # TODO: Test that KBinsDiscretizer works end-to-end with the benchmarker runner.
-    #       The runner currently calls binarizer.fit_transform(X, y) and .transform(X)
-    #       and expects DataFrame outputs with .columns and .to_numpy(). KBinsDiscretizer
-    #       returns numpy arrays, so an adapter or protocol may be needed.
     if config.binarizer is not None:
-        check_isinstance(config.binarizer, (StandardBinarizer, KBinsDiscretizer))
-        if hasattr(config.binarizer, "_is_fitted") and config.binarizer._is_fitted:
+        check_isinstance(config.binarizer, Binarizer)
+        if config.binarizer.is_fitted:
             raise ValueError(
                 "binarizer must not be fitted before passing to BenchmarkerConfig"
             )

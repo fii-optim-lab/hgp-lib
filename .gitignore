@@ -8,6 +8,7 @@ data/
 
 # Mac specific
 .DS_store
+.DS_Store
 
 # Output logs
 outputs

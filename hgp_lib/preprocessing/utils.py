@@ -3,7 +3,41 @@ from typing import Tuple
 
 import pandas as pd
 from numpy import ndarray
+from pandas.api.types import is_object_dtype, is_string_dtype
 from pathlib import Path
+
+
+def is_categorical_like(column: pd.Series) -> bool:
+    """
+    Return whether a column should be treated as categorical.
+
+    A column is categorical-like when it uses the pandas ``category`` dtype, or holds
+    strings or Python objects. Numeric and boolean columns are not categorical-like.
+
+    Args:
+        column (pd.Series):
+            The column to inspect.
+
+    Returns:
+        bool: ``True`` if the column is categorical, string, or object dtype.
+
+    Examples:
+        >>> import pandas as pd
+        >>> from hgp_lib.preprocessing.utils import is_categorical_like
+        >>> is_categorical_like(pd.Series(pd.Categorical(["a", "b"])))
+        True
+        >>> is_categorical_like(pd.Series(["a", "b"], dtype="string"))
+        True
+        >>> is_categorical_like(pd.Series([1.0, 2.0]))
+        False
+        >>> is_categorical_like(pd.Series([True, False]))
+        False
+    """
+    return (
+        isinstance(column.dtype, pd.CategoricalDtype)
+        or is_string_dtype(column)
+        or is_object_dtype(column)
+    )
 
 
 def load_data(data_path: str) -> Tuple[pd.DataFrame, ndarray]:
