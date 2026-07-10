@@ -17,7 +17,7 @@ Every binarizer follows the same contract, so implementations are interchangeabl
 
 ## How columns are converted
 
-The [`StandardBinarizer`(../api/preprocessing.md#hgp_lib.preprocessing.binarizer.StandardBinarizer)] handles three kinds of columns.
+The [`StandardBinarizer`](../api/preprocessing.md#hgp_lib.preprocessing.binarizer.StandardBinarizer) handles three kinds of columns.
 
 - Boolean columns pass through unchanged.
 - Categorical, string, and object columns are one-hot encoded into one boolean column per unique value.
@@ -54,7 +54,7 @@ Treat `k` as a hyperparameter to tune.
 
 ## Parameters
 
-The [`StandardBinarizer`(../api/preprocessing.md#hgp_lib.preprocessing.binarizer.StandardBinarizer)] exposes the following parameters.
+The [`StandardBinarizer`](../api/preprocessing.md#hgp_lib.preprocessing.binarizer.StandardBinarizer) exposes the following parameters.
 
 - `num_bins`: the default number of bins for numeric columns. Must be at least 2. Default is 5.
 - `column_strategy`: a per-column override for the number of bins, as a dict of column name to bin count. Default is none.
@@ -122,7 +122,7 @@ class MedianSplit(BinningStrategy):
 binarizer = StandardBinarizer(numeric_binning=MedianSplit())
 ```
 
-To change how a whole column type is handled, subclass [`StandardBinarizer`(../api/preprocessing.md#hgp_lib.preprocessing.binarizer.StandardBinarizer)] and override the matching hooks: `_fit_boolean` / `_transform_boolean`, `_fit_categorical` / `_transform_categorical`, or `_fit_numeric` / `_transform_numeric`.
+To change how a whole column type is handled, subclass [`StandardBinarizer`](../api/preprocessing.md#hgp_lib.preprocessing.binarizer.StandardBinarizer) and override the matching hooks: `_fit_boolean` / `_transform_boolean`, `_fit_categorical` / `_transform_categorical`, or `_fit_numeric` / `_transform_numeric`.
 The `_fit_*` hooks return `(name, values)` pairs, and the `_transform_*` hooks return the values in the same order.
 
 ## Using a scikit-learn discretizer

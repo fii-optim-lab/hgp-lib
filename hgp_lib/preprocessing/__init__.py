@@ -8,6 +8,7 @@ from .warnings import (
     HighCardinalityWarning,
     StringColumnWarning,
     UnseenNaNWarning,
+    EmptyBinarizationWarning,
 )
 
 __all__ = [
@@ -23,4 +24,5 @@ __all__ = [
     "HighCardinalityWarning",
     "StringColumnWarning",
     "UnseenNaNWarning",
+    "EmptyBinarizationWarning",
 ]

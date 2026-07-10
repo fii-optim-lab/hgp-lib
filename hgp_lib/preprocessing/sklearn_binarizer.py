@@ -59,11 +59,5 @@ class SklearnBinarizer(Binarizer):
 
     def _feature_names(self, X: pd.DataFrame, n_features: int) -> List[str]:
         if hasattr(self.transformer, "get_feature_names_out"):
-            try:
-                return list(self.transformer.get_feature_names_out(list(X.columns)))
-            except Exception:
-                try:
-                    return list(self.transformer.get_feature_names_out())
-                except Exception:
-                    pass
+            return list(self.transformer.get_feature_names_out(list(X.columns)))
         return [f"feature_{i}" for i in range(n_features)]

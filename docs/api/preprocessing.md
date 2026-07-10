@@ -26,6 +26,8 @@
 
 ::: hgp_lib.preprocessing.warnings.UnseenNaNWarning
 
+::: hgp_lib.preprocessing.warnings.EmptyBinarizationWarning
+
 ## Utilities
 
 ::: hgp_lib.preprocessing.utils.is_categorical_like

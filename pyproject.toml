@@ -7,12 +7,12 @@ readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [
-    { name = "Ramona-Georgiana Albert", email = "george.stoica@info.uaic.ro"},
-    { name = "George Stoica", email = "ramona-georgiana.albert@info.uaic.ro"},
+    { name = "Ramona-Georgiana Albert", email = "ramona-georgiana.albert@info.uaic.ro"},
+    { name = "George Stoica", email = "george.stoica@info.uaic.ro"},
 ]
 maintainers = [
-    { name = "Ramona-Georgiana Albert", email = "george.stoica@info.uaic.ro"},
-    { name = "George Stoica", email = "ramona-georgiana.albert@info.uaic.ro"},
+    { name = "George Stoica", email = "george.stoica@info.uaic.ro"},
+    { name = "Ramona-Georgiana Albert", email = "ramona-georgiana.albert@info.uaic.ro"},
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",

@@ -142,4 +142,4 @@ def validate_benchmarker_config(config: BenchmarkerConfig) -> None:
     if config.n_folds < 2:
         raise ValueError(f"n_folds must be at least 2, is {config.n_folds}")
 
-    setattr(config, "validated", True)
+    setattr(config, "_validated", True)

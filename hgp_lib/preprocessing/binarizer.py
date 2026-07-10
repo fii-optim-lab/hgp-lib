@@ -1,4 +1,4 @@
-from typing import List, Optional, Set, Tuple
+from typing import List, Optional, Set
 
 import numpy as np
 import pandas as pd
@@ -106,7 +106,6 @@ class StandardBinarizer(Binarizer):
         self._output_names: dict = {}
         self._na_columns: Set[str] = set()
         self._skipped_columns: Set[str] = set()
-        self._columns: Tuple[str, ...] = tuple()
         self._original_columns = None
         self._is_fitted = False
 
@@ -203,7 +202,6 @@ class StandardBinarizer(Binarizer):
             outputs["default"] = np.ones(len(X), dtype=bool)
 
         self._original_columns = X.columns
-        self._columns = tuple(outputs.keys())
         self._is_fitted = True
         return pd.DataFrame(outputs, index=X.index)
 
@@ -310,8 +308,9 @@ class StandardBinarizer(Binarizer):
         if not isinstance(series.dtype, pd.CategoricalDtype):
             warn_once(StringColumnWarning(column))
 
-        unique_values = series.dropna().unique()
-        if len(unique_values) == len(series):
+        not_na = series.dropna()
+        unique_values = not_na.unique()
+        if len(unique_values) == len(not_na):
             warn_once(HighCardinalityWarning(column))
             self._skipped_columns.add(column)
             return []
@@ -410,7 +409,6 @@ class StandardBinarizer(Binarizer):
         self._output_names = {}
         self._na_columns = set()
         self._skipped_columns = set()
-        self._columns = tuple()
         self._original_columns = None
         self._is_fitted = False
 
