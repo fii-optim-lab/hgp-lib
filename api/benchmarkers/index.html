@@ -1802,7 +1802,8 @@ options. See <code>BenchmarkerConfig</code> for more details.</p>
 <span class="normal">195</span>
 <span class="normal">196</span>
 <span class="normal">197</span>
-<span class="normal">198</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">GPBenchmarker</span><span class="p">:</span>
+<span class="normal">198</span>
+<span class="normal">199</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">GPBenchmarker</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Benchmarker for Boolean GP: runs multiple independent experiments with</span>
 <span class="sd">    stratified train/test split and k-fold CV per run, then aggregates results.</span>
@@ -1895,6 +1896,7 @@ options. See <code>BenchmarkerConfig</code> for more details.</p>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">show_run_progress</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">trainer_config</span><span class="o">.</span><span class="n">leave_progress_bar</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">binarizer</span><span class="o">.</span><span class="n">leave_progress_bar</span> <span class="o">=</span> <span class="kc">False</span>
 
         <span class="k">for</span> <span class="n">run_id</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span>
             <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">num_runs</span><span class="p">),</span>
@@ -2034,8 +2036,7 @@ best_run, best_rule, test scores statistics, etc.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>hgp_lib\benchmarkers\gp_benchmarker.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">178</span>
-<span class="normal">179</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">179</span>
 <span class="normal">180</span>
 <span class="normal">181</span>
 <span class="normal">182</span>
@@ -2054,7 +2055,8 @@ best_run, best_rule, test scores statistics, etc.</p>
 <span class="normal">195</span>
 <span class="normal">196</span>
 <span class="normal">197</span>
-<span class="normal">198</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExperimentResult</span><span class="p">:</span>
+<span class="normal">198</span>
+<span class="normal">199</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExperimentResult</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Run all benchmark runs (parallel or sequential) and aggregate results.</span>
 
@@ -2395,7 +2397,8 @@ data. This prevents data leakage across folds and between train/test sets.</p>
 <span class="normal">163</span>
 <span class="normal">164</span>
 <span class="normal">165</span>
-<span class="normal">166</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">execute_single_run</span><span class="p">(</span>
+<span class="normal">166</span>
+<span class="normal">167</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">execute_single_run</span><span class="p">(</span>
     <span class="n">run_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">BenchmarkerConfig</span><span class="p">,</span>
@@ -2435,6 +2438,7 @@ data. This prevents data leakage across folds and between train/test sets.</p>
     <span class="n">show_epochs</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">config</span><span class="o">.</span><span class="n">show_epoch_progress</span> <span class="ow">and</span> <span class="n">trainer_template</span><span class="o">.</span><span class="n">progress_bar</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">use_queue</span>
     <span class="p">)</span>
+    <span class="n">config</span><span class="o">.</span><span class="n">binarizer</span><span class="o">.</span><span class="n">progress_bar</span> <span class="o">=</span> <span class="n">show_epochs</span>
 
     <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
     <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>

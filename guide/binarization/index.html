@@ -535,6 +535,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#the-binarizer-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Binarizer contract
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#how-columns-are-converted" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -568,6 +579,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#missing-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Missing values
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#readable-bin-names" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -583,6 +605,28 @@
     <span class="md-ellipsis">
       
         Fit once, transform many
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-binning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom binning
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-a-scikit-learn-discretizer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using a scikit-learn discretizer
       
     </span>
   </a>
@@ -1371,6 +1415,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#the-binarizer-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Binarizer contract
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#how-columns-are-converted" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1404,6 +1459,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#missing-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Missing values
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#readable-bin-names" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1419,6 +1485,28 @@
     <span class="md-ellipsis">
       
         Fit once, transform many
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-binning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom binning
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-a-scikit-learn-discretizer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using a scikit-learn discretizer
       
     </span>
   </a>
@@ -1458,25 +1546,37 @@
 
 <h1 id="binarization">Binarization</h1>
 <p>Boolean GP works on boolean data.
-The <a href="../../api/preprocessing/#hgp_lib.preprocessing.binarizer.StandardBinarizer"><code>StandardBinarizer</code></a> converts a mixed-type DataFrame into a purely boolean one.
-Each output column is a boolean feature that a rule can test.</p>
+A <a href="../../api/preprocessing/#hgp_lib.preprocessing.base.Binarizer"><code>Binarizer</code></a> converts a mixed-type DataFrame into a purely boolean one.
+Each output column is a boolean feature that a rule can test.
+The default implementation is <a href="../../api/preprocessing/#hgp_lib.preprocessing.binarizer.StandardBinarizer"><code>StandardBinarizer</code></a>.</p>
+<h2 id="the-binarizer-contract">The Binarizer contract</h2>
+<p>Every binarizer follows the same contract, so implementations are interchangeable.</p>
+<ul>
+<li><code>fit_transform(X, y=None)</code> learns the encoding and returns a boolean DataFrame.</li>
+<li><code>transform(X)</code> applies the learned encoding and returns a boolean DataFrame with the same columns, in the same order.</li>
+<li><code>is_fitted</code> reports whether the binarizer has been fitted.</li>
+</ul>
+<p><a href="../../api/benchmarkers/#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker"><code>GPBenchmarker</code></a> relies on this contract, fitting a fresh copy per fold.</p>
 <h2 id="how-columns-are-converted">How columns are converted</h2>
-<p>The binarizer handles three kinds of columns.</p>
+<p>The [<code>StandardBinarizer</code>(../api/preprocessing.md#hgp_lib.preprocessing.binarizer.StandardBinarizer)] handles three kinds of columns.</p>
 <ul>
 <li>Boolean columns pass through unchanged.</li>
-<li>Categorical columns are one-hot encoded into one boolean column per unique value.</li>
+<li>Categorical, string, and object columns are one-hot encoded into one boolean column per unique value.</li>
 <li>Numeric columns are split into bins, and each bin becomes one boolean column.</li>
 </ul>
 <p>A numeric column with <code>k</code> bins produces up to <code>k</code> boolean columns.
 A bin column is true when the original value falls inside that bin.</p>
+<p>String and object columns are treated as categorical, and this raises a <a href="../../api/preprocessing/#hgp_lib.preprocessing.warnings.StringColumnWarning"><code>StringColumnWarning</code></a>.
+Set the column to a pandas <code>category</code> dtype to make the intent explicit and avoid the warning.
+A categorical column whose values are all distinct is skipped with a <a href="../../api/preprocessing/#hgp_lib.preprocessing.warnings.HighCardinalityWarning"><code>HighCardinalityWarning</code></a>, since one-hot encoding it would produce one feature per row.</p>
 <h2 id="numeric-binning-strategies">Numeric binning strategies</h2>
-<p>The bin edges for a numeric column are learned at fit time.
-The strategy depends on whether labels are passed to <code>fit_transform</code>.</p>
-<p>When labels are provided, the binarizer uses a decision-tree strategy.
+<p>Numeric bin edges are computed by a <a href="../../api/preprocessing/#hgp_lib.preprocessing.binning.BinningStrategy"><code>BinningStrategy</code></a>.
+When no strategy is set, the binarizer picks one based on whether labels are passed to <code>fit_transform</code>.</p>
+<p>With labels, it uses <a href="../../api/preprocessing/#hgp_lib.preprocessing.binning.SupervisedTreeBinning"><code>SupervisedTreeBinning</code></a>.
 It trains a decision tree on the single feature against the labels and takes the split thresholds as bin edges.
 The tree picks up to <code>k - 1</code> thresholds with the highest information gain, which produces <code>k</code> bins aligned with the class boundaries.
 This is label-aware, so the bins separate the classes better than unsupervised binning.<sup id="fnref:albert2025evolving"><a class="footnote-ref" href="#fn:albert2025evolving">1</a></sup></p>
-<p>When no labels are provided, the binarizer uses quantile binning.
+<p>Without labels, it uses <a href="../../api/preprocessing/#hgp_lib.preprocessing.binning.QuantileBinning"><code>QuantileBinning</code></a>.
 Edges are placed at evenly spaced quantiles, so each bin holds a similar number of samples.
 Quantile binning does not use the labels, so it can miss class-separating thresholds.</p>
 <p>In both strategies, a column with one or fewer unique values produces a single bin.
@@ -1486,11 +1586,12 @@ A larger <code>k</code> captures finer decision boundaries, but it produces more
 A smaller <code>k</code> keeps rules simple and training fast, at the cost of granularity.
 Treat <code>k</code> as a hyperparameter to tune.</p>
 <h2 id="parameters">Parameters</h2>
-<p>The <a href="../../api/preprocessing/#hgp_lib.preprocessing.binarizer.StandardBinarizer"><code>StandardBinarizer</code></a> exposes the following parameters.</p>
+<p>The [<code>StandardBinarizer</code>(../api/preprocessing.md#hgp_lib.preprocessing.binarizer.StandardBinarizer)] exposes the following parameters.</p>
 <ul>
 <li><code>num_bins</code>: the default number of bins for numeric columns. Must be at least 2. Default is 5.</li>
 <li><code>column_strategy</code>: a per-column override for the number of bins, as a dict of column name to bin count. Default is none.</li>
 <li><code>precision</code>: the number of decimals used when formatting numeric bin boundary names. Must be at least 0. Default is 3.</li>
+<li><code>numeric_binning</code>: an explicit <a href="../../api/preprocessing/#hgp_lib.preprocessing.binning.BinningStrategy"><code>BinningStrategy</code></a> for numeric columns. When set, it is used regardless of whether labels are provided. Default is none.</li>
 </ul>
 <p>The <code>column_strategy</code> parameter is what sets this binarizer apart from the common scikit-learn discretizers.
 A tool such as <code>KBinsDiscretizer</code> applies one bin count to all numeric columns.
@@ -1502,6 +1603,9 @@ Here you can give each column its own bin count, so a feature with a complex dis
     <span class="n">column_strategy</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;amount&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">},</span>   <span class="c1"># amount uses 10 bins instead</span>
 <span class="p">)</span>
 </code></pre></div>
+<h2 id="missing-values">Missing values</h2>
+<p>A column that contains missing values also produces a boolean <code>&lt;col&gt;_is_NA</code> indicator column, so a rule can test whether a value was missing.
+At transform time, if a column has missing values that were not seen during fit, no new column is created and those rows are encoded as all-false, which raises a <a href="../../api/preprocessing/#hgp_lib.preprocessing.warnings.UnseenNaNWarning"><code>UnseenNaNWarning</code></a>.</p>
 <h2 id="readable-bin-names">Readable bin names</h2>
 <p>Each numeric bin column is named after its boundaries, so a rule that uses it reads in plain terms.</p>
 <ul>
@@ -1521,6 +1625,32 @@ The binarizer must be fit before <code>transform</code>, and the input must have
 <p>Fitting only on the training data is what prevents leakage.
 For benchmarking, the <a href="../../api/benchmarkers/#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker"><code>GPBenchmarker</code></a> handles this per fold, so you do not call the binarizer yourself.
 See <a href="../benchmarking/">Benchmarking</a> for the workflow.</p>
+<h2 id="custom-binning">Custom binning</h2>
+<p>To change only how numeric edges are chosen, implement a <a href="../../api/preprocessing/#hgp_lib.preprocessing.binning.BinningStrategy"><code>BinningStrategy</code></a> and pass it as <code>numeric_binning</code>.
+The strategy receives the feature values, the optional labels, and the number of bins, and returns sorted edges bounded by <code>-inf</code> and <code>inf</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">StandardBinarizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.preprocessing.binning</span><span class="w"> </span><span class="kn">import</span> <span class="n">BinningStrategy</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">MedianSplit</span><span class="p">(</span><span class="n">BinningStrategy</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">n_bins</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">values</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">])</span>
+
+<span class="n">binarizer</span> <span class="o">=</span> <span class="n">StandardBinarizer</span><span class="p">(</span><span class="n">numeric_binning</span><span class="o">=</span><span class="n">MedianSplit</span><span class="p">())</span>
+</code></pre></div>
+<p>To change how a whole column type is handled, subclass [<code>StandardBinarizer</code>(../api/preprocessing.md#hgp_lib.preprocessing.binarizer.StandardBinarizer)] and override the matching hooks: <code>_fit_boolean</code> / <code>_transform_boolean</code>, <code>_fit_categorical</code> / <code>_transform_categorical</code>, or <code>_fit_numeric</code> / <code>_transform_numeric</code>.
+The <code>_fit_*</code> hooks return <code>(name, values)</code> pairs, and the <code>_transform_*</code> hooks return the values in the same order.</p>
+<h2 id="using-a-scikit-learn-discretizer">Using a scikit-learn discretizer</h2>
+<p>To use a scikit-learn transformer instead, wrap it in <a href="../../api/preprocessing/#hgp_lib.preprocessing.sklearn_binarizer.SklearnBinarizer"><code>SklearnBinarizer</code></a>.
+The wrapper fits the transformer, converts its output to a boolean DataFrame, and derives readable column names.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">KBinsDiscretizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">SklearnBinarizer</span>
+
+<span class="n">binarizer</span> <span class="o">=</span> <span class="n">SklearnBinarizer</span><span class="p">(</span>
+    <span class="n">KBinsDiscretizer</span><span class="p">(</span><span class="n">n_bins</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">encode</span><span class="o">=</span><span class="s2">&quot;onehot-dense&quot;</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="s2">&quot;quantile&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>Pass the wrapper anywhere a binarizer is accepted, including <code>BenchmarkerConfig.binarizer</code>.</p>
 <h2 id="references">References</h2>
 <div class="footnote">
 <hr />

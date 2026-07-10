@@ -1979,7 +1979,7 @@ Default: <code>0.1</code>.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Whether to show progress bar.</p>
+                <p>Whether to leave progress bar.</p>
               </div>
             </td>
           </tr>
@@ -2086,7 +2086,7 @@ Useful for external progress tracking (e.g., multiprocessing progress bars).</p>
 <span class="sd">        val_labels (ndarray | None): Validation labels; optional.</span>
 <span class="sd">        val_every (int): Validate every N epochs.</span>
 <span class="sd">        progress_bar (bool): Whether to show progress bar.</span>
-<span class="sd">        leave_progress_bar (bool): Whether to show progress bar.</span>
+<span class="sd">        leave_progress_bar (bool): Whether to leave progress bar.</span>
 <span class="sd">        progress_callback (Callable[[int], None] | None): Optional callback for progress updates.</span>
 <span class="sd">            Called every `progress_update_interval` epochs with the number of epochs completed.</span>
 <span class="sd">            Useful for external progress tracking (e.g., multiprocessing progress bars).</span>
@@ -2224,17 +2224,17 @@ per fold by the benchmarker).</p>
           <tr class="doc-section-item">
             <td><code><span title="hgp_lib.configs.benchmarker_config.BenchmarkerConfig.binarizer">binarizer</span></code></td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="            hgp_lib.preprocessing.binarizer.StandardBinarizer (hgp_lib.preprocessing.StandardBinarizer)" href="../preprocessing/#hgp_lib.preprocessing.binarizer.StandardBinarizer">StandardBinarizer</a> | <span title="sklearn.preprocessing.KBinsDiscretizer">KBinsDiscretizer</span> | None</code>
+                  <code><a class="autorefs autorefs-internal" title="            hgp_lib.preprocessing.base.Binarizer (hgp_lib.preprocessing.Binarizer)" href="../preprocessing/#hgp_lib.preprocessing.base.Binarizer">Binarizer</a> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Binarizer to transform
-features into boolean columns. A fresh <code>deepcopy</code> is fitted per fold so
-the original stays unfitted. When <code>None</code> (default), a
-<code>StandardBinarizer()</code> with default settings is used, which applies
-one-hot-encoding to categorical features and decision-tree-based binarization
-(5 bins) to numerical features. The binarizer must <strong>not</strong> be already fitted.
-Default: <code>None</code>.</p>
+                <p>Binarizer to transform features into boolean
+columns. A fresh <code>deepcopy</code> is fitted per fold so the original stays
+unfitted. When <code>None</code> (default), a <code>StandardBinarizer()</code> with default
+settings is used, which applies one-hot-encoding to categorical features
+and decision-tree-based binarization (5 bins) to numerical features. To use
+a scikit-learn discretizer instead, wrap it in <code>SklearnBinarizer</code>. The
+binarizer must not be already fitted. Default: <code>None</code>.</p>
               </div>
             </td>
           </tr>
@@ -2364,7 +2364,8 @@ Default: <code>True</code>.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>hgp_lib\configs\benchmarker_config.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">12</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">11</span>
+<span class="normal">12</span>
 <span class="normal">13</span>
 <span class="normal">14</span>
 <span class="normal">15</span>
@@ -2438,8 +2439,7 @@ Default: <code>True</code>.</p>
 <span class="normal">83</span>
 <span class="normal">84</span>
 <span class="normal">85</span>
-<span class="normal">86</span>
-<span class="normal">87</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">86</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">BenchmarkerConfig</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Configuration for GPBenchmarker. Used for multi-run benchmarking with k-fold CV.</span>
@@ -2462,13 +2462,13 @@ Default: <code>True</code>.</p>
 <span class="sd">        trainer_config (TrainerConfig): Template configuration for training. The nested</span>
 <span class="sd">            `gp_config` does not need `train_data`/`train_labels` (they will be set</span>
 <span class="sd">            per fold by the benchmarker).</span>
-<span class="sd">        binarizer (StandardBinarizer | KBinsDiscretizer | None): Binarizer to transform</span>
-<span class="sd">            features into boolean columns. A fresh `deepcopy` is fitted per fold so</span>
-<span class="sd">            the original stays unfitted. When `None` (default), a</span>
-<span class="sd">            `StandardBinarizer()` with default settings is used, which applies</span>
-<span class="sd">            one-hot-encoding to categorical features and decision-tree-based binarization</span>
-<span class="sd">            (5 bins) to numerical features. The binarizer must **not** be already fitted.</span>
-<span class="sd">            Default: `None`.</span>
+<span class="sd">        binarizer (Binarizer | None): Binarizer to transform features into boolean</span>
+<span class="sd">            columns. A fresh `deepcopy` is fitted per fold so the original stays</span>
+<span class="sd">            unfitted. When `None` (default), a `StandardBinarizer()` with default</span>
+<span class="sd">            settings is used, which applies one-hot-encoding to categorical features</span>
+<span class="sd">            and decision-tree-based binarization (5 bins) to numerical features. To use</span>
+<span class="sd">            a scikit-learn discretizer instead, wrap it in `SklearnBinarizer`. The</span>
+<span class="sd">            binarizer must not be already fitted. Default: `None`.</span>
 <span class="sd">        num_runs (int): Number of benchmark runs with different random seeds. Default: `30`.</span>
 <span class="sd">        test_size (float): Fraction of data to hold out for testing. Default: `0.2`.</span>
 <span class="sd">        n_folds (int): Number of folds for k-fold cross-validation. Default: `5`.</span>
@@ -2506,7 +2506,7 @@ Default: <code>True</code>.</p>
     <span class="n">data</span><span class="p">:</span> <span class="n">DataFrame</span>
     <span class="n">labels</span><span class="p">:</span> <span class="n">ndarray</span>
     <span class="n">trainer_config</span><span class="p">:</span> <span class="n">TrainerConfig</span>
-    <span class="n">binarizer</span><span class="p">:</span> <span class="n">StandardBinarizer</span> <span class="o">|</span> <span class="n">KBinsDiscretizer</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">binarizer</span><span class="p">:</span> <span class="n">Binarizer</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">num_runs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span>
     <span class="n">test_size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span>
     <span class="n">n_folds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span>
