@@ -15,6 +15,7 @@ from .warnings import (
     HighCardinalityWarning,
     StringColumnWarning,
     UnseenNaNWarning,
+    EmptyBinarizationWarning,
 )
 
 
@@ -197,6 +198,10 @@ class StandardBinarizer(Binarizer):
                 names.append(name)
             self._output_names[column] = names
 
+        if len(outputs) == 0:
+            warn_once(EmptyBinarizationWarning())
+            outputs["default"] = np.ones(len(X), dtype=bool)
+
         self._original_columns = X.columns
         self._columns = tuple(outputs.keys())
         self._is_fitted = True
@@ -234,6 +239,7 @@ class StandardBinarizer(Binarizer):
         if not self._is_fitted:
             raise ValueError("Binarizer must be fitted before calling transform")
         if not self._original_columns.equals(X.columns):
+            # TODO: We should add custom Errors in the library where it makes sense.;
             raise RuntimeError(
                 f"Original columns do not match current columns. "
                 f"Original columns: {self._original_columns}. Current columns: {X.columns}."
@@ -267,6 +273,10 @@ class StandardBinarizer(Binarizer):
             for name, values in zip(names, values_list):
                 outputs[name] = values
 
+        if len(outputs) == 0:
+            warn_once(EmptyBinarizationWarning())
+            outputs["default"] = np.ones(len(X), dtype=bool)
+
         return pd.DataFrame(outputs, index=X.index)
 
     def _fit_column(
@@ -277,6 +287,7 @@ class StandardBinarizer(Binarizer):
         nan_mask: np.ndarray,
     ):
         """Dispatch a single column to the matching dtype hook and record its dtype."""
+        # TODO: Instead of string values, we should have an enum. And an enum-like dispatch.
         if is_bool_dtype(series):
             self._original_column_dtypes[column] = "bool"
             return self._fit_boolean(column, series)

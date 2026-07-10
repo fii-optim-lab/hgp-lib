@@ -60,3 +60,11 @@ class UnseenNaNWarning(BinarizerWarning):
             f"Column '{column}' has NaN values that were not seen during fit; "
             f"these rows are encoded as all-false."
         )
+
+
+class EmptyBinarizationWarning(BinarizerWarning):
+    def __init__(self):
+        super().__init__(
+            "Empty binarization. An 'all-true' default column is generated. "
+            "Please check the input data and provide binarization-compatible columns."
+        )
