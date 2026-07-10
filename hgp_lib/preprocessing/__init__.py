@@ -1,4 +1,26 @@
+from .base import Binarizer
 from .binarizer import StandardBinarizer
-from .utils import load_data
+from .sklearn_binarizer import SklearnBinarizer
+from .binning import BinningStrategy, QuantileBinning, SupervisedTreeBinning
+from .utils import is_categorical_like, load_data
+from .warnings import (
+    BinarizerWarning,
+    HighCardinalityWarning,
+    StringColumnWarning,
+    UnseenNaNWarning,
+)
 
-__all__ = ["StandardBinarizer", "load_data"]
+__all__ = [
+    "Binarizer",
+    "StandardBinarizer",
+    "SklearnBinarizer",
+    "BinningStrategy",
+    "QuantileBinning",
+    "SupervisedTreeBinning",
+    "is_categorical_like",
+    "load_data",
+    "BinarizerWarning",
+    "HighCardinalityWarning",
+    "StringColumnWarning",
+    "UnseenNaNWarning",
+]

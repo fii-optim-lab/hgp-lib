@@ -19,7 +19,7 @@ class TrainerConfig:
         val_labels (ndarray | None): Validation labels; optional.
         val_every (int): Validate every N epochs.
         progress_bar (bool): Whether to show progress bar.
-        leave_progress_bar (bool): Whether to show progress bar.
+        leave_progress_bar (bool): Whether to leave progress bar.
         progress_callback (Callable[[int], None] | None): Optional callback for progress updates.
             Called every `progress_update_interval` epochs with the number of epochs completed.
             Useful for external progress tracking (e.g., multiprocessing progress bars).
