@@ -2,11 +2,12 @@
 
 from dataclasses import dataclass
 from functools import cached_property
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import numpy as np
 
 from . import PopulationHistory
+from ..preprocessing.base import Binarizer
 from ..rules import Rule
 
 
@@ -30,6 +31,9 @@ class RunResult:
         test_tn (int): True negatives on the test set.
         feature_names (Dict[int, str]): Mapping from feature index to column name
             (from the binarizer fitted on the best fold).
+        binarizer (Binarizer | None): The binarizer fitted on the best fold, used to
+            transform raw data before evaluating ``best_rule`` (e.g. in
+            ``GPBenchmarker.predict``). Default: `None`.
 
     Examples:
         >>> from hgp_lib.metrics import RunResult, PopulationHistory
@@ -58,6 +62,7 @@ class RunResult:
     test_fn: int
     test_tn: int
     feature_names: Dict[int, str]
+    binarizer: Optional[Binarizer] = None
 
     @cached_property
     def best_fold(self) -> PopulationHistory:

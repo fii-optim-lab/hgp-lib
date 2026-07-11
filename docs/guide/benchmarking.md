@@ -125,6 +125,22 @@ print(f"Test score: {np.mean(test_scores):.4f} ± {np.std(test_scores):.4f}")
 print(result.best_rule.to_str(result.best_run.feature_names))
 ```
 
+## Predicting on new data
+
+After `fit`, the benchmarker exposes a scikit-learn style [`predict`](../api/benchmarkers.md#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker.predict) that works on raw data.
+It binarizes the input with the best run's fitted binarizer (the one from its best fold), then evaluates the best rule.
+Pass a `pandas.DataFrame` with the same columns, order, and dtypes as the data used to fit the benchmarker.
+
+```python
+benchmarker = GPBenchmarker(config)
+benchmarker.fit()
+
+new_data = pd.DataFrame(...)  # same schema as the fitted data
+predictions = benchmarker.predict(new_data)  # 1-D boolean array
+```
+
+The fitted binarizer is stored on [`RunResult.binarizer`](../api/metrics.md#hgp_lib.metrics.results.RunResult), so `predict` reproduces the exact encoding used during the best run.
+
 ## Hyperparameter tuning
 
 Hyperparameter tuning runs on top of the benchmarker.

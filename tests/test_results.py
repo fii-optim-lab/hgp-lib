@@ -70,6 +70,20 @@ class _Helpers:
 
 class TestRunResult(unittest.TestCase, _Helpers):
     # ------------------------------------------------------------------ #
+    #  binarizer field
+    # ------------------------------------------------------------------ #
+    def test_binarizer_defaults_to_none(self):
+        run = self.make_run()
+        self.assertIsNone(run.binarizer)
+
+    def test_binarizer_can_be_set(self):
+        from hgp_lib.preprocessing import StandardBinarizer
+
+        binarizer = StandardBinarizer()
+        run = self.make_run(binarizer=binarizer)
+        self.assertIs(run.binarizer, binarizer)
+
+    # ------------------------------------------------------------------ #
     #  best_fold
     # ------------------------------------------------------------------ #
     def test_best_fold(self):

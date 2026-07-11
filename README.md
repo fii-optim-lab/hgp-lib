@@ -48,10 +48,13 @@ gp = BooleanGPConfig(
     train_data=train_bin.to_numpy(),
     train_labels=train_labels,
 )
-history = GPTrainer(TrainerConfig(gp_config=gp, num_epochs=1000)).fit()
+trainer = GPTrainer(TrainerConfig(gp_config=gp, num_epochs=1000))
+history = trainer.fit()
 
 rule = history.global_best_rule
-predictions = rule.evaluate(test_bin.to_numpy())
+predictions = trainer.predict(test_bin.to_numpy())
+# Equivalent notation
+# predictions = rule.evaluate(test_bin.to_numpy())
 column_names = dict(enumerate(train_bin.columns))
 print(rule.to_str(column_names))
 ```
@@ -87,13 +90,17 @@ config = BenchmarkerConfig(
     test_size=0.2,
     n_jobs=-1,
 )
-result = GPBenchmarker(config).fit()
+benchmarker = GPBenchmarker(config)
+result = benchmarker.fit()
 
 test_scores = result.test_scores
 print(f"Test score: {np.mean(test_scores):.4f} ± {np.std(test_scores):.4f}")
 
 # Human-readable best rule
 print(result.best_rule.to_str(result.best_run.feature_names))
+
+# sklearn-style predict on raw data (binarized internally with the best run's binarizer)
+predictions = benchmarker.predict(data)
 ```
 
 See [Benchmarking](https://fii-optim-lab.github.io/hgp-lib/guide/benchmarking/) for scorer optimization, custom binarizers, and the aggregated result fields.

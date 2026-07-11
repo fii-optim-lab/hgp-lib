@@ -133,9 +133,9 @@ def execute_single_run(
     best_rule = folds[best_fold_idx].global_best_rule
 
     # Transform test data using best fold's binarizer
-    binarizer_here = binarizers[best_fold_idx]
+    best_binarizer = binarizers[best_fold_idx]
     feature_names = feature_names_per_binarizer[best_fold_idx]
-    test_data = binarizer_here.transform(test_data).to_numpy(dtype=bool)
+    test_data = best_binarizer.transform(test_data).to_numpy(dtype=bool)
 
     if gp_template.optimize_scorer:
         test_score_fn, test_cm, test_data, test_labels = optimize_scorers_for_data(
@@ -164,6 +164,7 @@ def execute_single_run(
         test_fn=fn,
         test_tn=tn,
         feature_names=feature_names,
+        binarizer=best_binarizer,
     )
 
 

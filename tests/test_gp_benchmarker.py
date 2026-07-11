@@ -526,6 +526,39 @@ class TestGPBenchmarker(unittest.TestCase):
         self.assertEqual(run.run_id, 0)
 
     # ------------------------------------------------------------------ #
+    #  predict
+    # ------------------------------------------------------------------ #
+    def test_predict_before_fit_raises(self):
+        benchmarker = GPBenchmarker(self._make_config(num_runs=1))
+        with self.assertRaises(RuntimeError):
+            benchmarker.predict(self.data)
+
+    def test_predict_returns_boolean_array(self):
+        benchmarker = GPBenchmarker(self._make_config(num_runs=2))
+        benchmarker.fit()
+
+        predictions = benchmarker.predict(self.data)
+        self.assertIsInstance(predictions, np.ndarray)
+        self.assertEqual(predictions.dtype, bool)
+        self.assertEqual(predictions.shape, (len(self.data),))
+
+    def test_predict_stores_binarizer_on_best_run(self):
+        benchmarker = GPBenchmarker(self._make_config(num_runs=2))
+        result = benchmarker.fit()
+        self.assertIsInstance(result.best_run.binarizer, StandardBinarizer)
+        self.assertTrue(result.best_run.binarizer.is_fitted)
+
+    def test_predict_matches_best_rule_on_binarized_data(self):
+        benchmarker = GPBenchmarker(self._make_config(num_runs=2))
+        result = benchmarker.fit()
+
+        predictions = benchmarker.predict(self.data)
+        best_run = result.best_run
+        binarized = best_run.binarizer.transform(self.data).to_numpy(dtype=bool)
+        expected = best_run.best_rule.evaluate(binarized)
+        np.testing.assert_array_equal(predictions, expected)
+
+    # ------------------------------------------------------------------ #
     #  Doctests
     # ------------------------------------------------------------------ #
     def test_doctests(self):
