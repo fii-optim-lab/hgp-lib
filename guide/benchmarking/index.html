@@ -652,6 +652,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#predicting-on-new-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Predicting on new data
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#hyperparameter-tuning" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1438,6 +1449,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#predicting-on-new-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Predicting on new data
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#hyperparameter-tuning" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1573,6 +1595,17 @@ Either pass a base scorer with <code>optimize_scorer=True</code> (default), or u
 <span class="c1"># Human-readable best rule</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">best_rule</span><span class="o">.</span><span class="n">to_str</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">best_run</span><span class="o">.</span><span class="n">feature_names</span><span class="p">))</span>
 </code></pre></div>
+<h2 id="predicting-on-new-data">Predicting on new data</h2>
+<p>After <code>fit</code>, the benchmarker exposes a scikit-learn style <a href="../../api/benchmarkers/#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker.predict"><code>predict</code></a> that works on raw data.
+It binarizes the input with the best run's fitted binarizer (the one from its best fold), then evaluates the best rule.
+Pass a <code>pandas.DataFrame</code> with the same columns, order, and dtypes as the data used to fit the benchmarker.</p>
+<div class="highlight"><pre><span></span><code><span class="n">benchmarker</span> <span class="o">=</span> <span class="n">GPBenchmarker</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+<span class="n">benchmarker</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+
+<span class="n">new_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>  <span class="c1"># same schema as the fitted data</span>
+<span class="n">predictions</span> <span class="o">=</span> <span class="n">benchmarker</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">new_data</span><span class="p">)</span>  <span class="c1"># 1-D boolean array</span>
+</code></pre></div>
+<p>The fitted binarizer is stored on <a href="../../api/metrics/#hgp_lib.metrics.results.RunResult"><code>RunResult.binarizer</code></a>, so <code>predict</code> reproduces the exact encoding used during the best run.</p>
 <h2 id="hyperparameter-tuning">Hyperparameter tuning</h2>
 <p>Hyperparameter tuning runs on top of the benchmarker.
 Each Optuna trial samples a configuration, runs a full benchmark with it, and uses the aggregated score as the trial objective.

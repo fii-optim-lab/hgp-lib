@@ -1061,6 +1061,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker.predict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        predict
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1427,6 +1438,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker.predict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        predict
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1635,9 +1657,7 @@ options. See <code>BenchmarkerConfig</code> for more details.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>hgp_lib/benchmarkers/gp_benchmarker.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 31</span>
-<span class="normal"> 32</span>
-<span class="normal"> 33</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 33</span>
 <span class="normal"> 34</span>
 <span class="normal"> 35</span>
 <span class="normal"> 36</span>
@@ -1803,7 +1823,65 @@ options. See <code>BenchmarkerConfig</code> for more details.</p>
 <span class="normal">196</span>
 <span class="normal">197</span>
 <span class="normal">198</span>
-<span class="normal">199</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">GPBenchmarker</span><span class="p">:</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span>
+<span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span>
+<span class="normal">244</span>
+<span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">GPBenchmarker</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Benchmarker for Boolean GP: runs multiple independent experiments with</span>
 <span class="sd">    stratified train/test split and k-fold CV per run, then aggregates results.</span>
@@ -1972,6 +2050,62 @@ options. See <code>BenchmarkerConfig</code> for more details.</p>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_run_results</span> <span class="o">=</span> <span class="n">run_results</span>
         <span class="k">return</span> <span class="n">run_results</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Predict labels for raw ``data`` using the best rule found across all runs.</span>
+
+<span class="sd">        This mirrors the scikit-learn ``predict`` API so a fitted ``GPBenchmarker``</span>
+<span class="sd">        can be used where an estimator is expected. It must be called after ``fit``.</span>
+<span class="sd">        The raw ``DataFrame`` is binarized with the best run&#39;s fitted binarizer (the</span>
+<span class="sd">        one from its best fold), then the best rule is evaluated on it.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data (pd.DataFrame):</span>
+<span class="sd">                Raw (non-binarized) features with the same columns, in the same order</span>
+<span class="sd">                and dtypes, as the data used to fit the benchmarker.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray: 1-D boolean array with one prediction per input row.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            RuntimeError: If called before ``fit`` (no results are available yet), or</span>
+<span class="sd">                if the best run has no fitted binarizer to transform the raw data.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">            &gt;&gt;&gt; import pandas as pd</span>
+<span class="sd">            &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig, TrainerConfig, BenchmarkerConfig</span>
+<span class="sd">            &gt;&gt;&gt; from hgp_lib.benchmarkers import GPBenchmarker</span>
+<span class="sd">            &gt;&gt;&gt; data = pd.DataFrame({</span>
+<span class="sd">            ...     &quot;f1&quot;: [True, False, True, False, True, False, True, False],</span>
+<span class="sd">            ...     &quot;f2&quot;: [False, True, True, False, False, True, True, False],</span>
+<span class="sd">            ... })</span>
+<span class="sd">            &gt;&gt;&gt; labels = np.array([1, 0, 1, 0, 1, 0, 1, 0])</span>
+<span class="sd">            &gt;&gt;&gt; def acc(p, l): return float((p == l).mean())</span>
+<span class="sd">            &gt;&gt;&gt; gp_config = BooleanGPConfig(score_fn=acc, optimize_scorer=False)</span>
+<span class="sd">            &gt;&gt;&gt; trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=3, progress_bar=False)</span>
+<span class="sd">            &gt;&gt;&gt; config = BenchmarkerConfig(</span>
+<span class="sd">            ...     data=data, labels=labels, trainer_config=trainer_config,</span>
+<span class="sd">            ...     num_runs=2, n_folds=2, n_jobs=1,</span>
+<span class="sd">            ... )</span>
+<span class="sd">            &gt;&gt;&gt; benchmarker = GPBenchmarker(config)</span>
+<span class="sd">            &gt;&gt;&gt; _ = benchmarker.fit()</span>
+<span class="sd">            &gt;&gt;&gt; predictions = benchmarker.predict(data)</span>
+<span class="sd">            &gt;&gt;&gt; predictions.shape</span>
+<span class="sd">            (8,)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_results</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;GPBenchmarker must be fit before calling predict&quot;</span><span class="p">)</span>
+
+        <span class="n">best_run</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_results</span><span class="o">.</span><span class="n">best_run</span>
+        <span class="k">if</span> <span class="n">best_run</span><span class="o">.</span><span class="n">binarizer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;best run has no fitted binarizer; cannot predict on raw data&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">binarized</span> <span class="o">=</span> <span class="n">best_run</span><span class="o">.</span><span class="n">binarizer</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">best_run</span><span class="o">.</span><span class="n">best_rule</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">binarized</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -2036,9 +2170,7 @@ best_run, best_rule, test scores statistics, etc.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>hgp_lib/benchmarkers/gp_benchmarker.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">179</span>
-<span class="normal">180</span>
-<span class="normal">181</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">181</span>
 <span class="normal">182</span>
 <span class="normal">183</span>
 <span class="normal">184</span>
@@ -2056,7 +2188,9 @@ best_run, best_rule, test scores statistics, etc.</p>
 <span class="normal">196</span>
 <span class="normal">197</span>
 <span class="normal">198</span>
-<span class="normal">199</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExperimentResult</span><span class="p">:</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExperimentResult</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Run all benchmark runs (parallel or sequential) and aggregate results.</span>
 
@@ -2077,6 +2211,245 @@ best_run, best_rule, test scores statistics, etc.</p>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_run_results</span> <span class="o">=</span> <span class="n">run_results</span>
     <span class="k">return</span> <span class="n">run_results</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker.predict" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">predict</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Predict labels for raw <code>data</code> using the best rule found across all runs.</p>
+<p>This mirrors the scikit-learn <code>predict</code> API so a fitted <code>GPBenchmarker</code>
+can be used where an estimator is expected. It must be called after <code>fit</code>.
+The raw <code>DataFrame</code> is binarized with the best run's fitted binarizer (the
+one from its best fold), then the best rule is evaluated on it.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>data</code>
+            </td>
+            <td>
+                  <code><span title="pandas.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Raw (non-binarized) features with the same columns, in the same order
+and dtypes, as the data used to fit the benchmarker.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>np.ndarray: 1-D boolean array with one prediction per input row.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="RuntimeError">RuntimeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If called before <code>fit</code> (no results are available yet), or
+if the best run has no fitted binarizer to transform the raw data.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGPConfig</span><span class="p">,</span> <span class="n">TrainerConfig</span><span class="p">,</span> <span class="n">BenchmarkerConfig</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.benchmarkers</span><span class="w"> </span><span class="kn">import</span> <span class="n">GPBenchmarker</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+<span class="gp">... </span>    <span class="s2">&quot;f1&quot;</span><span class="p">:</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="s2">&quot;f2&quot;</span><span class="p">:</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span>
+<span class="gp">... </span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">acc</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">l</span><span class="p">):</span> <span class="k">return</span> <span class="nb">float</span><span class="p">((</span><span class="n">p</span> <span class="o">==</span> <span class="n">l</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">gp_config</span> <span class="o">=</span> <span class="n">BooleanGPConfig</span><span class="p">(</span><span class="n">score_fn</span><span class="o">=</span><span class="n">acc</span><span class="p">,</span> <span class="n">optimize_scorer</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trainer_config</span> <span class="o">=</span> <span class="n">TrainerConfig</span><span class="p">(</span><span class="n">gp_config</span><span class="o">=</span><span class="n">gp_config</span><span class="p">,</span> <span class="n">num_epochs</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">BenchmarkerConfig</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">trainer_config</span><span class="o">=</span><span class="n">trainer_config</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">num_runs</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_folds</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">benchmarker</span> <span class="o">=</span> <span class="n">GPBenchmarker</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">benchmarker</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">predictions</span> <span class="o">=</span> <span class="n">benchmarker</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">predictions</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(8,)</span>
+</code></pre></div>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>hgp_lib/benchmarkers/gp_benchmarker.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span>
+<span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span>
+<span class="normal">244</span>
+<span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Predict labels for raw ``data`` using the best rule found across all runs.</span>
+
+<span class="sd">    This mirrors the scikit-learn ``predict`` API so a fitted ``GPBenchmarker``</span>
+<span class="sd">    can be used where an estimator is expected. It must be called after ``fit``.</span>
+<span class="sd">    The raw ``DataFrame`` is binarized with the best run&#39;s fitted binarizer (the</span>
+<span class="sd">    one from its best fold), then the best rule is evaluated on it.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data (pd.DataFrame):</span>
+<span class="sd">            Raw (non-binarized) features with the same columns, in the same order</span>
+<span class="sd">            and dtypes, as the data used to fit the benchmarker.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.ndarray: 1-D boolean array with one prediction per input row.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        RuntimeError: If called before ``fit`` (no results are available yet), or</span>
+<span class="sd">            if the best run has no fitted binarizer to transform the raw data.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">        &gt;&gt;&gt; import pandas as pd</span>
+<span class="sd">        &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig, TrainerConfig, BenchmarkerConfig</span>
+<span class="sd">        &gt;&gt;&gt; from hgp_lib.benchmarkers import GPBenchmarker</span>
+<span class="sd">        &gt;&gt;&gt; data = pd.DataFrame({</span>
+<span class="sd">        ...     &quot;f1&quot;: [True, False, True, False, True, False, True, False],</span>
+<span class="sd">        ...     &quot;f2&quot;: [False, True, True, False, False, True, True, False],</span>
+<span class="sd">        ... })</span>
+<span class="sd">        &gt;&gt;&gt; labels = np.array([1, 0, 1, 0, 1, 0, 1, 0])</span>
+<span class="sd">        &gt;&gt;&gt; def acc(p, l): return float((p == l).mean())</span>
+<span class="sd">        &gt;&gt;&gt; gp_config = BooleanGPConfig(score_fn=acc, optimize_scorer=False)</span>
+<span class="sd">        &gt;&gt;&gt; trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=3, progress_bar=False)</span>
+<span class="sd">        &gt;&gt;&gt; config = BenchmarkerConfig(</span>
+<span class="sd">        ...     data=data, labels=labels, trainer_config=trainer_config,</span>
+<span class="sd">        ...     num_runs=2, n_folds=2, n_jobs=1,</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt; benchmarker = GPBenchmarker(config)</span>
+<span class="sd">        &gt;&gt;&gt; _ = benchmarker.fit()</span>
+<span class="sd">        &gt;&gt;&gt; predictions = benchmarker.predict(data)</span>
+<span class="sd">        &gt;&gt;&gt; predictions.shape</span>
+<span class="sd">        (8,)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_results</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;GPBenchmarker must be fit before calling predict&quot;</span><span class="p">)</span>
+
+    <span class="n">best_run</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_results</span><span class="o">.</span><span class="n">best_run</span>
+    <span class="k">if</span> <span class="n">best_run</span><span class="o">.</span><span class="n">binarizer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="s2">&quot;best run has no fitted binarizer; cannot predict on raw data&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">binarized</span> <span class="o">=</span> <span class="n">best_run</span><span class="o">.</span><span class="n">binarizer</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">best_run</span><span class="o">.</span><span class="n">best_rule</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">binarized</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2398,7 +2771,8 @@ data. This prevents data leakage across folds and between train/test sets.</p>
 <span class="normal">164</span>
 <span class="normal">165</span>
 <span class="normal">166</span>
-<span class="normal">167</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">execute_single_run</span><span class="p">(</span>
+<span class="normal">167</span>
+<span class="normal">168</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">execute_single_run</span><span class="p">(</span>
     <span class="n">run_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">BenchmarkerConfig</span><span class="p">,</span>
@@ -2516,9 +2890,9 @@ data. This prevents data leakage across folds and between train/test sets.</p>
     <span class="n">best_rule</span> <span class="o">=</span> <span class="n">folds</span><span class="p">[</span><span class="n">best_fold_idx</span><span class="p">]</span><span class="o">.</span><span class="n">global_best_rule</span>
 
     <span class="c1"># Transform test data using best fold&#39;s binarizer</span>
-    <span class="n">binarizer_here</span> <span class="o">=</span> <span class="n">binarizers</span><span class="p">[</span><span class="n">best_fold_idx</span><span class="p">]</span>
+    <span class="n">best_binarizer</span> <span class="o">=</span> <span class="n">binarizers</span><span class="p">[</span><span class="n">best_fold_idx</span><span class="p">]</span>
     <span class="n">feature_names</span> <span class="o">=</span> <span class="n">feature_names_per_binarizer</span><span class="p">[</span><span class="n">best_fold_idx</span><span class="p">]</span>
-    <span class="n">test_data</span> <span class="o">=</span> <span class="n">binarizer_here</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="n">test_data</span> <span class="o">=</span> <span class="n">best_binarizer</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">gp_template</span><span class="o">.</span><span class="n">optimize_scorer</span><span class="p">:</span>
         <span class="n">test_score_fn</span><span class="p">,</span> <span class="n">test_cm</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">test_labels</span> <span class="o">=</span> <span class="n">optimize_scorers_for_data</span><span class="p">(</span>
@@ -2547,6 +2921,7 @@ data. This prevents data leakage across folds and between train/test sets.</p>
         <span class="n">test_fn</span><span class="o">=</span><span class="n">fn</span><span class="p">,</span>
         <span class="n">test_tn</span><span class="o">=</span><span class="n">tn</span><span class="p">,</span>
         <span class="n">feature_names</span><span class="o">=</span><span class="n">feature_names</span><span class="p">,</span>
+        <span class="n">binarizer</span><span class="o">=</span><span class="n">best_binarizer</span><span class="p">,</span>
     <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>

@@ -595,6 +595,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#predicting-with-a-fitted-trainer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Predicting with a fitted trainer
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1370,6 +1381,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#predicting-with-a-fitted-trainer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Predicting with a fitted trainer
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1474,6 +1496,16 @@ It binarizes the data once, trains a rule with <a href="../../api/trainers/#hgp_
 <span class="nb">print</span><span class="p">(</span><span class="n">rule</span><span class="o">.</span><span class="n">to_str</span><span class="p">(</span><span class="n">column_names</span><span class="p">))</span>
 </code></pre></div>
 <p>The <code>column_names</code> map turns the literal indices back into the binarized column names, so the printed rule reads as plain logic.</p>
+<h2 id="predicting-with-a-fitted-trainer">Predicting with a fitted trainer</h2>
+<p>After <code>fit</code>, the trainer exposes a scikit-learn style <a href="../../api/trainers/#hgp_lib.trainers.gp_trainer.GPTrainer.predict"><code>predict</code></a>.
+It evaluates the best rule found during training, so a fitted <a href="../../api/trainers/#hgp_lib.trainers.gp_trainer.GPTrainer"><code>GPTrainer</code></a> can be used where an estimator is expected.
+The input must already be binarized (a boolean array) with the same feature layout as the training data.</p>
+<div class="highlight"><pre><span></span><code><span class="n">trainer</span> <span class="o">=</span> <span class="n">GPTrainer</span><span class="p">(</span><span class="n">TrainerConfig</span><span class="p">(</span><span class="n">gp_config</span><span class="o">=</span><span class="n">gp</span><span class="p">,</span> <span class="n">num_epochs</span><span class="o">=</span><span class="mi">1000</span><span class="p">))</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+
+<span class="n">predictions</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_bin</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span>  <span class="c1"># 1-D boolean array</span>
+</code></pre></div>
+<p>This is equivalent to calling <code>history.global_best_rule.evaluate(test_bin.to_numpy())</code>, but keeps the estimator-style API.</p>
 <p>For end-to-end examples on real datasets, see the <a href="../../experiments/">Experiments</a> section.</p>
 
 

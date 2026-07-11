@@ -3483,6 +3483,24 @@ fold's rule, and the confusion matrix on the held-out test set.</p>
                 <em>required</em>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>binarizer</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            hgp_lib.preprocessing.base.Binarizer" href="../preprocessing/#hgp_lib.preprocessing.base.Binarizer">Binarizer</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The binarizer fitted on the best fold, used to
+transform raw data before evaluating <code>best_rule</code> (e.g. in
+<code>GPBenchmarker.predict</code>). Default: <code>None</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -3513,8 +3531,7 @@ fold's rule, and the confusion matrix on the held-out test set.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>hgp_lib/metrics/results.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 13</span>
-<span class="normal"> 14</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 14</span>
 <span class="normal"> 15</span>
 <span class="normal"> 16</span>
 <span class="normal"> 17</span>
@@ -3797,7 +3814,12 @@ fold's rule, and the confusion matrix on the held-out test set.</p>
 <span class="normal">294</span>
 <span class="normal">295</span>
 <span class="normal">296</span>
-<span class="normal">297</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">297</span>
+<span class="normal">298</span>
+<span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span>
+<span class="normal">302</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RunResult</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Result of one complete benchmark run with k-fold cross-validation.</span>
@@ -3817,6 +3839,9 @@ fold's rule, and the confusion matrix on the held-out test set.</p>
 <span class="sd">        test_tn (int): True negatives on the test set.</span>
 <span class="sd">        feature_names (Dict[int, str]): Mapping from feature index to column name</span>
 <span class="sd">            (from the binarizer fitted on the best fold).</span>
+<span class="sd">        binarizer (Binarizer | None): The binarizer fitted on the best fold, used to</span>
+<span class="sd">            transform raw data before evaluating ``best_rule`` (e.g. in</span>
+<span class="sd">            ``GPBenchmarker.predict``). Default: `None`.</span>
 
 <span class="sd">    Examples:</span>
 <span class="sd">        &gt;&gt;&gt; from hgp_lib.metrics import RunResult, PopulationHistory</span>
@@ -3845,6 +3870,7 @@ fold's rule, and the confusion matrix on the held-out test set.</p>
     <span class="n">test_fn</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">test_tn</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">feature_names</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+    <span class="n">binarizer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Binarizer</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">best_fold</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PopulationHistory</span><span class="p">:</span>
@@ -4590,12 +4616,7 @@ Returns <code>"[]"</code> if no validation data was used.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>hgp_lib/metrics/results.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">300</span>
-<span class="normal">301</span>
-<span class="normal">302</span>
-<span class="normal">303</span>
-<span class="normal">304</span>
-<span class="normal">305</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">305</span>
 <span class="normal">306</span>
 <span class="normal">307</span>
 <span class="normal">308</span>
@@ -4737,7 +4758,12 @@ Returns <code>"[]"</code> if no validation data was used.</p>
 <span class="normal">444</span>
 <span class="normal">445</span>
 <span class="normal">446</span>
-<span class="normal">447</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">447</span>
+<span class="normal">448</span>
+<span class="normal">449</span>
+<span class="normal">450</span>
+<span class="normal">451</span>
+<span class="normal">452</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ExperimentResult</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Aggregated results across multiple benchmark runs.</span>
