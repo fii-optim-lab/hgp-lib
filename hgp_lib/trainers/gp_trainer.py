@@ -1,5 +1,6 @@
 from typing import List
 
+import numpy as np
 from tqdm import tqdm
 
 from ..algorithms import BooleanGP
@@ -148,4 +149,47 @@ class GPTrainer:
             global_best_rule=self.gp_algo.global_best_rule,
         )
 
-    # TODO: Maybe we should add predict to allow using GPTrainer in sklearn pipelines
+    def predict(self, data: np.ndarray) -> np.ndarray:
+        """
+        Predict labels for ``data`` using the best rule found during training.
+
+        This mirrors the scikit-learn ``predict`` API so a fitted ``GPTrainer`` can
+        be dropped into places that expect an estimator. It must be called after
+        ``fit``. The input must already be binarized (a boolean array) with the same
+        feature layout as the training data.
+
+        Args:
+            data (np.ndarray):
+                2-D boolean array of shape ``(n_samples, n_features)``, using the same
+                binarized feature layout as the training data.
+
+        Returns:
+            np.ndarray: 1-D boolean array with one prediction per input row.
+
+        Raises:
+            RuntimeError: If called before ``fit`` (no best rule is available yet).
+
+        Examples:
+            >>> import numpy as np
+            >>> from hgp_lib.configs import BooleanGPConfig, TrainerConfig
+            >>> from hgp_lib.trainers import GPTrainer
+            >>> def accuracy(predictions, labels):
+            ...     return np.mean(predictions == labels)
+            >>> train_data = np.array([[True, False], [False, True]])
+            >>> train_labels = np.array([1, 0])
+            >>> gp_config = BooleanGPConfig(
+            ...     score_fn=accuracy,
+            ...     train_data=train_data,
+            ...     train_labels=train_labels,
+            ...     optimize_scorer=False,
+            ... )
+            >>> config = TrainerConfig(gp_config=gp_config, num_epochs=5, progress_bar=False)
+            >>> trainer = GPTrainer(config)
+            >>> _ = trainer.fit()
+            >>> predictions = trainer.predict(train_data)
+            >>> predictions.shape
+            (2,)
+        """
+        if self.gp_algo.global_best_rule is None:
+            raise RuntimeError("GPTrainer must be fit before calling predict")
+        return self.gp_algo.global_best_rule.evaluate(data)

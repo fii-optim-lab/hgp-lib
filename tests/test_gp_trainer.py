@@ -324,6 +324,34 @@ class TestGPTrainer(unittest.TestCase):
         result = trainer.fit()
         self.assertIsInstance(result.global_best_rule, Rule)
 
+    # ------------------------------------------------------------------ #
+    #  predict
+    # ------------------------------------------------------------------ #
+    def test_predict_before_fit_raises(self):
+        config = self._make_trainer_config(num_epochs=5)
+        trainer = GPTrainer(config)
+        with self.assertRaises(RuntimeError):
+            trainer.predict(self.train_data)
+
+    def test_predict_returns_boolean_array(self):
+        config = self._make_trainer_config(num_epochs=5)
+        trainer = GPTrainer(config)
+        trainer.fit()
+
+        predictions = trainer.predict(self.test_data)
+        self.assertIsInstance(predictions, np.ndarray)
+        self.assertEqual(predictions.dtype, bool)
+        self.assertEqual(predictions.shape, (self.test_data.shape[0],))
+
+    def test_predict_matches_best_rule_evaluate(self):
+        config = self._make_trainer_config(num_epochs=5)
+        trainer = GPTrainer(config)
+        result = trainer.fit()
+
+        predictions = trainer.predict(self.train_data)
+        expected = result.global_best_rule.evaluate(self.train_data)
+        np.testing.assert_array_equal(predictions, expected)
+
     def test_doctests(self):
         result = doctest.testmod(hgp_lib.trainers.gp_trainer, verbose=False)
         self.assertEqual(result.failed, 0, f"Doctests failed: {result}")

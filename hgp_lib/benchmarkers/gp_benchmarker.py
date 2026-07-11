@@ -3,6 +3,8 @@ import multiprocessing
 import os
 from typing import List
 
+import numpy as np
+import pandas as pd
 from tqdm import tqdm
 
 from ..configs import BenchmarkerConfig, validate_benchmarker_config
@@ -197,3 +199,59 @@ class GPBenchmarker:
 
         self._run_results = run_results
         return run_results
+
+    def predict(self, data: pd.DataFrame) -> np.ndarray:
+        """
+        Predict labels for raw ``data`` using the best rule found across all runs.
+
+        This mirrors the scikit-learn ``predict`` API so a fitted ``GPBenchmarker``
+        can be used where an estimator is expected. It must be called after ``fit``.
+        The raw ``DataFrame`` is binarized with the best run's fitted binarizer (the
+        one from its best fold), then the best rule is evaluated on it.
+
+        Args:
+            data (pd.DataFrame):
+                Raw (non-binarized) features with the same columns, in the same order
+                and dtypes, as the data used to fit the benchmarker.
+
+        Returns:
+            np.ndarray: 1-D boolean array with one prediction per input row.
+
+        Raises:
+            RuntimeError: If called before ``fit`` (no results are available yet), or
+                if the best run has no fitted binarizer to transform the raw data.
+
+        Examples:
+            >>> import numpy as np
+            >>> import pandas as pd
+            >>> from hgp_lib.configs import BooleanGPConfig, TrainerConfig, BenchmarkerConfig
+            >>> from hgp_lib.benchmarkers import GPBenchmarker
+            >>> data = pd.DataFrame({
+            ...     "f1": [True, False, True, False, True, False, True, False],
+            ...     "f2": [False, True, True, False, False, True, True, False],
+            ... })
+            >>> labels = np.array([1, 0, 1, 0, 1, 0, 1, 0])
+            >>> def acc(p, l): return float((p == l).mean())
+            >>> gp_config = BooleanGPConfig(score_fn=acc, optimize_scorer=False)
+            >>> trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=3, progress_bar=False)
+            >>> config = BenchmarkerConfig(
+            ...     data=data, labels=labels, trainer_config=trainer_config,
+            ...     num_runs=2, n_folds=2, n_jobs=1,
+            ... )
+            >>> benchmarker = GPBenchmarker(config)
+            >>> _ = benchmarker.fit()
+            >>> predictions = benchmarker.predict(data)
+            >>> predictions.shape
+            (8,)
+        """
+        if self._run_results is None:
+            raise RuntimeError("GPBenchmarker must be fit before calling predict")
+
+        best_run = self._run_results.best_run
+        if best_run.binarizer is None:
+            raise RuntimeError(
+                "best run has no fitted binarizer; cannot predict on raw data"
+            )
+
+        binarized = best_run.binarizer.transform(data).to_numpy(dtype=bool)
+        return best_run.best_rule.evaluate(binarized)

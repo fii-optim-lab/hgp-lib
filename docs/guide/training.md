@@ -98,4 +98,19 @@ print(rule.to_str(column_names))
 
 The `column_names` map turns the literal indices back into the binarized column names, so the printed rule reads as plain logic.
 
+## Predicting with a fitted trainer
+
+After `fit`, the trainer exposes a scikit-learn style [`predict`](../api/trainers.md#hgp_lib.trainers.gp_trainer.GPTrainer.predict).
+It evaluates the best rule found during training, so a fitted [`GPTrainer`](../api/trainers.md#hgp_lib.trainers.gp_trainer.GPTrainer) can be used where an estimator is expected.
+The input must already be binarized (a boolean array) with the same feature layout as the training data.
+
+```python
+trainer = GPTrainer(TrainerConfig(gp_config=gp, num_epochs=1000))
+trainer.fit()
+
+predictions = trainer.predict(test_bin.to_numpy())  # 1-D boolean array
+```
+
+This is equivalent to calling `history.global_best_rule.evaluate(test_bin.to_numpy())`, but keeps the estimator-style API.
+
 For end-to-end examples on real datasets, see the [Experiments](../experiments/index.md) section.
