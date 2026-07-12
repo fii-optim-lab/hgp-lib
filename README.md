@@ -34,6 +34,8 @@ See [Theory](https://fii-optim-lab.github.io/hgp-lib/theory/) for how the search
 
 ```bash
 pip install hgp-lib
+# or
+pip install hgp-lib[dev]
 ```
 
 ## Quickstart

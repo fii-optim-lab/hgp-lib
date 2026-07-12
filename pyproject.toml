@@ -48,9 +48,6 @@ dependencies = [
     "pandas",
     "scikit-learn",
     "tqdm",
-    "optuna",
-    "optuna-dashboard",
-    "matplotlib",
 ]
 [tool.setuptools.packages.find]
 include = ["hgp_lib*"]
@@ -74,6 +71,9 @@ dev = [
     "prettytable",
     "timed-decorator",
     "pytest-cov",
+    "optuna",
+    "optuna-dashboard",
+    "matplotlib",
 ]
 [tool.ruff]
 exclude = [".venv"]
