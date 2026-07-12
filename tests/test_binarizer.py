@@ -1,13 +1,8 @@
-import doctest
 import unittest
 
 import numpy as np
 import pandas as pd
 
-import hgp_lib.preprocessing.binarizer
-import hgp_lib.preprocessing.binning
-import hgp_lib.preprocessing.sklearn_binarizer
-import hgp_lib.preprocessing.warnings
 from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.preprocessing.binning import (
     BinningStrategy,
@@ -391,19 +386,6 @@ class TestStandardBinarizer(unittest.TestCase):
         self.assertFalse(b.is_fitted)
         b.fit_transform(pd.DataFrame({"x": [1.0, 2.0]}))
         self.assertTrue(b.is_fitted)
-
-    # ------------------------------------------------------------------ #
-    #  Doctests
-    # ------------------------------------------------------------------ #
-    def test_doctests(self):
-        for module in (
-            hgp_lib.preprocessing.binarizer,
-            hgp_lib.preprocessing.binning,
-            hgp_lib.preprocessing.sklearn_binarizer,
-            hgp_lib.preprocessing.warnings,
-        ):
-            result = doctest.testmod(module, verbose=False)
-            self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 class TestSklearnBinarizer(unittest.TestCase):

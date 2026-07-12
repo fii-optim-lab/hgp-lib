@@ -1,11 +1,9 @@
-import doctest
 import unittest
 import random
 from typing import Sequence
 
 import numpy as np
 
-import hgp_lib.algorithms.boolean_gp
 from hgp_lib.algorithms import BooleanGP
 from hgp_lib.configs import BooleanGPConfig
 from hgp_lib.crossover import CrossoverExecutor, CrossoverExecutorFactory
@@ -379,6 +377,36 @@ class TestBooleanGP(unittest.TestCase):
         # and best_not_improved_epochs is reset after the regeneration branch.
         self.assertEqual(gp.best_not_improved_epochs, 0)
 
+    def test_regeneration_after_one_epoch_regenerates_population(self):
+        """After one warm-up epoch, force stagnation and verify the next step
+        regenerates the population by calling the population generator again."""
+        from unittest.mock import MagicMock
+
+        config = self._make_config(regeneration=True, regeneration_patience=1)
+        gp = BooleanGP(config)
+
+        # Warm up one epoch.
+        gp.step()
+
+        # Spy on the population generator: it is only invoked again on regeneration.
+        gp.population_generator.generate = MagicMock(
+            wraps=gp.population_generator.generate
+        )
+        # Force stagnation deterministically: an unbeatable best_score means the next
+        # step registers no improvement, and patience is already reached.
+        gp.best_score = float("inf")
+        gp.best_not_improved_epochs = gp.regeneration_patience
+        pop_size_before = len(gp.population)
+
+        gp.step()
+
+        # The generator was called -> the population was regenerated from scratch.
+        self.assertEqual(gp.population_generator.generate.call_count, 1)
+        self.assertEqual(len(gp.population), pop_size_before)
+        # Regeneration resets best tracking.
+        self.assertEqual(gp.best_score, -float("inf"))
+        self.assertEqual(gp.best_not_improved_epochs, 0)
+
     # ------------------------------------------------------------------ #
     #  Hierarchical GP
     # ------------------------------------------------------------------ #
@@ -500,15 +528,6 @@ class TestBooleanGP(unittest.TestCase):
         gp.step()
         gp.step()
         self.assertEqual(gp.best_not_improved_epochs, 2)
-
-    # ------------------------------------------------------------------ #
-    #  Doctests
-    # ------------------------------------------------------------------ #
-    def test_doctests(self):
-        # TODO: Check if we can't make a single test file that tests the doctests for all files automatically
-        # This means that it will automatically test it, without needing to specify the module
-        result = doctest.testmod(hgp_lib.algorithms.boolean_gp, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 if __name__ == "__main__":

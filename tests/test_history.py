@@ -1,10 +1,8 @@
 """Unit tests for PopulationHistory."""
 
-import doctest
 import unittest
 from dataclasses import replace
 
-import hgp_lib.metrics.history
 from hgp_lib.metrics.history import PopulationHistory
 from hgp_lib.metrics.core import GenerationMetrics
 from hgp_lib.rules import Literal
@@ -109,13 +107,6 @@ class TestPopulationHistory(unittest.TestCase):
         rule = Literal(value=5)
         ph = self._make_history(global_best_rule=rule)
         self.assertIs(ph.global_best_rule, rule)
-
-    # ------------------------------------------------------------------ #
-    #  Doctests
-    # ------------------------------------------------------------------ #
-    def test_doctests(self):
-        result = doctest.testmod(hgp_lib.metrics.history, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 if __name__ == "__main__":

@@ -1,10 +1,8 @@
-import doctest
 import unittest
 import random
 
 import numpy as np
 
-import hgp_lib.trainers.gp_trainer
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
 from hgp_lib.trainers import GPTrainer
 from hgp_lib.crossover import CrossoverExecutor, CrossoverExecutorFactory
@@ -351,10 +349,6 @@ class TestGPTrainer(unittest.TestCase):
         predictions = trainer.predict(self.train_data)
         expected = result.global_best_rule.evaluate(self.train_data)
         np.testing.assert_array_equal(predictions, expected)
-
-    def test_doctests(self):
-        result = doctest.testmod(hgp_lib.trainers.gp_trainer, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 if __name__ == "__main__":

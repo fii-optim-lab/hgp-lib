@@ -310,21 +310,6 @@ class TestPopulations(unittest.TestCase):
                 sample_size={"invalid": "type"},
             )
 
-    def test_doctests(self):
-        import doctest
-        import hgp_lib.populations.strategies
-        import hgp_lib.populations.generator
-        import hgp_lib.populations.populations_factory
-
-        result = doctest.testmod(hgp_lib.populations.strategies, verbose=False)
-        self.assertEqual(result.failed, 0, f"Strategies doctests failed: {result}")
-
-        result = doctest.testmod(hgp_lib.populations.generator, verbose=False)
-        self.assertEqual(result.failed, 0, f"Generator doctests failed: {result}")
-
-        result = doctest.testmod(hgp_lib.populations.populations_factory, verbose=False)
-        self.assertEqual(result.failed, 0, f"Factory doctests failed: {result}")
-
 
 class TestPopulationGeneratorFactory(unittest.TestCase):
     def setUp(self):
@@ -468,15 +453,6 @@ class TestMutationExecutorFactory(unittest.TestCase):
         self.assertIsInstance(executor, MutationExecutor)
         self.assertEqual(executor.num_tries, 3)
         self.assertIsNotNone(executor.check_valid)
-
-    def test_doctests(self):
-        import doctest
-        import hgp_lib.mutations.mutation_factory
-
-        result = doctest.testmod(hgp_lib.mutations.mutation_factory, verbose=False)
-        self.assertEqual(
-            result.failed, 0, f"Mutation factory doctests failed: {result}"
-        )
 
 
 if __name__ == "__main__":

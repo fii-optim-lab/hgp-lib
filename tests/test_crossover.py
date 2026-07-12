@@ -1,11 +1,8 @@
-import doctest
 import unittest
 import random
 
 import numpy as np
 
-import hgp_lib.crossover.crossover_executor
-import hgp_lib.rules.utils
 from hgp_lib.crossover import CrossoverExecutor, CrossoverExecutorFactory
 from hgp_lib.rules import Rule, Literal, And, Or
 
@@ -306,14 +303,6 @@ class TestCrossoverExecutor(unittest.TestCase):
         # so no rules should be selected for crossover
         self.assertEqual(len(children), 0)
         self.assertEqual(len(parent_indices), 0)
-
-    def test_doctests(self):
-        result = doctest.testmod(hgp_lib.crossover.crossover_executor, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
-
-    def test_utils_doctests(self):
-        result = doctest.testmod(hgp_lib.rules.utils, verbose=False)
-        self.assertEqual(result.failed, 0, f"Utils doctests failed: {result}")
 
 
 if __name__ == "__main__":

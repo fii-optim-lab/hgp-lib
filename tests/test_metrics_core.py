@@ -1,10 +1,8 @@
 """Unit tests for GenerationMetrics."""
 
-import doctest
 import unittest
 from dataclasses import replace
 
-import hgp_lib.metrics.core
 from hgp_lib.metrics.core import GenerationMetrics
 from hgp_lib.rules import Literal, And
 
@@ -94,13 +92,6 @@ class TestGenerationMetrics(unittest.TestCase):
     def test_empty_children(self):
         m = self._make()
         self.assertEqual(len(m.child_population_generation_metrics), 0)
-
-    # ------------------------------------------------------------------ #
-    #  Doctests
-    # ------------------------------------------------------------------ #
-    def test_doctests(self):
-        result = doctest.testmod(hgp_lib.metrics.core, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 if __name__ == "__main__":

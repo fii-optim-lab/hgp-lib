@@ -1,10 +1,7 @@
 """Tests for operator mutations: RemoveIntermediateOperator, ReplaceOperator, AddLiteral."""
 
-import doctest
 import unittest
 
-
-import hgp_lib.mutations.operator_mutations
 from hgp_lib.mutations import (
     RemoveIntermediateOperator,
     ReplaceOperator,
@@ -149,12 +146,6 @@ class TestAddLiteral(unittest.TestCase):
         rule = And([Literal(value=0)])
         AddLiteral(num_literals=5).apply(rule)
         self.assertIs(rule.subrules[1].parent, rule)
-
-
-class TestDoctests(unittest.TestCase):
-    def test_doctests(self):
-        result = doctest.testmod(hgp_lib.mutations.operator_mutations, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,5 @@
 """Tests for hgp_lib.utils.metrics."""
 
-import doctest
 import unittest
 import warnings
 
@@ -208,12 +207,6 @@ class TestOptimizeScorersForData(unittest.TestCase):
         labels = np.array([1])
         with self.assertRaises(TypeError):
             optimize_scorers_for_data(42, data=data, labels=labels)
-
-
-class TestDoctests(unittest.TestCase):
-    def test_doctests(self):
-        result = doctest.testmod(hgp_lib.utils.metrics, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 if __name__ == "__main__":

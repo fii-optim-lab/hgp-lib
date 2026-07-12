@@ -1,15 +1,13 @@
-import doctest
+import io
 import queue
 import unittest
 import random
+from contextlib import redirect_stderr, redirect_stdout
 from multiprocessing import Queue
 
 import numpy as np
 import pandas as pd
 
-import hgp_lib
-import hgp_lib.benchmarkers.progress
-import hgp_lib.benchmarkers.runner
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.benchmarkers.runner import execute_single_run, single_run_wrapper
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
@@ -526,6 +524,58 @@ class TestGPBenchmarker(unittest.TestCase):
         self.assertEqual(run.run_id, 0)
 
     # ------------------------------------------------------------------ #
+    #  Progress output (stdout/stderr capture)
+    # ------------------------------------------------------------------ #
+    def test_progress_output_is_emitted(self):
+        """A sequential run with progress enabled writes progress to stdout/stderr.
+
+        tqdm renders its bars to stderr (even to a non-tty stream), so we run a small
+        dummy benchmark with all progress flags on and assert that some progress
+        output is produced.
+        """
+        config = self._make_config(
+            num_runs=1,
+            n_folds=2,
+            n_jobs=1,
+            trainer_config=self._make_trainer_config(num_epochs=3, progress_bar=True),
+        )
+        config.show_run_progress = True
+        config.show_fold_progress = True
+        config.show_epoch_progress = True
+
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with redirect_stdout(stdout), redirect_stderr(stderr):
+            result = GPBenchmarker(config).fit()
+
+        output = stdout.getvalue() + stderr.getvalue()
+        self.assertEqual(len(result.runs), 1)
+        self.assertTrue(output.strip(), "expected progress output on stdout/stderr")
+        self.assertTrue(
+            any(desc in output for desc in ("Benchmark Runs", "Folds", "Epochs")),
+            f"expected a tqdm progress description in the output, got: {output!r}",
+        )
+
+    def test_no_progress_output_when_disabled(self):
+        """With progress fully disabled, no tqdm output is written."""
+        config = self._make_config(
+            num_runs=1,
+            n_folds=2,
+            n_jobs=1,
+            trainer_config=self._make_trainer_config(num_epochs=3, progress_bar=False),
+        )
+        config.show_run_progress = False
+        config.show_fold_progress = False
+        config.show_epoch_progress = False
+
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with redirect_stdout(stdout), redirect_stderr(stderr):
+            GPBenchmarker(config).fit()
+
+        output = stdout.getvalue() + stderr.getvalue()
+        self.assertNotIn("Benchmark Runs", output)
+        self.assertNotIn("Epochs", output)
+
+    # ------------------------------------------------------------------ #
     #  predict
     # ------------------------------------------------------------------ #
     def test_predict_before_fit_raises(self):
@@ -557,17 +607,6 @@ class TestGPBenchmarker(unittest.TestCase):
         binarized = best_run.binarizer.transform(self.data).to_numpy(dtype=bool)
         expected = best_run.best_rule.evaluate(binarized)
         np.testing.assert_array_equal(predictions, expected)
-
-    # ------------------------------------------------------------------ #
-    #  Doctests
-    # ------------------------------------------------------------------ #
-    def test_doctests(self):
-        result = doctest.testmod(hgp_lib.benchmarkers.gp_benchmarker, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
-        result = doctest.testmod(hgp_lib.benchmarkers.runner, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
-        result = doctest.testmod(hgp_lib.benchmarkers.progress, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 if __name__ == "__main__":

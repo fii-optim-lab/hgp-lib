@@ -1,9 +1,7 @@
 """Tests for MutationExecutorFactory validation and creation."""
 
-import doctest
 import unittest
 
-import hgp_lib.mutations.mutation_factory
 from hgp_lib.mutations import (
     Mutation,
     MutationExecutor,
@@ -188,15 +186,6 @@ class TestMutationExecutorFactory(unittest.TestCase):
         executor = NegateOnly(mutation_p=1.0).create(num_literals=4)
         self.assertEqual(len(executor.literal_mutations), 1)
         self.assertEqual(len(executor.operator_mutations), 1)
-
-    # ------------------------------------------------------------------ #
-    #  Doctests
-    # ------------------------------------------------------------------ #
-    def test_doctests(self):
-        result = doctest.testmod(hgp_lib.mutations.mutation_factory, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
-        result = doctest.testmod(hgp_lib.mutations.base_mutation, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 if __name__ == "__main__":

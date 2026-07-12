@@ -1,10 +1,8 @@
 """Tests for hgp_lib.rules.utils."""
 
-import doctest
 import random
 import unittest
 
-import hgp_lib.rules.utils
 from hgp_lib.rules import Literal, And, Or
 from hgp_lib.rules.utils import (
     is_operator,
@@ -226,12 +224,6 @@ class TestSelectCrossoverPoint(unittest.TestCase):
                 operator_count += 1
         # With operator_p=0.9, expect ~90% operators
         self.assertGreater(operator_count / n, 0.7)
-
-
-class TestDoctests(unittest.TestCase):
-    def test_doctests(self):
-        result = doctest.testmod(hgp_lib.rules.utils, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 if __name__ == "__main__":

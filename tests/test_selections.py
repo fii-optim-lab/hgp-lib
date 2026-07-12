@@ -1,11 +1,8 @@
-import doctest
 import unittest
 import random
 
 import numpy as np
 
-import hgp_lib.selections.base_selection
-import hgp_lib.selections.roulette_selection
 from hgp_lib.selections import BaseSelection, RouletteSelection, TournamentSelection
 from hgp_lib.rules import Rule, Literal, And, Or
 
@@ -51,10 +48,6 @@ class TestBaseSelection(unittest.TestCase):
         self.assertEqual(len(selected_scores), 2)
         self.assertAlmostEqual(selected_scores[0], 0.9)
         self.assertAlmostEqual(selected_scores[1], 0.5)
-
-    def test_doctests(self):
-        result = doctest.testmod(hgp_lib.selections.base_selection, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 class TestRouletteSelection(unittest.TestCase):
@@ -192,10 +185,6 @@ class TestRouletteSelection(unittest.TestCase):
         self.assertEqual(len(selected_scores), 2)
         for rule in selected_rules:
             self.assertIsInstance(rule, Rule)
-
-    def test_doctests(self):
-        result = doctest.testmod(hgp_lib.selections.roulette_selection, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 class TestTournamentSelection(unittest.TestCase):
@@ -467,11 +456,6 @@ class TestTournamentSelection(unittest.TestCase):
         np.random.seed(42)
         selected_rules, _ = selection.select(rules, scores, n_select=20)
         self.assertEqual(len(selected_rules), 20)
-
-    def test_doctests(self):
-        """Test all doctests in the tournament_selection module."""
-        result = doctest.testmod(hgp_lib.selections.tournament_selection, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 if __name__ == "__main__":

@@ -1,12 +1,10 @@
 """Tests for hgp_lib.utils.validation."""
 
-import doctest
 import unittest
 
 import numpy as np
 import pandas as pd
 
-import hgp_lib.utils.validation
 from hgp_lib.rules import Literal, And, Or
 from hgp_lib.utils.validation import (
     ComplexityCheck,
@@ -165,12 +163,6 @@ class TestCheckXy(unittest.TestCase):
     def test_wrong_y_type(self):
         with self.assertRaises(TypeError):
             check_X_y(np.array([[1, 2]]), [0])
-
-
-class TestDoctests(unittest.TestCase):
-    def test_doctests(self):
-        result = doctest.testmod(hgp_lib.utils.validation, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 if __name__ == "__main__":

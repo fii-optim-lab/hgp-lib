@@ -1,10 +1,8 @@
 """Unit tests for RunResult and ExperimentResult."""
 
-import doctest
 import unittest
 from dataclasses import replace
 
-import hgp_lib.metrics.results
 from hgp_lib.metrics.core import GenerationMetrics
 from hgp_lib.metrics.history import PopulationHistory
 from hgp_lib.metrics.results import RunResult, ExperimentResult
@@ -270,13 +268,6 @@ class TestExperimentResult(unittest.TestCase, _Helpers):
     def test_test_scores_single(self):
         exp = ExperimentResult(runs=[self.make_run(test_score=0.85)])
         self.assertEqual(exp.test_scores, [0.85])
-
-    # ------------------------------------------------------------------ #
-    #  Doctests
-    # ------------------------------------------------------------------ #
-    def test_doctests(self):
-        result = doctest.testmod(hgp_lib.metrics.results, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 if __name__ == "__main__":

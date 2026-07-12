@@ -1,9 +1,7 @@
-import doctest
 import time
 import unittest
 from multiprocessing import Queue
 
-import hgp_lib.benchmarkers.progress
 from hgp_lib.benchmarkers.progress import (
     ProgressConfig,
     ProgressListener,
@@ -155,10 +153,6 @@ class TestProgressListener(unittest.TestCase):
         q = Queue()
         listener = ProgressListener(q, self._make_config())
         listener.stop()  # _thread is None, should return immediately
-
-    def test_doctests(self):
-        result = doctest.testmod(hgp_lib.benchmarkers.progress, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 if __name__ == "__main__":

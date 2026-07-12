@@ -1,14 +1,10 @@
 """Tests for all config modules: BooleanGPConfig, TrainerConfig, BenchmarkerConfig."""
 
-import doctest
 import unittest
 
 import numpy as np
 import pandas as pd
 
-import hgp_lib.configs.boolean_gp_config
-import hgp_lib.configs.trainer_config
-import hgp_lib.configs.benchmarker_config
 from hgp_lib.configs import (
     BenchmarkerConfig,
     BooleanGPConfig,
@@ -326,22 +322,6 @@ class TestBenchmarkerConfig(unittest.TestCase):
         self.assertTrue(config.show_fold_progress)
         self.assertTrue(config.show_epoch_progress)
         self.assertIsNone(config.binarizer)
-
-
-class TestConfigDoctests(unittest.TestCase):
-    """Run doctests for all config modules."""
-
-    def test_boolean_gp_config_doctests(self):
-        result = doctest.testmod(hgp_lib.configs.boolean_gp_config, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
-
-    def test_trainer_config_doctests(self):
-        result = doctest.testmod(hgp_lib.configs.trainer_config, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
-
-    def test_benchmarker_config_doctests(self):
-        result = doctest.testmod(hgp_lib.configs.benchmarker_config, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 class TestComplexityCheck(unittest.TestCase):

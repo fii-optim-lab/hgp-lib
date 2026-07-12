@@ -1,11 +1,8 @@
 """Tests for MutationExecutor functionality."""
 
-import doctest
 import unittest
 from unittest.mock import patch
 
-
-import hgp_lib.mutations.mutation_executor
 from hgp_lib.mutations import Mutation, MutationExecutor, NegateMutation, MutationError
 from hgp_lib.rules import Rule, Literal, And
 
@@ -211,13 +208,6 @@ class TestMutationExecutor(unittest.TestCase):
         with p1, p2:
             result = executor._mutate(rule, 1)
         self.assertEqual(result.value, 7)
-
-    # ------------------------------------------------------------------ #
-    #  Doctests
-    # ------------------------------------------------------------------ #
-    def test_doctests(self):
-        result = doctest.testmod(hgp_lib.mutations.mutation_executor, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 if __name__ == "__main__":

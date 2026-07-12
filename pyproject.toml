@@ -92,3 +92,9 @@ exclude_also = [
     "if TYPE_CHECKING:",
     "if __name__ == .__main__.:",
 ]
+
+[tool.pytest.ini_options]
+# Collect unit tests from tests/ and doctests from the package modules.
+# testpaths is scoped so --doctest-modules never imports scripts/, test.py, etc.
+testpaths = ["tests", "hgp_lib"]
+addopts = "--doctest-modules"

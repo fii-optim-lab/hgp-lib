@@ -1,11 +1,9 @@
 """Tests for literal mutations: DeleteMutation, NegateMutation, ReplaceLiteral, PromoteLiteral."""
 
-import doctest
 import unittest
 
 import numpy as np
 
-import hgp_lib.mutations.literal_mutations
 from hgp_lib.mutations import (
     DeleteMutation,
     NegateMutation,
@@ -214,12 +212,6 @@ class TestPromoteLiteral(unittest.TestCase):
         m.apply(rule)
         for s in rule.subrules:
             self.assertIs(s.parent, rule)
-
-
-class TestDoctests(unittest.TestCase):
-    def test_doctests(self):
-        result = doctest.testmod(hgp_lib.mutations.literal_mutations, verbose=False)
-        self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
 if __name__ == "__main__":
