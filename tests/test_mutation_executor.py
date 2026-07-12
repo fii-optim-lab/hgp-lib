@@ -39,6 +39,20 @@ class _FailingMutation(Mutation):
         raise MutationError("always fails")
 
 
+class _NeitherMutation(Mutation):
+    def __init__(self):
+        super().__init__(False, False)  # neither literal nor operator -> invalid
+
+    def apply(self, rule: Rule):
+        pass
+
+
+class TestBaseMutation(unittest.TestCase):
+    def test_mutation_must_be_literal_or_operator(self):
+        with self.assertRaises(ValueError):
+            _NeitherMutation()
+
+
 class TestMutationExecutor(unittest.TestCase):
     def _patch(self):
         """Context manager that patches random.choice and select_crossover_point."""

@@ -26,6 +26,19 @@ class TestRules(unittest.TestCase):
             Literal(value=1, negated=True).evaluate(self.data), ~self.data[:, 1]
         )
 
+    def test_to_str_indented_multiline(self):
+        rule = And([Literal(value=0), Literal(value=1)])
+        single_line = rule.to_str()
+        multiline = rule.to_str(indent=0)
+        # Indented output spans multiple lines and uses tab indentation.
+        self.assertIn("\n", multiline)
+        self.assertIn("\t", multiline)
+        self.assertNotIn("\n", single_line)
+        # Named features are still substituted in the indented form.
+        named = rule.to_str({0: "a", 1: "b"}, indent=0)
+        self.assertIn("a", named)
+        self.assertIn("b", named)
+
     def test_and(self):
         for and_type in [And, LowMemoryAnd]:
             with self.subTest(f"Testing {type(and_type()).__qualname__}"):

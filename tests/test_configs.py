@@ -20,6 +20,7 @@ from hgp_lib.configs import (
 from hgp_lib.crossover import CrossoverExecutorFactory
 from hgp_lib.mutations import MutationExecutorFactory
 from hgp_lib.populations import PopulationGeneratorFactory
+from hgp_lib.populations.sampling import FeatureSamplingStrategy
 from hgp_lib.preprocessing import StandardBinarizer
 
 
@@ -77,6 +78,42 @@ class TestBooleanGPConfig(unittest.TestCase):
             score_fn=accuracy, max_depth=1, num_child_populations=0
         )
         with self.assertRaises(ValueError):
+            validate_gp_config(config, require_data=False)
+
+    def test_max_depth_negative_raises(self):
+        config = BooleanGPConfig(score_fn=accuracy, max_depth=-1)
+        with self.assertRaises(ValueError):
+            validate_gp_config(config, require_data=False)
+
+    def test_num_child_populations_negative_raises(self):
+        config = BooleanGPConfig(score_fn=accuracy, num_child_populations=-1)
+        with self.assertRaises(ValueError):
+            validate_gp_config(config, require_data=False)
+
+    def test_max_depth_with_strategy_requires_child_populations(self):
+        # sampling_strategy set, so the "sampling required" check passes and the
+        # "num_child_populations > 0" check is the one that fires.
+        config = BooleanGPConfig(
+            score_fn=accuracy,
+            max_depth=1,
+            num_child_populations=0,
+            sampling_strategy=FeatureSamplingStrategy(),
+        )
+        with self.assertRaises(ValueError):
+            validate_gp_config(config, require_data=False)
+
+    def test_complexity_penalty_negative_raises(self):
+        config = BooleanGPConfig(score_fn=accuracy, complexity_penalty=-1.0)
+        with self.assertRaises(ValueError):
+            validate_gp_config(config, require_data=False)
+
+    def test_check_valid_valid_callable_passes(self):
+        config = BooleanGPConfig(score_fn=accuracy, check_valid=lambda rule: True)
+        validate_gp_config(config, require_data=False)  # Should not raise
+
+    def test_check_valid_non_bool_return_raises(self):
+        config = BooleanGPConfig(score_fn=accuracy, check_valid=lambda rule: "nope")
+        with self.assertRaises(TypeError):
             validate_gp_config(config, require_data=False)
 
     def test_feedback_type_invalid(self):
@@ -168,6 +205,19 @@ class TestTrainerConfig(unittest.TestCase):
         )
         validate_trainer_config(config)  # Should not raise
 
+    def test_progress_update_interval_must_be_positive(self):
+        config = TrainerConfig(
+            gp_config=self.gp_config, num_epochs=10, progress_update_interval=0
+        )
+        with self.assertRaises(ValueError):
+            validate_trainer_config(config)
+
+    def test_validation_is_cached(self):
+        # A second validation returns early via the cached flag.
+        config = TrainerConfig(gp_config=self.gp_config, num_epochs=10)
+        validate_trainer_config(config)
+        validate_trainer_config(config)  # Should hit the cached early-return path
+
     def test_defaults(self):
         config = TrainerConfig(gp_config=self.gp_config, num_epochs=10)
         self.assertEqual(config.val_every, 100)
@@ -204,6 +254,12 @@ class TestBenchmarkerConfig(unittest.TestCase):
     def test_valid_config(self):
         config = self._make_config()
         validate_benchmarker_config(config)  # Should not raise
+
+    def test_validation_is_cached(self):
+        # A second validation returns early via the cached flag.
+        config = self._make_config()
+        validate_benchmarker_config(config)
+        validate_benchmarker_config(config)  # Should hit the cached early-return path
 
     def test_data_must_be_dataframe(self):
         with self.assertRaises(TypeError):

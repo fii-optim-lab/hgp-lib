@@ -406,5 +406,33 @@ class TestStandardBinarizer(unittest.TestCase):
             self.assertEqual(result.failed, 0, f"Doctests failed: {result}")
 
 
+class TestSklearnBinarizer(unittest.TestCase):
+    def test_transform_before_fit_raises(self):
+        from sklearn.preprocessing import KBinsDiscretizer
+        from hgp_lib.preprocessing import SklearnBinarizer
+
+        b = SklearnBinarizer(
+            KBinsDiscretizer(n_bins=2, encode="onehot-dense", strategy="uniform")
+        )
+        with self.assertRaises(ValueError):
+            b.transform(pd.DataFrame({"x": [0.0, 1.0]}))
+
+    def test_feature_names_positional_fallback(self):
+        from hgp_lib.preprocessing import SklearnBinarizer
+
+        # A transformer without get_feature_names_out triggers positional names.
+        class _NoNamesTransformer:
+            def fit_transform(self, X, y=None):
+                return np.array([[0, 1], [1, 0]])
+
+            def transform(self, X):
+                return np.array([[0, 1], [1, 0]])
+
+        b = SklearnBinarizer(_NoNamesTransformer())
+        out = b.fit_transform(pd.DataFrame({"x": [0.0, 1.0]}))
+        self.assertEqual(list(out.columns), ["feature_0", "feature_1"])
+        self.assertTrue(out.to_numpy().dtype == bool)
+
+
 if __name__ == "__main__":
     unittest.main()

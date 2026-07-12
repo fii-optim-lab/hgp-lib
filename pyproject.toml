@@ -85,3 +85,10 @@ relative_files = true
 
 [tool.coverage.report]
 show_missing = true
+# Exclude non-testable lines from the denominator
+exclude_also = [
+    "raise NotImplementedError",
+    "@(abc\\.)?abstractmethod",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]
