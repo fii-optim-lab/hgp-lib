@@ -24,6 +24,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Information Analysis",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -72,6 +73,15 @@ dev = [
     "tables",
     "prettytable",
     "timed-decorator",
+    "pytest-cov",
 ]
 [tool.ruff]
 exclude = [".venv"]
+
+[tool.coverage.run]
+source = ["hgp_lib"]
+branch = true
+relative_files = true
+
+[tool.coverage.report]
+show_missing = true

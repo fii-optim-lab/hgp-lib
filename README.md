@@ -1,5 +1,12 @@
 # Hierarchical Genetic Programming Library
 
+[![CI](https://github.com/fii-optim-lab/hgp-lib/actions/workflows/python-package.yml/badge.svg)](https://github.com/fii-optim-lab/hgp-lib/actions/workflows/python-package.yml)
+[![codecov](https://codecov.io/gh/fii-optim-lab/hgp-lib/branch/master/graph/badge.svg)](https://codecov.io/gh/fii-optim-lab/hgp-lib)
+[![PyPI version](https://img.shields.io/pypi/v/hgp-lib.svg)](https://pypi.org/project/hgp-lib/)
+[![Python versions](https://img.shields.io/pypi/pyversions/hgp-lib.svg)](https://pypi.org/project/hgp-lib/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-online-brightgreen.svg)](https://fii-optim-lab.github.io/hgp-lib/)
+
 A Python library for explainable rule-based classification.
 It evolves human-readable boolean rule trees via hierarchical genetic programming, with automatic binarization and parallel benchmarking.
 
