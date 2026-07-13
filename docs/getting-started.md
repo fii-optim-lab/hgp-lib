@@ -5,7 +5,7 @@
 ```bash
 pip install hgp-lib
 # or
-pip install hgp-lib[dev]
+pip install 'hgp-lib[dev]'
 ```
 
 ## A first run
