@@ -1,4 +1,4 @@
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Tuple, Dict
 
 import numpy as np
 import pandas as pd
@@ -108,6 +108,7 @@ class StandardBinarizer(Binarizer):
         self._skipped_columns: Set[str] = set()
         self._original_columns = None
         self._is_fitted = False
+        self._feature_names: Dict[int, str] = {}
 
     def _validate_params(
         self,
@@ -203,7 +204,11 @@ class StandardBinarizer(Binarizer):
 
         self._original_columns = X.columns
         self._is_fitted = True
+        self._feature_names = {i: k for i, k in enumerate(outputs.keys())}
         return pd.DataFrame(outputs, index=X.index)
+
+    def _get_feature_names(self) -> Dict[int, str]:
+        return self._feature_names
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import numpy as np
 import pandas as pd
@@ -46,7 +46,7 @@ class SklearnBinarizer(Binarizer):
     ) -> pd.DataFrame:
         check_isinstance(X, pd.DataFrame)
         array = np.asarray(self.transformer.fit_transform(X, y))
-        self._columns = self._feature_names(X, array.shape[1])
+        self._columns = self.transformer.get_feature_names_out()
         self._is_fitted = True
         return pd.DataFrame(array.astype(bool), columns=self._columns, index=X.index)
 
@@ -57,7 +57,5 @@ class SklearnBinarizer(Binarizer):
         array = np.asarray(self.transformer.transform(X))
         return pd.DataFrame(array.astype(bool), columns=self._columns, index=X.index)
 
-    def _feature_names(self, X: pd.DataFrame, n_features: int) -> List[str]:
-        if hasattr(self.transformer, "get_feature_names_out"):
-            return list(self.transformer.get_feature_names_out(list(X.columns)))
-        return [f"feature_{i}" for i in range(n_features)]
+    def _get_feature_names(self) -> Dict[int, str]:
+        return {i: x for i, x in enumerate(self._columns)}

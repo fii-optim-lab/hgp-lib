@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Dict, List
 
 import numpy as np
 import pandas as pd
@@ -43,6 +43,16 @@ class Binarizer(ABC):
     _is_fitted: bool = False
 
     @property
+    def feature_names(self) -> Dict[int, str]:
+        if not self._is_fitted:
+            raise ValueError("Binarizer has not been fitted yet.")
+        return self._get_feature_names()
+
+    @abstractmethod
+    def _get_feature_names(self) -> Dict[int, str]:
+        pass
+
+    @property
     def is_fitted(self) -> bool:
         """Whether the binarizer has been fitted."""
         return self._is_fitted
@@ -55,9 +65,9 @@ class Binarizer(ABC):
         Learn the encoding from ``X`` (and optional labels ``y``) and return the
         transformed boolean ``DataFrame``.
         """
-        raise NotImplementedError()
+        pass
 
     @abstractmethod
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """Apply the learned encoding to new data and return a boolean ``DataFrame``."""
-        raise NotImplementedError()
+        pass
