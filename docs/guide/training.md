@@ -17,7 +17,7 @@ Use [`BooleanGPConfig`](../api/configs.md#hgp_lib.configs.boolean_gp_config.Bool
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
 from hgp_lib.trainers import GPTrainer
 
-score_fn = ...  # scoring function: (predictions, labels) -> float
+score_fn = ...  # scoring function: (y_true, y_pred) -> float
 num_epochs = 1000
 
 gp_config = BooleanGPConfig(

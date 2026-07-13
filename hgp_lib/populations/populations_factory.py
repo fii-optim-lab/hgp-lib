@@ -68,7 +68,7 @@ class PopulationGeneratorFactory:
 
         Args:
             num_literals (int): Number of boolean features (columns in train_data).
-            score_fn (Callable): Fitness function `(predictions, labels) -> float`.
+            score_fn (Callable): Fitness function `(y_true, y_pred) -> float`.
             train_data (np.ndarray): Training data (2-D boolean array).
             train_labels (np.ndarray): Training labels (1-D array).
 
@@ -89,7 +89,7 @@ class PopulationGeneratorFactory:
 
         Args:
             num_literals (int): Number of boolean features (columns in train_data).
-            score_fn (Callable): Fitness function `(predictions, labels) -> float`.
+            score_fn (Callable): Fitness function `(y_true, y_pred) -> float`.
             train_data (np.ndarray): Training data (2-D boolean array).
             train_labels (np.ndarray): Training labels (1-D array).
 

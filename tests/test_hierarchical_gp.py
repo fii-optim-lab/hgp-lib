@@ -14,11 +14,9 @@ from hgp_lib.populations import (
 import sklearn.metrics
 
 
-def accuracy(predictions, labels, sample_weight=None):
+def accuracy(*args, **kwargs):
     """Simple accuracy score function."""
-    return sklearn.metrics.accuracy_score(
-        labels, predictions, sample_weight=sample_weight
-    )
+    return sklearn.metrics.accuracy_score(*args, **kwargs)
 
 
 class TestSamplingStrategies(unittest.TestCase):

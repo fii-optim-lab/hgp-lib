@@ -53,8 +53,8 @@ def confusion_matrix(
 
 
 def fast_f1_score(
-    y_pred: ndarray,
     y_true: ndarray,
+    y_pred: ndarray,
     sample_weight: ndarray | None = None,
 ) -> float:
     """
@@ -64,8 +64,8 @@ def fast_f1_score(
     by accepting sample_weight parameter. It's optimized for boolean arrays.
 
     Args:
-        y_pred: Boolean predictions array.
         y_true: True labels array.
+        y_pred: Boolean predictions array.
         sample_weight: Optional sample weights for weighted F1.
 
     Returns:
@@ -76,7 +76,7 @@ def fast_f1_score(
         >>> from hgp_lib.utils.metrics import fast_f1_score
         >>> y_pred = np.array([True, True, False, False])
         >>> y_true = np.array([True, False, False, True])
-        >>> fast_f1_score(y_pred, y_true)
+        >>> fast_f1_score(y_true, y_pred)
         0.5
     """
     if sample_weight is None:

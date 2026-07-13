@@ -30,7 +30,7 @@ class TrainerConfig:
         >>> from hgp_lib.configs import BooleanGPConfig, TrainerConfig
         >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
         >>> labels = np.array([1, 0, 1, 0])
-        >>> def accuracy(p, l): return float((p == l).mean())
+        >>> def accuracy(t, p): return float((t == p).mean())
         >>> gp_config = BooleanGPConfig(score_fn=accuracy, train_data=data, train_labels=labels)
         >>> config = TrainerConfig(gp_config=gp_config, num_epochs=10)
         >>> config.num_epochs
@@ -70,7 +70,7 @@ def validate_trainer_config(config: TrainerConfig, require_data: bool = True) ->
         >>> from hgp_lib.configs.trainer_config import validate_trainer_config
         >>> data = np.array([[True, False], [False, True]])
         >>> labels = np.array([1, 0])
-        >>> def accuracy(p, l): return float((p == l).mean())
+        >>> def accuracy(t, p): return float((t == p).mean())
         >>> gp_config = BooleanGPConfig(score_fn=accuracy, train_data=data, train_labels=labels)
         >>> config = TrainerConfig(gp_config=gp_config, num_epochs=10)
         >>> validate_trainer_config(config)  # No error

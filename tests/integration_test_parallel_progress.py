@@ -48,14 +48,14 @@ from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 DEFAULT_EVAL_SLEEP_S = 0.0005
 
 
-def _slow_accuracy(predictions: np.ndarray, labels: np.ndarray) -> float:
+def _slow_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     """Score function that mimics a non-trivial workload via ``time.sleep``.
 
     Defined at module level so it is picklable by ``multiprocessing.Pool``
     workers under both ``fork`` and ``spawn`` start methods.
     """
     time.sleep(DEFAULT_EVAL_SLEEP_S)
-    return float(np.mean(predictions == labels))
+    return float(np.mean(y_true == y_pred))
 
 
 def _make_dataset(n_rows: int = 200, n_features: int = 6, seed: int = 0):

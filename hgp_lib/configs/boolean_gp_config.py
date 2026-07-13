@@ -18,7 +18,7 @@ class BooleanGPConfig:
     Configuration for BooleanGP.
 
     Attributes:
-        score_fn (Callable): Fitness function `(predictions, labels) -> float`.
+        score_fn (Callable): Fitness function `(y_true, y_pred) -> float`.
         train_data (ndarray | None): Training data (2-D boolean array). Can be `None` when
             used as a template in `BenchmarkerConfig` (data provided at benchmarker level).
             Default: `None`.
@@ -65,7 +65,7 @@ class BooleanGPConfig:
         >>> from hgp_lib.configs import BooleanGPConfig
         >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
         >>> labels = np.array([1, 0, 1, 0])
-        >>> def accuracy(p, l): return float((p == l).mean())
+        >>> def accuracy(t, p): return float((t == p).mean())
         >>> config = BooleanGPConfig(score_fn=accuracy, train_data=data, train_labels=labels)
         >>> config.train_data.shape
         (4, 2)
@@ -77,7 +77,6 @@ class BooleanGPConfig:
         0.1
     """
 
-    # TODO: We should reconsider the ordering of the arguments for score fn. Pred, GT or GT, Pred?
     score_fn: Callable[[ndarray, ndarray], float]
     complexity_penalty: float = 0.0
     train_data: ndarray | None = None

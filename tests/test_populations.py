@@ -30,8 +30,8 @@ class TestPopulations(unittest.TestCase):
         self.train_labels = np.array([1, 0, 1, 0])
         self.num_literals = 4
 
-    def simple_score_fn(self, predictions, labels):
-        return np.mean(predictions == labels)
+    def simple_score_fn(self, y_true, y_pred):
+        return np.mean(y_true == y_pred)
 
     def test_random_strategy_init(self):
         strategy = RandomStrategy(num_literals=10, operator_types=(And, Or))
@@ -327,8 +327,8 @@ class TestPopulationGeneratorFactory(unittest.TestCase):
         self.train_labels = np.array([1, 0, 1, 0])
         self.num_literals = 4
 
-    def simple_score_fn(self, predictions, labels):
-        return np.mean(predictions == labels)
+    def simple_score_fn(self, y_true, y_pred):
+        return np.mean(y_true == y_pred)
 
     def test_default_factory(self):
         factory = PopulationGeneratorFactory()

@@ -37,8 +37,9 @@ import numpy as np
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
 from hgp_lib.trainers import GPTrainer
 
-def accuracy(predictions, labels):
-    return np.mean(predictions == labels)
+def accuracy(y_true, y_pred):
+    # TODO: Use the sklearn accuracy instead
+    return np.mean(y_true == y_pred)
 
 train_data = ...   # 2D boolean numpy array
 train_labels = ... # 1D integer numpy array

@@ -34,8 +34,8 @@ class TestGPTrainer(unittest.TestCase):
         self.test_labels = np.array([1])
         self.num_features = 4
 
-        def accuracy(predictions, labels):
-            return np.mean(predictions == labels)
+        def accuracy(y_true, y_pred):
+            return np.mean(y_true == y_pred)
 
         self.score_fn = accuracy
 
@@ -257,10 +257,10 @@ class TestGPTrainer(unittest.TestCase):
             self.assertLessEqual(gen.best_train_score, 1.0)
 
     def test_optimize_scorer_true(self):
-        def accuracy_with_weight(predictions, labels, sample_weight=None):
+        def accuracy_with_weight(y_true, y_pred, sample_weight=None):
             if sample_weight is None:
-                return np.mean(predictions == labels)
-            correct = predictions == labels
+                return np.mean(y_true == y_pred)
+            correct = y_true == y_pred
             return np.dot(correct, sample_weight) / sample_weight.sum()
 
         gp_config = self._make_gp_config(
@@ -273,10 +273,10 @@ class TestGPTrainer(unittest.TestCase):
         self.assertEqual(len(result.generations), 5)
 
     def test_optimize_scorer_true_with_validation(self):
-        def accuracy_with_weight(predictions, labels, sample_weight=None):
+        def accuracy_with_weight(y_true, y_pred, sample_weight=None):
             if sample_weight is None:
-                return np.mean(predictions == labels)
-            correct = predictions == labels
+                return np.mean(y_true == y_pred)
+            correct = y_true == y_pred
             return np.dot(correct, sample_weight) / sample_weight.sum()
 
         gp_config = self._make_gp_config(

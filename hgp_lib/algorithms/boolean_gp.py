@@ -39,8 +39,8 @@ class BooleanGP:
         >>> from hgp_lib.configs import BooleanGPConfig
         >>> from hgp_lib.algorithms import BooleanGP
         >>>
-        >>> def accuracy(predictions, labels):
-        ...     return np.mean(predictions == labels)
+        >>> def accuracy(y_true, y_pred):
+        ...     return np.mean(y_true == y_pred)
         >>>
         >>> train_data = np.array([[True, False, True, False], [False, True, False, True]])
         >>> train_labels = np.array([1, 0])
@@ -59,9 +59,6 @@ class BooleanGP:
 
         train_data = config.train_data
         train_labels = config.train_labels
-        # TODO: We should add in documentation that our score_fn follows the sklearn
-        #  standard of (predictions, labels) and sample_weight support is recommended for optimization.
-        # Careful! the sklearn pattern is labels, predictions!
 
         score_fn = config.score_fn
         self._original_score_fn = score_fn
@@ -162,8 +159,8 @@ class BooleanGP:
             >>> import numpy as np
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
-            >>> def accuracy(predictions, labels):
-            ...     return np.mean(predictions == labels)
+            >>> def accuracy(y_true, y_pred):
+            ...     return np.mean(y_true == y_pred)
             >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
             >>> labels = np.array([1, 0, 1, 0])
             >>> config = BooleanGPConfig(
@@ -511,8 +508,8 @@ class BooleanGP:
             >>> import numpy as np
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
-            >>> def accuracy(predictions, labels):
-            ...     return np.mean(predictions == labels)
+            >>> def accuracy(y_true, y_pred):
+            ...     return np.mean(y_true == y_pred)
             >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
             >>> labels = np.array([1, 0, 1, 0])
             >>> config = BooleanGPConfig(
@@ -527,7 +524,7 @@ class BooleanGP:
             True
         """
         return np.array(
-            [score_fn(rule.evaluate(data), labels) for rule in self.population]
+            [score_fn(labels, rule.evaluate(data)) for rule in self.population]
         )
 
     def _update_best(self, current_best: float, current_best_rule: Rule):
@@ -604,8 +601,8 @@ class BooleanGP:
             >>> import numpy as np
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
-            >>> def accuracy(predictions, labels):
-            ...     return np.mean(predictions == labels)
+            >>> def accuracy(y_true, y_pred):
+            ...     return np.mean(y_true == y_pred)
             >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
             >>> labels = np.array([1, 0, 1, 0])
             >>> config = BooleanGPConfig(

@@ -20,16 +20,16 @@ from hgp_lib.rules import Rule
 from hgp_lib.selections import RouletteSelection
 
 
-def accuracy(predictions, labels):
+def accuracy(y_true, y_pred):
     """Module-level score function for pickling in parallel tests."""
-    return np.mean(predictions == labels)
+    return np.mean(y_true == y_pred)
 
 
-def accuracy_with_sample_weight(predictions, labels, sample_weight=None):
+def accuracy_with_sample_weight(y_true, y_pred, sample_weight=None):
     """Module-level score function that supports sample_weight for optimization tests."""
     if sample_weight is None:
-        return np.mean(predictions == labels)
-    correct = predictions == labels
+        return np.mean(y_true == y_pred)
+    correct = y_true == y_pred
     return np.dot(correct, sample_weight) / sample_weight.sum()
 
 

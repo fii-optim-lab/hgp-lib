@@ -31,8 +31,8 @@ class TestBooleanGP(unittest.TestCase):
         )
         self.val_labels = np.array([1, 0])
 
-        def accuracy(predictions, labels):
-            return np.mean(predictions == labels)
+        def accuracy(y_true, y_pred):
+            return np.mean(y_true == y_pred)
 
         self.score_fn = accuracy
 
@@ -272,7 +272,7 @@ class TestBooleanGP(unittest.TestCase):
     def test_evaluate_population_custom_score_fn(self):
         gp = BooleanGP(self._make_config())
 
-        def always_one(predictions, labels):
+        def always_one(y_true, y_pred):
             return 1.0
 
         scores = gp.evaluate_population(self.train_data, self.train_labels, always_one)
@@ -296,8 +296,8 @@ class TestBooleanGP(unittest.TestCase):
         gp = BooleanGP(self._make_config())
         gp.step()
 
-        def custom_score(predictions, labels):
-            return float(np.sum(predictions & labels))
+        def custom_score(y_true, y_pred):
+            return float(np.sum(y_true & y_pred))
 
         score = gp.evaluate_best(self.val_data, self.val_labels, score_fn=custom_score)
         self.assertIsInstance(score, float)
@@ -305,10 +305,10 @@ class TestBooleanGP(unittest.TestCase):
     def test_evaluate_best_uses_original_score_fn(self):
         """When optimize_scorer=True, evaluate_best should use the original (non-optimized) fn."""
 
-        def accuracy_with_weight(predictions, labels, sample_weight=None):
+        def accuracy_with_weight(y_true, y_pred, sample_weight=None):
             if sample_weight is None:
-                return np.mean(predictions == labels)
-            correct = predictions == labels
+                return np.mean(y_true == y_pred)
+            correct = y_true == y_pred
             return np.dot(correct, sample_weight) / sample_weight.sum()
 
         config = self._make_config(score_fn=accuracy_with_weight, optimize_scorer=True)
@@ -508,10 +508,10 @@ class TestBooleanGP(unittest.TestCase):
     #  optimize_scorer
     # ------------------------------------------------------------------ #
     def test_optimize_scorer_true(self):
-        def accuracy_with_weight(predictions, labels, sample_weight=None):
+        def accuracy_with_weight(y_true, y_pred, sample_weight=None):
             if sample_weight is None:
-                return np.mean(predictions == labels)
-            correct = predictions == labels
+                return np.mean(y_true == y_pred)
+            correct = y_true == y_pred
             return np.dot(correct, sample_weight) / sample_weight.sum()
 
         config = self._make_config(score_fn=accuracy_with_weight, optimize_scorer=True)

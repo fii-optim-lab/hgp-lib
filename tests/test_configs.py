@@ -20,9 +20,9 @@ from hgp_lib.populations.sampling import FeatureSamplingStrategy
 from hgp_lib.preprocessing import StandardBinarizer
 
 
-def accuracy(predictions, labels):
+def accuracy(y_true, y_pred):
     """Module-level score function."""
-    return float((predictions == labels).mean())
+    return float((y_true == y_pred).mean())
 
 
 class TestBooleanGPConfig(unittest.TestCase):

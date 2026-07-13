@@ -25,8 +25,8 @@ class GPTrainer:
         >>> from hgp_lib.configs import BooleanGPConfig, TrainerConfig
         >>> from hgp_lib.trainers import GPTrainer
         >>>
-        >>> def accuracy(predictions, labels):
-        ...     return np.mean(predictions == labels)
+        >>> def accuracy(y_true, y_pred):
+        ...     return np.mean(y_true == y_pred)
         >>>
         >>> train_data = np.array([[True, False, True, False], [False, True, False, True]])
         >>> train_labels = np.array([1, 0])
@@ -173,8 +173,8 @@ class GPTrainer:
             >>> import numpy as np
             >>> from hgp_lib.configs import BooleanGPConfig, TrainerConfig
             >>> from hgp_lib.trainers import GPTrainer
-            >>> def accuracy(predictions, labels):
-            ...     return np.mean(predictions == labels)
+            >>> def accuracy(y_true, y_pred):
+            ...     return np.mean(y_true == y_pred)
             >>> train_data = np.array([[True, False], [False, True]])
             >>> train_labels = np.array([1, 0])
             >>> gp_config = BooleanGPConfig(

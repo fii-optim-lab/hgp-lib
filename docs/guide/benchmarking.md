@@ -1,3 +1,5 @@
+from hgp_lib.utils.metrics import fast_f1_score
+
 # Benchmarking
 
 The benchmarker runs multiple full runs (default 30), each with a stratified train/test split and k-fold CV on the training set.
@@ -69,14 +71,14 @@ A scorer that supports sample weights looks like this:
 ```python
 import numpy as np
 
-def f1_score(predictions, labels, sample_weight=None):
+def f1_score(y_true, y_pred, sample_weight=None):
     if sample_weight is None:
-        tp = (predictions & labels).sum()
-        pred_sum, label_sum = predictions.sum(), labels.sum()
+        tp = (y_true & y_pred).sum()
+        pred_sum, label_sum = y_pred.sum(), y_true.sum()
     else:
-        tp = np.dot(predictions & labels, sample_weight)
-        pred_sum = np.dot(predictions, sample_weight)
-        label_sum = np.dot(labels, sample_weight)
+        tp = np.dot(y_pred & y_true, sample_weight)
+        pred_sum = np.dot(y_pred, sample_weight)
+        label_sum = np.dot(y_true, sample_weight)
     if pred_sum == 0 or label_sum == 0:
         return 1.0 if pred_sum == label_sum == 0 else 0.0
     return 2 * tp / (pred_sum + label_sum)
@@ -89,6 +91,7 @@ import numpy as np
 import pandas as pd
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.benchmarkers import GPBenchmarker
+from hgp_lib.utils.metrics import fast_f1_score
 
 data = pd.DataFrame(...)  # raw features as a DataFrame (bool / categorical / numeric)
 labels = np.array(...)    # 1-D target array
@@ -97,8 +100,7 @@ labels = np.array(...)    # 1-D target array
 # train_data/train_labels are not needed in gp_config here;
 # the benchmarker binarizes and sets them per fold.
 gp_config = BooleanGPConfig(
-    score_fn=f1_score,
-    optimize_scorer=True,  # Default; enables scorer optimization per fold
+    score_fn=fast_f1_score,
 )
 trainer_config = TrainerConfig(
     gp_config=gp_config,
