@@ -2,6 +2,7 @@ import unittest
 import random
 
 import numpy as np
+from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
 from hgp_lib.trainers import GPTrainer
@@ -34,10 +35,7 @@ class TestGPTrainer(unittest.TestCase):
         self.test_labels = np.array([1])
         self.num_features = 4
 
-        def accuracy(y_true, y_pred):
-            return np.mean(y_true == y_pred)
-
-        self.score_fn = accuracy
+        self.score_fn = accuracy_score
 
     def _make_gp_config(self, **kwargs):
         defaults = dict(
@@ -257,15 +255,7 @@ class TestGPTrainer(unittest.TestCase):
             self.assertLessEqual(gen.best_train_score, 1.0)
 
     def test_optimize_scorer_true(self):
-        def accuracy_with_weight(y_true, y_pred, sample_weight=None):
-            if sample_weight is None:
-                return np.mean(y_true == y_pred)
-            correct = y_true == y_pred
-            return np.dot(correct, sample_weight) / sample_weight.sum()
-
-        gp_config = self._make_gp_config(
-            score_fn=accuracy_with_weight, optimize_scorer=True
-        )
+        gp_config = self._make_gp_config(optimize_scorer=True)
         config = self._make_trainer_config(gp_config=gp_config, num_epochs=5)
         trainer = GPTrainer(config)
 
@@ -273,15 +263,7 @@ class TestGPTrainer(unittest.TestCase):
         self.assertEqual(len(result.generations), 5)
 
     def test_optimize_scorer_true_with_validation(self):
-        def accuracy_with_weight(y_true, y_pred, sample_weight=None):
-            if sample_weight is None:
-                return np.mean(y_true == y_pred)
-            correct = y_true == y_pred
-            return np.dot(correct, sample_weight) / sample_weight.sum()
-
-        gp_config = self._make_gp_config(
-            score_fn=accuracy_with_weight, optimize_scorer=True
-        )
+        gp_config = self._make_gp_config(optimize_scorer=True)
         config = self._make_trainer_config(
             gp_config=gp_config,
             num_epochs=10,

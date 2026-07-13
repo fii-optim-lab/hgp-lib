@@ -93,6 +93,39 @@ def fast_f1_score(
     return float(2 * np.dot(y_pred & y_true, sample_weight) / (y_pred_sum + y_true_sum))
 
 
+def fast_accuracy_score(
+    y_true: ndarray,
+    y_pred: ndarray,
+    sample_weight: ndarray | None = None,
+) -> float:
+    """
+    Compute accuracy with optional sample weights.
+
+    This function supports the optimize_scorer feature of BooleanGP
+    by accepting sample_weight parameter. It's optimized for boolean arrays.
+
+    Args:
+        y_true: True labels array.
+        y_pred: Boolean predictions array.
+        sample_weight: Optional sample weights for weighted F1.
+
+    Returns:
+        Accuracy as float in [0, 1].
+
+    Examples:
+        >>> import numpy as np
+        >>> from hgp_lib.utils.metrics import fast_accuracy_score
+        >>> y_pred = np.array([True, True, False, False])
+        >>> y_true = np.array([True, False, False, True])
+        >>> fast_accuracy_score(y_true, y_pred)
+        0.5
+    """
+    correct = y_true == y_pred
+    if sample_weight is None:
+        return float(correct.mean())
+    return float(np.dot(correct, sample_weight) / sample_weight.sum())
+
+
 def accepts_sample_weight(scorer: Callable) -> bool:
     """
     Check if a scorer function accepts a ``sample_weight`` parameter.

@@ -38,14 +38,13 @@ class BooleanGP:
         >>> import numpy as np
         >>> from hgp_lib.configs import BooleanGPConfig
         >>> from hgp_lib.algorithms import BooleanGP
+        >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
         >>>
-        >>> def accuracy(y_true, y_pred):
-        ...     return np.mean(y_true == y_pred)
         >>>
         >>> train_data = np.array([[True, False, True, False], [False, True, False, True]])
         >>> train_labels = np.array([1, 0])
         >>> config = BooleanGPConfig(
-        ...     score_fn=accuracy,
+        ...     score_fn=accuracy_score,
         ...     train_data=train_data,
         ...     train_labels=train_labels,
         ...     optimize_scorer=False,
@@ -159,12 +158,11 @@ class BooleanGP:
             >>> import numpy as np
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
-            >>> def accuracy(y_true, y_pred):
-            ...     return np.mean(y_true == y_pred)
+            >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
             >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
             >>> labels = np.array([1, 0, 1, 0])
             >>> config = BooleanGPConfig(
-            ...     score_fn=accuracy, train_data=data, train_labels=labels,
+            ...     score_fn=accuracy_score, train_data=data, train_labels=labels,
             ...     optimize_scorer=False,
             ... )
             >>> gp = BooleanGP(config)
@@ -189,11 +187,11 @@ class BooleanGP:
             >>> import numpy as np
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
-            >>> def accuracy(p, l): return np.mean(p == l)
+            >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
             >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
             >>> labels = np.array([1, 0, 1, 0])
             >>> config = BooleanGPConfig(
-            ...     score_fn=accuracy, train_data=data, train_labels=labels,
+            ...     score_fn=accuracy_score, train_data=data, train_labels=labels,
             ...     optimize_scorer=False,
             ... )
             >>> gp = BooleanGP(config)
@@ -242,11 +240,11 @@ class BooleanGP:
             >>> import numpy as np
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
-            >>> def accuracy(p, l): return np.mean(p == l)
+            >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
             >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
             >>> labels = np.array([1, 0, 1, 0])
             >>> config = BooleanGPConfig(
-            ...     score_fn=accuracy, train_data=data, train_labels=labels,
+            ...     score_fn=accuracy_score, train_data=data, train_labels=labels,
             ...     optimize_scorer=False,
             ... )
             >>> gp = BooleanGP(config)
@@ -297,7 +295,7 @@ class BooleanGP:
             >>> from hgp_lib.algorithms import BooleanGP
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.populations import FeatureSamplingStrategy
-            >>> from sklearn.metrics import accuracy_score
+            >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
             >>> data = np.random.rand(50, 10) > 0.5
             >>> labels = np.random.randint(0, 2, 50)
             >>> config = BooleanGPConfig(
@@ -401,11 +399,11 @@ class BooleanGP:
             >>> import numpy as np
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
-            >>> def accuracy(p, l): return np.mean(p == l)
+            >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
             >>> data = np.array([[True, False], [False, True]])
             >>> labels = np.array([1, 0])
             >>> config = BooleanGPConfig(
-            ...     score_fn=accuracy, train_data=data, train_labels=labels,
+            ...     score_fn=accuracy_score, train_data=data, train_labels=labels,
             ...     optimize_scorer=False,
             ... )
             >>> gp = BooleanGP(config)
@@ -508,16 +506,15 @@ class BooleanGP:
             >>> import numpy as np
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
-            >>> def accuracy(y_true, y_pred):
-            ...     return np.mean(y_true == y_pred)
+            >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
             >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
             >>> labels = np.array([1, 0, 1, 0])
             >>> config = BooleanGPConfig(
-            ...     score_fn=accuracy, train_data=data, train_labels=labels,
+            ...     score_fn=accuracy_score, train_data=data, train_labels=labels,
             ...     optimize_scorer=False,
             ... )
             >>> gp = BooleanGP(config)
-            >>> scores = gp.evaluate_population(data, labels, accuracy)
+            >>> scores = gp.evaluate_population(data, labels, accuracy_score)
             >>> len(scores) == len(gp.population)
             True
             >>> all(0.0 <= s <= 1.0 for s in scores)
@@ -545,11 +542,11 @@ class BooleanGP:
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
             >>> from hgp_lib.rules import Literal
-            >>> def accuracy(p, l): return np.mean(p == l)
+            >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
             >>> data = np.array([[True, False], [False, True]])
             >>> labels = np.array([1, 0])
             >>> config = BooleanGPConfig(
-            ...     score_fn=accuracy, train_data=data, train_labels=labels,
+            ...     score_fn=accuracy_score, train_data=data, train_labels=labels,
             ...     optimize_scorer=False,
             ... )
             >>> gp = BooleanGP(config)
@@ -601,12 +598,11 @@ class BooleanGP:
             >>> import numpy as np
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
-            >>> def accuracy(y_true, y_pred):
-            ...     return np.mean(y_true == y_pred)
+            >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
             >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
             >>> labels = np.array([1, 0, 1, 0])
             >>> config = BooleanGPConfig(
-            ...     score_fn=accuracy, train_data=data, train_labels=labels,
+            ...     score_fn=accuracy_score, train_data=data, train_labels=labels,
             ...     optimize_scorer=False,
             ... )
             >>> gp = BooleanGP(config)

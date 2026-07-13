@@ -52,6 +52,7 @@ class BenchmarkerConfig:
             Default: `True`.
 
     Examples:
+        >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
         >>> import numpy as np
         >>> import pandas as pd
         >>> from hgp_lib.configs import BooleanGPConfig, TrainerConfig, BenchmarkerConfig
@@ -60,8 +61,7 @@ class BenchmarkerConfig:
         ...     'feature2': [False, True, True, False],
         ... })
         >>> labels = np.array([1, 0, 1, 0])
-        >>> def accuracy(t, p): return float((t == p).mean())
-        >>> gp_config = BooleanGPConfig(score_fn=accuracy)
+        >>> gp_config = BooleanGPConfig(score_fn=accuracy_score)
         >>> trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=10)
         >>> config = BenchmarkerConfig(
         ...     data=data, labels=labels, trainer_config=trainer_config, n_folds=2
@@ -106,13 +106,13 @@ def validate_benchmarker_config(config: BenchmarkerConfig) -> None:
         >>> import pandas as pd
         >>> from hgp_lib.configs import BooleanGPConfig, TrainerConfig, BenchmarkerConfig
         >>> from hgp_lib.configs.benchmarker_config import validate_benchmarker_config
+        >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
         >>> data = pd.DataFrame({
         ...     'feature1': [True, False, True, False],
         ...     'feature2': [False, True, True, False],
         ... })
         >>> labels = np.array([1, 0, 1, 0])
-        >>> def accuracy(t, p): return float((t == p).mean())
-        >>> gp_config = BooleanGPConfig(score_fn=accuracy)
+        >>> gp_config = BooleanGPConfig(score_fn=accuracy_score)
         >>> trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=10)
         >>> config = BenchmarkerConfig(
         ...     data=data, labels=labels, trainer_config=trainer_config, n_folds=2

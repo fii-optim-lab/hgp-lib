@@ -4,6 +4,7 @@ import unittest
 
 import numpy as np
 import pandas as pd
+from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 from hgp_lib.configs import (
     BenchmarkerConfig,
@@ -20,11 +21,6 @@ from hgp_lib.populations.sampling import FeatureSamplingStrategy
 from hgp_lib.preprocessing import StandardBinarizer
 
 
-def accuracy(y_true, y_pred):
-    """Module-level score function."""
-    return float((y_true == y_pred).mean())
-
-
 class TestBooleanGPConfig(unittest.TestCase):
     """Tests for BooleanGPConfig and validate_gp_config."""
 
@@ -36,17 +32,17 @@ class TestBooleanGPConfig(unittest.TestCase):
 
     def test_valid_config(self):
         config = BooleanGPConfig(
-            score_fn=accuracy, train_data=self.data, train_labels=self.labels
+            score_fn=accuracy_score, train_data=self.data, train_labels=self.labels
         )
         validate_gp_config(config)  # Should not raise
 
     def test_valid_config_without_data(self):
         """Template config for benchmarker (no data required)."""
-        config = BooleanGPConfig(score_fn=accuracy)
+        config = BooleanGPConfig(score_fn=accuracy_score)
         validate_gp_config(config, require_data=False)  # Should not raise
 
     def test_missing_data_raises(self):
-        config = BooleanGPConfig(score_fn=accuracy)
+        config = BooleanGPConfig(score_fn=accuracy_score)
         with self.assertRaises(ValueError):
             validate_gp_config(config, require_data=True)
 
@@ -57,32 +53,32 @@ class TestBooleanGPConfig(unittest.TestCase):
 
     def test_regeneration_patience_must_be_positive(self):
         config = BooleanGPConfig(
-            score_fn=accuracy, regeneration=True, regeneration_patience=0
+            score_fn=accuracy_score, regeneration=True, regeneration_patience=0
         )
         with self.assertRaises(ValueError):
             validate_gp_config(config, require_data=False)
 
     def test_max_depth_requires_sampling_strategy(self):
         config = BooleanGPConfig(
-            score_fn=accuracy, max_depth=1, num_child_populations=3
+            score_fn=accuracy_score, max_depth=1, num_child_populations=3
         )
         with self.assertRaises(ValueError):
             validate_gp_config(config, require_data=False)
 
     def test_max_depth_requires_child_populations(self):
         config = BooleanGPConfig(
-            score_fn=accuracy, max_depth=1, num_child_populations=0
+            score_fn=accuracy_score, max_depth=1, num_child_populations=0
         )
         with self.assertRaises(ValueError):
             validate_gp_config(config, require_data=False)
 
     def test_max_depth_negative_raises(self):
-        config = BooleanGPConfig(score_fn=accuracy, max_depth=-1)
+        config = BooleanGPConfig(score_fn=accuracy_score, max_depth=-1)
         with self.assertRaises(ValueError):
             validate_gp_config(config, require_data=False)
 
     def test_num_child_populations_negative_raises(self):
-        config = BooleanGPConfig(score_fn=accuracy, num_child_populations=-1)
+        config = BooleanGPConfig(score_fn=accuracy_score, num_child_populations=-1)
         with self.assertRaises(ValueError):
             validate_gp_config(config, require_data=False)
 
@@ -90,7 +86,7 @@ class TestBooleanGPConfig(unittest.TestCase):
         # sampling_strategy set, so the "sampling required" check passes and the
         # "num_child_populations > 0" check is the one that fires.
         config = BooleanGPConfig(
-            score_fn=accuracy,
+            score_fn=accuracy_score,
             max_depth=1,
             num_child_populations=0,
             sampling_strategy=FeatureSamplingStrategy(),
@@ -99,40 +95,42 @@ class TestBooleanGPConfig(unittest.TestCase):
             validate_gp_config(config, require_data=False)
 
     def test_complexity_penalty_negative_raises(self):
-        config = BooleanGPConfig(score_fn=accuracy, complexity_penalty=-1.0)
+        config = BooleanGPConfig(score_fn=accuracy_score, complexity_penalty=-1.0)
         with self.assertRaises(ValueError):
             validate_gp_config(config, require_data=False)
 
     def test_check_valid_valid_callable_passes(self):
-        config = BooleanGPConfig(score_fn=accuracy, check_valid=lambda rule: True)
+        config = BooleanGPConfig(score_fn=accuracy_score, check_valid=lambda rule: True)
         validate_gp_config(config, require_data=False)  # Should not raise
 
     def test_check_valid_non_bool_return_raises(self):
-        config = BooleanGPConfig(score_fn=accuracy, check_valid=lambda rule: "nope")
+        config = BooleanGPConfig(
+            score_fn=accuracy_score, check_valid=lambda rule: "nope"
+        )
         with self.assertRaises(TypeError):
             validate_gp_config(config, require_data=False)
 
     def test_feedback_type_invalid(self):
-        config = BooleanGPConfig(score_fn=accuracy, feedback_type="invalid")
+        config = BooleanGPConfig(score_fn=accuracy_score, feedback_type="invalid")
         with self.assertRaises(ValueError):
             validate_gp_config(config, require_data=False)
 
     def test_feedback_strength_must_be_non_negative(self):
-        config = BooleanGPConfig(score_fn=accuracy, feedback_strength=-0.1)
+        config = BooleanGPConfig(score_fn=accuracy_score, feedback_strength=-0.1)
         with self.assertRaises(ValueError):
             validate_gp_config(config, require_data=False)
 
     def test_feedback_strength_zero_is_valid(self):
-        config = BooleanGPConfig(score_fn=accuracy, feedback_strength=0)
+        config = BooleanGPConfig(score_fn=accuracy_score, feedback_strength=0)
         validate_gp_config(config, require_data=False)  # Should not raise
 
     def test_top_k_transfer_must_be_at_least_1(self):
-        config = BooleanGPConfig(score_fn=accuracy, top_k_transfer=0)
+        config = BooleanGPConfig(score_fn=accuracy_score, top_k_transfer=0)
         with self.assertRaises(ValueError):
             validate_gp_config(config, require_data=False)
 
     def test_defaults(self):
-        config = BooleanGPConfig(score_fn=accuracy)
+        config = BooleanGPConfig(score_fn=accuracy_score)
         self.assertTrue(config.optimize_scorer)
         self.assertFalse(config.regeneration)
         self.assertEqual(config.regeneration_patience, 100)
@@ -155,7 +153,7 @@ class TestTrainerConfig(unittest.TestCase):
         )
         self.labels = np.array([1, 0, 1, 0])
         self.gp_config = BooleanGPConfig(
-            score_fn=accuracy, train_data=self.data, train_labels=self.labels
+            score_fn=accuracy_score, train_data=self.data, train_labels=self.labels
         )
 
     def test_valid_config(self):
@@ -163,7 +161,7 @@ class TestTrainerConfig(unittest.TestCase):
         validate_trainer_config(config)  # Should not raise
 
     def test_valid_config_without_data(self):
-        gp_config = BooleanGPConfig(score_fn=accuracy)
+        gp_config = BooleanGPConfig(score_fn=accuracy_score)
         config = TrainerConfig(gp_config=gp_config, num_epochs=10)
         validate_trainer_config(config, require_data=False)  # Should not raise
 
@@ -234,7 +232,7 @@ class TestBenchmarkerConfig(unittest.TestCase):
             }
         )
         self.labels = np.array([1, 0, 1, 0, 1, 0, 1, 0])
-        self.gp_config = BooleanGPConfig(score_fn=accuracy)
+        self.gp_config = BooleanGPConfig(score_fn=accuracy_score)
         self.trainer_config = TrainerConfig(gp_config=self.gp_config, num_epochs=5)
 
     def _make_config(self, **kwargs):
