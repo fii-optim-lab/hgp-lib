@@ -7,6 +7,7 @@ from multiprocessing import Queue
 
 import numpy as np
 import pandas as pd
+from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.benchmarkers.runner import execute_single_run, single_run_wrapper
@@ -18,19 +19,6 @@ from hgp_lib.populations import PopulationGeneratorFactory
 from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.rules import Rule
 from hgp_lib.selections import RouletteSelection
-
-
-def accuracy(predictions, labels):
-    """Module-level score function for pickling in parallel tests."""
-    return np.mean(predictions == labels)
-
-
-def accuracy_with_sample_weight(predictions, labels, sample_weight=None):
-    """Module-level score function that supports sample_weight for optimization tests."""
-    if sample_weight is None:
-        return np.mean(predictions == labels)
-    correct = predictions == labels
-    return np.dot(correct, sample_weight) / sample_weight.sum()
 
 
 class TestGPBenchmarker(unittest.TestCase):
@@ -54,7 +42,7 @@ class TestGPBenchmarker(unittest.TestCase):
             columns=["0", "1", "2", "3"],
         )
         self.labels = np.array([1, 0, 1, 0, 1, 0, 1, 0])
-        self.score_fn = accuracy
+        self.score_fn = accuracy_score
 
     def _make_gp_config(self, **kwargs):
         defaults = dict(score_fn=self.score_fn, optimize_scorer=False)
@@ -434,9 +422,7 @@ class TestGPBenchmarker(unittest.TestCase):
     #  optimize_scorer
     # ------------------------------------------------------------------ #
     def test_optimize_scorer_true(self):
-        gp = self._make_gp_config(
-            score_fn=accuracy_with_sample_weight, optimize_scorer=True
-        )
+        gp = self._make_gp_config(score_fn=accuracy_score, optimize_scorer=True)
         result = GPBenchmarker(
             self._make_config(
                 num_runs=1,
@@ -455,9 +441,7 @@ class TestGPBenchmarker(unittest.TestCase):
         self.assertIsNotNone(result.runs[0].test_score)
 
     def test_optimize_scorer_default_is_true(self):
-        self.assertTrue(
-            BooleanGPConfig(score_fn=accuracy_with_sample_weight).optimize_scorer
-        )
+        self.assertTrue(BooleanGPConfig(score_fn=accuracy_score).optimize_scorer)
 
     def test_progress_bar_disabled(self):
         benchmarker = GPBenchmarker(self._make_config())

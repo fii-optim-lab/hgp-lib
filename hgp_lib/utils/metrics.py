@@ -53,8 +53,8 @@ def confusion_matrix(
 
 
 def fast_f1_score(
-    y_pred: ndarray,
     y_true: ndarray,
+    y_pred: ndarray,
     sample_weight: ndarray | None = None,
 ) -> float:
     """
@@ -64,8 +64,8 @@ def fast_f1_score(
     by accepting sample_weight parameter. It's optimized for boolean arrays.
 
     Args:
-        y_pred: Boolean predictions array.
         y_true: True labels array.
+        y_pred: Boolean predictions array.
         sample_weight: Optional sample weights for weighted F1.
 
     Returns:
@@ -76,7 +76,7 @@ def fast_f1_score(
         >>> from hgp_lib.utils.metrics import fast_f1_score
         >>> y_pred = np.array([True, True, False, False])
         >>> y_true = np.array([True, False, False, True])
-        >>> fast_f1_score(y_pred, y_true)
+        >>> fast_f1_score(y_true, y_pred)
         0.5
     """
     if sample_weight is None:
@@ -91,6 +91,39 @@ def fast_f1_score(
     if y_pred_sum == 0 or y_true_sum == 0:
         return 1.0 if y_pred_sum == 0 and y_true_sum == 0 else 0.0
     return float(2 * np.dot(y_pred & y_true, sample_weight) / (y_pred_sum + y_true_sum))
+
+
+def fast_accuracy_score(
+    y_true: ndarray,
+    y_pred: ndarray,
+    sample_weight: ndarray | None = None,
+) -> float:
+    """
+    Compute accuracy with optional sample weights.
+
+    This function supports the optimize_scorer feature of BooleanGP
+    by accepting sample_weight parameter. It's optimized for boolean arrays.
+
+    Args:
+        y_true: True labels array.
+        y_pred: Boolean predictions array.
+        sample_weight: Optional sample weights for weighted F1.
+
+    Returns:
+        Accuracy as float in [0, 1].
+
+    Examples:
+        >>> import numpy as np
+        >>> from hgp_lib.utils.metrics import fast_accuracy_score
+        >>> y_pred = np.array([True, True, False, False])
+        >>> y_true = np.array([True, False, False, True])
+        >>> fast_accuracy_score(y_true, y_pred)
+        0.5
+    """
+    correct = y_true == y_pred
+    if sample_weight is None:
+        return float(correct.mean())
+    return float(np.dot(correct, sample_weight) / sample_weight.sum())
 
 
 def accepts_sample_weight(scorer: Callable) -> bool:

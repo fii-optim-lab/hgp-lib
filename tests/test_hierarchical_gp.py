@@ -3,6 +3,7 @@
 import unittest
 
 import numpy as np
+from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 from hgp_lib.algorithms import BooleanGP
 from hgp_lib.configs import BooleanGPConfig
@@ -11,14 +12,6 @@ from hgp_lib.populations import (
     InstanceSamplingStrategy,
     CombinedSamplingStrategy,
 )
-import sklearn.metrics
-
-
-def accuracy(predictions, labels, sample_weight=None):
-    """Simple accuracy score function."""
-    return sklearn.metrics.accuracy_score(
-        labels, predictions, sample_weight=sample_weight
-    )
 
 
 class TestSamplingStrategies(unittest.TestCase):
@@ -91,7 +84,7 @@ class TestChildPopulationCreation(unittest.TestCase):
     def test_no_children_when_max_depth_zero(self):
         """Test that no child populations are created when max_depth=0."""
         config = BooleanGPConfig(
-            score_fn=accuracy,
+            score_fn=accuracy_score,
             train_data=self.data,
             train_labels=self.labels,
             max_depth=0,
@@ -106,7 +99,7 @@ class TestChildPopulationCreation(unittest.TestCase):
     def test_children_created_with_feature_sampling(self):
         """Test child populations are created with feature sampling."""
         config = BooleanGPConfig(
-            score_fn=accuracy,
+            score_fn=accuracy_score,
             train_data=self.data,
             train_labels=self.labels,
             max_depth=1,
@@ -127,7 +120,7 @@ class TestChildPopulationCreation(unittest.TestCase):
     def test_children_created_with_instance_sampling(self):
         """Test child populations with instance-only sampling have no feature mapping."""
         config = BooleanGPConfig(
-            score_fn=accuracy,
+            score_fn=accuracy_score,
             train_data=self.data,
             train_labels=self.labels,
             max_depth=1,
@@ -150,7 +143,7 @@ class TestChildPopulationCreation(unittest.TestCase):
     def test_nested_children_with_depth_2(self):
         """Test that depth=2 creates grandchildren."""
         config = BooleanGPConfig(
-            score_fn=accuracy,
+            score_fn=accuracy_score,
             train_data=self.data,
             train_labels=self.labels,
             max_depth=2,
@@ -189,7 +182,7 @@ class TestHierarchicalTraining(unittest.TestCase):
     def test_single_step_with_children(self):
         """Test that a single training step completes with child populations."""
         config = BooleanGPConfig(
-            score_fn=accuracy,
+            score_fn=accuracy_score,
             train_data=self.data,
             train_labels=self.labels,
             max_depth=1,
@@ -214,7 +207,7 @@ class TestHierarchicalTraining(unittest.TestCase):
     def test_multiple_steps_training(self):
         """Test multiple training steps improve or maintain performance."""
         config = BooleanGPConfig(
-            score_fn=accuracy,
+            score_fn=accuracy_score,
             train_data=self.data,
             train_labels=self.labels,
             max_depth=1,
@@ -238,7 +231,7 @@ class TestHierarchicalTraining(unittest.TestCase):
     def test_hierarchical_with_instance_sampling(self):
         """Test hierarchical GP with instance sampling."""
         config = BooleanGPConfig(
-            score_fn=accuracy,
+            score_fn=accuracy_score,
             train_data=self.data,
             train_labels=self.labels,
             max_depth=1,
@@ -256,7 +249,7 @@ class TestHierarchicalTraining(unittest.TestCase):
     def test_hierarchical_with_combined_sampling(self):
         """Test hierarchical GP with combined sampling."""
         config = BooleanGPConfig(
-            score_fn=accuracy,
+            score_fn=accuracy_score,
             train_data=self.data,
             train_labels=self.labels,
             max_depth=1,
@@ -275,7 +268,7 @@ class TestHierarchicalTraining(unittest.TestCase):
     def test_depth_2_training(self):
         """Test training with grandchild populations (depth=2)."""
         config = BooleanGPConfig(
-            score_fn=accuracy,
+            score_fn=accuracy_score,
             train_data=self.data,
             train_labels=self.labels,
             max_depth=2,
@@ -312,7 +305,7 @@ class TestFeedbackMechanism(unittest.TestCase):
     def test_multiplicative_feedback(self):
         """Test that multiplicative feedback modifies scores correctly."""
         config = BooleanGPConfig(
-            score_fn=accuracy,
+            score_fn=accuracy_score,
             train_data=self.data,
             train_labels=self.labels,
             max_depth=1,
@@ -332,7 +325,7 @@ class TestFeedbackMechanism(unittest.TestCase):
     def test_additive_feedback(self):
         """Test that additive feedback modifies scores correctly."""
         config = BooleanGPConfig(
-            score_fn=accuracy,
+            score_fn=accuracy_score,
             train_data=self.data,
             train_labels=self.labels,
             max_depth=1,
@@ -359,7 +352,7 @@ class TestConfigValidation(unittest.TestCase):
     def test_max_depth_without_sampling_strategy_raises(self):
         """Test that max_depth > 0 without sampling_strategy raises ValueError."""
         config = BooleanGPConfig(
-            score_fn=accuracy,
+            score_fn=accuracy_score,
             train_data=self.data,
             train_labels=self.labels,
             max_depth=1,
@@ -374,7 +367,7 @@ class TestConfigValidation(unittest.TestCase):
     def test_max_depth_without_children_raises(self):
         """Test that max_depth > 0 with num_child_populations=0 raises ValueError."""
         config = BooleanGPConfig(
-            score_fn=accuracy,
+            score_fn=accuracy_score,
             train_data=self.data,
             train_labels=self.labels,
             max_depth=1,
@@ -389,7 +382,7 @@ class TestConfigValidation(unittest.TestCase):
     def test_top_k_transfer_exceeds_population_raises(self):
         """Test that top_k_transfer > population_size raises ValueError."""
         config = BooleanGPConfig(
-            score_fn=accuracy,
+            score_fn=accuracy_score,
             train_data=self.data,
             train_labels=self.labels,
             max_depth=1,
@@ -426,7 +419,7 @@ class TestBooleanGPSamplingIntegration(unittest.TestCase):
             labels = np.random.randint(0, 2, num_instances)
 
             config = BooleanGPConfig(
-                score_fn=accuracy,
+                score_fn=accuracy_score,
                 train_data=data,
                 train_labels=labels,
                 max_depth=1,
@@ -452,7 +445,7 @@ class TestBooleanGPSamplingIntegration(unittest.TestCase):
             labels = np.random.randint(0, 2, num_instances)
 
             config = BooleanGPConfig(
-                score_fn=accuracy,
+                score_fn=accuracy_score,
                 train_data=data,
                 train_labels=labels,
                 max_depth=1,
@@ -490,7 +483,7 @@ class TestBooleanGPSamplingIntegration(unittest.TestCase):
             labels = np.random.randint(0, 2, num_instances)
 
             config = BooleanGPConfig(
-                score_fn=accuracy,
+                score_fn=accuracy_score,
                 train_data=data,
                 train_labels=labels,
                 max_depth=1,

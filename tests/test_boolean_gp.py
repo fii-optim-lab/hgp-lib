@@ -3,6 +3,7 @@ import random
 from typing import Sequence
 
 import numpy as np
+from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 from hgp_lib.algorithms import BooleanGP
 from hgp_lib.configs import BooleanGPConfig
@@ -31,10 +32,7 @@ class TestBooleanGP(unittest.TestCase):
         )
         self.val_labels = np.array([1, 0])
 
-        def accuracy(predictions, labels):
-            return np.mean(predictions == labels)
-
-        self.score_fn = accuracy
+        self.score_fn = accuracy_score
 
     def _make_config(self, **kwargs):
         defaults = dict(
@@ -272,7 +270,7 @@ class TestBooleanGP(unittest.TestCase):
     def test_evaluate_population_custom_score_fn(self):
         gp = BooleanGP(self._make_config())
 
-        def always_one(predictions, labels):
+        def always_one(y_true, y_pred):
             return 1.0
 
         scores = gp.evaluate_population(self.train_data, self.train_labels, always_one)
@@ -296,22 +294,15 @@ class TestBooleanGP(unittest.TestCase):
         gp = BooleanGP(self._make_config())
         gp.step()
 
-        def custom_score(predictions, labels):
-            return float(np.sum(predictions & labels))
+        def custom_score(y_true, y_pred):
+            return float(np.sum(y_true & y_pred))
 
         score = gp.evaluate_best(self.val_data, self.val_labels, score_fn=custom_score)
         self.assertIsInstance(score, float)
 
     def test_evaluate_best_uses_original_score_fn(self):
         """When optimize_scorer=True, evaluate_best should use the original (non-optimized) fn."""
-
-        def accuracy_with_weight(predictions, labels, sample_weight=None):
-            if sample_weight is None:
-                return np.mean(predictions == labels)
-            correct = predictions == labels
-            return np.dot(correct, sample_weight) / sample_weight.sum()
-
-        config = self._make_config(score_fn=accuracy_with_weight, optimize_scorer=True)
+        config = self._make_config(score_fn=self.score_fn, optimize_scorer=True)
         gp = BooleanGP(config)
         gp.step()
         # Should not raise — uses original fn which handles sample_weight=None
@@ -508,13 +499,7 @@ class TestBooleanGP(unittest.TestCase):
     #  optimize_scorer
     # ------------------------------------------------------------------ #
     def test_optimize_scorer_true(self):
-        def accuracy_with_weight(predictions, labels, sample_weight=None):
-            if sample_weight is None:
-                return np.mean(predictions == labels)
-            correct = predictions == labels
-            return np.dot(correct, sample_weight) / sample_weight.sum()
-
-        config = self._make_config(score_fn=accuracy_with_weight, optimize_scorer=True)
+        config = self._make_config(score_fn=self.score_fn, optimize_scorer=True)
         gp = BooleanGP(config)
         metrics = gp.step()
         self.assertIsInstance(metrics.best_train_score, float)

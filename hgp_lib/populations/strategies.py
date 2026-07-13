@@ -89,7 +89,7 @@ class BestLiteralStrategy(PopulationStrategy):
 
     Attributes:
         num_literals (int): The total number of available literals.
-        score_fn (Callable): Function to evaluate a rule. Signature: `score_fn(predictions, labels) -> float`.
+        score_fn (Callable): Function to evaluate a rule. Signature: `score_fn(y_true, y_pred) -> float`.
         train_data (np.ndarray): The training data array.
         train_labels (np.ndarray): The training labels.
         sample_size (int | float | None): Size of the sample subset (rows) to use for evaluation.

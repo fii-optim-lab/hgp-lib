@@ -34,18 +34,16 @@ See [Interpretability](interpretability.md) for why this matters.
 
 ```python
 import numpy as np
+from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
 from hgp_lib.trainers import GPTrainer
-
-def accuracy(predictions, labels):
-    return np.mean(predictions == labels)
 
 train_data = ...   # 2D boolean numpy array
 train_labels = ... # 1D integer numpy array
 
 config = TrainerConfig(
     gp_config=BooleanGPConfig(
-        score_fn=accuracy,
+        score_fn=accuracy_score,
         train_data=train_data,
         train_labels=train_labels,
     ),

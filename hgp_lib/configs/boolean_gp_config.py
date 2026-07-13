@@ -18,7 +18,7 @@ class BooleanGPConfig:
     Configuration for BooleanGP.
 
     Attributes:
-        score_fn (Callable): Fitness function `(predictions, labels) -> float`.
+        score_fn (Callable): Fitness function `(y_true, y_pred) -> float`.
         train_data (ndarray | None): Training data (2-D boolean array). Can be `None` when
             used as a template in `BenchmarkerConfig` (data provided at benchmarker level).
             Default: `None`.
@@ -63,10 +63,10 @@ class BooleanGPConfig:
     Examples:
         >>> import numpy as np
         >>> from hgp_lib.configs import BooleanGPConfig
+        >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
         >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
         >>> labels = np.array([1, 0, 1, 0])
-        >>> def accuracy(p, l): return float((p == l).mean())
-        >>> config = BooleanGPConfig(score_fn=accuracy, train_data=data, train_labels=labels)
+        >>> config = BooleanGPConfig(score_fn=accuracy_score, train_data=data, train_labels=labels)
         >>> config.train_data.shape
         (4, 2)
         >>> config.optimize_scorer
@@ -77,7 +77,6 @@ class BooleanGPConfig:
         0.1
     """
 
-    # TODO: We should reconsider the ordering of the arguments for score fn. Pred, GT or GT, Pred?
     score_fn: Callable[[ndarray, ndarray], float]
     complexity_penalty: float = 0.0
     train_data: ndarray | None = None
@@ -123,10 +122,10 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
         >>> import numpy as np
         >>> from hgp_lib.configs import BooleanGPConfig
         >>> from hgp_lib.configs.boolean_gp_config import validate_gp_config
+        >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
         >>> data = np.array([[True, False], [False, True]])
         >>> labels = np.array([1, 0])
-        >>> def accuracy(p, l): return float((p == l).mean())
-        >>> config = BooleanGPConfig(score_fn=accuracy, train_data=data, train_labels=labels)
+        >>> config = BooleanGPConfig(score_fn=accuracy_score, train_data=data, train_labels=labels)
         >>> validate_gp_config(config)  # No error
     """
     if hasattr(config, "_validated_with_data"):

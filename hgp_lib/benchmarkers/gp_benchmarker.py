@@ -68,7 +68,7 @@ class GPBenchmarker:
         ...     "f2": [False, True, True, False, False, True, True, False],
         ... })
         >>> labels = np.array([1, 0, 1, 0, 1, 0, 1, 0])
-        >>> def acc(p, l): return float((p == l).mean())
+        >>> def acc(t, p): return float((t == p).mean())
         >>> gp_config = BooleanGPConfig(score_fn=acc, optimize_scorer=False)
         >>> trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=3, progress_bar=False)
         >>> config = BenchmarkerConfig(

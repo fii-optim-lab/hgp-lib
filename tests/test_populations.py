@@ -10,6 +10,7 @@ from hgp_lib.populations import (
 )
 from hgp_lib.mutations import MutationExecutorFactory
 from hgp_lib.rules import And, Or, Literal
+from hgp_lib.utils.metrics import fast_accuracy_score
 
 
 class TestPopulations(unittest.TestCase):
@@ -29,9 +30,7 @@ class TestPopulations(unittest.TestCase):
         )
         self.train_labels = np.array([1, 0, 1, 0])
         self.num_literals = 4
-
-    def simple_score_fn(self, predictions, labels):
-        return np.mean(predictions == labels)
+        self.score_fn = fast_accuracy_score
 
     def test_random_strategy_init(self):
         strategy = RandomStrategy(num_literals=10, operator_types=(And, Or))
@@ -82,7 +81,7 @@ class TestPopulations(unittest.TestCase):
     def test_best_literal_strategy_init(self):
         BestLiteralStrategy(
             num_literals=self.train_data.shape[1],
-            score_fn=self.simple_score_fn,
+            score_fn=self.score_fn,
             train_data=self.train_data,
             train_labels=self.train_labels,
         )
@@ -98,7 +97,7 @@ class TestPopulations(unittest.TestCase):
         with self.assertRaises(ValueError):
             BestLiteralStrategy(
                 num_literals=self.num_literals,
-                score_fn=self.simple_score_fn,
+                score_fn=self.score_fn,
                 train_data=self.train_data,
                 train_labels=self.train_labels,
                 sample_size=1.5,
@@ -107,7 +106,7 @@ class TestPopulations(unittest.TestCase):
         with self.assertRaises(ValueError):
             BestLiteralStrategy(
                 num_literals=self.num_literals,
-                score_fn=self.simple_score_fn,
+                score_fn=self.score_fn,
                 train_data=self.train_data,
                 train_labels=self.train_labels,
                 feature_size=0,
@@ -116,7 +115,7 @@ class TestPopulations(unittest.TestCase):
     def test_best_literal_strategy_generate(self):
         strategy = BestLiteralStrategy(
             num_literals=self.num_literals,
-            score_fn=self.simple_score_fn,
+            score_fn=self.score_fn,
             train_data=self.train_data,
             train_labels=self.train_labels,
             sample_size=None,
@@ -132,7 +131,7 @@ class TestPopulations(unittest.TestCase):
 
         strategy_subset = BestLiteralStrategy(
             num_literals=self.num_literals,
-            score_fn=self.simple_score_fn,
+            score_fn=self.score_fn,
             train_data=self.train_data,
             train_labels=self.train_labels,
             sample_size=2,
@@ -146,7 +145,7 @@ class TestPopulations(unittest.TestCase):
         with self.assertRaises(ValueError):
             BestLiteralStrategy(
                 num_literals=self.num_literals,
-                score_fn=self.simple_score_fn,
+                score_fn=self.score_fn,
                 train_data=self.train_data,
                 train_labels=None,
             )
@@ -155,7 +154,7 @@ class TestPopulations(unittest.TestCase):
         with self.assertRaises(ValueError):
             BestLiteralStrategy(
                 num_literals=10,
-                score_fn=self.simple_score_fn,
+                score_fn=self.score_fn,
                 train_data=self.train_data,
                 train_labels=self.train_labels[:-1],
             )
@@ -163,7 +162,7 @@ class TestPopulations(unittest.TestCase):
         with self.assertRaises(ValueError):
             BestLiteralStrategy(
                 num_literals=10,
-                score_fn=self.simple_score_fn,
+                score_fn=self.score_fn,
                 train_data=np.array([]),
                 train_labels=np.array([]),
             )
@@ -171,7 +170,7 @@ class TestPopulations(unittest.TestCase):
         with self.assertRaises(ValueError):
             BestLiteralStrategy(
                 num_literals=10,
-                score_fn=self.simple_score_fn,
+                score_fn=self.score_fn,
                 train_data=self.train_data,
                 train_labels=self.train_labels,
             )
@@ -179,7 +178,7 @@ class TestPopulations(unittest.TestCase):
         with self.assertRaises(ValueError):
             BestLiteralStrategy(
                 num_literals=self.num_literals,
-                score_fn=self.simple_score_fn,
+                score_fn=self.score_fn,
                 train_data=None,
                 train_labels=self.train_labels,
             )
@@ -187,7 +186,7 @@ class TestPopulations(unittest.TestCase):
         with self.assertRaises(TypeError):
             BestLiteralStrategy(
                 num_literals=self.num_literals,
-                score_fn=self.simple_score_fn,
+                score_fn=self.score_fn,
                 train_data=[[1, 0]],
                 train_labels=self.train_labels,
             )
@@ -195,7 +194,7 @@ class TestPopulations(unittest.TestCase):
         with self.assertRaises(TypeError):
             BestLiteralStrategy(
                 num_literals=self.num_literals,
-                score_fn=self.simple_score_fn,
+                score_fn=self.score_fn,
                 train_data=self.train_data,
                 train_labels=[1, 0],
             )
@@ -230,7 +229,7 @@ class TestPopulations(unittest.TestCase):
         s1 = RandomStrategy(self.num_literals)
         s2 = BestLiteralStrategy(
             num_literals=self.num_literals,
-            score_fn=self.simple_score_fn,
+            score_fn=self.score_fn,
             train_data=self.train_data,
             train_labels=self.train_labels,
         )
@@ -252,7 +251,7 @@ class TestPopulations(unittest.TestCase):
         s1 = RandomStrategy(self.num_literals)
         s2 = BestLiteralStrategy(
             num_literals=self.num_literals,
-            score_fn=self.simple_score_fn,
+            score_fn=self.score_fn,
             train_data=self.train_data,
             train_labels=self.train_labels,
         )
@@ -304,7 +303,7 @@ class TestPopulations(unittest.TestCase):
         with self.assertRaises(TypeError):
             BestLiteralStrategy(
                 num_literals=self.num_literals,
-                score_fn=self.simple_score_fn,
+                score_fn=self.score_fn,
                 train_data=self.train_data,
                 train_labels=self.train_labels,
                 sample_size={"invalid": "type"},
@@ -327,8 +326,7 @@ class TestPopulationGeneratorFactory(unittest.TestCase):
         self.train_labels = np.array([1, 0, 1, 0])
         self.num_literals = 4
 
-    def simple_score_fn(self, predictions, labels):
-        return np.mean(predictions == labels)
+        self.score_fn = fast_accuracy_score
 
     def test_default_factory(self):
         factory = PopulationGeneratorFactory()
@@ -352,7 +350,7 @@ class TestPopulationGeneratorFactory(unittest.TestCase):
         factory = PopulationGeneratorFactory(population_size=10)
         gen = factory.create(
             self.num_literals,
-            self.simple_score_fn,
+            self.score_fn,
             self.train_data,
             self.train_labels,
         )
@@ -362,7 +360,7 @@ class TestPopulationGeneratorFactory(unittest.TestCase):
         factory = PopulationGeneratorFactory(population_size=15)
         gen = factory.create(
             self.num_literals,
-            self.simple_score_fn,
+            self.score_fn,
             self.train_data,
             self.train_labels,
         )
@@ -373,7 +371,7 @@ class TestPopulationGeneratorFactory(unittest.TestCase):
         factory = PopulationGeneratorFactory(population_size=5)
         gen = factory.create(
             self.num_literals,
-            self.simple_score_fn,
+            self.score_fn,
             self.train_data,
             self.train_labels,
         )
@@ -398,7 +396,7 @@ class TestPopulationGeneratorFactory(unittest.TestCase):
         factory = BestLiteralFactory(population_size=5)
         gen = factory.create(
             self.num_literals,
-            self.simple_score_fn,
+            self.score_fn,
             self.train_data,
             self.train_labels,
         )
