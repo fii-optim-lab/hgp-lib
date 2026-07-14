@@ -83,9 +83,9 @@ class BooleanRuleClassifier:
     def fit(
         self,
         X: pd.DataFrame,
-        y: np.ndarray,
+        y: "np.ndarray | pd.Series",
         X_val: Optional[pd.DataFrame] = None,
-        y_val: Optional[np.ndarray] = None,
+        y_val: "np.ndarray | pd.Series | None" = None,
     ) -> PopulationHistory:
         """
         Binarize raw features and evolve a Boolean rule on them.
@@ -97,17 +97,19 @@ class BooleanRuleClassifier:
         Optionally, a raw validation set ``(X_val, y_val)`` can be supplied. It is
         transformed with the *same* fitted binarizer (no leakage) and used to track a
         validation score during training (every ``val_every`` epochs, as configured in
-        the ``TrainerConfig``). When given, it overrides any ``val_data`` already set on
-        the trainer configuration.
+        the ``TrainerConfig``). The validation set passed here fully controls validation:
+        when supplied it overrides any ``val_data`` already set on the trainer
+        configuration, and when omitted any pre-existing ``val_data`` is cleared so no
+        stale (and un-binarized) validation set leaks in.
 
         Args:
             X (pd.DataFrame): Raw (non-binarized) training features. Columns may be
                 boolean, categorical, or numeric.
-            y (np.ndarray): Binary training labels, one per row of ``X``.
+            y (np.ndarray | pd.Series): Binary training labels, one per row of ``X``.
             X_val (pd.DataFrame | None): Optional raw validation features, with the same
                 schema as ``X``. Default: `None`.
-            y_val (np.ndarray | None): Optional validation labels. Must be provided if
-                and only if ``X_val`` is. Default: `None`.
+            y_val (np.ndarray | pd.Series | None): Optional validation labels. Must be
+                provided if and only if ``X_val`` is. Default: `None`.
 
         Returns:
             PopulationHistory: The training history, whose ``global_best_rule`` is the
