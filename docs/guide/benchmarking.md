@@ -34,7 +34,7 @@ See [Binarization](binarization.md) for how the binarizer works and its paramete
 
 ## Feature names
 
-The [`RunResult`](../api/metrics.md#hgp_lib.metrics.results.RunResult) includes `feature_names`, a `Dict[int, str]` mapping from literal indices to the binarized column names.
+The [`RunResult`](../api/metrics.md#hgp_lib.metrics.results.RunResult) includes `feature_names`, a `list[str]` of the binarized column names in order, index-aligned so that `feature_names[i]` names the feature a literal references with index `i`.
 Use this to display rules in human-readable form:
 
 ```python

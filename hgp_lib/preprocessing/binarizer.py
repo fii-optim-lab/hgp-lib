@@ -1,4 +1,4 @@
-from typing import List, Optional, Set, Tuple, Dict
+from typing import List, Optional, Set
 
 import numpy as np
 import pandas as pd
@@ -108,7 +108,7 @@ class StandardBinarizer(Binarizer):
         self._skipped_columns: Set[str] = set()
         self._original_columns = None
         self._is_fitted = False
-        self._feature_names: Dict[int, str] = {}
+        self._feature_names: List[str] = []
 
     def _validate_params(
         self,
@@ -204,11 +204,33 @@ class StandardBinarizer(Binarizer):
 
         self._original_columns = X.columns
         self._is_fitted = True
-        self._feature_names = {i: k for i, k in enumerate(outputs.keys())}
+        self._feature_names = [str(name) for name in outputs.keys()]
         return pd.DataFrame(outputs, index=X.index)
 
-    def _get_feature_names(self) -> Dict[int, str]:
-        return self._feature_names
+    def get_feature_names_out(self) -> List[str]:
+        """
+        Return the output column names in order (see :meth:`Binarizer.get_feature_names_out`).
+
+        Returns:
+            List[str]: The boolean output column names, index-aligned with the
+                columns produced by ``fit_transform`` / ``transform``.
+
+        Raises:
+            ValueError: If the binarizer has not been fitted yet.
+
+        Examples:
+            >>> import pandas as pd
+            >>> from hgp_lib.preprocessing import StandardBinarizer
+            >>> b = StandardBinarizer(num_bins=2)
+            >>> _ = b.fit_transform(pd.DataFrame({"x": [1.0, 2.0, 3.0, 4.0]}))
+            >>> b.get_feature_names_out()
+            ['x < 2.500', '2.500 <= x']
+        """
+        if not self._is_fitted:
+            raise ValueError(
+                "Binarizer must be fitted before calling get_feature_names_out"
+            )
+        return list(self._feature_names)
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """

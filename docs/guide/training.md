@@ -92,11 +92,10 @@ history = GPTrainer(TrainerConfig(gp_config=gp, num_epochs=1000)).fit()
 
 rule = history.global_best_rule
 predictions = rule.evaluate(test_bin.to_numpy())
-column_names = dict(enumerate(train_bin.columns))
-print(rule.to_str(column_names))
+print(rule.to_str(binarizer.get_feature_names_out()))
 ```
 
-The `column_names` map turns the literal indices back into the binarized column names, so the printed rule reads as plain logic.
+`binarizer.get_feature_names_out()` returns the binarized column names in order, so the printed rule reads as plain logic (each literal index is replaced by its column name).
 
 ## Predicting with a fitted trainer
 

@@ -64,11 +64,10 @@ rule = history.global_best_rule
 predictions = trainer.predict(test_bin.to_numpy())
 # Equivalent notation
 # predictions = rule.evaluate(test_bin.to_numpy())
-column_names = dict(enumerate(train_bin.columns))
-print(rule.to_str(column_names))
+print(rule.to_str(binarizer.get_feature_names_out()))
 ```
 
-The `column_names` map turns literal indices back into the binarized column names, so the printed rule reads as plain logic.
+`binarizer.get_feature_names_out()` returns the binarized column names in order, so the printed rule reads as plain logic (each literal index is replaced by its column name).
 The [Data Preparation](https://fii-optim-lab.github.io/hgp-lib/guide/data-preparation/) guide shows how to use `StandardBinarizer` without leaking data between splits.
 
 ## Benchmarking

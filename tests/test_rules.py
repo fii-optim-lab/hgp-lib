@@ -33,7 +33,7 @@ class TestRules(unittest.TestCase):
         self.assertIn("\t", multiline)
         self.assertNotIn("\n", single_line)
         # Named features are still substituted in the indented form.
-        named = rule.to_str({0: "a", 1: "b"}, indent=0)
+        named = rule.to_str(["a", "b"], indent=0)
         self.assertIn("a", named)
         self.assertIn("b", named)
 

@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Optional, Sequence
 
 
 from .rules import Rule
@@ -60,15 +60,16 @@ class Literal(Rule):
         return ~data[:, self.value] if self.negated else data[:, self.value]
 
     def to_str(
-        self, feature_names: Dict[int, str] | None = None, indent: bool = -1
+        self, feature_names: Sequence[str] | None = None, indent: int = -1
     ) -> str:
         """
         Returns a human-readable string representation of the literal. The literal can be replaced with the feature
         name if provided.
 
         Args:
-            feature_names (Dict[int, str] | None): The feature names that can be used to replace literal values when
-                provided. Default: `None`.
+            feature_names (Sequence[str] | None): Output feature names, index-aligned so that
+                ``feature_names[value]`` is the name of the feature this literal references.
+                When provided, the literal index is replaced by its name. Default: `None`.
             indent (int): Not used. Default: `-1`.
 
         Returns:
@@ -79,7 +80,7 @@ class Literal(Rule):
             '0'
             >>> str(Literal(value=0, negated=True))
             '~0'
-            >>> Literal(value=0, negated=True).to_str({0: "bad"})
+            >>> Literal(value=0, negated=True).to_str(["bad"])
             '~bad'
         """
         value = self.value

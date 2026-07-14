@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -46,7 +46,7 @@ class SklearnBinarizer(Binarizer):
     ) -> pd.DataFrame:
         check_isinstance(X, pd.DataFrame)
         array = np.asarray(self.transformer.fit_transform(X, y))
-        self._columns = self.transformer.get_feature_names_out()
+        self._columns = self._resolve_columns(X, array.shape[1])
         self._is_fitted = True
         return pd.DataFrame(array.astype(bool), columns=self._columns, index=X.index)
 
@@ -57,5 +57,28 @@ class SklearnBinarizer(Binarizer):
         array = np.asarray(self.transformer.transform(X))
         return pd.DataFrame(array.astype(bool), columns=self._columns, index=X.index)
 
-    def _get_feature_names(self) -> Dict[int, str]:
-        return {i: x for i, x in enumerate(self._columns)}
+    def get_feature_names_out(self) -> List[str]:
+        """
+        Return the output column names in order (see :meth:`Binarizer.get_feature_names_out`).
+
+        Names come from the wrapped transformer's ``get_feature_names_out`` when
+        available, otherwise they are generated positionally.
+
+        Returns:
+            List[str]: The boolean output column names.
+
+        Raises:
+            ValueError: If the binarizer has not been fitted yet.
+        """
+        if not self._is_fitted:
+            raise ValueError(
+                "Binarizer must be fitted before calling get_feature_names_out"
+            )
+        return list(self._columns)
+
+    def _resolve_columns(self, X: pd.DataFrame, n_features: int) -> List[str]:
+        if hasattr(self.transformer, "get_feature_names_out"):
+            return [
+                str(c) for c in self.transformer.get_feature_names_out(list(X.columns))
+            ]
+        return [f"feature_{i}" for i in range(n_features)]

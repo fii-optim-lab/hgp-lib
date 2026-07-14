@@ -89,9 +89,7 @@ def execute_single_run(
         binarizer = deepcopy(config.binarizer)
         fold_train = binarizer.fit_transform(fold_train, fold_train_labels)
         binarizers.append(binarizer)
-        feature_names_per_binarizer.append(
-            {i: col for i, col in enumerate(fold_train.columns)}
-        )
+        feature_names_per_binarizer.append(binarizer.get_feature_names_out())
         fold_train = fold_train.to_numpy(dtype=bool)
 
         fold_val = binarizer.transform(train_data.iloc[val_idx]).to_numpy(dtype=bool)

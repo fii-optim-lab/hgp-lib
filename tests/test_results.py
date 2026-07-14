@@ -60,7 +60,7 @@ class _Helpers:
             test_fp=1,
             test_fn=1,
             test_tn=4,
-            feature_names={0: "col_a", 1: "col_b"},
+            feature_names=["col_a", "col_b"],
         )
         defaults.update(kwargs)
         return RunResult(**defaults)
@@ -192,7 +192,8 @@ class TestRunResult(unittest.TestCase, _Helpers):
     #  feature_names
     # ------------------------------------------------------------------ #
     def test_feature_names(self):
-        run = self.make_run(feature_names={0: "age", 1: "income"})
+        run = self.make_run(feature_names=["age", "income"])
+        self.assertEqual(run.feature_names, ["age", "income"])
         self.assertEqual(run.feature_names[0], "age")
         self.assertEqual(run.feature_names[1], "income")
 

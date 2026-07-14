@@ -387,6 +387,21 @@ class TestStandardBinarizer(unittest.TestCase):
         b.fit_transform(pd.DataFrame({"x": [1.0, 2.0]}))
         self.assertTrue(b.is_fitted)
 
+    # ------------------------------------------------------------------ #
+    #  get_feature_names_out
+    # ------------------------------------------------------------------ #
+    def test_get_feature_names_out_matches_columns(self):
+        b = StandardBinarizer(num_bins=2)
+        result = b.fit_transform(pd.DataFrame({"x": [1.0, 2.0, 3.0, 4.0]}))
+        names = b.get_feature_names_out()
+        self.assertEqual(names, list(result.columns))
+        self.assertTrue(all(isinstance(n, str) for n in names))
+
+    def test_get_feature_names_out_before_fit_raises(self):
+        b = StandardBinarizer()
+        with self.assertRaises(ValueError):
+            b.get_feature_names_out()
+
 
 class TestSklearnBinarizer(unittest.TestCase):
     def test_transform_before_fit_raises(self):
@@ -413,7 +428,30 @@ class TestSklearnBinarizer(unittest.TestCase):
         b = SklearnBinarizer(_NoNamesTransformer())
         out = b.fit_transform(pd.DataFrame({"x": [0.0, 1.0]}))
         self.assertEqual(list(out.columns), ["feature_0", "feature_1"])
+        self.assertEqual(b.get_feature_names_out(), ["feature_0", "feature_1"])
         self.assertTrue(out.to_numpy().dtype == bool)
+
+    def test_get_feature_names_out_matches_columns(self):
+        from sklearn.preprocessing import KBinsDiscretizer
+        from hgp_lib.preprocessing import SklearnBinarizer
+
+        b = SklearnBinarizer(
+            KBinsDiscretizer(n_bins=2, encode="onehot-dense", strategy="uniform")
+        )
+        result = b.fit_transform(pd.DataFrame({"x": [0.0, 1.0, 2.0, 3.0]}))
+        names = b.get_feature_names_out()
+        self.assertEqual(names, list(result.columns))
+        self.assertTrue(all(isinstance(n, str) for n in names))
+
+    def test_get_feature_names_out_before_fit_raises(self):
+        from sklearn.preprocessing import KBinsDiscretizer
+        from hgp_lib.preprocessing import SklearnBinarizer
+
+        b = SklearnBinarizer(
+            KBinsDiscretizer(n_bins=2, encode="onehot-dense", strategy="uniform")
+        )
+        with self.assertRaises(ValueError):
+            b.get_feature_names_out()
 
 
 if __name__ == "__main__":

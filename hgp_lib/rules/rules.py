@@ -1,6 +1,6 @@
 # Reimplementation based on https://github.com/fidelity/boolxai/blob/main/boolxai/rules/rule.py
 from abc import ABC, abstractmethod
-from typing import List, Optional, Dict
+from typing import Dict, List, Optional, Sequence
 
 import numpy as np
 
@@ -122,15 +122,17 @@ class Rule(ABC):
         return result
 
     def to_str(
-        self, feature_names: Dict[int, str] | None = None, indent: int = -1
+        self, feature_names: Sequence[str] | None = None, indent: int = -1
     ) -> str:
         """
         Returns a human-readable string representation of this rule and replaces the literal values with the feature
         names if available.
 
         Args:
-            feature_names (Dict[int, str] | None): The feature names that can be used to replace literal values when
-                provided. Default: `None`.
+            feature_names (Sequence[str] | None): Output feature names, index-aligned so that
+                ``feature_names[value]`` is the name of the feature a literal references.
+                Typically obtained from ``Binarizer.get_feature_names_out()``. When provided,
+                literal indices are replaced by their names. Default: `None`.
             indent (int): The indentation level when printing the rules. If `-1`, no indentation is used.
                 For standard indentation, use `0`. Default: `-1`.
 
@@ -143,7 +145,7 @@ class Rule(ABC):
             'And(1, 2)'
             >>> str(And([Literal(value=1), Literal(value=2)], negated=True))
             '~And(1, 2)'
-            >>> And([Literal(value=1), Literal(value=2)], negated=True).to_str({1: "good", 2:"nice"})
+            >>> And([Literal(value=1), Literal(value=2)], negated=True).to_str(["a", "good", "nice"])
             '~And(good, nice)'
         """
         if indent == -1:
