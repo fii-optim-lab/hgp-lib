@@ -35,21 +35,29 @@ class BooleanRuleClassifier:
 
     Examples:
         >>> from sklearn.datasets import load_breast_cancer
+        >>> from sklearn.model_selection import train_test_split
         >>> from hgp_lib import BooleanRuleClassifier
         >>> from hgp_lib.configs import BooleanGPConfig, TrainerConfig
         >>> from hgp_lib.utils.metrics import fast_f1_score
         >>> X, y = load_breast_cancer(return_X_y=True, as_frame=True)
+        >>> X_train, X_test, y_train, y_test = train_test_split(
+        ...     X, y, test_size=0.2, stratify=y, random_state=0
+        ... )
+        >>> X_train, X_val, y_train, y_val = train_test_split(
+        ...     X_train, y_train, test_size=0.25, stratify=y_train, random_state=0
+        ... )
         >>> config = TrainerConfig(
         ...     gp_config=BooleanGPConfig(score_fn=fast_f1_score),
         ...     num_epochs=10,
+        ...     val_every=5,
         ...     progress_bar=False,
         ... )
         >>> clf = BooleanRuleClassifier(config)
-        >>> history = clf.fit(X, y)
-        >>> predictions = clf.predict(X)
+        >>> history = clf.fit(X_train, y_train, X_val, y_val)
+        >>> predictions = clf.predict(X_test)
         >>> predictions.shape
-        (569,)
-        >>> len(clf.feature_names) > 0
+        (114,)
+        >>> history.best_val_score is not None
         True
         >>> isinstance(clf.format_rule(), str)
         True
@@ -72,7 +80,13 @@ class BooleanRuleClassifier:
         self.binarizer = binarizer
         self._history: Optional[PopulationHistory] = None
 
-    def fit(self, X: pd.DataFrame, y: np.ndarray) -> PopulationHistory:
+    def fit(
+        self,
+        X: pd.DataFrame,
+        y: np.ndarray,
+        X_val: Optional[pd.DataFrame] = None,
+        y_val: Optional[np.ndarray] = None,
+    ) -> PopulationHistory:
         """
         Binarize raw features and evolve a Boolean rule on them.
 
@@ -80,26 +94,47 @@ class BooleanRuleClassifier:
         of numeric columns) and the resulting boolean matrix is used to train a
         :class:`GPTrainer`.
 
+        Optionally, a raw validation set ``(X_val, y_val)`` can be supplied. It is
+        transformed with the *same* fitted binarizer (no leakage) and used to track a
+        validation score during training (every ``val_every`` epochs, as configured in
+        the ``TrainerConfig``). When given, it overrides any ``val_data`` already set on
+        the trainer configuration.
+
         Args:
-            X (pd.DataFrame): Raw (non-binarized) features. Columns may be boolean,
-                categorical, or numeric.
-            y (np.ndarray): Binary target labels, one per row of ``X``.
+            X (pd.DataFrame): Raw (non-binarized) training features. Columns may be
+                boolean, categorical, or numeric.
+            y (np.ndarray): Binary training labels, one per row of ``X``.
+            X_val (pd.DataFrame | None): Optional raw validation features, with the same
+                schema as ``X``. Default: `None`.
+            y_val (np.ndarray | None): Optional validation labels. Must be provided if
+                and only if ``X_val`` is. Default: `None`.
 
         Returns:
             PopulationHistory: The training history, whose ``global_best_rule`` is the
-                rule used for prediction.
+                rule used for prediction. When validation data is supplied,
+                ``history.best_val_score`` reports the best validation score.
 
         Raises:
-            TypeError: If ``X`` is not a ``pandas.DataFrame``.
+            TypeError: If ``X`` (or ``X_val``, when given) is not a ``pandas.DataFrame``.
+            ValueError: If exactly one of ``X_val`` / ``y_val`` is provided.
         """
         check_isinstance(X, pd.DataFrame)
+        if (X_val is None) != (y_val is None):
+            raise ValueError("X_val and y_val must both be provided or both be None")
         y = np.asarray(y)
 
         train_bin = self.binarizer.fit_transform(X, y).to_numpy(dtype=bool)
         gp_config = replace(
             self.trainer_config.gp_config, train_data=train_bin, train_labels=y
         )
-        fit_config = replace(self.trainer_config, gp_config=gp_config)
+
+        val_kwargs = {}
+        if X_val is not None:
+            check_isinstance(X_val, pd.DataFrame)
+            val_bin = self.binarizer.transform(X_val).to_numpy(dtype=bool)
+            val_kwargs = {"val_data": val_bin, "val_labels": np.asarray(y_val)}
+
+        fit_config = replace(self.trainer_config, gp_config=gp_config, **val_kwargs)
 
         self._history = GPTrainer(fit_config).fit()
         return self._history
