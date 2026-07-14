@@ -56,15 +56,21 @@ X, y = load_breast_cancer(return_X_y=True, as_frame=True)
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, stratify=y, random_state=0
 )
+X_train, X_val, y_train, y_val = train_test_split(
+    X_train, y_train, test_size=0.25, stratify=y_train, random_state=0
+)
 
-config = TrainerConfig(gp_config=BooleanGPConfig(score_fn=fast_f1_score), num_epochs=1000)
+config = TrainerConfig(
+    gp_config=BooleanGPConfig(score_fn=fast_f1_score), num_epochs=1000, val_every=100
+)
 clf = BooleanRuleClassifier(config)  # StandardBinarizer by default; pass binarizer=... to customize
-clf.fit(X_train, y_train)
+clf.fit(X_train, y_train, X_val, y_val)  # validation data is binarized internally too
 
 predictions = clf.predict(X_test)  # raw data is binarized internally
 print(clf.format_rule())           # the evolved rule as plain logic
 ```
 
+Validation data is optional; when given, it is binarized with the same fitted binarizer and used to track a validation score during training.
 `clf.format_rule()` prints the rule with the binarized column names, so the model reads as plain logic.
 To binarize and train manually with `GPTrainer`, see [Training](https://fii-optim-lab.github.io/hgp-lib/guide/training/); the [Data Preparation](https://fii-optim-lab.github.io/hgp-lib/guide/data-preparation/) guide shows how to avoid leaking data between splits.
 

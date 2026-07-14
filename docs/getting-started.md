@@ -28,14 +28,21 @@ X, y = load_breast_cancer(return_X_y=True, as_frame=True)
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, stratify=y, random_state=0
 )
+X_train, X_val, y_train, y_val = train_test_split(
+    X_train, y_train, test_size=0.25, stratify=y_train, random_state=0
+)
 
-config = TrainerConfig(gp_config=BooleanGPConfig(score_fn=fast_f1_score), num_epochs=1000)
+config = TrainerConfig(
+    gp_config=BooleanGPConfig(score_fn=fast_f1_score), num_epochs=1000, val_every=100
+)
 clf = BooleanRuleClassifier(config)  # StandardBinarizer by default; pass binarizer=... to customize
-clf.fit(X_train, y_train)
+clf.fit(X_train, y_train, X_val, y_val)  # validation data is binarized internally too
 
 predictions = clf.predict(X_test)  # raw data is binarized internally
 print(clf.format_rule())           # the evolved rule as plain logic
 ```
+
+Validation data is optional; when supplied it is binarized with the same fitted binarizer and used to track a validation score during training.
 
 For a rigorous estimate over multiple runs and folds, use
 [`GPBenchmarker`](api/benchmarkers.md#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker),

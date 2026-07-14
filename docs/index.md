@@ -48,10 +48,15 @@ X, y = load_breast_cancer(return_X_y=True, as_frame=True)
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, stratify=y, random_state=0
 )
+X_train, X_val, y_train, y_val = train_test_split(
+    X_train, y_train, test_size=0.25, stratify=y_train, random_state=0
+)
 
-config = TrainerConfig(gp_config=BooleanGPConfig(score_fn=fast_f1_score), num_epochs=500)
+config = TrainerConfig(
+    gp_config=BooleanGPConfig(score_fn=fast_f1_score), num_epochs=500, val_every=50
+)
 clf = BooleanRuleClassifier(config)
-clf.fit(X_train, y_train)
+clf.fit(X_train, y_train, X_val, y_val)  # validation is binarized internally too
 
 predictions = clf.predict(X_test)
 print(clf.format_rule())
