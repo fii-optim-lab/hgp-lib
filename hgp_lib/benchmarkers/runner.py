@@ -145,7 +145,7 @@ def execute_single_run(
 
     test_pred = best_rule.evaluate(test_data)
 
-    test_score = float(test_score_fn(test_pred, test_labels))
+    test_score = float(test_score_fn(test_labels, test_pred))
 
     tp, fp, fn, tn = test_cm(test_pred, test_labels)
 

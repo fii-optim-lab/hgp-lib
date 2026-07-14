@@ -10,30 +10,58 @@ pip install 'hgp-lib[dev]'
 
 ## A first run
 
-`hgp_lib` evolves boolean rules that classify tabular data. The fastest way to
-get a result is [`GPBenchmarker`](api/benchmarkers.md#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker), which handles binarization, splitting, and
-aggregation for you. Pass a raw `pandas.DataFrame` and a scoring function.
+The fastest way to train an interpretable model is
+[`BooleanRuleClassifier`](api/trainers.md#hgp_lib.trainers.boolean_rule_classifier.BooleanRuleClassifier).
+It binarizes a raw `pandas.DataFrame` for you, evolves a rule, and applies the same
+binarization when predicting. The example runs as-is on the scikit-learn
+`breast_cancer` dataset.
+
+```python
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+
+from hgp_lib.configs import BooleanGPConfig, TrainerConfig
+from hgp_lib.trainers import BooleanRuleClassifier
+from hgp_lib.utils.metrics import fast_f1_score
+
+X, y = load_breast_cancer(return_X_y=True, as_frame=True)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, stratify=y, random_state=0
+)
+
+config = TrainerConfig(gp_config=BooleanGPConfig(score_fn=fast_f1_score), num_epochs=1000)
+clf = BooleanRuleClassifier(config)  # StandardBinarizer by default; pass binarizer=... to customize
+clf.fit(X_train, y_train)
+
+predictions = clf.predict(X_test)  # raw data is binarized internally
+print(clf.format_rule())           # the evolved rule as plain logic
+```
+
+For a rigorous estimate over multiple runs and folds, use
+[`GPBenchmarker`](api/benchmarkers.md#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker),
+which handles binarization, splitting, and aggregation for you:
 
 ```python
 import numpy as np
-import pandas as pd
+from sklearn.datasets import load_breast_cancer
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.benchmarkers import GPBenchmarker
+from hgp_lib.utils.metrics import fast_f1_score
 
-data = pd.DataFrame(...)  # raw features (bool / categorical / numeric)
-labels = np.array(...)    # 1-D target array
+X, y = load_breast_cancer(return_X_y=True, as_frame=True)
 
-gp_config = BooleanGPConfig(score_fn=my_score_fn)
+gp_config = BooleanGPConfig(score_fn=fast_f1_score)
 trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=1000, val_every=100)
 config = BenchmarkerConfig(
-    data=data,
-    labels=labels,
+    data=X,
+    labels=y.to_numpy(),
     trainer_config=trainer_config,
     num_runs=30,
     n_folds=5,
     n_jobs=-1,
 )
 result = GPBenchmarker(config).fit()
+print(f"Mean test F1: {np.mean(result.test_scores):.3f}")
 print(result.best_rule.to_str(result.best_run.feature_names))
 ```
 

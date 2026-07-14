@@ -203,14 +203,14 @@ class BestLiteralStrategy(PopulationStrategy):
 
             for i in feature_indices:
                 preds_pos = subset_data[:, i]
-                score_pos = self.score_fn(preds_pos, subset_labels)
+                score_pos = self.score_fn(subset_labels, preds_pos)
 
                 if score_pos > best_score:
                     best_score = score_pos
                     best_rule = Literal(value=i, negated=False)
 
                 preds_neg = ~preds_pos
-                score_neg = self.score_fn(preds_neg, subset_labels)
+                score_neg = self.score_fn(subset_labels, preds_neg)
 
                 if score_neg > best_score:
                     best_score = score_neg
