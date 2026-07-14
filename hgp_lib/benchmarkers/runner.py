@@ -147,7 +147,7 @@ def execute_single_run(
 
     test_score = float(test_score_fn(test_labels, test_pred))
 
-    tp, fp, fn, tn = test_cm(test_pred, test_labels)
+    tp, fp, fn, tn = test_cm(test_labels, test_pred)
 
     send_progress(progress_queue, "run", 1)
 
