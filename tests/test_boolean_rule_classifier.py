@@ -77,6 +77,24 @@ class TestBooleanRuleClassifier(unittest.TestCase):
         preds = clf.predict(self.data.iloc[:5])
         self.assertEqual(preds.shape, (5,))
 
+    def test_fit_with_validation_data_tracks_val_score(self):
+        clf = BooleanRuleClassifier(self._make_config(val_every=1))
+        history = clf.fit(
+            self.data.iloc[:30],
+            self.labels[:30],
+            self.data.iloc[30:],
+            self.labels[30:],
+        )
+        self.assertIsNotNone(history.best_val_score)
+        self.assertEqual(clf.predict(self.data.iloc[30:]).shape, (10,))
+
+    def test_fit_requires_both_val_args(self):
+        clf = BooleanRuleClassifier(self._make_config())
+        with self.assertRaises(ValueError):
+            clf.fit(self.data, self.labels, X_val=self.data)
+        with self.assertRaises(ValueError):
+            clf.fit(self.data, self.labels, y_val=self.labels)
+
     def test_fit_requires_dataframe(self):
         clf = BooleanRuleClassifier(self._make_config())
         with self.assertRaises(TypeError):

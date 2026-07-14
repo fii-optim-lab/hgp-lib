@@ -515,5 +515,57 @@ class TestBooleanGP(unittest.TestCase):
         self.assertEqual(gp.best_not_improved_epochs, 2)
 
 
+class TestScoreFnArgumentOrder(unittest.TestCase):
+    """Locks the ``score_fn(y_true, y_pred)`` argument order used by the engine.
+
+    Uses an order-sensitive precision score so that a future accidental swap back to
+    ``(y_pred, y_true)`` is caught (the built-in symmetric metrics would not reveal it).
+    """
+
+    @staticmethod
+    def _precision(y_true, y_pred):
+        y_true = np.asarray(y_true, dtype=bool)
+        y_pred = np.asarray(y_pred, dtype=bool)
+        denom = int(y_pred.sum())
+        return int((y_true & y_pred).sum()) / denom if denom else 0.0
+
+    def _make_gp(self, seen):
+        def spy(y_true, y_pred):
+            seen.append((np.asarray(y_true).copy(), np.asarray(y_pred).copy()))
+            return self._precision(y_true, y_pred)
+
+        train_data = np.array(
+            [[True, False], [False, True], [True, True], [False, False]]
+        )
+        train_labels = np.array([1, 0, 1, 0])
+        gp = BooleanGP(
+            BooleanGPConfig(
+                score_fn=spy,
+                train_data=train_data,
+                train_labels=train_labels,
+                optimize_scorer=False,
+            )
+        )
+        return gp, train_data, train_labels
+
+    def test_population_scoring_passes_labels_first(self):
+        seen = []
+        gp, _, train_labels = self._make_gp(seen)
+        gp.step()
+        self.assertTrue(seen)
+        for y_true, _ in seen:
+            np.testing.assert_array_equal(y_true, train_labels)
+
+    def test_evaluate_best_passes_labels_first(self):
+        seen = []
+        gp, train_data, train_labels = self._make_gp(seen)
+        gp.step()
+        seen.clear()
+        gp.evaluate_best(train_data, train_labels, gp.score_fn)
+        y_true, y_pred = seen[-1]
+        np.testing.assert_array_equal(y_true, train_labels)
+        np.testing.assert_array_equal(y_pred, gp.global_best_rule.evaluate(train_data))
+
+
 if __name__ == "__main__":
     unittest.main()
