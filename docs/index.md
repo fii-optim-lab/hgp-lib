@@ -40,8 +40,8 @@ binarizes the raw data, evolves a rule, and applies the same binarization when p
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 
+from hgp_lib import BooleanRuleClassifier
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
-from hgp_lib.trainers import BooleanRuleClassifier
 from hgp_lib.utils.metrics import fast_f1_score
 
 X, y = load_breast_cancer(return_X_y=True, as_frame=True)

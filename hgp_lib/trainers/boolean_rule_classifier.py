@@ -35,8 +35,8 @@ class BooleanRuleClassifier:
 
     Examples:
         >>> from sklearn.datasets import load_breast_cancer
+        >>> from hgp_lib import BooleanRuleClassifier
         >>> from hgp_lib.configs import BooleanGPConfig, TrainerConfig
-        >>> from hgp_lib.trainers import BooleanRuleClassifier
         >>> from hgp_lib.utils.metrics import fast_f1_score
         >>> X, y = load_breast_cancer(return_X_y=True, as_frame=True)
         >>> config = TrainerConfig(

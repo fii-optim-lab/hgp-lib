@@ -7,9 +7,9 @@ import pandas as pd
 
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
 from hgp_lib.metrics import PopulationHistory
+from hgp_lib import BooleanRuleClassifier
 from hgp_lib.preprocessing import StandardBinarizer, SklearnBinarizer
 from hgp_lib.rules import Rule
-from hgp_lib.trainers import BooleanRuleClassifier
 from hgp_lib.utils.metrics import fast_f1_score
 
 
