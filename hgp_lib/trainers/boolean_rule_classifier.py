@@ -130,11 +130,14 @@ class BooleanRuleClassifier:
             self.trainer_config.gp_config, train_data=train_bin, train_labels=y
         )
 
-        val_kwargs = {}
         if X_val is not None:
             check_isinstance(X_val, pd.DataFrame)
             val_bin = self.binarizer.transform(X_val).to_numpy(dtype=bool)
             val_kwargs = {"val_data": val_bin, "val_labels": np.asarray(y_val)}
+        else:
+            # No validation set here: clear any val_data from the config so a stale,
+            # un-binarized validation set can't leak into training.
+            val_kwargs = {"val_data": None, "val_labels": None}
 
         fit_config = replace(self.trainer_config, gp_config=gp_config, **val_kwargs)
 
