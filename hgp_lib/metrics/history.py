@@ -56,7 +56,6 @@ class PopulationHistory:
     val_tn: int | None = None
     generations: List[GenerationMetrics] = field(default_factory=list)
 
-    @property
     def __len__(self) -> int:
         return len(self.generations)
 

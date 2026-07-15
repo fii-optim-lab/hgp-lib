@@ -349,6 +349,30 @@ class TestGPBenchmarker(unittest.TestCase):
             self.assertIsInstance(run.test_score, float)
             self.assertIsInstance(run.best_rule, Rule)
 
+    def test_fit_parallel_2_processes_with_io(self):
+        """Full parallel run with 2 processes and io."""
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with redirect_stdout(stdout), redirect_stderr(stderr):
+            result = GPBenchmarker(
+                self._make_config(
+                    num_runs=2,
+                    n_jobs=2,
+                    trainer_config=self._make_trainer_config(
+                        num_epochs=2, progress_bar=True
+                    ),
+                )
+            ).fit()
+        self.assertEqual(len(result.runs), 2)
+        for run in result.runs:
+            self.assertIsInstance(run.test_score, float)
+            self.assertIsInstance(run.best_rule, Rule)
+        output = stdout.getvalue() + stderr.getvalue()
+        self.assertTrue(output.strip(), "expected progress output on stdout/stderr")
+        self.assertTrue(
+            all(desc in output for desc in ("Runs", "Folds", "Epochs")),
+            f"expected a tqdm progress description in the output, got: {output!r}",
+        )
+
     # ------------------------------------------------------------------ #
     #  Custom GP components
     # ------------------------------------------------------------------ #
@@ -534,7 +558,7 @@ class TestGPBenchmarker(unittest.TestCase):
         self.assertEqual(len(result.runs), 1)
         self.assertTrue(output.strip(), "expected progress output on stdout/stderr")
         self.assertTrue(
-            any(desc in output for desc in ("Benchmark Runs", "Folds", "Epochs")),
+            all(desc in output for desc in ("Benchmark Runs", "Folds", "Epochs")),
             f"expected a tqdm progress description in the output, got: {output!r}",
         )
 
