@@ -272,10 +272,10 @@ def optimize_scorers_for_data(
     Examples:
         >>> import numpy as np
         >>> from hgp_lib.utils.metrics import optimize_scorers_for_data
-        >>> def acc(p, l, sample_weight=None): return float((p == l).mean())
+        >>> from sklearn.metrics import accuracy_score
         >>> data = np.array([[1, 0], [1, 0], [0, 1]])
         >>> labels = np.array([1, 1, 0])
-        >>> opt_acc, opt_data, opt_labels = optimize_scorers_for_data(acc, data=data, labels=labels)
+        >>> opt_acc, opt_data, opt_labels = optimize_scorers_for_data(accuracy_score, data=data, labels=labels)
         >>> len(opt_data) <= len(data)
         True
     """

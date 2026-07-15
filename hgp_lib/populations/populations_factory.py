@@ -28,6 +28,7 @@ class PopulationGeneratorFactory:
 
         Subclass to use custom strategies:
 
+        >>> from sklearn.metrics import accuracy_score
         >>> import numpy as np
         >>> from hgp_lib.populations import PopulationGeneratorFactory, BestLiteralStrategy
         >>> class MyFactory(PopulationGeneratorFactory):
@@ -39,8 +40,7 @@ class PopulationGeneratorFactory:
         >>> factory = MyFactory(population_size=20)
         >>> data = np.array([[True, False], [False, True]])
         >>> labels = np.array([1, 0])
-        >>> def acc(p, l): return float((p == l).mean())
-        >>> gen = factory.create(2, acc, data, labels)
+        >>> gen = factory.create(2, accuracy_score, data, labels)
         >>> len(gen.generate())
         20
     """
