@@ -443,8 +443,8 @@ class StandardBinarizer(Binarizer):
         self, column_names: Set[str], new_column_name: str
     ) -> str:
         """
-        Register ``new_column_name`` in ``column_names``, appending a numeric suffix if
-        the name already exists to avoid collisions. The set is mutated in place.
+        Register ``new_column_name`` in ``column_names``, appending a numeric suffix if needed.
+        The set is mutated in place.
 
         Args:
             column_names (Set[str]):
@@ -464,23 +464,13 @@ class StandardBinarizer(Binarizer):
             >>> "col_1" in names
             True
         """
-        if new_column_name not in column_names:
-            column_names.add(new_column_name)
-            return new_column_name
-        for i in range(1_000):
-            version_i = f"{new_column_name}_{i}"
-            if version_i not in column_names:
-                column_names.add(version_i)
-                return version_i
-        # If we didn't find a unique column name by trying 1000 indices,
-        # We will use a random string extension until we find a string we didn't visit before
-        new_column_name = new_column_name + "_rand"
-        while True:
-            random_i = np.random.randint(len(column_names))
-            new_column_name = f"{new_column_name}_{random_i}"
-            if new_column_name not in column_names:
-                column_names.add(new_column_name)
-                return new_column_name
+        unique_name = new_column_name
+        counter = 0
+        while unique_name in column_names:
+            unique_name = f"{new_column_name}_{counter}"
+            counter += 1
+        column_names.add(unique_name)
+        return unique_name
 
     def _format_numeric_bin_name(self, column: str, left: float, right: float) -> str:
         """
