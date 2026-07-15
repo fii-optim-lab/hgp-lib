@@ -109,7 +109,7 @@ class TestMutationExecutorFactory(unittest.TestCase):
 
     def test_literal_mutations_wrong_flag_raises(self):
         class Bad(MutationExecutorFactory):
-            def create_literal_mutations(self, num_literals, operator_types):
+            def create_literal_mutations(self, num_literals):
                 return (_OperatorOnly(),)
 
         with self.assertRaises(TypeError):
@@ -117,7 +117,7 @@ class TestMutationExecutorFactory(unittest.TestCase):
 
     def test_operator_mutations_wrong_flag_raises(self):
         class Bad(MutationExecutorFactory):
-            def create_operator_mutations(self, num_literals, operator_types):
+            def create_operator_mutations(self, num_literals):
                 return (_LiteralOnly(),)
 
         with self.assertRaises(TypeError):

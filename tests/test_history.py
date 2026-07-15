@@ -40,6 +40,7 @@ class TestPopulationHistory(unittest.TestCase):
     def test_empty_history(self):
         ph = self._make_history()
         self.assertEqual(len(ph.generations), 0)
+        self.assertEqual(len(ph), 0)
 
     def test_with_generations(self):
         ph = self._make_history(generations=[self._make_gen()])

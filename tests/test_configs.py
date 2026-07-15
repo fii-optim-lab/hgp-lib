@@ -270,6 +270,11 @@ class TestBenchmarkerConfig(unittest.TestCase):
             config = self._make_config(labels="not array")
             validate_benchmarker_config(config)
 
+    def test_labels_must_be_1d(self):
+        with self.assertRaises(ValueError):
+            config = self._make_config(labels=self.data.to_numpy().copy())
+            validate_benchmarker_config(config)
+
     def test_labels_length_must_match(self):
         with self.assertRaises(ValueError):
             config = self._make_config(labels=np.array([1, 0]))

@@ -2,6 +2,7 @@
 
 import unittest
 import warnings
+from unittest.mock import patch
 
 import numpy as np
 
@@ -104,6 +105,13 @@ class TestAcceptsSampleWeight(unittest.TestCase):
             return 0.0
 
         self.assertTrue(accepts_sample_weight(scorer))
+
+    def test_with_param_non_inspectable(self):
+        def scorer(p, labels, sample_weight=None):
+            return 0.0
+
+        with patch("inspect.signature", side_effect=TypeError("Cannot read signature")):
+            self.assertTrue(accepts_sample_weight(scorer))
 
     def test_without_param(self):
         def scorer(p, labels):
