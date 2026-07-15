@@ -1432,7 +1432,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Fitness function <code>(predictions, labels) -&gt; float</code>.</p>
+                <p>Fitness function <code>(y_true, y_pred) -&gt; float</code>.</p>
               </div>
             </td>
           </tr>
@@ -1643,10 +1643,10 @@ Default: <code>0.1</code>.</p>
 <p><span class="doc-section-title">Examples:</span></p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGPConfig</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.utils.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">fast_accuracy_score</span> <span class="k">as</span> <span class="n">accuracy_score</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">]])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">accuracy</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">l</span><span class="p">):</span> <span class="k">return</span> <span class="nb">float</span><span class="p">((</span><span class="n">p</span> <span class="o">==</span> <span class="n">l</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">BooleanGPConfig</span><span class="p">(</span><span class="n">score_fn</span><span class="o">=</span><span class="n">accuracy</span><span class="p">,</span> <span class="n">train_data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">train_labels</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">BooleanGPConfig</span><span class="p">(</span><span class="n">score_fn</span><span class="o">=</span><span class="n">accuracy_score</span><span class="p">,</span> <span class="n">train_data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">train_labels</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">config</span><span class="o">.</span><span class="n">train_data</span><span class="o">.</span><span class="n">shape</span>
 <span class="go">(4, 2)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">config</span><span class="o">.</span><span class="n">optimize_scorer</span>
@@ -1665,7 +1665,7 @@ Default: <code>0.1</code>.</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/configs/boolean_gp_config.py</code></summary>
+                <summary>Source code in <code>hgp_lib\configs\boolean_gp_config.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 15</span>
 <span class="normal"> 16</span>
 <span class="normal"> 17</span>
@@ -1754,14 +1754,13 @@ Default: <code>0.1</code>.</p>
 <span class="normal">100</span>
 <span class="normal">101</span>
 <span class="normal">102</span>
-<span class="normal">103</span>
-<span class="normal">104</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">103</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">BooleanGPConfig</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Configuration for BooleanGP.</span>
 
 <span class="sd">    Attributes:</span>
-<span class="sd">        score_fn (Callable): Fitness function `(predictions, labels) -&gt; float`.</span>
+<span class="sd">        score_fn (Callable): Fitness function `(y_true, y_pred) -&gt; float`.</span>
 <span class="sd">        train_data (ndarray | None): Training data (2-D boolean array). Can be `None` when</span>
 <span class="sd">            used as a template in `BenchmarkerConfig` (data provided at benchmarker level).</span>
 <span class="sd">            Default: `None`.</span>
@@ -1806,10 +1805,10 @@ Default: <code>0.1</code>.</p>
 <span class="sd">    Examples:</span>
 <span class="sd">        &gt;&gt;&gt; import numpy as np</span>
 <span class="sd">        &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig</span>
+<span class="sd">        &gt;&gt;&gt; from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score</span>
 <span class="sd">        &gt;&gt;&gt; data = np.array([[True, False], [False, True], [True, True], [False, False]])</span>
 <span class="sd">        &gt;&gt;&gt; labels = np.array([1, 0, 1, 0])</span>
-<span class="sd">        &gt;&gt;&gt; def accuracy(p, l): return float((p == l).mean())</span>
-<span class="sd">        &gt;&gt;&gt; config = BooleanGPConfig(score_fn=accuracy, train_data=data, train_labels=labels)</span>
+<span class="sd">        &gt;&gt;&gt; config = BooleanGPConfig(score_fn=accuracy_score, train_data=data, train_labels=labels)</span>
 <span class="sd">        &gt;&gt;&gt; config.train_data.shape</span>
 <span class="sd">        (4, 2)</span>
 <span class="sd">        &gt;&gt;&gt; config.optimize_scorer</span>
@@ -1820,7 +1819,6 @@ Default: <code>0.1</code>.</p>
 <span class="sd">        0.1</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c1"># TODO: We should reconsider the ordering of the arguments for score fn. Pred, GT or GT, Pred?</span>
     <span class="n">score_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ndarray</span><span class="p">],</span> <span class="nb">float</span><span class="p">]</span>
     <span class="n">complexity_penalty</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="n">train_data</span><span class="p">:</span> <span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
@@ -2014,10 +2012,10 @@ Useful for external progress tracking (e.g., multiprocessing progress bars).</p>
 <p><span class="doc-section-title">Examples:</span></p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGPConfig</span><span class="p">,</span> <span class="n">TrainerConfig</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.utils.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">fast_accuracy_score</span> <span class="k">as</span> <span class="n">accuracy_score</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">]])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">accuracy</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">l</span><span class="p">):</span> <span class="k">return</span> <span class="nb">float</span><span class="p">((</span><span class="n">p</span> <span class="o">==</span> <span class="n">l</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">gp_config</span> <span class="o">=</span> <span class="n">BooleanGPConfig</span><span class="p">(</span><span class="n">score_fn</span><span class="o">=</span><span class="n">accuracy</span><span class="p">,</span> <span class="n">train_data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">train_labels</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">gp_config</span> <span class="o">=</span> <span class="n">BooleanGPConfig</span><span class="p">(</span><span class="n">score_fn</span><span class="o">=</span><span class="n">accuracy_score</span><span class="p">,</span> <span class="n">train_data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">train_labels</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">TrainerConfig</span><span class="p">(</span><span class="n">gp_config</span><span class="o">=</span><span class="n">gp_config</span><span class="p">,</span> <span class="n">num_epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">config</span><span class="o">.</span><span class="n">num_epochs</span>
 <span class="go">10</span>
@@ -2033,7 +2031,7 @@ Useful for external progress tracking (e.g., multiprocessing progress bars).</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/configs/trainer_config.py</code></summary>
+                <summary>Source code in <code>hgp_lib\configs\trainer_config.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">10</span>
 <span class="normal">11</span>
 <span class="normal">12</span>
@@ -2095,10 +2093,10 @@ Useful for external progress tracking (e.g., multiprocessing progress bars).</p>
 <span class="sd">    Examples:</span>
 <span class="sd">        &gt;&gt;&gt; import numpy as np</span>
 <span class="sd">        &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig, TrainerConfig</span>
+<span class="sd">        &gt;&gt;&gt; from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score</span>
 <span class="sd">        &gt;&gt;&gt; data = np.array([[True, False], [False, True], [True, True], [False, False]])</span>
 <span class="sd">        &gt;&gt;&gt; labels = np.array([1, 0, 1, 0])</span>
-<span class="sd">        &gt;&gt;&gt; def accuracy(p, l): return float((p == l).mean())</span>
-<span class="sd">        &gt;&gt;&gt; gp_config = BooleanGPConfig(score_fn=accuracy, train_data=data, train_labels=labels)</span>
+<span class="sd">        &gt;&gt;&gt; gp_config = BooleanGPConfig(score_fn=accuracy_score, train_data=data, train_labels=labels)</span>
 <span class="sd">        &gt;&gt;&gt; config = TrainerConfig(gp_config=gp_config, num_epochs=10)</span>
 <span class="sd">        &gt;&gt;&gt; config.num_epochs</span>
 <span class="sd">        10</span>
@@ -2335,7 +2333,8 @@ Default: <code>True</code>.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.utils.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">fast_accuracy_score</span> <span class="k">as</span> <span class="n">accuracy_score</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGPConfig</span><span class="p">,</span> <span class="n">TrainerConfig</span><span class="p">,</span> <span class="n">BenchmarkerConfig</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
@@ -2343,8 +2342,7 @@ Default: <code>True</code>.</p>
 <span class="gp">... </span>    <span class="s1">&#39;feature2&#39;</span><span class="p">:</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span>
 <span class="gp">... </span><span class="p">})</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">accuracy</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">l</span><span class="p">):</span> <span class="k">return</span> <span class="nb">float</span><span class="p">((</span><span class="n">p</span> <span class="o">==</span> <span class="n">l</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">gp_config</span> <span class="o">=</span> <span class="n">BooleanGPConfig</span><span class="p">(</span><span class="n">score_fn</span><span class="o">=</span><span class="n">accuracy</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">gp_config</span> <span class="o">=</span> <span class="n">BooleanGPConfig</span><span class="p">(</span><span class="n">score_fn</span><span class="o">=</span><span class="n">accuracy_score</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">trainer_config</span> <span class="o">=</span> <span class="n">TrainerConfig</span><span class="p">(</span><span class="n">gp_config</span><span class="o">=</span><span class="n">gp_config</span><span class="p">,</span> <span class="n">num_epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">BenchmarkerConfig</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">trainer_config</span><span class="o">=</span><span class="n">trainer_config</span><span class="p">,</span> <span class="n">n_folds</span><span class="o">=</span><span class="mi">2</span>
@@ -2363,7 +2361,7 @@ Default: <code>True</code>.</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/configs/benchmarker_config.py</code></summary>
+                <summary>Source code in <code>hgp_lib\configs\benchmarker_config.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">11</span>
 <span class="normal">12</span>
 <span class="normal">13</span>
@@ -2483,6 +2481,7 @@ Default: <code>True</code>.</p>
 <span class="sd">            Default: `True`.</span>
 
 <span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score</span>
 <span class="sd">        &gt;&gt;&gt; import numpy as np</span>
 <span class="sd">        &gt;&gt;&gt; import pandas as pd</span>
 <span class="sd">        &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig, TrainerConfig, BenchmarkerConfig</span>
@@ -2491,8 +2490,7 @@ Default: <code>True</code>.</p>
 <span class="sd">        ...     &#39;feature2&#39;: [False, True, True, False],</span>
 <span class="sd">        ... })</span>
 <span class="sd">        &gt;&gt;&gt; labels = np.array([1, 0, 1, 0])</span>
-<span class="sd">        &gt;&gt;&gt; def accuracy(p, l): return float((p == l).mean())</span>
-<span class="sd">        &gt;&gt;&gt; gp_config = BooleanGPConfig(score_fn=accuracy)</span>
+<span class="sd">        &gt;&gt;&gt; gp_config = BooleanGPConfig(score_fn=accuracy_score)</span>
 <span class="sd">        &gt;&gt;&gt; trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=10)</span>
 <span class="sd">        &gt;&gt;&gt; config = BenchmarkerConfig(</span>
 <span class="sd">        ...     data=data, labels=labels, trainer_config=trainer_config, n_folds=2</span>

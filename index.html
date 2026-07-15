@@ -1457,25 +1457,32 @@ Internally it combines genetic programming with hierarchical population structur
 The model is the explanation, so there is nothing else to consult to know why a prediction was made.
 See <a href="interpretability/">Interpretability</a> for why this matters.</p>
 <h2 id="quick-example">Quick example</h2>
-<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<p>Runs as-is on the scikit-learn <code>breast_cancer</code> dataset.
+<a href="api/trainers/#hgp_lib.trainers.boolean_rule_classifier.BooleanRuleClassifier"><code>BooleanRuleClassifier</code></a>
+binarizes the raw data, evolves a rule, and applies the same binarization when predicting.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_breast_cancer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">train_test_split</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanRuleClassifier</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGPConfig</span><span class="p">,</span> <span class="n">TrainerConfig</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.trainers</span><span class="w"> </span><span class="kn">import</span> <span class="n">GPTrainer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.utils.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">fast_f1_score</span>
 
-<span class="k">def</span><span class="w"> </span><span class="nf">accuracy</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">predictions</span> <span class="o">==</span> <span class="n">labels</span><span class="p">)</span>
-
-<span class="n">train_data</span> <span class="o">=</span> <span class="o">...</span>   <span class="c1"># 2D boolean numpy array</span>
-<span class="n">train_labels</span> <span class="o">=</span> <span class="o">...</span> <span class="c1"># 1D integer numpy array</span>
+<span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">load_breast_cancer</span><span class="p">(</span><span class="n">return_X_y</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">as_frame</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
+    <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">stratify</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span>
+<span class="p">)</span>
+<span class="n">X_train</span><span class="p">,</span> <span class="n">X_val</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">y_val</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
+    <span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">stratify</span><span class="o">=</span><span class="n">y_train</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span>
+<span class="p">)</span>
 
 <span class="n">config</span> <span class="o">=</span> <span class="n">TrainerConfig</span><span class="p">(</span>
-    <span class="n">gp_config</span><span class="o">=</span><span class="n">BooleanGPConfig</span><span class="p">(</span>
-        <span class="n">score_fn</span><span class="o">=</span><span class="n">accuracy</span><span class="p">,</span>
-        <span class="n">train_data</span><span class="o">=</span><span class="n">train_data</span><span class="p">,</span>
-        <span class="n">train_labels</span><span class="o">=</span><span class="n">train_labels</span><span class="p">,</span>
-    <span class="p">),</span>
-    <span class="n">num_epochs</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+    <span class="n">gp_config</span><span class="o">=</span><span class="n">BooleanGPConfig</span><span class="p">(</span><span class="n">score_fn</span><span class="o">=</span><span class="n">fast_f1_score</span><span class="p">),</span> <span class="n">num_epochs</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">val_every</span><span class="o">=</span><span class="mi">50</span>
 <span class="p">)</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">GPTrainer</span><span class="p">(</span><span class="n">config</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+<span class="n">clf</span> <span class="o">=</span> <span class="n">BooleanRuleClassifier</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+<span class="n">clf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">X_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">)</span>  <span class="c1"># validation is binarized internally too</span>
+
+<span class="n">predictions</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">clf</span><span class="o">.</span><span class="n">format_rule</span><span class="p">())</span>
 </code></pre></div>
 <h2 id="how-it-works">How it works</h2>
 <p>The method is genetic programming.

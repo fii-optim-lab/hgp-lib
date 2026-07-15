@@ -2046,7 +2046,7 @@ If <code>None</code>, all strategies are selected with equal probability. Defaul
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/populations/generator.py</code></summary>
+                <summary>Source code in <code>hgp_lib\populations\generator.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">10</span>
 <span class="normal">11</span>
 <span class="normal">12</span>
@@ -2318,7 +2318,7 @@ Must sum to &gt; <code>0</code> and be non-negative. Default: <code>None</code>.
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/populations/generator.py</code></summary>
+              <summary>Source code in <code>hgp_lib\populations\generator.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">29</span>
 <span class="normal">30</span>
 <span class="normal">31</span>
@@ -2428,7 +2428,7 @@ Must sum to &gt; <code>0</code> and be non-negative. Default: <code>None</code>.
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/populations/generator.py</code></summary>
+              <summary>Source code in <code>hgp_lib\populations\generator.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">86</span>
 <span class="normal">87</span>
 <span class="normal">88</span>
@@ -2520,7 +2520,8 @@ Default: <code>100</code>.</p>
 <span class="go">50</span>
 </code></pre></div>
     <p>Subclass to use custom strategies:</p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">accuracy_score</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.populations</span><span class="w"> </span><span class="kn">import</span> <span class="n">PopulationGeneratorFactory</span><span class="p">,</span> <span class="n">BestLiteralStrategy</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">class</span><span class="w"> </span><span class="nc">MyFactory</span><span class="p">(</span><span class="n">PopulationGeneratorFactory</span><span class="p">):</span>
 <span class="gp">... </span>    <span class="k">def</span><span class="w"> </span><span class="nf">create_strategies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_literals</span><span class="p">,</span> <span class="n">score_fn</span><span class="p">,</span> <span class="n">train_data</span><span class="p">,</span> <span class="n">train_labels</span><span class="p">):</span>
@@ -2531,8 +2532,7 @@ Default: <code>100</code>.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">factory</span> <span class="o">=</span> <span class="n">MyFactory</span><span class="p">(</span><span class="n">population_size</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">acc</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">l</span><span class="p">):</span> <span class="k">return</span> <span class="nb">float</span><span class="p">((</span><span class="n">p</span> <span class="o">==</span> <span class="n">l</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">gen</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">acc</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">gen</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">accuracy_score</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">gen</span><span class="o">.</span><span class="n">generate</span><span class="p">())</span>
 <span class="go">20</span>
 </code></pre></div>
@@ -2545,7 +2545,7 @@ Default: <code>100</code>.</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/populations/populations_factory.py</code></summary>
+                <summary>Source code in <code>hgp_lib\populations\populations_factory.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 11</span>
 <span class="normal"> 12</span>
 <span class="normal"> 13</span>
@@ -2659,6 +2659,7 @@ Default: <code>100</code>.</p>
 
 <span class="sd">        Subclass to use custom strategies:</span>
 
+<span class="sd">        &gt;&gt;&gt; from sklearn.metrics import accuracy_score</span>
 <span class="sd">        &gt;&gt;&gt; import numpy as np</span>
 <span class="sd">        &gt;&gt;&gt; from hgp_lib.populations import PopulationGeneratorFactory, BestLiteralStrategy</span>
 <span class="sd">        &gt;&gt;&gt; class MyFactory(PopulationGeneratorFactory):</span>
@@ -2670,8 +2671,7 @@ Default: <code>100</code>.</p>
 <span class="sd">        &gt;&gt;&gt; factory = MyFactory(population_size=20)</span>
 <span class="sd">        &gt;&gt;&gt; data = np.array([[True, False], [False, True]])</span>
 <span class="sd">        &gt;&gt;&gt; labels = np.array([1, 0])</span>
-<span class="sd">        &gt;&gt;&gt; def acc(p, l): return float((p == l).mean())</span>
-<span class="sd">        &gt;&gt;&gt; gen = factory.create(2, acc, data, labels)</span>
+<span class="sd">        &gt;&gt;&gt; gen = factory.create(2, accuracy_score, data, labels)</span>
 <span class="sd">        &gt;&gt;&gt; len(gen.generate())</span>
 <span class="sd">        20</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -2699,7 +2699,7 @@ Default: <code>100</code>.</p>
 
 <span class="sd">        Args:</span>
 <span class="sd">            num_literals (int): Number of boolean features (columns in train_data).</span>
-<span class="sd">            score_fn (Callable): Fitness function `(predictions, labels) -&gt; float`.</span>
+<span class="sd">            score_fn (Callable): Fitness function `(y_true, y_pred) -&gt; float`.</span>
 <span class="sd">            train_data (np.ndarray): Training data (2-D boolean array).</span>
 <span class="sd">            train_labels (np.ndarray): Training labels (1-D array).</span>
 
@@ -2720,7 +2720,7 @@ Default: <code>100</code>.</p>
 
 <span class="sd">        Args:</span>
 <span class="sd">            num_literals (int): Number of boolean features (columns in train_data).</span>
-<span class="sd">            score_fn (Callable): Fitness function `(predictions, labels) -&gt; float`.</span>
+<span class="sd">            score_fn (Callable): Fitness function `(y_true, y_pred) -&gt; float`.</span>
 <span class="sd">            train_data (np.ndarray): Training data (2-D boolean array).</span>
 <span class="sd">            train_labels (np.ndarray): Training labels (1-D array).</span>
 
@@ -2801,7 +2801,7 @@ a single <code>RandomStrategy(num_literals=num_literals)</code>.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Fitness function <code>(predictions, labels) -&gt; float</code>.</p>
+                <p>Fitness function <code>(y_true, y_pred) -&gt; float</code>.</p>
               </div>
             </td>
             <td>
@@ -2868,7 +2868,7 @@ a single <code>RandomStrategy(num_literals=num_literals)</code>.</p>
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/populations/populations_factory.py</code></summary>
+              <summary>Source code in <code>hgp_lib\populations\populations_factory.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">56</span>
 <span class="normal">57</span>
 <span class="normal">58</span>
@@ -2906,7 +2906,7 @@ a single <code>RandomStrategy(num_literals=num_literals)</code>.</p>
 
 <span class="sd">    Args:</span>
 <span class="sd">        num_literals (int): Number of boolean features (columns in train_data).</span>
-<span class="sd">        score_fn (Callable): Fitness function `(predictions, labels) -&gt; float`.</span>
+<span class="sd">        score_fn (Callable): Fitness function `(y_true, y_pred) -&gt; float`.</span>
 <span class="sd">        train_data (np.ndarray): Training data (2-D boolean array).</span>
 <span class="sd">        train_labels (np.ndarray): Training labels (1-D array).</span>
 
@@ -2970,7 +2970,7 @@ a single <code>RandomStrategy(num_literals=num_literals)</code>.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Fitness function <code>(predictions, labels) -&gt; float</code>.</p>
+                <p>Fitness function <code>(y_true, y_pred) -&gt; float</code>.</p>
               </div>
             </td>
             <td>
@@ -3037,7 +3037,7 @@ a single <code>RandomStrategy(num_literals=num_literals)</code>.</p>
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/populations/populations_factory.py</code></summary>
+              <summary>Source code in <code>hgp_lib\populations\populations_factory.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 80</span>
 <span class="normal"> 81</span>
 <span class="normal"> 82</span>
@@ -3074,7 +3074,7 @@ a single <code>RandomStrategy(num_literals=num_literals)</code>.</p>
 
 <span class="sd">    Args:</span>
 <span class="sd">        num_literals (int): Number of boolean features (columns in train_data).</span>
-<span class="sd">        score_fn (Callable): Fitness function `(predictions, labels) -&gt; float`.</span>
+<span class="sd">        score_fn (Callable): Fitness function `(y_true, y_pred) -&gt; float`.</span>
 <span class="sd">        train_data (np.ndarray): Training data (2-D boolean array).</span>
 <span class="sd">        train_labels (np.ndarray): Training labels (1-D array).</span>
 
@@ -3131,7 +3131,7 @@ Concrete implementations must define the <code>generate</code> method.</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/populations/base_strategy.py</code></summary>
+                <summary>Source code in <code>hgp_lib\populations\base_strategy.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 7</span>
 <span class="normal"> 8</span>
 <span class="normal"> 9</span>
@@ -3260,7 +3260,7 @@ Concrete implementations must define the <code>generate</code> method.</p>
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/populations/base_strategy.py</code></summary>
+              <summary>Source code in <code>hgp_lib\populations\base_strategy.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">15</span>
 <span class="normal">16</span>
 <span class="normal">17</span>
@@ -3375,7 +3375,7 @@ Concrete implementations must define the <code>generate</code> method.</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/populations/strategies.py</code></summary>
+                <summary>Source code in <code>hgp_lib\populations\strategies.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">15</span>
 <span class="normal">16</span>
 <span class="normal">17</span>
@@ -3590,7 +3590,7 @@ Concrete implementations must define the <code>generate</code> method.</p>
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/populations/strategies.py</code></summary>
+              <summary>Source code in <code>hgp_lib\populations\strategies.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">45</span>
 <span class="normal">46</span>
 <span class="normal">47</span>
@@ -3725,7 +3725,7 @@ and the one with the highest score is returned.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Function to evaluate a rule. Signature: <code>score_fn(predictions, labels) -&gt; float</code>.</p>
+                <p>Function to evaluate a rule. Signature: <code>score_fn(y_true, y_pred) -&gt; float</code>.</p>
               </div>
             </td>
           </tr>
@@ -3815,7 +3815,7 @@ Default: <code>None</code>.</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/populations/strategies.py</code></summary>
+                <summary>Source code in <code>hgp_lib\populations\strategies.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 82</span>
 <span class="normal"> 83</span>
 <span class="normal"> 84</span>
@@ -3965,7 +3965,7 @@ Default: <code>None</code>.</p>
 
 <span class="sd">    Attributes:</span>
 <span class="sd">        num_literals (int): The total number of available literals.</span>
-<span class="sd">        score_fn (Callable): Function to evaluate a rule. Signature: `score_fn(predictions, labels) -&gt; float`.</span>
+<span class="sd">        score_fn (Callable): Function to evaluate a rule. Signature: `score_fn(y_true, y_pred) -&gt; float`.</span>
 <span class="sd">        train_data (np.ndarray): The training data array.</span>
 <span class="sd">        train_labels (np.ndarray): The training labels.</span>
 <span class="sd">        sample_size (int | float | None): Size of the sample subset (rows) to use for evaluation.</span>
@@ -4079,14 +4079,14 @@ Default: <code>None</code>.</p>
 
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">feature_indices</span><span class="p">:</span>
                 <span class="n">preds_pos</span> <span class="o">=</span> <span class="n">subset_data</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span>
-                <span class="n">score_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_fn</span><span class="p">(</span><span class="n">preds_pos</span><span class="p">,</span> <span class="n">subset_labels</span><span class="p">)</span>
+                <span class="n">score_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_fn</span><span class="p">(</span><span class="n">subset_labels</span><span class="p">,</span> <span class="n">preds_pos</span><span class="p">)</span>
 
                 <span class="k">if</span> <span class="n">score_pos</span> <span class="o">&gt;</span> <span class="n">best_score</span><span class="p">:</span>
                     <span class="n">best_score</span> <span class="o">=</span> <span class="n">score_pos</span>
                     <span class="n">best_rule</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">negated</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
                 <span class="n">preds_neg</span> <span class="o">=</span> <span class="o">~</span><span class="n">preds_pos</span>
-                <span class="n">score_neg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_fn</span><span class="p">(</span><span class="n">preds_neg</span><span class="p">,</span> <span class="n">subset_labels</span><span class="p">)</span>
+                <span class="n">score_neg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_fn</span><span class="p">(</span><span class="n">subset_labels</span><span class="p">,</span> <span class="n">preds_neg</span><span class="p">)</span>
 
                 <span class="k">if</span> <span class="n">score_neg</span> <span class="o">&gt;</span> <span class="n">best_score</span><span class="p">:</span>
                     <span class="n">best_score</span> <span class="o">=</span> <span class="n">score_neg</span>
@@ -4180,7 +4180,7 @@ Default: <code>None</code>.</p>
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/populations/strategies.py</code></summary>
+              <summary>Source code in <code>hgp_lib\populations\strategies.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">170</span>
 <span class="normal">171</span>
 <span class="normal">172</span>
@@ -4268,14 +4268,14 @@ Default: <code>None</code>.</p>
 
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">feature_indices</span><span class="p">:</span>
             <span class="n">preds_pos</span> <span class="o">=</span> <span class="n">subset_data</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span>
-            <span class="n">score_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_fn</span><span class="p">(</span><span class="n">preds_pos</span><span class="p">,</span> <span class="n">subset_labels</span><span class="p">)</span>
+            <span class="n">score_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_fn</span><span class="p">(</span><span class="n">subset_labels</span><span class="p">,</span> <span class="n">preds_pos</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">score_pos</span> <span class="o">&gt;</span> <span class="n">best_score</span><span class="p">:</span>
                 <span class="n">best_score</span> <span class="o">=</span> <span class="n">score_pos</span>
                 <span class="n">best_rule</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">negated</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
             <span class="n">preds_neg</span> <span class="o">=</span> <span class="o">~</span><span class="n">preds_pos</span>
-            <span class="n">score_neg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_fn</span><span class="p">(</span><span class="n">preds_neg</span><span class="p">,</span> <span class="n">subset_labels</span><span class="p">)</span>
+            <span class="n">score_neg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_fn</span><span class="p">(</span><span class="n">subset_labels</span><span class="p">,</span> <span class="n">preds_neg</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">score_neg</span> <span class="o">&gt;</span> <span class="n">best_score</span><span class="p">:</span>
                 <span class="n">best_score</span> <span class="o">=</span> <span class="n">score_neg</span>
@@ -4398,7 +4398,7 @@ Default: <code>False</code>.</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/populations/sampling.py</code></summary>
+                <summary>Source code in <code>hgp_lib\populations\sampling.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 50</span>
 <span class="normal"> 51</span>
 <span class="normal"> 52</span>
@@ -4722,7 +4722,7 @@ sample of <code>k</code> unique indices (overlap between children is possible).<
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/populations/sampling.py</code></summary>
+              <summary>Source code in <code>hgp_lib\populations\sampling.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 91</span>
 <span class="normal"> 92</span>
 <span class="normal"> 93</span>
@@ -4880,7 +4880,7 @@ sample of <code>k</code> unique indices (overlap between children is possible).<
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/populations/sampling.py</code></summary>
+              <summary>Source code in <code>hgp_lib\populations\sampling.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">134</span>
 <span class="normal">135</span>
 <span class="normal">136</span>
@@ -5038,7 +5038,7 @@ parent's space.</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/populations/sampling.py</code></summary>
+                <summary>Source code in <code>hgp_lib\populations\sampling.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">18</span>
 <span class="normal">19</span>
 <span class="normal">20</span>
@@ -5208,7 +5208,7 @@ The number of features per child is <code>ceil(num_features * feature_fraction)<
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/populations/sampling.py</code></summary>
+                <summary>Source code in <code>hgp_lib\populations\sampling.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">154</span>
 <span class="normal">155</span>
 <span class="normal">156</span>
@@ -5481,7 +5481,7 @@ The number of features per child is <code>ceil(num_features * feature_fraction)<
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/populations/sampling.py</code></summary>
+              <summary>Source code in <code>hgp_lib\populations\sampling.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">190</span>
 <span class="normal">191</span>
 <span class="normal">192</span>
@@ -5608,7 +5608,7 @@ are preserved. The number of instances per child is
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/populations/sampling.py</code></summary>
+                <summary>Source code in <code>hgp_lib\populations\sampling.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">224</span>
 <span class="normal">225</span>
 <span class="normal">226</span>
@@ -5871,7 +5871,7 @@ are preserved. The number of instances per child is
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/populations/sampling.py</code></summary>
+              <summary>Source code in <code>hgp_lib\populations\sampling.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">254</span>
 <span class="normal">255</span>
 <span class="normal">256</span>
@@ -6045,7 +6045,7 @@ child populations with reduced feature and instance sets.</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/populations/sampling.py</code></summary>
+                <summary>Source code in <code>hgp_lib\populations\sampling.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">289</span>
 <span class="normal">290</span>
 <span class="normal">291</span>
@@ -6358,7 +6358,7 @@ child populations with reduced feature and instance sets.</p>
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/populations/sampling.py</code></summary>
+              <summary>Source code in <code>hgp_lib\populations\sampling.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">329</span>
 <span class="normal">330</span>
 <span class="normal">331</span>

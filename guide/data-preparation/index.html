@@ -1383,9 +1383,11 @@ See <a href="../binarization/">Binarization</a> for how the binarizer works and 
 <p>For manual training with <a href="../../api/trainers/#hgp_lib.trainers.gp_trainer.GPTrainer"><code>GPTrainer</code></a> or <a href="../../api/algorithms/#hgp_lib.algorithms.boolean_gp.BooleanGP"><code>BooleanGP</code></a>, binarize the data yourself.
 Fit the binarizer on the training split and transform the rest.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">StandardBinarizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_breast_cancer</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">train_test_split</span>
 
-<span class="n">data</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="o">...</span>  <span class="c1"># pandas DataFrame + numpy array</span>
+<span class="n">data</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">load_breast_cancer</span><span class="p">(</span><span class="n">return_X_y</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">as_frame</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
 
 <span class="n">train_data</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">train_labels</span><span class="p">,</span> <span class="n">test_labels</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
     <span class="n">data</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">stratify</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>

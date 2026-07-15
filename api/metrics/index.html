@@ -2028,7 +2028,7 @@ if validation was not performed. Default: <code>None</code>.</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/metrics/core.py</code></summary>
+                <summary>Source code in <code>hgp_lib\metrics\core.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">  9</span>
 <span class="normal"> 10</span>
 <span class="normal"> 11</span>
@@ -2616,7 +2616,7 @@ if validation was not performed. Default: <code>None</code>.</p>
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/metrics/core.py</code></summary>
+              <summary>Source code in <code>hgp_lib\metrics\core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 61</span>
 <span class="normal"> 62</span>
 <span class="normal"> 63</span>
@@ -2950,7 +2950,7 @@ available, otherwise by training score).</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/metrics/history.py</code></summary>
+                <summary>Source code in <code>hgp_lib\metrics\history.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 12</span>
 <span class="normal"> 13</span>
 <span class="normal"> 14</span>
@@ -3471,12 +3471,13 @@ fold's rule, and the confusion matrix on the held-out test set.</p>
                 <code>feature_names</code>
             </td>
             <td>
-                  <code><span title="typing.Dict">Dict</span>[<span title="int">int</span>, <span title="str">str</span>]</code>
+                  <code><span title="typing.List">List</span>[<span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Mapping from feature index to column name
-(from the binarizer fitted on the best fold).</p>
+                <p>Output feature names in order, index-aligned so that
+<code>feature_names[i]</code> is the column name for feature index <code>i</code> (from the
+binarizer fitted on the best fold).</p>
               </div>
             </td>
             <td>
@@ -3514,7 +3515,7 @@ transform raw data before evaluating <code>best_rule</code> (e.g. in
 <span class="gp">&gt;&gt;&gt; </span><span class="n">run</span> <span class="o">=</span> <span class="n">RunResult</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">run_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">best_fold_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">folds</span><span class="o">=</span><span class="p">[</span><span class="n">fold</span><span class="p">],</span>
 <span class="gp">... </span>    <span class="n">test_score</span><span class="o">=</span><span class="mf">0.85</span><span class="p">,</span> <span class="n">test_tp</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">test_fp</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">test_fn</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">test_tn</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;age&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;income&quot;</span><span class="p">},</span>
+<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;age&quot;</span><span class="p">,</span> <span class="s2">&quot;income&quot;</span><span class="p">],</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="o">.</span><span class="n">best_rule</span>
 <span class="go">0</span>
@@ -3530,7 +3531,7 @@ transform raw data before evaluating <code>best_rule</code> (e.g. in
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/metrics/results.py</code></summary>
+                <summary>Source code in <code>hgp_lib\metrics\results.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 14</span>
 <span class="normal"> 15</span>
 <span class="normal"> 16</span>
@@ -3819,7 +3820,8 @@ transform raw data before evaluating <code>best_rule</code> (e.g. in
 <span class="normal">299</span>
 <span class="normal">300</span>
 <span class="normal">301</span>
-<span class="normal">302</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">302</span>
+<span class="normal">303</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RunResult</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Result of one complete benchmark run with k-fold cross-validation.</span>
@@ -3837,8 +3839,9 @@ transform raw data before evaluating <code>best_rule</code> (e.g. in
 <span class="sd">        test_fp (int): False positives on the test set.</span>
 <span class="sd">        test_fn (int): False negatives on the test set.</span>
 <span class="sd">        test_tn (int): True negatives on the test set.</span>
-<span class="sd">        feature_names (Dict[int, str]): Mapping from feature index to column name</span>
-<span class="sd">            (from the binarizer fitted on the best fold).</span>
+<span class="sd">        feature_names (List[str]): Output feature names in order, index-aligned so that</span>
+<span class="sd">            ``feature_names[i]`` is the column name for feature index ``i`` (from the</span>
+<span class="sd">            binarizer fitted on the best fold).</span>
 <span class="sd">        binarizer (Binarizer | None): The binarizer fitted on the best fold, used to</span>
 <span class="sd">            transform raw data before evaluating ``best_rule`` (e.g. in</span>
 <span class="sd">            ``GPBenchmarker.predict``). Default: `None`.</span>
@@ -3852,7 +3855,7 @@ transform raw data before evaluating <code>best_rule</code> (e.g. in
 <span class="sd">        &gt;&gt;&gt; run = RunResult(</span>
 <span class="sd">        ...     run_id=0, seed=42, best_fold_idx=0, folds=[fold],</span>
 <span class="sd">        ...     test_score=0.85, test_tp=4, test_fp=1, test_fn=1, test_tn=4,</span>
-<span class="sd">        ...     feature_names={0: &quot;age&quot;, 1: &quot;income&quot;},</span>
+<span class="sd">        ...     feature_names=[&quot;age&quot;, &quot;income&quot;],</span>
 <span class="sd">        ... )</span>
 <span class="sd">        &gt;&gt;&gt; run.best_rule</span>
 <span class="sd">        0</span>
@@ -3869,7 +3872,7 @@ transform raw data before evaluating <code>best_rule</code> (e.g. in
     <span class="n">test_fp</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">test_fn</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">test_tn</span><span class="p">:</span> <span class="nb">int</span>
-    <span class="n">feature_names</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+    <span class="n">feature_names</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
     <span class="n">binarizer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Binarizer</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="nd">@cached_property</span>
@@ -3889,7 +3892,7 @@ transform raw data before evaluating <code>best_rule</code> (e.g. in
 <span class="sd">            &gt;&gt;&gt; run = RunResult(</span>
 <span class="sd">            ...     run_id=0, seed=0, best_fold_idx=1, folds=[f0, f1],</span>
 <span class="sd">            ...     test_score=0.9, test_tp=1, test_fp=0, test_fn=0, test_tn=1,</span>
-<span class="sd">            ...     feature_names={},</span>
+<span class="sd">            ...     feature_names=[],</span>
 <span class="sd">            ... )</span>
 <span class="sd">            &gt;&gt;&gt; run.best_fold is f1</span>
 <span class="sd">            True</span>
@@ -3910,7 +3913,7 @@ transform raw data before evaluating <code>best_rule</code> (e.g. in
 <span class="sd">            &gt;&gt;&gt; run = RunResult(</span>
 <span class="sd">            ...     run_id=0, seed=0, best_fold_idx=0, folds=[fold],</span>
 <span class="sd">            ...     test_score=0.8, test_tp=0, test_fp=0, test_fn=0, test_tn=0,</span>
-<span class="sd">            ...     feature_names={},</span>
+<span class="sd">            ...     feature_names=[],</span>
 <span class="sd">            ... )</span>
 <span class="sd">            &gt;&gt;&gt; str(run.best_rule)</span>
 <span class="sd">            &#39;5&#39;</span>
@@ -3943,7 +3946,7 @@ transform raw data before evaluating <code>best_rule</code> (e.g. in
 <span class="sd">            &gt;&gt;&gt; run = RunResult(</span>
 <span class="sd">            ...     run_id=0, seed=0, best_fold_idx=0, folds=[f0, f1],</span>
 <span class="sd">            ...     test_score=0.8, test_tp=0, test_fp=0, test_fn=0, test_tn=0,</span>
-<span class="sd">            ...     feature_names={},</span>
+<span class="sd">            ...     feature_names=[],</span>
 <span class="sd">            ... )</span>
 <span class="sd">            &gt;&gt;&gt; run.fold_val_scores</span>
 <span class="sd">            [0.7]</span>
@@ -3974,7 +3977,7 @@ transform raw data before evaluating <code>best_rule</code> (e.g. in
 <span class="sd">            &gt;&gt;&gt; run = RunResult(</span>
 <span class="sd">            ...     run_id=0, seed=0, best_fold_idx=0, folds=[fold],</span>
 <span class="sd">            ...     test_score=0.8, test_tp=0, test_fp=0, test_fn=0, test_tn=0,</span>
-<span class="sd">            ...     feature_names={},</span>
+<span class="sd">            ...     feature_names=[],</span>
 <span class="sd">            ... )</span>
 <span class="sd">            &gt;&gt;&gt; run.fold_train_scores</span>
 <span class="sd">            [0.8]</span>
@@ -4000,7 +4003,7 @@ transform raw data before evaluating <code>best_rule</code> (e.g. in
 <span class="sd">            &gt;&gt;&gt; run = RunResult(</span>
 <span class="sd">            ...     run_id=0, seed=0, best_fold_idx=0, folds=[fold],</span>
 <span class="sd">            ...     test_score=0.8, test_tp=0, test_fp=0, test_fn=0, test_tn=0,</span>
-<span class="sd">            ...     feature_names={},</span>
+<span class="sd">            ...     feature_names=[],</span>
 <span class="sd">            ... )</span>
 <span class="sd">            &gt;&gt;&gt; run.mean_val_score</span>
 <span class="sd">            0.0</span>
@@ -4031,7 +4034,7 @@ transform raw data before evaluating <code>best_rule</code> (e.g. in
 <span class="sd">            &gt;&gt;&gt; run = RunResult(</span>
 <span class="sd">            ...     run_id=0, seed=0, best_fold_idx=0, folds=[fold],</span>
 <span class="sd">            ...     test_score=0.8, test_tp=0, test_fp=0, test_fn=0, test_tn=0,</span>
-<span class="sd">            ...     feature_names={},</span>
+<span class="sd">            ...     feature_names=[],</span>
 <span class="sd">            ... )</span>
 <span class="sd">            &gt;&gt;&gt; run.mean_train_score</span>
 <span class="sd">            0.85</span>
@@ -4055,7 +4058,7 @@ transform raw data before evaluating <code>best_rule</code> (e.g. in
 <span class="sd">            &gt;&gt;&gt; run = RunResult(</span>
 <span class="sd">            ...     run_id=0, seed=0, best_fold_idx=0, folds=[fold],</span>
 <span class="sd">            ...     test_score=0.8, test_tp=0, test_fp=0, test_fn=0, test_tn=0,</span>
-<span class="sd">            ...     feature_names={},</span>
+<span class="sd">            ...     feature_names=[],</span>
 <span class="sd">            ... )</span>
 <span class="sd">            &gt;&gt;&gt; run.train_confusion_matrix</span>
 <span class="sd">            &#39;[TP: 3, FP: 1, FN: 2, TN: 4]&#39;</span>
@@ -4078,7 +4081,7 @@ transform raw data before evaluating <code>best_rule</code> (e.g. in
 <span class="sd">            &gt;&gt;&gt; run = RunResult(</span>
 <span class="sd">            ...     run_id=0, seed=0, best_fold_idx=0, folds=[fold],</span>
 <span class="sd">            ...     test_score=0.8, test_tp=0, test_fp=0, test_fn=0, test_tn=0,</span>
-<span class="sd">            ...     feature_names={},</span>
+<span class="sd">            ...     feature_names=[],</span>
 <span class="sd">            ... )</span>
 <span class="sd">            &gt;&gt;&gt; run.val_confusion_matrix</span>
 <span class="sd">            &#39;[]&#39;</span>
@@ -4102,7 +4105,7 @@ transform raw data before evaluating <code>best_rule</code> (e.g. in
 <span class="sd">            &gt;&gt;&gt; run = RunResult(</span>
 <span class="sd">            ...     run_id=0, seed=0, best_fold_idx=0, folds=[fold],</span>
 <span class="sd">            ...     test_score=0.8, test_tp=5, test_fp=2, test_fn=1, test_tn=7,</span>
-<span class="sd">            ...     feature_names={},</span>
+<span class="sd">            ...     feature_names=[],</span>
 <span class="sd">            ... )</span>
 <span class="sd">            &gt;&gt;&gt; run.test_confusion_matrix</span>
 <span class="sd">            &#39;[TP: 5, FP: 2, FN: 1, TN: 7]&#39;</span>
@@ -4153,7 +4156,7 @@ transform raw data before evaluating <code>best_rule</code> (e.g. in
 <span class="gp">&gt;&gt;&gt; </span><span class="n">run</span> <span class="o">=</span> <span class="n">RunResult</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">run_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">best_fold_idx</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">folds</span><span class="o">=</span><span class="p">[</span><span class="n">f0</span><span class="p">,</span> <span class="n">f1</span><span class="p">],</span>
 <span class="gp">... </span>    <span class="n">test_score</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">test_tp</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">test_fp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_tn</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">{},</span>
+<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">[],</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="o">.</span><span class="n">best_fold</span> <span class="ow">is</span> <span class="n">f1</span>
 <span class="go">True</span>
@@ -4192,7 +4195,7 @@ transform raw data before evaluating <code>best_rule</code> (e.g. in
 <span class="gp">&gt;&gt;&gt; </span><span class="n">run</span> <span class="o">=</span> <span class="n">RunResult</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">run_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">best_fold_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">folds</span><span class="o">=</span><span class="p">[</span><span class="n">fold</span><span class="p">],</span>
 <span class="gp">... </span>    <span class="n">test_score</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">test_tp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_tn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">{},</span>
+<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">[],</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">str</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">best_rule</span><span class="p">)</span>
 <span class="go">&#39;5&#39;</span>
@@ -4243,7 +4246,7 @@ transform raw data before evaluating <code>best_rule</code> (e.g. in
 <span class="gp">&gt;&gt;&gt; </span><span class="n">run</span> <span class="o">=</span> <span class="n">RunResult</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">run_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">best_fold_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">folds</span><span class="o">=</span><span class="p">[</span><span class="n">f0</span><span class="p">,</span> <span class="n">f1</span><span class="p">],</span>
 <span class="gp">... </span>    <span class="n">test_score</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">test_tp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_tn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">{},</span>
+<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">[],</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="o">.</span><span class="n">fold_val_scores</span>
 <span class="go">[0.7]</span>
@@ -4288,7 +4291,7 @@ transform raw data before evaluating <code>best_rule</code> (e.g. in
 <span class="gp">&gt;&gt;&gt; </span><span class="n">run</span> <span class="o">=</span> <span class="n">RunResult</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">run_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">best_fold_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">folds</span><span class="o">=</span><span class="p">[</span><span class="n">fold</span><span class="p">],</span>
 <span class="gp">... </span>    <span class="n">test_score</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">test_tp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_tn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">{},</span>
+<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">[],</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="o">.</span><span class="n">fold_train_scores</span>
 <span class="go">[0.8]</span>
@@ -4328,7 +4331,7 @@ fold has a validation score.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">run</span> <span class="o">=</span> <span class="n">RunResult</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">run_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">best_fold_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">folds</span><span class="o">=</span><span class="p">[</span><span class="n">fold</span><span class="p">],</span>
 <span class="gp">... </span>    <span class="n">test_score</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">test_tp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_tn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">{},</span>
+<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">[],</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="o">.</span><span class="n">mean_val_score</span>
 <span class="go">0.0</span>
@@ -4374,7 +4377,7 @@ fold has training generations.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">run</span> <span class="o">=</span> <span class="n">RunResult</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">run_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">best_fold_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">folds</span><span class="o">=</span><span class="p">[</span><span class="n">fold</span><span class="p">],</span>
 <span class="gp">... </span>    <span class="n">test_score</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">test_tp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_tn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">{},</span>
+<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">[],</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="o">.</span><span class="n">mean_train_score</span>
 <span class="go">0.85</span>
@@ -4413,7 +4416,7 @@ fold has training generations.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">run</span> <span class="o">=</span> <span class="n">RunResult</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">run_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">best_fold_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">folds</span><span class="o">=</span><span class="p">[</span><span class="n">fold</span><span class="p">],</span>
 <span class="gp">... </span>    <span class="n">test_score</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">test_tp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_tn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">{},</span>
+<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">[],</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="o">.</span><span class="n">train_confusion_matrix</span>
 <span class="go">&#39;[TP: 3, FP: 1, FN: 2, TN: 4]&#39;</span>
@@ -4453,7 +4456,7 @@ Returns <code>"[]"</code> if no validation data was used.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">run</span> <span class="o">=</span> <span class="n">RunResult</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">run_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">best_fold_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">folds</span><span class="o">=</span><span class="p">[</span><span class="n">fold</span><span class="p">],</span>
 <span class="gp">... </span>    <span class="n">test_score</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">test_tp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_tn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">{},</span>
+<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">[],</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="o">.</span><span class="n">val_confusion_matrix</span>
 <span class="go">&#39;[]&#39;</span>
@@ -4492,7 +4495,7 @@ Returns <code>"[]"</code> if no validation data was used.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">run</span> <span class="o">=</span> <span class="n">RunResult</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">run_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">best_fold_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">folds</span><span class="o">=</span><span class="p">[</span><span class="n">fold</span><span class="p">],</span>
 <span class="gp">... </span>    <span class="n">test_score</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">test_tp</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">test_fp</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">test_fn</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">test_tn</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">{},</span>
+<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">[],</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="o">.</span><span class="n">test_confusion_matrix</span>
 <span class="go">&#39;[TP: 5, FP: 2, FN: 1, TN: 7]&#39;</span>
@@ -4593,12 +4596,12 @@ Returns <code>"[]"</code> if no validation data was used.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">r1</span> <span class="o">=</span> <span class="n">RunResult</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">run_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">best_fold_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">folds</span><span class="o">=</span><span class="p">[</span><span class="n">fold_low</span><span class="p">],</span>
 <span class="gp">... </span>    <span class="n">test_score</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">test_tp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_tn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">{},</span>
+<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">[],</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">r2</span> <span class="o">=</span> <span class="n">RunResult</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">run_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">best_fold_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">folds</span><span class="o">=</span><span class="p">[</span><span class="n">fold_high</span><span class="p">],</span>
 <span class="gp">... </span>    <span class="n">test_score</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">test_tp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_tn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">{},</span>
+<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">[],</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">exp</span> <span class="o">=</span> <span class="n">ExperimentResult</span><span class="p">(</span><span class="n">runs</span><span class="o">=</span><span class="p">[</span><span class="n">r1</span><span class="p">,</span> <span class="n">r2</span><span class="p">])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">exp</span><span class="o">.</span><span class="n">test_scores</span>
@@ -4615,9 +4618,8 @@ Returns <code>"[]"</code> if no validation data was used.</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/metrics/results.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">305</span>
-<span class="normal">306</span>
+                <summary>Source code in <code>hgp_lib\metrics\results.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">306</span>
 <span class="normal">307</span>
 <span class="normal">308</span>
 <span class="normal">309</span>
@@ -4763,7 +4765,8 @@ Returns <code>"[]"</code> if no validation data was used.</p>
 <span class="normal">449</span>
 <span class="normal">450</span>
 <span class="normal">451</span>
-<span class="normal">452</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">452</span>
+<span class="normal">453</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ExperimentResult</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Aggregated results across multiple benchmark runs.</span>
@@ -4793,12 +4796,12 @@ Returns <code>"[]"</code> if no validation data was used.</p>
 <span class="sd">        &gt;&gt;&gt; r1 = RunResult(</span>
 <span class="sd">        ...     run_id=0, seed=0, best_fold_idx=0, folds=[fold_low],</span>
 <span class="sd">        ...     test_score=0.8, test_tp=0, test_fp=0, test_fn=0, test_tn=0,</span>
-<span class="sd">        ...     feature_names={},</span>
+<span class="sd">        ...     feature_names=[],</span>
 <span class="sd">        ... )</span>
 <span class="sd">        &gt;&gt;&gt; r2 = RunResult(</span>
 <span class="sd">        ...     run_id=1, seed=1, best_fold_idx=0, folds=[fold_high],</span>
 <span class="sd">        ...     test_score=0.9, test_tp=0, test_fp=0, test_fn=0, test_tn=0,</span>
-<span class="sd">        ...     feature_names={},</span>
+<span class="sd">        ...     feature_names=[],</span>
 <span class="sd">        ... )</span>
 <span class="sd">        &gt;&gt;&gt; exp = ExperimentResult(runs=[r1, r2])</span>
 <span class="sd">        &gt;&gt;&gt; exp.test_scores</span>
@@ -4842,12 +4845,12 @@ Returns <code>"[]"</code> if no validation data was used.</p>
 <span class="sd">            &gt;&gt;&gt; r1 = RunResult(</span>
 <span class="sd">            ...     run_id=0, seed=0, best_fold_idx=0, folds=[f_low],</span>
 <span class="sd">            ...     test_score=0.7, test_tp=0, test_fp=0, test_fn=0, test_tn=0,</span>
-<span class="sd">            ...     feature_names={},</span>
+<span class="sd">            ...     feature_names=[],</span>
 <span class="sd">            ... )</span>
 <span class="sd">            &gt;&gt;&gt; r2 = RunResult(</span>
 <span class="sd">            ...     run_id=1, seed=1, best_fold_idx=0, folds=[f_high],</span>
 <span class="sd">            ...     test_score=0.9, test_tp=0, test_fp=0, test_fn=0, test_tn=0,</span>
-<span class="sd">            ...     feature_names={},</span>
+<span class="sd">            ...     feature_names=[],</span>
 <span class="sd">            ... )</span>
 <span class="sd">            &gt;&gt;&gt; ExperimentResult(runs=[r1, r2]).best_run.run_id</span>
 <span class="sd">            1</span>
@@ -4883,7 +4886,7 @@ Returns <code>"[]"</code> if no validation data was used.</p>
 <span class="sd">            &gt;&gt;&gt; run = RunResult(</span>
 <span class="sd">            ...     run_id=0, seed=0, best_fold_idx=0, folds=[fold],</span>
 <span class="sd">            ...     test_score=0.8, test_tp=0, test_fp=0, test_fn=0, test_tn=0,</span>
-<span class="sd">            ...     feature_names={},</span>
+<span class="sd">            ...     feature_names=[],</span>
 <span class="sd">            ... )</span>
 <span class="sd">            &gt;&gt;&gt; str(ExperimentResult(runs=[run]).best_rule)</span>
 <span class="sd">            &#39;7&#39;</span>
@@ -4905,7 +4908,7 @@ Returns <code>"[]"</code> if no validation data was used.</p>
 <span class="sd">            &gt;&gt;&gt; r = RunResult(</span>
 <span class="sd">            ...     run_id=0, seed=0, best_fold_idx=0, folds=[fold],</span>
 <span class="sd">            ...     test_score=0.75, test_tp=0, test_fp=0, test_fn=0, test_tn=0,</span>
-<span class="sd">            ...     feature_names={},</span>
+<span class="sd">            ...     feature_names=[],</span>
 <span class="sd">            ... )</span>
 <span class="sd">            &gt;&gt;&gt; ExperimentResult(runs=[r]).test_scores</span>
 <span class="sd">            [0.75]</span>
@@ -4997,12 +5000,12 @@ has validation scores, falls back to mean training score.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">r1</span> <span class="o">=</span> <span class="n">RunResult</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">run_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">best_fold_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">folds</span><span class="o">=</span><span class="p">[</span><span class="n">f_low</span><span class="p">],</span>
 <span class="gp">... </span>    <span class="n">test_score</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">test_tp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_tn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">{},</span>
+<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">[],</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">r2</span> <span class="o">=</span> <span class="n">RunResult</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">run_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">best_fold_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">folds</span><span class="o">=</span><span class="p">[</span><span class="n">f_high</span><span class="p">],</span>
 <span class="gp">... </span>    <span class="n">test_score</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">test_tp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_tn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">{},</span>
+<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">[],</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">ExperimentResult</span><span class="p">(</span><span class="n">runs</span><span class="o">=</span><span class="p">[</span><span class="n">r1</span><span class="p">,</span> <span class="n">r2</span><span class="p">])</span><span class="o">.</span><span class="n">best_run</span><span class="o">.</span><span class="n">run_id</span>
 <span class="go">1</span>
@@ -5064,7 +5067,7 @@ has validation scores, falls back to mean training score.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">run</span> <span class="o">=</span> <span class="n">RunResult</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">run_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">best_fold_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">folds</span><span class="o">=</span><span class="p">[</span><span class="n">fold</span><span class="p">],</span>
 <span class="gp">... </span>    <span class="n">test_score</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">test_tp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_tn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">{},</span>
+<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">[],</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">str</span><span class="p">(</span><span class="n">ExperimentResult</span><span class="p">(</span><span class="n">runs</span><span class="o">=</span><span class="p">[</span><span class="n">run</span><span class="p">])</span><span class="o">.</span><span class="n">best_rule</span><span class="p">)</span>
 <span class="go">&#39;7&#39;</span>
@@ -5103,7 +5106,7 @@ has validation scores, falls back to mean training score.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">r</span> <span class="o">=</span> <span class="n">RunResult</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">run_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">best_fold_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">folds</span><span class="o">=</span><span class="p">[</span><span class="n">fold</span><span class="p">],</span>
 <span class="gp">... </span>    <span class="n">test_score</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span> <span class="n">test_tp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_fn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_tn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">{},</span>
+<span class="gp">... </span>    <span class="n">feature_names</span><span class="o">=</span><span class="p">[],</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">ExperimentResult</span><span class="p">(</span><span class="n">runs</span><span class="o">=</span><span class="p">[</span><span class="n">r</span><span class="p">])</span><span class="o">.</span><span class="n">test_scores</span>
 <span class="go">[0.75]</span>

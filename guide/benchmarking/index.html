@@ -1490,6 +1490,7 @@
   
 
 
+<p>from hgp_lib.utils.metrics import fast_f1_score</p>
 <h1 id="benchmarking">Benchmarking</h1>
 <p>The benchmarker runs multiple full runs (default 30), each with a stratified train/test split and k-fold CV on the training set.
 Results are aggregated across runs.
@@ -1517,7 +1518,7 @@ You can pass a custom binarizer (unfitted) via the <code>binarizer</code> parame
 </code></pre></div>
 <p>See <a href="../binarization/">Binarization</a> for how the binarizer works and its parameters.</p>
 <h2 id="feature-names">Feature names</h2>
-<p>The <a href="../../api/metrics/#hgp_lib.metrics.results.RunResult"><code>RunResult</code></a> includes <code>feature_names</code>, a <code>Dict[int, str]</code> mapping from literal indices to the binarized column names.
+<p>The <a href="../../api/metrics/#hgp_lib.metrics.results.RunResult"><code>RunResult</code></a> includes <code>feature_names</code>, a <code>list[str]</code> of the binarized column names in order, index-aligned so that <code>feature_names[i]</code> names the feature a literal references with index <code>i</code>.
 Use this to display rules in human-readable form:</p>
 <div class="highlight"><pre><span></span><code><span class="n">best_run</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">best_run</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">best_rule</span><span class="o">.</span><span class="n">to_str</span><span class="p">(</span><span class="n">best_run</span><span class="o">.</span><span class="n">feature_names</span><span class="p">))</span>
@@ -1543,33 +1544,32 @@ Either pass a base scorer with <code>optimize_scorer=True</code> (default), or u
 <p>A scorer that supports sample weights looks like this:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
-<span class="k">def</span><span class="w"> </span><span class="nf">f1_score</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">sample_weight</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">f1_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">sample_weight</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">sample_weight</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">tp</span> <span class="o">=</span> <span class="p">(</span><span class="n">predictions</span> <span class="o">&amp;</span> <span class="n">labels</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-        <span class="n">pred_sum</span><span class="p">,</span> <span class="n">label_sum</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">labels</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="n">tp</span> <span class="o">=</span> <span class="p">(</span><span class="n">y_true</span> <span class="o">&amp;</span> <span class="n">y_pred</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="n">pred_sum</span><span class="p">,</span> <span class="n">label_sum</span> <span class="o">=</span> <span class="n">y_pred</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">y_true</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">tp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">predictions</span> <span class="o">&amp;</span> <span class="n">labels</span><span class="p">,</span> <span class="n">sample_weight</span><span class="p">)</span>
-        <span class="n">pred_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">sample_weight</span><span class="p">)</span>
-        <span class="n">label_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">sample_weight</span><span class="p">)</span>
+        <span class="n">tp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">y_pred</span> <span class="o">&amp;</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">sample_weight</span><span class="p">)</span>
+        <span class="n">pred_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">sample_weight</span><span class="p">)</span>
+        <span class="n">label_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">sample_weight</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">pred_sum</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">label_sum</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">pred_sum</span> <span class="o">==</span> <span class="n">label_sum</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
     <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">tp</span> <span class="o">/</span> <span class="p">(</span><span class="n">pred_sum</span> <span class="o">+</span> <span class="n">label_sum</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="full-example">Full example</h2>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_breast_cancer</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BenchmarkerConfig</span><span class="p">,</span> <span class="n">BooleanGPConfig</span><span class="p">,</span> <span class="n">TrainerConfig</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.benchmarkers</span><span class="w"> </span><span class="kn">import</span> <span class="n">GPBenchmarker</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.utils.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">fast_f1_score</span>
 
-<span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>  <span class="c1"># raw features as a DataFrame (bool / categorical / numeric)</span>
-<span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>    <span class="c1"># 1-D target array</span>
+<span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">load_breast_cancer</span><span class="p">(</span><span class="n">return_X_y</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">as_frame</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># raw DataFrame + target</span>
 
 <span class="c1"># Nested configs: BooleanGPConfig -&gt; TrainerConfig -&gt; BenchmarkerConfig.</span>
 <span class="c1"># train_data/train_labels are not needed in gp_config here;</span>
 <span class="c1"># the benchmarker binarizes and sets them per fold.</span>
 <span class="n">gp_config</span> <span class="o">=</span> <span class="n">BooleanGPConfig</span><span class="p">(</span>
-    <span class="n">score_fn</span><span class="o">=</span><span class="n">f1_score</span><span class="p">,</span>
-    <span class="n">optimize_scorer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># Default; enables scorer optimization per fold</span>
+    <span class="n">score_fn</span><span class="o">=</span><span class="n">fast_f1_score</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="n">trainer_config</span> <span class="o">=</span> <span class="n">TrainerConfig</span><span class="p">(</span>
     <span class="n">gp_config</span><span class="o">=</span><span class="n">gp_config</span><span class="p">,</span>
@@ -1577,8 +1577,8 @@ Either pass a base scorer with <code>optimize_scorer=True</code> (default), or u
     <span class="n">val_every</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="n">config</span> <span class="o">=</span> <span class="n">BenchmarkerConfig</span><span class="p">(</span>
-    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
-    <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">X</span><span class="p">,</span>
+    <span class="n">labels</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span>
     <span class="n">trainer_config</span><span class="o">=</span><span class="n">trainer_config</span><span class="p">,</span>
     <span class="n">num_runs</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
     <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
@@ -1602,8 +1602,8 @@ Pass a <code>pandas.DataFrame</code> with the same columns, order, and dtypes as
 <div class="highlight"><pre><span></span><code><span class="n">benchmarker</span> <span class="o">=</span> <span class="n">GPBenchmarker</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
 <span class="n">benchmarker</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
 
-<span class="n">new_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>  <span class="c1"># same schema as the fitted data</span>
-<span class="n">predictions</span> <span class="o">=</span> <span class="n">benchmarker</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">new_data</span><span class="p">)</span>  <span class="c1"># 1-D boolean array</span>
+<span class="c1"># Same schema as the fitted data; here we reuse X from the example above.</span>
+<span class="n">predictions</span> <span class="o">=</span> <span class="n">benchmarker</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>  <span class="c1"># 1-D boolean array</span>
 </code></pre></div>
 <p>The fitted binarizer is stored on <a href="../../api/metrics/#hgp_lib.metrics.results.RunResult"><code>RunResult.binarizer</code></a>, so <code>predict</code> reproduces the exact encoding used during the best run.</p>
 <h2 id="hyperparameter-tuning">Hyperparameter tuning</h2>

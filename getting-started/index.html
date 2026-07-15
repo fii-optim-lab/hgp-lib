@@ -1394,31 +1394,62 @@
 <h2 id="installation">Installation</h2>
 <div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>hgp-lib
 <span class="c1"># or</span>
-pip<span class="w"> </span>install<span class="w"> </span>hgp-lib<span class="o">[</span>dev<span class="o">]</span>
+pip<span class="w"> </span>install<span class="w"> </span><span class="s1">&#39;hgp-lib[dev]&#39;</span>
 </code></pre></div>
 <h2 id="a-first-run">A first run</h2>
-<p><code>hgp_lib</code> evolves boolean rules that classify tabular data. The fastest way to
-get a result is <a href="../api/benchmarkers/#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker"><code>GPBenchmarker</code></a>, which handles binarization, splitting, and
-aggregation for you. Pass a raw <code>pandas.DataFrame</code> and a scoring function.</p>
+<p>The fastest way to train an interpretable model is
+<a href="../api/trainers/#hgp_lib.trainers.boolean_rule_classifier.BooleanRuleClassifier"><code>BooleanRuleClassifier</code></a>.
+It binarizes a raw <code>pandas.DataFrame</code> for you, evolves a rule, and applies the same
+binarization when predicting. The example runs as-is on the scikit-learn
+<code>breast_cancer</code> dataset.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_breast_cancer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">train_test_split</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanRuleClassifier</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGPConfig</span><span class="p">,</span> <span class="n">TrainerConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.utils.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">fast_f1_score</span>
+
+<span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">load_breast_cancer</span><span class="p">(</span><span class="n">return_X_y</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">as_frame</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
+    <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">stratify</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span>
+<span class="p">)</span>
+<span class="n">X_train</span><span class="p">,</span> <span class="n">X_val</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">y_val</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
+    <span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">stratify</span><span class="o">=</span><span class="n">y_train</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span>
+<span class="p">)</span>
+
+<span class="n">config</span> <span class="o">=</span> <span class="n">TrainerConfig</span><span class="p">(</span>
+    <span class="n">gp_config</span><span class="o">=</span><span class="n">BooleanGPConfig</span><span class="p">(</span><span class="n">score_fn</span><span class="o">=</span><span class="n">fast_f1_score</span><span class="p">),</span> <span class="n">num_epochs</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">val_every</span><span class="o">=</span><span class="mi">100</span>
+<span class="p">)</span>
+<span class="n">clf</span> <span class="o">=</span> <span class="n">BooleanRuleClassifier</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>  <span class="c1"># StandardBinarizer by default; pass binarizer=... to customize</span>
+<span class="n">clf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">X_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">)</span>  <span class="c1"># validation data is binarized internally too</span>
+
+<span class="n">predictions</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>  <span class="c1"># raw data is binarized internally</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">clf</span><span class="o">.</span><span class="n">format_rule</span><span class="p">())</span>           <span class="c1"># the evolved rule as plain logic</span>
+</code></pre></div>
+<p>Validation data is optional; when supplied it is binarized with the same fitted binarizer and used to track a validation score during training.</p>
+<p>For a rigorous estimate over multiple runs and folds, use
+<a href="../api/benchmarkers/#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker"><code>GPBenchmarker</code></a>,
+which handles binarization, splitting, and aggregation for you:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_breast_cancer</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BenchmarkerConfig</span><span class="p">,</span> <span class="n">BooleanGPConfig</span><span class="p">,</span> <span class="n">TrainerConfig</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.benchmarkers</span><span class="w"> </span><span class="kn">import</span> <span class="n">GPBenchmarker</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.utils.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">fast_f1_score</span>
 
-<span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>  <span class="c1"># raw features (bool / categorical / numeric)</span>
-<span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>    <span class="c1"># 1-D target array</span>
+<span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">load_breast_cancer</span><span class="p">(</span><span class="n">return_X_y</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">as_frame</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-<span class="n">gp_config</span> <span class="o">=</span> <span class="n">BooleanGPConfig</span><span class="p">(</span><span class="n">score_fn</span><span class="o">=</span><span class="n">my_score_fn</span><span class="p">)</span>
+<span class="n">gp_config</span> <span class="o">=</span> <span class="n">BooleanGPConfig</span><span class="p">(</span><span class="n">score_fn</span><span class="o">=</span><span class="n">fast_f1_score</span><span class="p">)</span>
 <span class="n">trainer_config</span> <span class="o">=</span> <span class="n">TrainerConfig</span><span class="p">(</span><span class="n">gp_config</span><span class="o">=</span><span class="n">gp_config</span><span class="p">,</span> <span class="n">num_epochs</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">val_every</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
 <span class="n">config</span> <span class="o">=</span> <span class="n">BenchmarkerConfig</span><span class="p">(</span>
-    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
-    <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">X</span><span class="p">,</span>
+    <span class="n">labels</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span>
     <span class="n">trainer_config</span><span class="o">=</span><span class="n">trainer_config</span><span class="p">,</span>
     <span class="n">num_runs</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
     <span class="n">n_folds</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
     <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">GPBenchmarker</span><span class="p">(</span><span class="n">config</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Mean test F1: </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">test_scores</span><span class="p">)</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">best_rule</span><span class="o">.</span><span class="n">to_str</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">best_run</span><span class="o">.</span><span class="n">feature_names</span><span class="p">))</span>
 </code></pre></div>
 <h2 id="where-to-go-next">Where to go next</h2>

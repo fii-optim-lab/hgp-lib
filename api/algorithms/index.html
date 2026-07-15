@@ -1497,14 +1497,13 @@ number of epochs.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGPConfig</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.algorithms</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGP</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.utils.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">fast_accuracy_score</span> <span class="k">as</span> <span class="n">accuracy_score</span>
 <span class="gp">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">accuracy</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">predictions</span> <span class="o">==</span> <span class="n">labels</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">train_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">train_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">BooleanGPConfig</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">score_fn</span><span class="o">=</span><span class="n">accuracy</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">score_fn</span><span class="o">=</span><span class="n">accuracy_score</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">train_data</span><span class="o">=</span><span class="n">train_data</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">train_labels</span><span class="o">=</span><span class="n">train_labels</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">optimize_scorer</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -1521,7 +1520,7 @@ number of epochs.</p>
 
 
               <details class="mkdocstrings-source">
-                <summary>Source code in <code>hgp_lib/algorithms/boolean_gp.py</code></summary>
+                <summary>Source code in <code>hgp_lib\algorithms\boolean_gp.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 15</span>
 <span class="normal"> 16</span>
 <span class="normal"> 17</span>
@@ -2129,14 +2128,7 @@ number of epochs.</p>
 <span class="normal">619</span>
 <span class="normal">620</span>
 <span class="normal">621</span>
-<span class="normal">622</span>
-<span class="normal">623</span>
-<span class="normal">624</span>
-<span class="normal">625</span>
-<span class="normal">626</span>
-<span class="normal">627</span>
-<span class="normal">628</span>
-<span class="normal">629</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">BooleanGP</span><span class="p">:</span>
+<span class="normal">622</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">BooleanGP</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Boolean Genetic Programming algorithm for evolving rule-based classifiers.</span>
 
@@ -2162,14 +2154,13 @@ number of epochs.</p>
 <span class="sd">        &gt;&gt;&gt; import numpy as np</span>
 <span class="sd">        &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig</span>
 <span class="sd">        &gt;&gt;&gt; from hgp_lib.algorithms import BooleanGP</span>
+<span class="sd">        &gt;&gt;&gt; from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score</span>
 <span class="sd">        &gt;&gt;&gt;</span>
-<span class="sd">        &gt;&gt;&gt; def accuracy(predictions, labels):</span>
-<span class="sd">        ...     return np.mean(predictions == labels)</span>
 <span class="sd">        &gt;&gt;&gt;</span>
 <span class="sd">        &gt;&gt;&gt; train_data = np.array([[True, False, True, False], [False, True, False, True]])</span>
 <span class="sd">        &gt;&gt;&gt; train_labels = np.array([1, 0])</span>
 <span class="sd">        &gt;&gt;&gt; config = BooleanGPConfig(</span>
-<span class="sd">        ...     score_fn=accuracy,</span>
+<span class="sd">        ...     score_fn=accuracy_score,</span>
 <span class="sd">        ...     train_data=train_data,</span>
 <span class="sd">        ...     train_labels=train_labels,</span>
 <span class="sd">        ...     optimize_scorer=False,</span>
@@ -2183,9 +2174,6 @@ number of epochs.</p>
 
         <span class="n">train_data</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">train_data</span>
         <span class="n">train_labels</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">train_labels</span>
-        <span class="c1"># TODO: We should add in documentation that our score_fn follows the sklearn</span>
-        <span class="c1">#  standard of (predictions, labels) and sample_weight support is recommended for optimization.</span>
-        <span class="c1"># Careful! the sklearn pattern is labels, predictions!</span>
 
         <span class="n">score_fn</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">score_fn</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_original_score_fn</span> <span class="o">=</span> <span class="n">score_fn</span>
@@ -2286,12 +2274,11 @@ number of epochs.</p>
 <span class="sd">            &gt;&gt;&gt; import numpy as np</span>
 <span class="sd">            &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig</span>
 <span class="sd">            &gt;&gt;&gt; from hgp_lib.algorithms import BooleanGP</span>
-<span class="sd">            &gt;&gt;&gt; def accuracy(predictions, labels):</span>
-<span class="sd">            ...     return np.mean(predictions == labels)</span>
+<span class="sd">            &gt;&gt;&gt; from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score</span>
 <span class="sd">            &gt;&gt;&gt; data = np.array([[True, False], [False, True], [True, True], [False, False]])</span>
 <span class="sd">            &gt;&gt;&gt; labels = np.array([1, 0, 1, 0])</span>
 <span class="sd">            &gt;&gt;&gt; config = BooleanGPConfig(</span>
-<span class="sd">            ...     score_fn=accuracy, train_data=data, train_labels=labels,</span>
+<span class="sd">            ...     score_fn=accuracy_score, train_data=data, train_labels=labels,</span>
 <span class="sd">            ...     optimize_scorer=False,</span>
 <span class="sd">            ... )</span>
 <span class="sd">            &gt;&gt;&gt; gp = BooleanGP(config)</span>
@@ -2316,11 +2303,11 @@ number of epochs.</p>
 <span class="sd">            &gt;&gt;&gt; import numpy as np</span>
 <span class="sd">            &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig</span>
 <span class="sd">            &gt;&gt;&gt; from hgp_lib.algorithms import BooleanGP</span>
-<span class="sd">            &gt;&gt;&gt; def accuracy(p, l): return np.mean(p == l)</span>
+<span class="sd">            &gt;&gt;&gt; from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score</span>
 <span class="sd">            &gt;&gt;&gt; data = np.array([[True, False], [False, True], [True, True], [False, False]])</span>
 <span class="sd">            &gt;&gt;&gt; labels = np.array([1, 0, 1, 0])</span>
 <span class="sd">            &gt;&gt;&gt; config = BooleanGPConfig(</span>
-<span class="sd">            ...     score_fn=accuracy, train_data=data, train_labels=labels,</span>
+<span class="sd">            ...     score_fn=accuracy_score, train_data=data, train_labels=labels,</span>
 <span class="sd">            ...     optimize_scorer=False,</span>
 <span class="sd">            ... )</span>
 <span class="sd">            &gt;&gt;&gt; gp = BooleanGP(config)</span>
@@ -2369,11 +2356,11 @@ number of epochs.</p>
 <span class="sd">            &gt;&gt;&gt; import numpy as np</span>
 <span class="sd">            &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig</span>
 <span class="sd">            &gt;&gt;&gt; from hgp_lib.algorithms import BooleanGP</span>
-<span class="sd">            &gt;&gt;&gt; def accuracy(p, l): return np.mean(p == l)</span>
+<span class="sd">            &gt;&gt;&gt; from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score</span>
 <span class="sd">            &gt;&gt;&gt; data = np.array([[True, False], [False, True], [True, True], [False, False]])</span>
 <span class="sd">            &gt;&gt;&gt; labels = np.array([1, 0, 1, 0])</span>
 <span class="sd">            &gt;&gt;&gt; config = BooleanGPConfig(</span>
-<span class="sd">            ...     score_fn=accuracy, train_data=data, train_labels=labels,</span>
+<span class="sd">            ...     score_fn=accuracy_score, train_data=data, train_labels=labels,</span>
 <span class="sd">            ...     optimize_scorer=False,</span>
 <span class="sd">            ... )</span>
 <span class="sd">            &gt;&gt;&gt; gp = BooleanGP(config)</span>
@@ -2424,7 +2411,7 @@ number of epochs.</p>
 <span class="sd">            &gt;&gt;&gt; from hgp_lib.algorithms import BooleanGP</span>
 <span class="sd">            &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig</span>
 <span class="sd">            &gt;&gt;&gt; from hgp_lib.populations import FeatureSamplingStrategy</span>
-<span class="sd">            &gt;&gt;&gt; from sklearn.metrics import accuracy_score</span>
+<span class="sd">            &gt;&gt;&gt; from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score</span>
 <span class="sd">            &gt;&gt;&gt; data = np.random.rand(50, 10) &gt; 0.5</span>
 <span class="sd">            &gt;&gt;&gt; labels = np.random.randint(0, 2, 50)</span>
 <span class="sd">            &gt;&gt;&gt; config = BooleanGPConfig(</span>
@@ -2528,11 +2515,11 @@ number of epochs.</p>
 <span class="sd">            &gt;&gt;&gt; import numpy as np</span>
 <span class="sd">            &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig</span>
 <span class="sd">            &gt;&gt;&gt; from hgp_lib.algorithms import BooleanGP</span>
-<span class="sd">            &gt;&gt;&gt; def accuracy(p, l): return np.mean(p == l)</span>
+<span class="sd">            &gt;&gt;&gt; from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score</span>
 <span class="sd">            &gt;&gt;&gt; data = np.array([[True, False], [False, True]])</span>
 <span class="sd">            &gt;&gt;&gt; labels = np.array([1, 0])</span>
 <span class="sd">            &gt;&gt;&gt; config = BooleanGPConfig(</span>
-<span class="sd">            ...     score_fn=accuracy, train_data=data, train_labels=labels,</span>
+<span class="sd">            ...     score_fn=accuracy_score, train_data=data, train_labels=labels,</span>
 <span class="sd">            ...     optimize_scorer=False,</span>
 <span class="sd">            ... )</span>
 <span class="sd">            &gt;&gt;&gt; gp = BooleanGP(config)</span>
@@ -2635,23 +2622,22 @@ number of epochs.</p>
 <span class="sd">            &gt;&gt;&gt; import numpy as np</span>
 <span class="sd">            &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig</span>
 <span class="sd">            &gt;&gt;&gt; from hgp_lib.algorithms import BooleanGP</span>
-<span class="sd">            &gt;&gt;&gt; def accuracy(predictions, labels):</span>
-<span class="sd">            ...     return np.mean(predictions == labels)</span>
+<span class="sd">            &gt;&gt;&gt; from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score</span>
 <span class="sd">            &gt;&gt;&gt; data = np.array([[True, False], [False, True], [True, True], [False, False]])</span>
 <span class="sd">            &gt;&gt;&gt; labels = np.array([1, 0, 1, 0])</span>
 <span class="sd">            &gt;&gt;&gt; config = BooleanGPConfig(</span>
-<span class="sd">            ...     score_fn=accuracy, train_data=data, train_labels=labels,</span>
+<span class="sd">            ...     score_fn=accuracy_score, train_data=data, train_labels=labels,</span>
 <span class="sd">            ...     optimize_scorer=False,</span>
 <span class="sd">            ... )</span>
 <span class="sd">            &gt;&gt;&gt; gp = BooleanGP(config)</span>
-<span class="sd">            &gt;&gt;&gt; scores = gp.evaluate_population(data, labels, accuracy)</span>
+<span class="sd">            &gt;&gt;&gt; scores = gp.evaluate_population(data, labels, accuracy_score)</span>
 <span class="sd">            &gt;&gt;&gt; len(scores) == len(gp.population)</span>
 <span class="sd">            True</span>
 <span class="sd">            &gt;&gt;&gt; all(0.0 &lt;= s &lt;= 1.0 for s in scores)</span>
 <span class="sd">            True</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">score_fn</span><span class="p">(</span><span class="n">rule</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">labels</span><span class="p">)</span> <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">population</span><span class="p">]</span>
+            <span class="p">[</span><span class="n">score_fn</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">rule</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">data</span><span class="p">))</span> <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">population</span><span class="p">]</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_update_best</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_best</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">current_best_rule</span><span class="p">:</span> <span class="n">Rule</span><span class="p">):</span>
@@ -2672,11 +2658,11 @@ number of epochs.</p>
 <span class="sd">            &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig</span>
 <span class="sd">            &gt;&gt;&gt; from hgp_lib.algorithms import BooleanGP</span>
 <span class="sd">            &gt;&gt;&gt; from hgp_lib.rules import Literal</span>
-<span class="sd">            &gt;&gt;&gt; def accuracy(p, l): return np.mean(p == l)</span>
+<span class="sd">            &gt;&gt;&gt; from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score</span>
 <span class="sd">            &gt;&gt;&gt; data = np.array([[True, False], [False, True]])</span>
 <span class="sd">            &gt;&gt;&gt; labels = np.array([1, 0])</span>
 <span class="sd">            &gt;&gt;&gt; config = BooleanGPConfig(</span>
-<span class="sd">            ...     score_fn=accuracy, train_data=data, train_labels=labels,</span>
+<span class="sd">            ...     score_fn=accuracy_score, train_data=data, train_labels=labels,</span>
 <span class="sd">            ...     optimize_scorer=False,</span>
 <span class="sd">            ... )</span>
 <span class="sd">            &gt;&gt;&gt; gp = BooleanGP(config)</span>
@@ -2728,12 +2714,11 @@ number of epochs.</p>
 <span class="sd">            &gt;&gt;&gt; import numpy as np</span>
 <span class="sd">            &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig</span>
 <span class="sd">            &gt;&gt;&gt; from hgp_lib.algorithms import BooleanGP</span>
-<span class="sd">            &gt;&gt;&gt; def accuracy(predictions, labels):</span>
-<span class="sd">            ...     return np.mean(predictions == labels)</span>
+<span class="sd">            &gt;&gt;&gt; from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score</span>
 <span class="sd">            &gt;&gt;&gt; data = np.array([[True, False], [False, True], [True, True], [False, False]])</span>
 <span class="sd">            &gt;&gt;&gt; labels = np.array([1, 0, 1, 0])</span>
 <span class="sd">            &gt;&gt;&gt; config = BooleanGPConfig(</span>
-<span class="sd">            ...     score_fn=accuracy, train_data=data, train_labels=labels,</span>
+<span class="sd">            ...     score_fn=accuracy_score, train_data=data, train_labels=labels,</span>
 <span class="sd">            ...     optimize_scorer=False,</span>
 <span class="sd">            ... )</span>
 <span class="sd">            &gt;&gt;&gt; gp = BooleanGP(config)</span>
@@ -2746,7 +2731,7 @@ number of epochs.</p>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No best rule available. Run at least one step first.&quot;</span><span class="p">)</span>
 
         <span class="n">fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_original_score_fn</span> <span class="k">if</span> <span class="n">score_fn</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">score_fn</span>
-        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">fn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_best_rule</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">labels</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">fn</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_best_rule</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">data</span><span class="p">)))</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">original_score_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -2817,12 +2802,11 @@ If regeneration is enabled and no improvement has been observed for
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGPConfig</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.algorithms</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGP</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">accuracy</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">predictions</span> <span class="o">==</span> <span class="n">labels</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.utils.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">fast_accuracy_score</span> <span class="k">as</span> <span class="n">accuracy_score</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">]])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">BooleanGPConfig</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">score_fn</span><span class="o">=</span><span class="n">accuracy</span><span class="p">,</span> <span class="n">train_data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">train_labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">score_fn</span><span class="o">=</span><span class="n">accuracy_score</span><span class="p">,</span> <span class="n">train_data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">train_labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">optimize_scorer</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">gp</span> <span class="o">=</span> <span class="n">BooleanGP</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
@@ -2835,8 +2819,12 @@ If regeneration is enabled and no improvement has been observed for
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/algorithms/boolean_gp.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">149</span>
+              <summary>Source code in <code>hgp_lib\algorithms\boolean_gp.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
 <span class="normal">150</span>
 <span class="normal">151</span>
 <span class="normal">152</span>
@@ -2863,12 +2851,7 @@ If regeneration is enabled and no improvement has been observed for
 <span class="normal">173</span>
 <span class="normal">174</span>
 <span class="normal">175</span>
-<span class="normal">176</span>
-<span class="normal">177</span>
-<span class="normal">178</span>
-<span class="normal">179</span>
-<span class="normal">180</span>
-<span class="normal">181</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GenerationMetrics</span><span class="p">:</span>
+<span class="normal">176</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GenerationMetrics</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Perform one training step (generation) of the genetic programming algorithm.</span>
 
@@ -2884,12 +2867,11 @@ If regeneration is enabled and no improvement has been observed for
 <span class="sd">        &gt;&gt;&gt; import numpy as np</span>
 <span class="sd">        &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig</span>
 <span class="sd">        &gt;&gt;&gt; from hgp_lib.algorithms import BooleanGP</span>
-<span class="sd">        &gt;&gt;&gt; def accuracy(predictions, labels):</span>
-<span class="sd">        ...     return np.mean(predictions == labels)</span>
+<span class="sd">        &gt;&gt;&gt; from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score</span>
 <span class="sd">        &gt;&gt;&gt; data = np.array([[True, False], [False, True], [True, True], [False, False]])</span>
 <span class="sd">        &gt;&gt;&gt; labels = np.array([1, 0, 1, 0])</span>
 <span class="sd">        &gt;&gt;&gt; config = BooleanGPConfig(</span>
-<span class="sd">        ...     score_fn=accuracy, train_data=data, train_labels=labels,</span>
+<span class="sd">        ...     score_fn=accuracy_score, train_data=data, train_labels=labels,</span>
 <span class="sd">        ...     optimize_scorer=False,</span>
 <span class="sd">        ... )</span>
 <span class="sd">        &gt;&gt;&gt; gp = BooleanGP(config)</span>
@@ -3011,16 +2993,15 @@ If regeneration is enabled and no improvement has been observed for
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGPConfig</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.algorithms</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGP</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">accuracy</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">predictions</span> <span class="o">==</span> <span class="n">labels</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.utils.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">fast_accuracy_score</span> <span class="k">as</span> <span class="n">accuracy_score</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">]])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">BooleanGPConfig</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">score_fn</span><span class="o">=</span><span class="n">accuracy</span><span class="p">,</span> <span class="n">train_data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">train_labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">score_fn</span><span class="o">=</span><span class="n">accuracy_score</span><span class="p">,</span> <span class="n">train_data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">train_labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">optimize_scorer</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">gp</span> <span class="o">=</span> <span class="n">BooleanGP</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">scores</span> <span class="o">=</span> <span class="n">gp</span><span class="o">.</span><span class="n">evaluate_population</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">accuracy</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">scores</span> <span class="o">=</span> <span class="n">gp</span><span class="o">.</span><span class="n">evaluate_population</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">accuracy_score</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">gp</span><span class="o">.</span><span class="n">population</span><span class="p">)</span>
 <span class="go">True</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">all</span><span class="p">(</span><span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">s</span> <span class="o">&lt;=</span> <span class="mf">1.0</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">scores</span><span class="p">)</span>
@@ -3029,8 +3010,13 @@ If regeneration is enabled and no improvement has been observed for
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/algorithms/boolean_gp.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">490</span>
+              <summary>Source code in <code>hgp_lib\algorithms\boolean_gp.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">485</span>
+<span class="normal">486</span>
+<span class="normal">487</span>
+<span class="normal">488</span>
+<span class="normal">489</span>
+<span class="normal">490</span>
 <span class="normal">491</span>
 <span class="normal">492</span>
 <span class="normal">493</span>
@@ -3065,13 +3051,7 @@ If regeneration is enabled and no improvement has been observed for
 <span class="normal">522</span>
 <span class="normal">523</span>
 <span class="normal">524</span>
-<span class="normal">525</span>
-<span class="normal">526</span>
-<span class="normal">527</span>
-<span class="normal">528</span>
-<span class="normal">529</span>
-<span class="normal">530</span>
-<span class="normal">531</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate_population</span><span class="p">(</span>
+<span class="normal">525</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate_population</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">data</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span>
     <span class="n">labels</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span>
@@ -3095,23 +3075,22 @@ If regeneration is enabled and no improvement has been observed for
 <span class="sd">        &gt;&gt;&gt; import numpy as np</span>
 <span class="sd">        &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig</span>
 <span class="sd">        &gt;&gt;&gt; from hgp_lib.algorithms import BooleanGP</span>
-<span class="sd">        &gt;&gt;&gt; def accuracy(predictions, labels):</span>
-<span class="sd">        ...     return np.mean(predictions == labels)</span>
+<span class="sd">        &gt;&gt;&gt; from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score</span>
 <span class="sd">        &gt;&gt;&gt; data = np.array([[True, False], [False, True], [True, True], [False, False]])</span>
 <span class="sd">        &gt;&gt;&gt; labels = np.array([1, 0, 1, 0])</span>
 <span class="sd">        &gt;&gt;&gt; config = BooleanGPConfig(</span>
-<span class="sd">        ...     score_fn=accuracy, train_data=data, train_labels=labels,</span>
+<span class="sd">        ...     score_fn=accuracy_score, train_data=data, train_labels=labels,</span>
 <span class="sd">        ...     optimize_scorer=False,</span>
 <span class="sd">        ... )</span>
 <span class="sd">        &gt;&gt;&gt; gp = BooleanGP(config)</span>
-<span class="sd">        &gt;&gt;&gt; scores = gp.evaluate_population(data, labels, accuracy)</span>
+<span class="sd">        &gt;&gt;&gt; scores = gp.evaluate_population(data, labels, accuracy_score)</span>
 <span class="sd">        &gt;&gt;&gt; len(scores) == len(gp.population)</span>
 <span class="sd">        True</span>
 <span class="sd">        &gt;&gt;&gt; all(0.0 &lt;= s &lt;= 1.0 for s in scores)</span>
 <span class="sd">        True</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-        <span class="p">[</span><span class="n">score_fn</span><span class="p">(</span><span class="n">rule</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">labels</span><span class="p">)</span> <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">population</span><span class="p">]</span>
+        <span class="p">[</span><span class="n">score_fn</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">rule</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">data</span><span class="p">))</span> <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">population</span><span class="p">]</span>
     <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -3248,12 +3227,11 @@ data. Default: <code>None</code>.</p>
     <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.configs</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGPConfig</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.algorithms</span><span class="w"> </span><span class="kn">import</span> <span class="n">BooleanGP</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">accuracy</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">predictions</span> <span class="o">==</span> <span class="n">labels</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hgp_lib.utils.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">fast_accuracy_score</span> <span class="k">as</span> <span class="n">accuracy_score</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">]])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">config</span> <span class="o">=</span> <span class="n">BooleanGPConfig</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">score_fn</span><span class="o">=</span><span class="n">accuracy</span><span class="p">,</span> <span class="n">train_data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">train_labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">score_fn</span><span class="o">=</span><span class="n">accuracy_score</span><span class="p">,</span> <span class="n">train_data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">train_labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">optimize_scorer</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">gp</span> <span class="o">=</span> <span class="n">BooleanGP</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
@@ -3265,8 +3243,14 @@ data. Default: <code>None</code>.</p>
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>hgp_lib/algorithms/boolean_gp.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">578</span>
+              <summary>Source code in <code>hgp_lib\algorithms\boolean_gp.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">572</span>
+<span class="normal">573</span>
+<span class="normal">574</span>
+<span class="normal">575</span>
+<span class="normal">576</span>
+<span class="normal">577</span>
+<span class="normal">578</span>
 <span class="normal">579</span>
 <span class="normal">580</span>
 <span class="normal">581</span>
@@ -3306,14 +3290,7 @@ data. Default: <code>None</code>.</p>
 <span class="normal">615</span>
 <span class="normal">616</span>
 <span class="normal">617</span>
-<span class="normal">618</span>
-<span class="normal">619</span>
-<span class="normal">620</span>
-<span class="normal">621</span>
-<span class="normal">622</span>
-<span class="normal">623</span>
-<span class="normal">624</span>
-<span class="normal">625</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate_best</span><span class="p">(</span>
+<span class="normal">618</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">evaluate_best</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">data</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span>
     <span class="n">labels</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span>
@@ -3342,12 +3319,11 @@ data. Default: <code>None</code>.</p>
 <span class="sd">        &gt;&gt;&gt; import numpy as np</span>
 <span class="sd">        &gt;&gt;&gt; from hgp_lib.configs import BooleanGPConfig</span>
 <span class="sd">        &gt;&gt;&gt; from hgp_lib.algorithms import BooleanGP</span>
-<span class="sd">        &gt;&gt;&gt; def accuracy(predictions, labels):</span>
-<span class="sd">        ...     return np.mean(predictions == labels)</span>
+<span class="sd">        &gt;&gt;&gt; from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score</span>
 <span class="sd">        &gt;&gt;&gt; data = np.array([[True, False], [False, True], [True, True], [False, False]])</span>
 <span class="sd">        &gt;&gt;&gt; labels = np.array([1, 0, 1, 0])</span>
 <span class="sd">        &gt;&gt;&gt; config = BooleanGPConfig(</span>
-<span class="sd">        ...     score_fn=accuracy, train_data=data, train_labels=labels,</span>
+<span class="sd">        ...     score_fn=accuracy_score, train_data=data, train_labels=labels,</span>
 <span class="sd">        ...     optimize_scorer=False,</span>
 <span class="sd">        ... )</span>
 <span class="sd">        &gt;&gt;&gt; gp = BooleanGP(config)</span>
@@ -3360,7 +3336,7 @@ data. Default: <code>None</code>.</p>
         <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No best rule available. Run at least one step first.&quot;</span><span class="p">)</span>
 
     <span class="n">fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_original_score_fn</span> <span class="k">if</span> <span class="n">score_fn</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">score_fn</span>
-    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">fn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_best_rule</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">labels</span><span class="p">))</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">fn</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_best_rule</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">data</span><span class="p">)))</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
