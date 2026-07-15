@@ -1,3 +1,6 @@
+import os
+import subprocess
+import sys
 import unittest
 import numpy as np
 
@@ -98,13 +101,13 @@ class TestRules(unittest.TestCase):
 
                 test_rule_2 = and_type(
                     subrules=[
-                        Literal(value=0),
+                        Literal(value=0, negated=True),
                         Literal(value=1, negated=True),
-                        Literal(value=4, negated=True),
+                        Literal(value=4),
                     ],
                     negated=True,
                 )
-                result = ~(self.data[:, 0] & ~self.data[:, 1] & ~self.data[:, 4])
+                result = ~(~self.data[:, 0] & ~self.data[:, 1] & self.data[:, 4])
                 np.testing.assert_array_equal(test_rule_2.evaluate(self.data), result)
 
     def test_or(self):
@@ -168,13 +171,13 @@ class TestRules(unittest.TestCase):
 
                 test_rule_2 = or_type(
                     subrules=[
-                        Literal(value=0),
+                        Literal(value=0, negated=True),
                         Literal(value=1, negated=True),
-                        Literal(value=4, negated=True),
+                        Literal(value=4),
                     ],
                     negated=True,
                 )
-                result = ~(self.data[:, 0] | ~self.data[:, 1] | ~self.data[:, 4])
+                result = ~(~self.data[:, 0] | ~self.data[:, 1] | self.data[:, 4])
                 np.testing.assert_array_equal(test_rule_2.evaluate(self.data), result)
 
     def test_operators(self):
@@ -209,6 +212,37 @@ class TestRules(unittest.TestCase):
             | ~self.data[:, 8]
         )
         np.testing.assert_array_equal(test_rule_1.evaluate(self.data), result)
+
+
+class TestImports(unittest.TestCase):
+    def run_import_test(self, low_memory, expected_module):
+        env = os.environ.copy()
+        env["HGP_LOW_MEMORY"] = str(low_memory)
+
+        code = (
+            "import hgp_lib\n"
+            f'assert hgp_lib.rules.Or.__module__ == "{expected_module}"\n'
+            f'assert hgp_lib.rules.And.__module__ == "{expected_module}"'
+        )
+
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(
+            result.returncode,
+            0,
+            msg=result.stderr,
+        )
+
+    def test_normal_operators_imported(self):
+        self.run_import_test(0, "hgp_lib.rules.operators")
+
+    def test_low_memory_operators_imported(self):
+        self.run_import_test(1, "hgp_lib.rules.low_memory_operators")
 
 
 if __name__ == "__main__":

@@ -358,7 +358,7 @@ class TestGPBenchmarker(unittest.TestCase):
                     num_runs=2,
                     n_jobs=2,
                     trainer_config=self._make_trainer_config(
-                        num_epochs=2, progress_bar=True
+                        num_epochs=2, progress_bar=True, progress_update_interval=1
                     ),
                 )
             ).fit()
