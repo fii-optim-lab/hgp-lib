@@ -126,13 +126,13 @@ class GPTrainer:
             self.progress_callback(remaining_epochs)
 
         tp, fp, fn, tn = self.gp_algo.train_cm(
-            self.gp_algo.global_best_rule.evaluate(self.gp_algo.train_data),
             self.gp_algo.train_labels,
+            self.gp_algo.global_best_rule.evaluate(self.gp_algo.train_data),
         )
         val_tp, val_fp, val_fn, val_tn = None, None, None, None
         if self.val_data is not None:
             val_tp, val_fp, val_fn, val_tn = self.val_cm(
-                self.gp_algo.global_best_rule.evaluate(self.val_data), self.val_labels
+                self.val_labels, self.gp_algo.global_best_rule.evaluate(self.val_data)
             )
         return PopulationHistory(
             generations=parent_generations,

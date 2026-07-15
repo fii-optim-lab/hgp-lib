@@ -34,7 +34,7 @@ See [Binarization](binarization.md) for how the binarizer works and its paramete
 
 ## Feature names
 
-The [`RunResult`](../api/metrics.md#hgp_lib.metrics.results.RunResult) includes `feature_names`, a `Dict[int, str]` mapping from literal indices to the binarized column names.
+The [`RunResult`](../api/metrics.md#hgp_lib.metrics.results.RunResult) includes `feature_names`, a `list[str]` of the binarized column names in order, index-aligned so that `feature_names[i]` names the feature a literal references with index `i`.
 Use this to display rules in human-readable form:
 
 ```python
@@ -88,13 +88,12 @@ def f1_score(y_true, y_pred, sample_weight=None):
 
 ```python
 import numpy as np
-import pandas as pd
+from sklearn.datasets import load_breast_cancer
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.utils.metrics import fast_f1_score
 
-data = pd.DataFrame(...)  # raw features as a DataFrame (bool / categorical / numeric)
-labels = np.array(...)    # 1-D target array
+X, y = load_breast_cancer(return_X_y=True, as_frame=True)  # raw DataFrame + target
 
 # Nested configs: BooleanGPConfig -> TrainerConfig -> BenchmarkerConfig.
 # train_data/train_labels are not needed in gp_config here;
@@ -108,8 +107,8 @@ trainer_config = TrainerConfig(
     val_every=100,
 )
 config = BenchmarkerConfig(
-    data=data,
-    labels=labels,
+    data=X,
+    labels=y.to_numpy(),
     trainer_config=trainer_config,
     num_runs=30,
     test_size=0.2,
@@ -137,8 +136,8 @@ Pass a `pandas.DataFrame` with the same columns, order, and dtypes as the data u
 benchmarker = GPBenchmarker(config)
 benchmarker.fit()
 
-new_data = pd.DataFrame(...)  # same schema as the fitted data
-predictions = benchmarker.predict(new_data)  # 1-D boolean array
+# Same schema as the fitted data; here we reuse X from the example above.
+predictions = benchmarker.predict(X)  # 1-D boolean array
 ```
 
 The fitted binarizer is stored on [`RunResult.binarizer`](../api/metrics.md#hgp_lib.metrics.results.RunResult), so `predict` reproduces the exact encoding used during the best run.

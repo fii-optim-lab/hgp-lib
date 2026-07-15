@@ -17,9 +17,11 @@ Fit the binarizer on the training split and transform the rest.
 
 ```python
 from hgp_lib.preprocessing import StandardBinarizer
+from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 
-data, labels = ...  # pandas DataFrame + numpy array
+data, labels = load_breast_cancer(return_X_y=True, as_frame=True)
+labels = labels.to_numpy()
 
 train_data, test_data, train_labels, test_labels = train_test_split(
     data, labels, test_size=0.2, random_state=42, stratify=labels,

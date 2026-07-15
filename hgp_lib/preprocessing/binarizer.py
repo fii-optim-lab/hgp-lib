@@ -108,6 +108,7 @@ class StandardBinarizer(Binarizer):
         self._skipped_columns: Set[str] = set()
         self._original_columns = None
         self._is_fitted = False
+        self._feature_names: List[str] = []
 
     def _validate_params(
         self,
@@ -203,7 +204,33 @@ class StandardBinarizer(Binarizer):
 
         self._original_columns = X.columns
         self._is_fitted = True
+        self._feature_names = [str(name) for name in outputs.keys()]
         return pd.DataFrame(outputs, index=X.index)
+
+    def get_feature_names_out(self) -> List[str]:
+        """
+        Return the output column names in order (see :meth:`Binarizer.get_feature_names_out`).
+
+        Returns:
+            List[str]: The boolean output column names, index-aligned with the
+                columns produced by ``fit_transform`` / ``transform``.
+
+        Raises:
+            ValueError: If the binarizer has not been fitted yet.
+
+        Examples:
+            >>> import pandas as pd
+            >>> from hgp_lib.preprocessing import StandardBinarizer
+            >>> b = StandardBinarizer(num_bins=2)
+            >>> _ = b.fit_transform(pd.DataFrame({"x": [1.0, 2.0, 3.0, 4.0]}))
+            >>> b.get_feature_names_out()
+            ['x < 2.500', '2.500 <= x']
+        """
+        if not self._is_fitted:
+            raise ValueError(
+                "Binarizer must be fitted before calling get_feature_names_out"
+            )
+        return list(self._feature_names)
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
@@ -416,8 +443,8 @@ class StandardBinarizer(Binarizer):
         self, column_names: Set[str], new_column_name: str
     ) -> str:
         """
-        Register ``new_column_name`` in ``column_names``, appending a numeric suffix if
-        the name already exists to avoid collisions. The set is mutated in place.
+        Register ``new_column_name`` in ``column_names``, appending a numeric suffix if needed.
+        The set is mutated in place.
 
         Args:
             column_names (Set[str]):
@@ -437,23 +464,13 @@ class StandardBinarizer(Binarizer):
             >>> "col_1" in names
             True
         """
-        if new_column_name not in column_names:
-            column_names.add(new_column_name)
-            return new_column_name
-        for i in range(1_000):
-            version_i = f"{new_column_name}_{i}"
-            if version_i not in column_names:
-                column_names.add(version_i)
-                return version_i
-        # If we didn't find a unique column name by trying 1000 indices,
-        # We will use a random string extension until we find a string we didn't visit before
-        new_column_name = new_column_name + "_rand"
-        while True:
-            random_i = np.random.randint(len(column_names))
-            new_column_name = f"{new_column_name}_{random_i}"
-            if new_column_name not in column_names:
-                column_names.add(new_column_name)
-                return new_column_name
+        unique_name = new_column_name
+        counter = 0
+        while unique_name in column_names:
+            unique_name = f"{new_column_name}_{counter}"
+            counter += 1
+        column_names.add(unique_name)
+        return unique_name
 
     def _format_numeric_bin_name(self, column: str, left: float, right: float) -> str:
         """

@@ -35,41 +35,44 @@ See [Theory](https://fii-optim-lab.github.io/hgp-lib/theory/) for how the search
 ```bash
 pip install hgp-lib
 # or
-pip install hgp-lib[dev]
+pip install 'hgp-lib[dev]'
 ```
 
 ## Quickstart
 
-Binarize the data, train a rule with `GPTrainer`, then use it to predict and print it as plain logic.
+`BooleanRuleClassifier` is the fastest way to train an interpretable rule end to end.
+It binarizes the raw data for you, evolves a rule, and applies the same binarization when predicting.
+The example below is fully runnable on the scikit-learn `breast_cancer` dataset.
 
 ```python
-from hgp_lib.preprocessing import StandardBinarizer
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+
+from hgp_lib import BooleanRuleClassifier
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
-from hgp_lib.trainers import GPTrainer
 from hgp_lib.utils.metrics import fast_f1_score
 
-binarizer = StandardBinarizer(num_bins=5)
-train_bin = binarizer.fit_transform(train_data, train_labels)
-test_bin = binarizer.transform(test_data)
-
-gp = BooleanGPConfig(
-    score_fn=fast_f1_score,
-    train_data=train_bin.to_numpy(),
-    train_labels=train_labels,
+X, y = load_breast_cancer(return_X_y=True, as_frame=True)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, stratify=y, random_state=0
 )
-trainer = GPTrainer(TrainerConfig(gp_config=gp, num_epochs=1000))
-history = trainer.fit()
+X_train, X_val, y_train, y_val = train_test_split(
+    X_train, y_train, test_size=0.25, stratify=y_train, random_state=0
+)
 
-rule = history.global_best_rule
-predictions = trainer.predict(test_bin.to_numpy())
-# Equivalent notation
-# predictions = rule.evaluate(test_bin.to_numpy())
-column_names = dict(enumerate(train_bin.columns))
-print(rule.to_str(column_names))
+config = TrainerConfig(
+    gp_config=BooleanGPConfig(score_fn=fast_f1_score), num_epochs=1000, val_every=100
+)
+clf = BooleanRuleClassifier(config)  # StandardBinarizer by default; pass binarizer=... to customize
+clf.fit(X_train, y_train, X_val, y_val)  # validation data is binarized internally too
+
+predictions = clf.predict(X_test)  # raw data is binarized internally
+print(clf.format_rule())           # the evolved rule as plain logic
 ```
 
-The `column_names` map turns literal indices back into the binarized column names, so the printed rule reads as plain logic.
-The [Data Preparation](https://fii-optim-lab.github.io/hgp-lib/guide/data-preparation/) guide shows how to use `StandardBinarizer` without leaking data between splits.
+Validation data is optional; when given, it is binarized with the same fitted binarizer and used to track a validation score during training.
+`clf.format_rule()` prints the rule with the binarized column names, so the model reads as plain logic.
+To binarize and train manually with `GPTrainer`, see [Training](https://fii-optim-lab.github.io/hgp-lib/guide/training/); the [Data Preparation](https://fii-optim-lab.github.io/hgp-lib/guide/data-preparation/) guide shows how to avoid leaking data between splits.
 
 ## Benchmarking
 
@@ -81,18 +84,18 @@ The benchmarker binarizes data internally, per fold, so you pass a raw `pandas.D
 
 ```python
 import numpy as np
-import pandas as pd
+from sklearn.datasets import load_breast_cancer
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.benchmarkers import GPBenchmarker
+from hgp_lib.utils.metrics import fast_f1_score
 
-data = pd.DataFrame(...)  # raw features (bool / categorical / numeric)
-labels = np.array(...)    # 1-D target array
+X, y = load_breast_cancer(return_X_y=True, as_frame=True)
 
-gp_config = BooleanGPConfig(score_fn=score_fn)
+gp_config = BooleanGPConfig(score_fn=fast_f1_score)
 trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=1000, val_every=100)
 config = BenchmarkerConfig(
-    data=data,
-    labels=labels,
+    data=X,
+    labels=y.to_numpy(),
     trainer_config=trainer_config,
     num_runs=30,
     n_folds=5,
@@ -109,7 +112,7 @@ print(f"Test score: {np.mean(test_scores):.4f} ± {np.std(test_scores):.4f}")
 print(result.best_rule.to_str(result.best_run.feature_names))
 
 # sklearn-style predict on raw data (binarized internally with the best run's binarizer)
-predictions = benchmarker.predict(data)
+predictions = benchmarker.predict(X)
 ```
 
 See [Benchmarking](https://fii-optim-lab.github.io/hgp-lib/guide/benchmarking/) for scorer optimization, custom binarizers, and the aggregated result fields.

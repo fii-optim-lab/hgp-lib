@@ -19,7 +19,7 @@ class TestConfusionMatrix(unittest.TestCase):
     def test_basic(self):
         y_pred = np.array([True, True, False, False])
         y_true = np.array([True, False, True, False])
-        tp, fp, fn, tn = confusion_matrix(y_pred, y_true)
+        tp, fp, fn, tn = confusion_matrix(y_true, y_pred)
         self.assertEqual((tp, fp, fn, tn), (1, 1, 1, 1))
 
     def test_all_correct(self):
@@ -33,32 +33,32 @@ class TestConfusionMatrix(unittest.TestCase):
     def test_all_wrong(self):
         y_pred = np.array([True, False])
         y_true = np.array([False, True])
-        tp, fp, fn, tn = confusion_matrix(y_pred, y_true)
+        tp, fp, fn, tn = confusion_matrix(y_true, y_pred)
         self.assertEqual((tp, fp, fn, tn), (0, 1, 1, 0))
 
     def test_all_positive(self):
         y_pred = np.array([True, True, True])
         y_true = np.array([True, True, True])
-        tp, fp, fn, tn = confusion_matrix(y_pred, y_true)
+        tp, fp, fn, tn = confusion_matrix(y_true, y_pred)
         self.assertEqual((tp, fp, fn, tn), (3, 0, 0, 0))
 
     def test_all_negative(self):
         y_pred = np.array([False, False])
         y_true = np.array([False, False])
-        tp, fp, fn, tn = confusion_matrix(y_pred, y_true)
+        tp, fp, fn, tn = confusion_matrix(y_true, y_pred)
         self.assertEqual((tp, fp, fn, tn), (0, 0, 0, 2))
 
     def test_sum_equals_total(self):
         y_pred = np.array([True, False, True, True, False])
         y_true = np.array([False, False, True, False, True])
-        tp, fp, fn, tn = confusion_matrix(y_pred, y_true)
+        tp, fp, fn, tn = confusion_matrix(y_true, y_pred)
         self.assertEqual(tp + fp + fn + tn, len(y_pred))
 
     def test_with_sample_weight(self):
         y_pred = np.array([True, True, False])
         y_true = np.array([True, False, False])
         sw = np.array([2, 3, 1])
-        tp, fp, fn, tn = confusion_matrix(y_pred, y_true, sample_weight=sw)
+        tp, fp, fn, tn = confusion_matrix(y_true, y_pred, sample_weight=sw)
         self.assertEqual(tp, 2)
         self.assertEqual(fp, 3)
         self.assertEqual(fn, 0)

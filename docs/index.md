@@ -32,24 +32,34 @@ See [Interpretability](interpretability.md) for why this matters.
 
 ## Quick example
 
-```python
-import numpy as np
-from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
-from hgp_lib.configs import BooleanGPConfig, TrainerConfig
-from hgp_lib.trainers import GPTrainer
+Runs as-is on the scikit-learn `breast_cancer` dataset.
+[`BooleanRuleClassifier`](api/trainers.md#hgp_lib.trainers.boolean_rule_classifier.BooleanRuleClassifier)
+binarizes the raw data, evolves a rule, and applies the same binarization when predicting.
 
-train_data = ...   # 2D boolean numpy array
-train_labels = ... # 1D integer numpy array
+```python
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+
+from hgp_lib import BooleanRuleClassifier
+from hgp_lib.configs import BooleanGPConfig, TrainerConfig
+from hgp_lib.utils.metrics import fast_f1_score
+
+X, y = load_breast_cancer(return_X_y=True, as_frame=True)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, stratify=y, random_state=0
+)
+X_train, X_val, y_train, y_val = train_test_split(
+    X_train, y_train, test_size=0.25, stratify=y_train, random_state=0
+)
 
 config = TrainerConfig(
-    gp_config=BooleanGPConfig(
-        score_fn=accuracy_score,
-        train_data=train_data,
-        train_labels=train_labels,
-    ),
-    num_epochs=500,
+    gp_config=BooleanGPConfig(score_fn=fast_f1_score), num_epochs=500, val_every=50
 )
-result = GPTrainer(config).fit()
+clf = BooleanRuleClassifier(config)
+clf.fit(X_train, y_train, X_val, y_val)  # validation is binarized internally too
+
+predictions = clf.predict(X_test)
+print(clf.format_rule())
 ```
 
 ## How it works

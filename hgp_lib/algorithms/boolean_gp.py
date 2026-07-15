@@ -615,7 +615,7 @@ class BooleanGP:
             raise RuntimeError("No best rule available. Run at least one step first.")
 
         fn = self._original_score_fn if score_fn is None else score_fn
-        return float(fn(self.global_best_rule.evaluate(data), labels))
+        return float(fn(labels, self.global_best_rule.evaluate(data)))
 
     @property
     def original_score_fn(self):

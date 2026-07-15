@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from functools import cached_property
-from typing import List, Dict, Optional
+from typing import List, Optional
 
 import numpy as np
 
@@ -29,8 +29,9 @@ class RunResult:
         test_fp (int): False positives on the test set.
         test_fn (int): False negatives on the test set.
         test_tn (int): True negatives on the test set.
-        feature_names (Dict[int, str]): Mapping from feature index to column name
-            (from the binarizer fitted on the best fold).
+        feature_names (List[str]): Output feature names in order, index-aligned so that
+            ``feature_names[i]`` is the column name for feature index ``i`` (from the
+            binarizer fitted on the best fold).
         binarizer (Binarizer | None): The binarizer fitted on the best fold, used to
             transform raw data before evaluating ``best_rule`` (e.g. in
             ``GPBenchmarker.predict``). Default: `None`.
@@ -44,7 +45,7 @@ class RunResult:
         >>> run = RunResult(
         ...     run_id=0, seed=42, best_fold_idx=0, folds=[fold],
         ...     test_score=0.85, test_tp=4, test_fp=1, test_fn=1, test_tn=4,
-        ...     feature_names={0: "age", 1: "income"},
+        ...     feature_names=["age", "income"],
         ... )
         >>> run.best_rule
         0
@@ -61,7 +62,7 @@ class RunResult:
     test_fp: int
     test_fn: int
     test_tn: int
-    feature_names: Dict[int, str]
+    feature_names: List[str]
     binarizer: Optional[Binarizer] = None
 
     @cached_property
@@ -81,7 +82,7 @@ class RunResult:
             >>> run = RunResult(
             ...     run_id=0, seed=0, best_fold_idx=1, folds=[f0, f1],
             ...     test_score=0.9, test_tp=1, test_fp=0, test_fn=0, test_tn=1,
-            ...     feature_names={},
+            ...     feature_names=[],
             ... )
             >>> run.best_fold is f1
             True
@@ -102,7 +103,7 @@ class RunResult:
             >>> run = RunResult(
             ...     run_id=0, seed=0, best_fold_idx=0, folds=[fold],
             ...     test_score=0.8, test_tp=0, test_fp=0, test_fn=0, test_tn=0,
-            ...     feature_names={},
+            ...     feature_names=[],
             ... )
             >>> str(run.best_rule)
             '5'
@@ -135,7 +136,7 @@ class RunResult:
             >>> run = RunResult(
             ...     run_id=0, seed=0, best_fold_idx=0, folds=[f0, f1],
             ...     test_score=0.8, test_tp=0, test_fp=0, test_fn=0, test_tn=0,
-            ...     feature_names={},
+            ...     feature_names=[],
             ... )
             >>> run.fold_val_scores
             [0.7]
@@ -166,7 +167,7 @@ class RunResult:
             >>> run = RunResult(
             ...     run_id=0, seed=0, best_fold_idx=0, folds=[fold],
             ...     test_score=0.8, test_tp=0, test_fp=0, test_fn=0, test_tn=0,
-            ...     feature_names={},
+            ...     feature_names=[],
             ... )
             >>> run.fold_train_scores
             [0.8]
@@ -192,7 +193,7 @@ class RunResult:
             >>> run = RunResult(
             ...     run_id=0, seed=0, best_fold_idx=0, folds=[fold],
             ...     test_score=0.8, test_tp=0, test_fp=0, test_fn=0, test_tn=0,
-            ...     feature_names={},
+            ...     feature_names=[],
             ... )
             >>> run.mean_val_score
             0.0
@@ -223,7 +224,7 @@ class RunResult:
             >>> run = RunResult(
             ...     run_id=0, seed=0, best_fold_idx=0, folds=[fold],
             ...     test_score=0.8, test_tp=0, test_fp=0, test_fn=0, test_tn=0,
-            ...     feature_names={},
+            ...     feature_names=[],
             ... )
             >>> run.mean_train_score
             0.85
@@ -247,7 +248,7 @@ class RunResult:
             >>> run = RunResult(
             ...     run_id=0, seed=0, best_fold_idx=0, folds=[fold],
             ...     test_score=0.8, test_tp=0, test_fp=0, test_fn=0, test_tn=0,
-            ...     feature_names={},
+            ...     feature_names=[],
             ... )
             >>> run.train_confusion_matrix
             '[TP: 3, FP: 1, FN: 2, TN: 4]'
@@ -270,7 +271,7 @@ class RunResult:
             >>> run = RunResult(
             ...     run_id=0, seed=0, best_fold_idx=0, folds=[fold],
             ...     test_score=0.8, test_tp=0, test_fp=0, test_fn=0, test_tn=0,
-            ...     feature_names={},
+            ...     feature_names=[],
             ... )
             >>> run.val_confusion_matrix
             '[]'
@@ -294,7 +295,7 @@ class RunResult:
             >>> run = RunResult(
             ...     run_id=0, seed=0, best_fold_idx=0, folds=[fold],
             ...     test_score=0.8, test_tp=5, test_fp=2, test_fn=1, test_tn=7,
-            ...     feature_names={},
+            ...     feature_names=[],
             ... )
             >>> run.test_confusion_matrix
             '[TP: 5, FP: 2, FN: 1, TN: 7]'
@@ -332,12 +333,12 @@ class ExperimentResult:
         >>> r1 = RunResult(
         ...     run_id=0, seed=0, best_fold_idx=0, folds=[fold_low],
         ...     test_score=0.8, test_tp=0, test_fp=0, test_fn=0, test_tn=0,
-        ...     feature_names={},
+        ...     feature_names=[],
         ... )
         >>> r2 = RunResult(
         ...     run_id=1, seed=1, best_fold_idx=0, folds=[fold_high],
         ...     test_score=0.9, test_tp=0, test_fp=0, test_fn=0, test_tn=0,
-        ...     feature_names={},
+        ...     feature_names=[],
         ... )
         >>> exp = ExperimentResult(runs=[r1, r2])
         >>> exp.test_scores
@@ -381,12 +382,12 @@ class ExperimentResult:
             >>> r1 = RunResult(
             ...     run_id=0, seed=0, best_fold_idx=0, folds=[f_low],
             ...     test_score=0.7, test_tp=0, test_fp=0, test_fn=0, test_tn=0,
-            ...     feature_names={},
+            ...     feature_names=[],
             ... )
             >>> r2 = RunResult(
             ...     run_id=1, seed=1, best_fold_idx=0, folds=[f_high],
             ...     test_score=0.9, test_tp=0, test_fp=0, test_fn=0, test_tn=0,
-            ...     feature_names={},
+            ...     feature_names=[],
             ... )
             >>> ExperimentResult(runs=[r1, r2]).best_run.run_id
             1
@@ -422,7 +423,7 @@ class ExperimentResult:
             >>> run = RunResult(
             ...     run_id=0, seed=0, best_fold_idx=0, folds=[fold],
             ...     test_score=0.8, test_tp=0, test_fp=0, test_fn=0, test_tn=0,
-            ...     feature_names={},
+            ...     feature_names=[],
             ... )
             >>> str(ExperimentResult(runs=[run]).best_rule)
             '7'
@@ -444,7 +445,7 @@ class ExperimentResult:
             >>> r = RunResult(
             ...     run_id=0, seed=0, best_fold_idx=0, folds=[fold],
             ...     test_score=0.75, test_tp=0, test_fp=0, test_fn=0, test_tn=0,
-            ...     feature_names={},
+            ...     feature_names=[],
             ... )
             >>> ExperimentResult(runs=[r]).test_scores
             [0.75]

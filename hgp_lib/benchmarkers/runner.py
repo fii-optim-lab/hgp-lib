@@ -89,9 +89,7 @@ def execute_single_run(
         binarizer = deepcopy(config.binarizer)
         fold_train = binarizer.fit_transform(fold_train, fold_train_labels)
         binarizers.append(binarizer)
-        feature_names_per_binarizer.append(
-            {i: col for i, col in enumerate(fold_train.columns)}
-        )
+        feature_names_per_binarizer.append(binarizer.get_feature_names_out())
         fold_train = fold_train.to_numpy(dtype=bool)
 
         fold_val = binarizer.transform(train_data.iloc[val_idx]).to_numpy(dtype=bool)
@@ -147,9 +145,9 @@ def execute_single_run(
 
     test_pred = best_rule.evaluate(test_data)
 
-    test_score = float(test_score_fn(test_pred, test_labels))
+    test_score = float(test_score_fn(test_labels, test_pred))
 
-    tp, fp, fn, tn = test_cm(test_pred, test_labels)
+    tp, fp, fn, tn = test_cm(test_labels, test_pred)
 
     send_progress(progress_queue, "run", 1)
 

@@ -254,9 +254,8 @@ class TestGPBenchmarker(unittest.TestCase):
         self.assertEqual(run.run_id, 0)
         self.assertEqual(len(run.folds), 2)
         self.assertIsInstance(run.test_score, float)
-        self.assertIsInstance(run.feature_names, dict)
-        for idx, name in run.feature_names.items():
-            self.assertIsInstance(idx, int)
+        self.assertIsInstance(run.feature_names, list)
+        for name in run.feature_names:
             self.assertIsInstance(name, str)
 
     def test_fit_confusion_matrix_fields(self):

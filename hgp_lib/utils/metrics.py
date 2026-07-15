@@ -13,16 +13,16 @@ _warned_scorers: Set[int] = set()
 
 
 def confusion_matrix(
-    y_pred: np.ndarray, y_true: np.ndarray, sample_weight: np.ndarray | None = None
+    y_true: np.ndarray, y_pred: np.ndarray, sample_weight: np.ndarray | None = None
 ) -> Tuple[int, int, int, int]:
     """
-    Compute confusion matrix values from boolean prediction and label arrays.
+    Compute confusion matrix values from boolean label and prediction arrays.
 
     Args:
-        y_pred (np.ndarray):
-            Boolean predictions.
         y_true (np.ndarray):
             Boolean ground-truth labels.
+        y_pred (np.ndarray):
+            Boolean predictions.
         sample_weight (np.ndarray | None):
             Optional per-sample weights. Default: `None`.
 
@@ -32,9 +32,9 @@ def confusion_matrix(
     Examples:
         >>> import numpy as np
         >>> from hgp_lib.utils.metrics import confusion_matrix
-        >>> y_pred = np.array([True, True, False, False])
         >>> y_true = np.array([True, False, True, False])
-        >>> confusion_matrix(y_pred, y_true)
+        >>> y_pred = np.array([True, True, False, False])
+        >>> confusion_matrix(y_true, y_pred)
         (1, 1, 1, 1)
     """
     if sample_weight is None:
@@ -211,15 +211,40 @@ def transform_duplicates_to_sample_weight(data: ndarray, labels: ndarray):
 
 
 class SampleWeightScorer:
-    # TODO: Add documentation
+    """
+    Adapter that binds a fixed ``sample_weight`` to a scorer.
+
+    Wraps a scorer of the form ``scorer(y_true, y_pred, sample_weight=...)`` and exposes
+    a two-argument callable ``scorer(y_true, y_pred)`` that injects the stored weights.
+    It is used by :func:`optimize_scorers_for_data` after duplicate rows are collapsed
+    into per-row weights, so the wrapped scorer returns the same value it would on the
+    original, un-deduplicated data.
+
+    Args:
+        scorer (Callable):
+            A scorer accepting ``(y_true, y_pred, sample_weight=...)`` and returning a
+            float, following the library's ``(y_true, y_pred)`` argument order.
+        sample_weight (ndarray):
+            Per-row weights bound to every call.
+
+    Examples:
+        >>> import numpy as np
+        >>> from hgp_lib.utils.metrics import SampleWeightScorer, fast_f1_score
+        >>> weighted = SampleWeightScorer(fast_f1_score, np.array([2, 1, 1]))
+        >>> y_true = np.array([True, False, True])
+        >>> y_pred = np.array([True, False, False])
+        >>> round(weighted(y_true, y_pred), 3)
+        0.8
+    """
+
     def __init__(
         self, scorer: Callable[[ndarray, ndarray], Any], sample_weight: ndarray
     ):
         self.scorer = scorer
         self.sample_weight = sample_weight
 
-    def __call__(self, data: ndarray, labels: ndarray):
-        return self.scorer(data, labels, sample_weight=self.sample_weight)
+    def __call__(self, y_true: ndarray, y_pred: ndarray):
+        return self.scorer(y_true, y_pred, sample_weight=self.sample_weight)
 
 
 def optimize_scorers_for_data(
@@ -247,10 +272,10 @@ def optimize_scorers_for_data(
     Examples:
         >>> import numpy as np
         >>> from hgp_lib.utils.metrics import optimize_scorers_for_data
-        >>> def acc(p, l, sample_weight=None): return float((p == l).mean())
+        >>> from sklearn.metrics import accuracy_score
         >>> data = np.array([[1, 0], [1, 0], [0, 1]])
         >>> labels = np.array([1, 1, 0])
-        >>> opt_acc, opt_data, opt_labels = optimize_scorers_for_data(acc, data=data, labels=labels)
+        >>> opt_acc, opt_data, opt_labels = optimize_scorers_for_data(accuracy_score, data=data, labels=labels)
         >>> len(opt_data) <= len(data)
         True
     """
