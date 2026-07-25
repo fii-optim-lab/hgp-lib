@@ -78,6 +78,9 @@ dev = [
 [tool.ruff]
 exclude = [".venv"]
 
+[tool.ruff.lint]
+ignore = ["I001", "RUF022"]
+
 [tool.coverage.run]
 source = ["hgp_lib"]
 branch = true
