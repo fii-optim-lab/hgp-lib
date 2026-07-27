@@ -76,7 +76,7 @@ dev = [
     "matplotlib",
 ]
 [tool.ruff]
-exclude = [".venv"]
+exclude = [".venv", "docs", "README.md"]
 
 [tool.coverage.run]
 source = ["hgp_lib"]
