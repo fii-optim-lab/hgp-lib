@@ -65,7 +65,7 @@ dev = [
     "mkdocs-bibtex",
     "pytest",
     "flake8",
-    "ruff==0.15.22",
+    "ruff",
     "seaborn",
     "tables",
     "prettytable",
