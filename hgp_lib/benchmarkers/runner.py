@@ -18,7 +18,7 @@ def execute_single_run(
     run_id: int,
     seed: int,
     config: BenchmarkerConfig,
-    progress_queue: Queue | None = None,
+    progress_queue: "Queue | None" = None,
 ) -> RunResult:
     """
     Execute one benchmark run: stratified train/test split, per-fold binarization,
@@ -166,7 +166,7 @@ def execute_single_run(
 
 
 def single_run_wrapper(
-    args: tuple[int, int, BenchmarkerConfig, Queue | None],
+    args: tuple[int, int, BenchmarkerConfig, "Queue | None"],
 ) -> RunResult:
     """
     Picklable wrapper for multiprocessing Pool.

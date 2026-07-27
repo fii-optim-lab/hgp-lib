@@ -6,9 +6,9 @@ thread that aggregates progress updates from multiple worker processes via
 a multiprocessing queue.
 """
 
-import queue
 import threading
 from multiprocessing import Queue
+from queue import Empty
 from typing import NamedTuple
 
 from tqdm import tqdm
@@ -138,7 +138,7 @@ class ProgressListener:
 
                 try:
                     msg, count = self.queue.get(timeout=_QUEUE_TIMEOUT_SECONDS)
-                except queue.Empty:
+                except Empty:
                     # Timeout - loop back to check stop_event and continue waiting
                     continue
 
@@ -163,7 +163,9 @@ class ProgressListener:
                 self._pbar_exp.close()
 
 
-def send_progress(progress_queue: Queue | None, msg_type: str, count: int = 1) -> None:
+def send_progress(
+    progress_queue: "Queue | None", msg_type: str, count: int = 1
+) -> None:
     """
     Send a progress update to the listener queue.
 
@@ -192,7 +194,7 @@ def send_progress(progress_queue: Queue | None, msg_type: str, count: int = 1) -
 
 class ProgressSender:
     # TODO: Join Progress Sender with send_progress and keep only ProgressSender
-    def __init__(self, progress_queue: Queue | None, msg_type: str):
+    def __init__(self, progress_queue: "Queue | None", msg_type: str):
         self.progress_queue = progress_queue
         self.msg_type = msg_type
 
