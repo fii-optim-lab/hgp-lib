@@ -1,22 +1,19 @@
 import logging
-
-import numpy as np
-import optuna
-
 import os
 import tempfile
 
 import matplotlib
-
 import matplotlib.pyplot as plt
-
+import numpy as np
+import optuna
 from optuna.artifacts import upload_artifact
 
 from hgp_lib.metrics.results import ExperimentResult
+
 from .plots import (
-    plot_experiment_boxplots,
-    plot_best_fold_generations,
     plot_all_folds_val_scores,
+    plot_best_fold_generations,
+    plot_experiment_boxplots,
     plot_population_bands,
 )
 

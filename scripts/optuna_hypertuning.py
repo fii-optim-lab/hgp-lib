@@ -11,21 +11,24 @@ import logging
 import os
 import traceback
 import warnings
+from collections.abc import Callable
 from multiprocessing import freeze_support
 from pathlib import Path
-from typing import Any, Callable, Dict
+from typing import Any
 
 import numpy as np
 import optuna
 import pandas as pd
+from hypertuning import load_search_space
 from numpy import ndarray
 from optuna.artifacts import FileSystemArtifactStore
 from optuna.trial import TrialState
+from preprocess.pmlb_preprocess import save_pmlb_data
+from visualization.optuna import store_trial_attributes, upload_trial_artifacts
 
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.crossover import CrossoverExecutorFactory
-from visualization.optuna import store_trial_attributes, upload_trial_artifacts
 from hgp_lib.mutations import MutationExecutorFactory
 from hgp_lib.populations import (
     CombinedSamplingStrategy,
@@ -38,9 +41,6 @@ from hgp_lib.selections import RouletteSelection, TournamentSelection
 from hgp_lib.utils.metrics import fast_f1_score
 from hgp_lib.utils.validation import ComplexityCheck
 
-from hypertuning import load_search_space
-from preprocess.pmlb_preprocess import save_pmlb_data
-
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
@@ -48,8 +48,8 @@ logger = logging.getLogger(__name__)
 
 
 def suggest_hyperparameters(
-    trial: optuna.Trial, config: Dict[str, Any]
-) -> Dict[str, Any]:
+    trial: optuna.Trial, config: dict[str, Any]
+) -> dict[str, Any]:
     """Suggest hyperparameters using ranges from ``config``.
 
     ``config`` maps parameter names to ``(args, kwargs)`` tuples as returned
@@ -196,7 +196,7 @@ def suggest_hyperparameters(
 
 
 def build_config(
-    params: Dict[str, Any],
+    params: dict[str, Any],
     data: pd.DataFrame,
     labels: ndarray,
     score_fn: Callable,
@@ -293,7 +293,7 @@ def create_objective(
     n_runs: int,
     n_folds: int,
     artifact_store: FileSystemArtifactStore,
-    hp_config: Dict[str, Any],
+    hp_config: dict[str, Any],
     verbose: bool = False,
 ) -> Callable[[optuna.Trial], float]:
     """Create the Optuna objective function."""

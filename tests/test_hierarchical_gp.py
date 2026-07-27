@@ -3,15 +3,15 @@
 import unittest
 
 import numpy as np
-from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 from hgp_lib.algorithms import BooleanGP
 from hgp_lib.configs import BooleanGPConfig
 from hgp_lib.populations import (
+    CombinedSamplingStrategy,
     FeatureSamplingStrategy,
     InstanceSamplingStrategy,
-    CombinedSamplingStrategy,
 )
+from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 
 class TestSamplingStrategies(unittest.TestCase):

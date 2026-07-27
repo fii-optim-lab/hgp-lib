@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -56,21 +55,19 @@ class Binarizer(ABC):
 
     @abstractmethod
     def fit_transform(
-        self, X: pd.DataFrame, y: Optional[np.ndarray] = None
+        self, X: pd.DataFrame, y: np.ndarray | None = None
     ) -> pd.DataFrame:
         """
         Learn the encoding from ``X`` (and optional labels ``y``) and return the
         transformed boolean ``DataFrame``.
         """
-        pass
 
     @abstractmethod
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """Apply the learned encoding to new data and return a boolean ``DataFrame``."""
-        pass
 
     @abstractmethod
-    def get_feature_names_out(self) -> List[str]:
+    def get_feature_names_out(self) -> list[str]:
         """
         Return the output feature (column) names in order.
 
@@ -80,4 +77,3 @@ class Binarizer(ABC):
         convention, the names are returned as an ordered ``list[str]``. Implementations
         should raise if called before the binarizer is fitted.
         """
-        pass

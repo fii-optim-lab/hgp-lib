@@ -1,16 +1,16 @@
-import unittest
 import random
-from typing import Sequence
+import unittest
+from collections.abc import Sequence
 
 import numpy as np
-from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 from hgp_lib.algorithms import BooleanGP
 from hgp_lib.configs import BooleanGPConfig
 from hgp_lib.crossover import CrossoverExecutor, CrossoverExecutorFactory
-from hgp_lib.populations import PopulationGeneratorFactory, FeatureSamplingStrategy
-from hgp_lib.rules import Rule, Literal
-from hgp_lib.selections import TournamentSelection, RouletteSelection
+from hgp_lib.populations import FeatureSamplingStrategy, PopulationGeneratorFactory
+from hgp_lib.rules import Literal, Rule
+from hgp_lib.selections import RouletteSelection, TournamentSelection
+from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 
 class TestBooleanGP(unittest.TestCase):
@@ -79,9 +79,8 @@ class TestBooleanGP(unittest.TestCase):
 
         with self.subTest(
             "regeneration_patience must be positive when regeneration=True"
-        ):
-            with self.assertRaises(ValueError):
-                BooleanGP(self._make_config(regeneration=True, regeneration_patience=0))
+        ), self.assertRaises(ValueError):
+            BooleanGP(self._make_config(regeneration=True, regeneration_patience=0))
 
     # ------------------------------------------------------------------ #
     #  Initialization

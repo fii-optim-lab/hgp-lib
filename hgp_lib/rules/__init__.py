@@ -1,13 +1,13 @@
 import os
 
+from . import utils
 from .literals import Literal
 from .rules import Rule
-from . import utils
 
 if os.getenv("HGP_LOW_MEMORY", "0") == "1":
-    from .low_memory_operators import Or, And
+    from .low_memory_operators import And, Or
 else:
-    from .operators import Or, And
+    from .operators import And, Or
 
-__all__ = ["Literal", "Rule", "Or", "And", "utils", "operators", "low_memory_operators"]
+__all__ = ["And", "Literal", "Or", "Rule", "low_memory_operators", "operators", "utils"]
 # TODO: Provide support for both torch and numpy

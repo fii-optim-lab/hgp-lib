@@ -1,10 +1,10 @@
-from typing import Sequence, List
+from collections.abc import Sequence
 
 import numpy as np
 
-from .base_strategy import PopulationStrategy
 from ..rules import Rule
 from ..utils.validation import check_isinstance
+from .base_strategy import PopulationStrategy
 
 
 class PopulationGenerator:
@@ -83,7 +83,7 @@ class PopulationGenerator:
         pvals = [w / sum_weights for w in pvals]
         return np.random.multinomial(self.population_size, pvals)
 
-    def generate(self) -> List[Rule]:
+    def generate(self) -> list[Rule]:
         """
         Generates the full population of rules.
 

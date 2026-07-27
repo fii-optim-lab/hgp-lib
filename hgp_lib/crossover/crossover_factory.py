@@ -1,8 +1,9 @@
-from typing import Callable
+from collections.abc import Callable
 
-from .crossover_executor import CrossoverExecutor
 from hgp_lib.rules import Rule
+
 from ..utils.validation import check_isinstance
+from .crossover_executor import CrossoverExecutor
 
 
 class CrossoverExecutorFactory:

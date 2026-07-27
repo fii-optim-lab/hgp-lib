@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier
@@ -25,7 +24,7 @@ class BinningStrategy(ABC):
 
     @abstractmethod
     def compute_edges(
-        self, values: np.ndarray, y: Optional[np.ndarray], n_bins: int
+        self, values: np.ndarray, y: np.ndarray | None, n_bins: int
     ) -> np.ndarray:
         """
         Compute sorted bin edges for a single numeric feature.
@@ -60,7 +59,7 @@ class QuantileBinning(BinningStrategy):
     """
 
     def compute_edges(
-        self, values: np.ndarray, y: Optional[np.ndarray], n_bins: int
+        self, values: np.ndarray, y: np.ndarray | None, n_bins: int
     ) -> np.ndarray:
         if len(np.unique(values)) <= 1:
             return np.array([-np.inf, np.inf])
@@ -91,7 +90,7 @@ class SupervisedTreeBinning(BinningStrategy):
     """
 
     def compute_edges(
-        self, values: np.ndarray, y: Optional[np.ndarray], n_bins: int
+        self, values: np.ndarray, y: np.ndarray | None, n_bins: int
     ) -> np.ndarray:
         if y is None:
             raise ValueError("SupervisedTreeBinning requires labels y")

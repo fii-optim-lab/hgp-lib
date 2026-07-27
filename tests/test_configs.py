@@ -4,7 +4,6 @@ import unittest
 
 import numpy as np
 import pandas as pd
-from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 from hgp_lib.configs import (
     BenchmarkerConfig,
@@ -19,6 +18,7 @@ from hgp_lib.mutations import MutationExecutorFactory
 from hgp_lib.populations import PopulationGeneratorFactory
 from hgp_lib.populations.sampling import FeatureSamplingStrategy
 from hgp_lib.preprocessing import StandardBinarizer
+from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 
 class TestBooleanGPConfig(unittest.TestCase):
@@ -331,8 +331,8 @@ class TestComplexityCheck(unittest.TestCase):
     """Tests for complexity_check helper function."""
 
     def test_complexity_check_accepts_small_rules(self):
+        from hgp_lib.rules import And, Literal, Or
         from hgp_lib.utils import ComplexityCheck
-        from hgp_lib.rules import Literal, And, Or
 
         check = ComplexityCheck(5)
         self.assertTrue(check(Literal(value=0)))  # len=1
@@ -342,8 +342,8 @@ class TestComplexityCheck(unittest.TestCase):
         )  # len=5
 
     def test_complexity_check_rejects_large_rules(self):
+        from hgp_lib.rules import And, Literal, Or
         from hgp_lib.utils import ComplexityCheck
-        from hgp_lib.rules import Literal, And, Or
 
         check = ComplexityCheck(3)
         self.assertFalse(

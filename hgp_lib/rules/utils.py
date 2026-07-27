@@ -1,8 +1,7 @@
 import random
-from typing import Dict, Type, List
 
-from .rules import Rule
 from .literals import Literal
+from .rules import Rule
 
 
 def is_operator(op: Rule) -> bool:
@@ -27,7 +26,7 @@ def is_operator(op: Rule) -> bool:
     return isinstance(op, Rule) and not isinstance(op, Literal)
 
 
-def is_operator_type(t: Type[Rule]) -> bool:
+def is_operator_type(t: type[Rule]) -> bool:
     """
     Check whether a type is an operator class (a ``Rule`` subclass that is not ``Literal``).
 
@@ -110,7 +109,7 @@ def deep_swap(node_a: Rule, node_b: Rule) -> None:
     replace_with_rule(node_b, copy_node_a)
 
 
-def apply_feature_mapping(rule: Rule, feature_mapping: Dict[int, int] | None) -> Rule:
+def apply_feature_mapping(rule: Rule, feature_mapping: dict[int, int] | None) -> Rule:
     """
     Creates a copy of a rule with feature indices remapped according to the provided mapping.
 
@@ -205,7 +204,7 @@ def select_crossover_point(rule: Rule, operator_p: float = 0.9) -> Rule:
 
 
 def _create_unsafe_rule(
-    rule_type: Type[Rule], subrules: List[Rule], parent: Rule, value: int, negated: bool
+    rule_type: type[Rule], subrules: list[Rule], parent: Rule, value: int, negated: bool
 ) -> Rule:
     """
     Creates a new rule while skipping subrules assignment and constructor validation. To be used internally.

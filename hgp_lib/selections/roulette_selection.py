@@ -1,4 +1,4 @@
-from typing import List, Sequence, Tuple
+from collections.abc import Sequence
 
 import numpy as np
 from numpy import ndarray
@@ -40,7 +40,7 @@ class RouletteSelection(BaseSelection):
         rules: Sequence[Rule],
         scores: np.ndarray | Sequence[float],
         n_select: int,
-    ) -> Tuple[List[Rule], ndarray]:
+    ) -> tuple[list[Rule], ndarray]:
         """
         Selects `n_select` rules using roulette wheel (fitness-proportionate) selection.
 

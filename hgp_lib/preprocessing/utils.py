@@ -1,10 +1,9 @@
 import logging
-from typing import Tuple
+from pathlib import Path
 
 import pandas as pd
 from numpy import ndarray
 from pandas.api.types import is_object_dtype, is_string_dtype
-from pathlib import Path
 
 
 def is_categorical_like(column: pd.Series) -> bool:
@@ -40,7 +39,7 @@ def is_categorical_like(column: pd.Series) -> bool:
     )
 
 
-def load_data(data_path: str) -> Tuple[pd.DataFrame, ndarray]:
+def load_data(data_path: str) -> tuple[pd.DataFrame, ndarray]:
     """
     Load features and labels from a CSV or HDF file.
 

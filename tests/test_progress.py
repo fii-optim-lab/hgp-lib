@@ -3,10 +3,10 @@ import unittest
 from multiprocessing import Queue
 
 from hgp_lib.benchmarkers.progress import (
+    _SHUTDOWN_SENTINEL,
     ProgressConfig,
     ProgressListener,
     send_progress,
-    _SHUTDOWN_SENTINEL,
 )
 
 

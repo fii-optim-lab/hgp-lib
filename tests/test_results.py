@@ -5,7 +5,7 @@ from dataclasses import replace
 
 from hgp_lib.metrics.core import GenerationMetrics
 from hgp_lib.metrics.history import PopulationHistory
-from hgp_lib.metrics.results import RunResult, ExperimentResult
+from hgp_lib.metrics.results import ExperimentResult, RunResult
 from hgp_lib.rules import Literal
 
 

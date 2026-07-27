@@ -7,7 +7,6 @@ data and features when creating child populations in hierarchical GP.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from math import ceil
-from typing import Dict, List
 
 import numpy as np
 from numpy import ndarray
@@ -44,7 +43,7 @@ class SamplingResult:
     labels: ndarray
     feature_indices: ndarray
     instance_indices: ndarray | None
-    feature_mapping: Dict[int, int] | None
+    feature_mapping: dict[int, int] | None
 
 
 class SamplingStrategy(ABC):
@@ -137,7 +136,7 @@ class SamplingStrategy(ABC):
         data: ndarray,
         labels: ndarray,
         num_children: int,
-    ) -> List[SamplingResult]:
+    ) -> list[SamplingResult]:
         """Sample data and/or features for child populations.
 
         Args:
@@ -148,7 +147,6 @@ class SamplingStrategy(ABC):
         Returns:
             List of SamplingResult, one per child (exactly `num_children` elements).
         """
-        pass
 
 
 class FeatureSamplingStrategy(SamplingStrategy):
@@ -192,7 +190,7 @@ class FeatureSamplingStrategy(SamplingStrategy):
         data: ndarray,
         labels: ndarray,
         num_children: int,
-    ) -> List[SamplingResult]:
+    ) -> list[SamplingResult]:
         """Sample features for child populations.
 
         Args:
@@ -256,7 +254,7 @@ class InstanceSamplingStrategy(SamplingStrategy):
         data: ndarray,
         labels: ndarray,
         num_children: int,
-    ) -> List[SamplingResult]:
+    ) -> list[SamplingResult]:
         """Sample instances for child populations.
 
         Args:
@@ -331,7 +329,7 @@ class CombinedSamplingStrategy(SamplingStrategy):
         data: ndarray,
         labels: ndarray,
         num_children: int,
-    ) -> List[SamplingResult]:
+    ) -> list[SamplingResult]:
         """Sample both features and instances for all children at once.
 
         Args:

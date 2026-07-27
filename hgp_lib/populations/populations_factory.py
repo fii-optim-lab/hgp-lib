@@ -1,11 +1,11 @@
-from typing import Callable, List
+from collections.abc import Callable
 
 import numpy as np
 
+from ..utils.validation import check_isinstance
+from .base_strategy import PopulationStrategy
 from .generator import PopulationGenerator
 from .strategies import RandomStrategy
-from .base_strategy import PopulationStrategy
-from ..utils.validation import check_isinstance
 
 
 class PopulationGeneratorFactory:
@@ -59,7 +59,7 @@ class PopulationGeneratorFactory:
         score_fn: Callable[[np.ndarray, np.ndarray], float],
         train_data: np.ndarray,
         train_labels: np.ndarray,
-    ) -> List[PopulationStrategy]:
+    ) -> list[PopulationStrategy]:
         """
         Create the list of strategies for the generator.
 

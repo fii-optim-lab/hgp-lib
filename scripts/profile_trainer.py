@@ -21,11 +21,10 @@ Adjust population and feature sampling:
     python scripts/profile_trainer.py --data_path data/PaySim.hdf --max_depth 1 --num_child_populations 5 --feature_fraction 0.5
 """
 
-from prettytable import PrettyTable
 import argparse
 import gc
-from typing import Dict, Tuple
 
+from prettytable import PrettyTable
 from sklearn.model_selection import train_test_split
 from timed_decorator.builder import create_timed_decorator, get_timed_decorator
 
@@ -55,7 +54,7 @@ from hgp_lib.utils import ComplexityCheck
 from hgp_lib.utils.metrics import fast_f1_score
 
 
-def preprocess_data(data_path: str, num_bins: int = 5) -> Tuple:
+def preprocess_data(data_path: str, num_bins: int = 5) -> tuple:
     """
     Load and preprocess data for training.
 
@@ -134,7 +133,7 @@ def preprocess_data(data_path: str, num_bins: int = 5) -> Tuple:
     )
 
 
-def setup_timing() -> Dict:
+def setup_timing() -> dict:
     measurements = {}
     create_timed_decorator(
         "GPTimer",
@@ -214,7 +213,7 @@ def apply_timing_decorators() -> None:
     PopulationGenerator.generate = decorator(PopulationGenerator.generate)
 
 
-def print_timing_results(measurements: Dict, args: argparse.Namespace) -> None:
+def print_timing_results(measurements: dict, args: argparse.Namespace) -> None:
     print("\n" + "=" * 80)
     print("TIMING RESULTS")
     print("=" * 80)

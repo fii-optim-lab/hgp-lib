@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import List
 
 from ..rules import Rule
 
@@ -13,7 +12,7 @@ class PopulationStrategy(ABC):
     """
 
     @abstractmethod
-    def generate(self, n: int) -> List[Rule]:
+    def generate(self, n: int) -> list[Rule]:
         """
         Generates n rules according to the strategy.
 
@@ -23,4 +22,3 @@ class PopulationStrategy(ABC):
         Returns:
             List[Rule]: A list of newly generated rule instances.
         """
-        pass

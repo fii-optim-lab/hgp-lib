@@ -2,7 +2,6 @@ import numpy as np
 
 from .rules import Rule
 
-
 # TODO: Add some performance tests comparing operator implementations
 
 

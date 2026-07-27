@@ -406,6 +406,7 @@ class TestStandardBinarizer(unittest.TestCase):
 class TestSklearnBinarizer(unittest.TestCase):
     def test_transform_before_fit_raises(self):
         from sklearn.preprocessing import KBinsDiscretizer
+
         from hgp_lib.preprocessing import SklearnBinarizer
 
         b = SklearnBinarizer(
@@ -433,6 +434,7 @@ class TestSklearnBinarizer(unittest.TestCase):
 
     def test_get_feature_names_out_matches_columns(self):
         from sklearn.preprocessing import KBinsDiscretizer
+
         from hgp_lib.preprocessing import SklearnBinarizer
 
         b = SklearnBinarizer(
@@ -445,6 +447,7 @@ class TestSklearnBinarizer(unittest.TestCase):
 
     def test_get_feature_names_out_before_fit_raises(self):
         from sklearn.preprocessing import KBinsDiscretizer
+
         from hgp_lib.preprocessing import SklearnBinarizer
 
         b = SklearnBinarizer(

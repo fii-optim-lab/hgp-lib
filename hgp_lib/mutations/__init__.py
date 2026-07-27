@@ -2,17 +2,17 @@ from .base_mutation import Mutation
 from .literal_mutations import (
     DeleteMutation,
     NegateMutation,
-    ReplaceLiteral,
     PromoteLiteral,
-)
-from .operator_mutations import (
-    RemoveIntermediateOperator,
-    ReplaceOperator,
-    AddLiteral,
+    ReplaceLiteral,
 )
 from .mutation_executor import MutationExecutor
-from .utils import MutationError
 from .mutation_factory import MutationExecutorFactory
+from .operator_mutations import (
+    AddLiteral,
+    RemoveIntermediateOperator,
+    ReplaceOperator,
+)
+from .utils import MutationError
 
 __all__ = [
     "MutationExecutor",

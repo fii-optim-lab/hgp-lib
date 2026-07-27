@@ -1,6 +1,7 @@
 # Reimplementation based on https://github.com/fidelity/boolxai/blob/main/boolxai/rules/rule.py
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Sequence
+from collections.abc import Sequence
+from typing import Optional
 
 import numpy as np
 
@@ -44,13 +45,13 @@ class Rule(ABC):
         And(0, Or(~1, 2), 3)
     """
 
-    __slots__ = ("subrules", "parent", "value", "negated")
+    __slots__ = ("negated", "parent", "subrules", "value")
 
     def __init__(
         self,
-        subrules: Optional[List["Rule"]] = None,
+        subrules: list["Rule"] | None = None,
         parent: Optional["Rule"] = None,
-        value: Optional[int] = None,
+        value: int | None = None,
         negated: bool = False,
         copy_subrules: bool = True,
     ):
@@ -240,9 +241,8 @@ class Rule(ABC):
         Notes:
             Concrete subclasses (`And`, `Or`, `Literal`, etc.) must implement this.
         """
-        pass
 
-    def apply_feature_mapping(self, feature_mapping: Dict[int, int]):
+    def apply_feature_mapping(self, feature_mapping: dict[int, int]):
         """
         Applies a feature mapping to this rule and all its subrules in-place.
 

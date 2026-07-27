@@ -1,20 +1,20 @@
 import inspect
 import warnings
-from typing import Callable, Set, Tuple, Any
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 from numpy import ndarray
 
 from hgp_lib.utils.validation import validate_callable
 
-
 # Track scorers that have already been warned about missing sample_weight support
-_warned_scorers: Set[int] = set()
+_warned_scorers: set[int] = set()
 
 
 def confusion_matrix(
     y_true: np.ndarray, y_pred: np.ndarray, sample_weight: np.ndarray | None = None
-) -> Tuple[int, int, int, int]:
+) -> tuple[int, int, int, int]:
     """
     Compute confusion matrix values from boolean label and prediction arrays.
 

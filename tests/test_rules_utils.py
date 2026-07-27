@@ -3,13 +3,13 @@
 import random
 import unittest
 
-from hgp_lib.rules import Literal, And, Or
+from hgp_lib.rules import And, Literal, Or
 from hgp_lib.rules.utils import (
+    apply_feature_mapping,
+    deep_swap,
     is_operator,
     is_operator_type,
     replace_with_rule,
-    deep_swap,
-    apply_feature_mapping,
     select_crossover_point,
 )
 

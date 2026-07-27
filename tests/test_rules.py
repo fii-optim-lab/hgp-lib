@@ -2,11 +2,13 @@ import os
 import subprocess
 import sys
 import unittest
+
 import numpy as np
 
 from hgp_lib.rules import Literal
+from hgp_lib.rules.low_memory_operators import And as LowMemoryAnd
+from hgp_lib.rules.low_memory_operators import Or as LowMemoryOr
 from hgp_lib.rules.operators import And, Or
-from hgp_lib.rules.low_memory_operators import And as LowMemoryAnd, Or as LowMemoryOr
 
 
 class TestRules(unittest.TestCase):

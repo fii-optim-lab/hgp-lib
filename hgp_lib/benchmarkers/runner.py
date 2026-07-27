@@ -2,24 +2,23 @@ import random
 from copy import deepcopy
 from dataclasses import replace
 from multiprocessing import Queue
-from typing import List, Optional, Tuple
 
 import numpy as np
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from tqdm import tqdm
 
-from .progress import send_progress, ProgressSender
 from ..configs import BenchmarkerConfig
 from ..metrics import PopulationHistory, RunResult
 from ..trainers import GPTrainer
-from ..utils.metrics import optimize_scorers_for_data, confusion_matrix
+from ..utils.metrics import confusion_matrix, optimize_scorers_for_data
+from .progress import ProgressSender, send_progress
 
 
 def execute_single_run(
     run_id: int,
     seed: int,
     config: BenchmarkerConfig,
-    progress_queue: Optional[Queue] = None,
+    progress_queue: Queue | None = None,
 ) -> RunResult:
     """
     Execute one benchmark run: stratified train/test split, per-fold binarization,
@@ -70,7 +69,7 @@ def execute_single_run(
 
     skf = StratifiedKFold(n_splits=config.n_folds, shuffle=True, random_state=seed)
 
-    folds: List[PopulationHistory] = []
+    folds: list[PopulationHistory] = []
     binarizers = []
     feature_names_per_binarizer = []
 
@@ -167,7 +166,7 @@ def execute_single_run(
 
 
 def single_run_wrapper(
-    args: Tuple[int, int, BenchmarkerConfig, Optional[Queue]],
+    args: tuple[int, int, BenchmarkerConfig, Queue | None],
 ) -> RunResult:
     """
     Picklable wrapper for multiprocessing Pool.

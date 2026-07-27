@@ -1,4 +1,3 @@
-from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -38,11 +37,11 @@ class SklearnBinarizer(Binarizer):
 
     def __init__(self, transformer):
         self.transformer = transformer
-        self._columns: Optional[List[str]] = None
+        self._columns: list[str] | None = None
         self._is_fitted = False
 
     def fit_transform(
-        self, X: pd.DataFrame, y: Optional[np.ndarray] = None
+        self, X: pd.DataFrame, y: np.ndarray | None = None
     ) -> pd.DataFrame:
         check_isinstance(X, pd.DataFrame)
         array = np.asarray(self.transformer.fit_transform(X, y))
@@ -57,7 +56,7 @@ class SklearnBinarizer(Binarizer):
         array = np.asarray(self.transformer.transform(X))
         return pd.DataFrame(array.astype(bool), columns=self._columns, index=X.index)
 
-    def get_feature_names_out(self) -> List[str]:
+    def get_feature_names_out(self) -> list[str]:
         """
         Return the output column names in order (see :meth:`Binarizer.get_feature_names_out`).
 
@@ -76,7 +75,7 @@ class SklearnBinarizer(Binarizer):
             )
         return list(self._columns)
 
-    def _resolve_columns(self, X: pd.DataFrame, n_features: int) -> List[str]:
+    def _resolve_columns(self, X: pd.DataFrame, n_features: int) -> list[str]:
         if hasattr(self.transformer, "get_feature_names_out"):
             return [
                 str(c) for c in self.transformer.get_feature_names_out(list(X.columns))

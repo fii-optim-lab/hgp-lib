@@ -1,16 +1,16 @@
-import unittest
 import random
+import unittest
 
 import numpy as np
-from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
-from hgp_lib.trainers import GPTrainer
 from hgp_lib.crossover import CrossoverExecutor, CrossoverExecutorFactory
-from hgp_lib.metrics import PopulationHistory, GenerationMetrics
+from hgp_lib.metrics import GenerationMetrics, PopulationHistory
 from hgp_lib.populations import PopulationGeneratorFactory
-from hgp_lib.selections import RouletteSelection, TournamentSelection
 from hgp_lib.rules import Rule
+from hgp_lib.selections import RouletteSelection, TournamentSelection
+from hgp_lib.trainers import GPTrainer
+from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 
 class TestGPTrainer(unittest.TestCase):

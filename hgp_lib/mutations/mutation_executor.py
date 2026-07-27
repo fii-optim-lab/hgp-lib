@@ -1,12 +1,12 @@
 import random
-from typing import Callable, Tuple, List
+from collections.abc import Callable
 
 import numpy as np
 
+from ..rules import Literal, Rule
+from ..rules.utils import select_crossover_point
 from .base_mutation import Mutation
 from .utils import MutationError
-from ..rules import Rule, Literal
-from ..rules.utils import select_crossover_point
 
 
 class MutationExecutor:
@@ -58,8 +58,8 @@ class MutationExecutor:
 
     def __init__(
         self,
-        literal_mutations: Tuple[Mutation, ...],
-        operator_mutations: Tuple[Mutation, ...],
+        literal_mutations: tuple[Mutation, ...],
+        operator_mutations: tuple[Mutation, ...],
         mutation_p: float = 0.1,
         check_valid: Callable[[Rule], bool] | None = None,
         num_tries: int = 1,
@@ -72,13 +72,13 @@ class MutationExecutor:
         # literal_mutations was checked
         # operator_mutations was checked
         self.mutation_p: float = mutation_p
-        self.literal_mutations: Tuple[Mutation, ...] = literal_mutations
-        self.operator_mutations: Tuple[Mutation, ...] = operator_mutations
+        self.literal_mutations: tuple[Mutation, ...] = literal_mutations
+        self.operator_mutations: tuple[Mutation, ...] = operator_mutations
         self.check_valid: Callable[[Rule], bool] | None = check_valid
         self.num_tries: int = num_tries
         self.operator_p: float = operator_p
 
-    def apply(self, rules: List[Rule]):
+    def apply(self, rules: list[Rule]):
         """
         Mutates the provided list of rules in place.
 

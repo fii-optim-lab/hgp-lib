@@ -1,5 +1,11 @@
-from typing import Callable, Sequence, Tuple, Type
+from collections.abc import Callable, Sequence
 
+from ..rules import And, Or, Rule
+from ..utils.validation import (
+    check_isinstance,
+    validate_num_literals,
+    validate_operator_types,
+)
 from .base_mutation import Mutation
 from .literal_mutations import (
     DeleteMutation,
@@ -7,14 +13,8 @@ from .literal_mutations import (
     PromoteLiteral,
     ReplaceLiteral,
 )
-from .operator_mutations import AddLiteral, RemoveIntermediateOperator, ReplaceOperator
-from ..rules import And, Or, Rule
 from .mutation_executor import MutationExecutor
-from ..utils.validation import (
-    check_isinstance,
-    validate_num_literals,
-    validate_operator_types,
-)
+from .operator_mutations import AddLiteral, RemoveIntermediateOperator, ReplaceOperator
 
 
 class MutationExecutorFactory:
@@ -62,7 +62,7 @@ class MutationExecutorFactory:
         mutation_p: float = 0.1,
         num_tries: int = 1,
         operator_p: float = 0.5,
-        operator_types: Sequence[Type[Rule]] = (Or, And),
+        operator_types: Sequence[type[Rule]] = (Or, And),
     ):
         check_isinstance(mutation_p, float)
         if mutation_p < 0.0 or mutation_p > 1.0:
@@ -82,9 +82,9 @@ class MutationExecutorFactory:
         self.mutation_p = mutation_p
         self.num_tries = num_tries
         self.operator_p = operator_p
-        self.operator_types: Tuple[Type[Rule], ...] = tuple(operator_types)
+        self.operator_types: tuple[type[Rule], ...] = tuple(operator_types)
 
-    def create_literal_mutations(self, num_literals: int) -> Tuple[Mutation, ...]:
+    def create_literal_mutations(self, num_literals: int) -> tuple[Mutation, ...]:
         """
         Create the set of standard literal-level mutations. Override this method to use custom literal mutations.
 
@@ -109,7 +109,7 @@ class MutationExecutorFactory:
             PromoteLiteral(num_literals, self.operator_types),
         )
 
-    def create_operator_mutations(self, num_literals: int) -> Tuple[Mutation, ...]:
+    def create_operator_mutations(self, num_literals: int) -> tuple[Mutation, ...]:
         """
         Create the set of standard operator-level mutations. Override this method to use custom operator mutations.
 
@@ -136,11 +136,11 @@ class MutationExecutorFactory:
 
     @staticmethod
     def _validate_mutations(
-        literal_mutations: Tuple[Mutation, ...],
-        operator_mutations: Tuple[Mutation, ...],
+        literal_mutations: tuple[Mutation, ...],
+        operator_mutations: tuple[Mutation, ...],
     ):
-        check_isinstance(literal_mutations, Tuple)
-        check_isinstance(operator_mutations, Tuple)
+        check_isinstance(literal_mutations, tuple)
+        check_isinstance(operator_mutations, tuple)
 
         if len(literal_mutations) == 0:
             raise ValueError("literal_mutations must be a non-empty Tuple")

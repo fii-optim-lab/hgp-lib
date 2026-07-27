@@ -1,10 +1,10 @@
-import unittest
 import random
+import unittest
 
 import numpy as np
 
+from hgp_lib.rules import And, Literal, Or, Rule
 from hgp_lib.selections import BaseSelection, RouletteSelection, TournamentSelection
-from hgp_lib.rules import Rule, Literal, And, Or
 
 
 class TestBaseSelection(unittest.TestCase):

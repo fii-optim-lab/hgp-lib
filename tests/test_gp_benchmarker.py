@@ -1,13 +1,12 @@
 import io
 import queue
-import unittest
 import random
+import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from multiprocessing import Queue
 
 import numpy as np
 import pandas as pd
-from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.benchmarkers.runner import execute_single_run, single_run_wrapper
@@ -19,6 +18,7 @@ from hgp_lib.populations import PopulationGeneratorFactory
 from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.rules import Rule
 from hgp_lib.selections import RouletteSelection
+from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 
 class TestGPBenchmarker(unittest.TestCase):
@@ -130,13 +130,11 @@ class TestGPBenchmarker(unittest.TestCase):
             with self.assertRaises(ValueError):
                 GPBenchmarker(self._make_config(n_folds=1))
 
-        with self.subTest("data must be 2D"):
-            with self.assertRaises(ValueError):
-                GPBenchmarker(self._make_config(data=pd.DataFrame(np.array([1, 2, 3]))))
+        with self.subTest("data must be 2D"), self.assertRaises(ValueError):
+            GPBenchmarker(self._make_config(data=pd.DataFrame(np.array([1, 2, 3]))))
 
-        with self.subTest("labels must be 1D"):
-            with self.assertRaises(ValueError):
-                GPBenchmarker(self._make_config(labels=np.array([[1, 0], [1, 0]])))
+        with self.subTest("labels must be 1D"), self.assertRaises(ValueError):
+            GPBenchmarker(self._make_config(labels=np.array([[1, 0], [1, 0]])))
 
         with self.subTest("population_factory type"):
             with self.assertRaises(TypeError):
@@ -158,15 +156,14 @@ class TestGPBenchmarker(unittest.TestCase):
                     )
                 )
 
-        with self.subTest("selection type"):
-            with self.assertRaises(TypeError):
-                GPBenchmarker(
-                    self._make_config(
-                        trainer_config=self._make_trainer_config(
-                            gp_config=self._make_gp_config(selection="bad")
-                        )
+        with self.subTest("selection type"), self.assertRaises(TypeError):
+            GPBenchmarker(
+                self._make_config(
+                    trainer_config=self._make_trainer_config(
+                        gp_config=self._make_gp_config(selection="bad")
                     )
                 )
+            )
 
     # ------------------------------------------------------------------ #
     #  Initialization

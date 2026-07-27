@@ -8,11 +8,11 @@ import numpy as np
 
 import hgp_lib.utils.metrics
 from hgp_lib.utils.metrics import (
+    accepts_sample_weight,
     confusion_matrix,
     fast_f1_score,
-    accepts_sample_weight,
-    transform_duplicates_to_sample_weight,
     optimize_scorers_for_data,
+    transform_duplicates_to_sample_weight,
 )
 
 

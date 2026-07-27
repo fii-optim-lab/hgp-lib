@@ -12,8 +12,8 @@ from .history import PopulationHistory
 from .results import ExperimentResult, RunResult
 
 __all__ = [
+    "ExperimentResult",
     "GenerationMetrics",
     "PopulationHistory",
     "RunResult",
-    "ExperimentResult",
 ]
