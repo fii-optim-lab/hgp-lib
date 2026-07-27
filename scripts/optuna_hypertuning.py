@@ -306,7 +306,7 @@ def create_objective(
                 params, data, labels, fast_f1_score, n_jobs, n_runs, n_folds, verbose
             )
             result = GPBenchmarker(config).fit()
-        except Exception:
+        except Exception:  # noqa BLE001
             logger.error(f"Trial {trial.number} failed: {traceback.format_exc()}")
             raise optuna.TrialPruned()
 
@@ -346,7 +346,7 @@ def main(args: argparse.Namespace) -> None:
         try:
             save_pmlb_data(data_path.stem, str(data_path.parent))
         except FileNotFoundError:
-            logging.error(f"Dataset {data_path.stem} not found in PMLB")
+            logger.error(f"Dataset {data_path.stem} not found in PMLB")
             traceback.print_exc()
             return
     data, labels = load_data(args.data_path)

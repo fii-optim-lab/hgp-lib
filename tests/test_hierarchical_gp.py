@@ -465,7 +465,7 @@ class TestBooleanGPSamplingIntegration(unittest.TestCase):
                 self.assertEqual(set(child.feature_mapping.keys()), expected_keys)
 
                 # All mapped values should be valid parent feature indices
-                for child_idx, parent_idx in child.feature_mapping.items():
+                for parent_idx in child.feature_mapping.values():
                     self.assertGreaterEqual(parent_idx, 0)
                     self.assertLess(parent_idx, num_features)
 

@@ -60,20 +60,20 @@ def run_sklearn_benchmark(
     n_runs: int = 30,
     n_folds: int = 5,
     data_dir: str = "data",
-    max_leaf_nodes: int = None,
+    max_leaf_nodes: int | None = None,
     binarizer_type: str = "standard",
 ) -> dict:
     data_path = f"{data_dir}/{dataset_name}.hdf"
     if not os.path.isfile(data_path):
         try:
             save_pmlb_data(dataset_name, data_dir)
-        except Exception as e:
+        except Exception as e:  # noqa BLE001
             print(f"Failed to load {dataset_name}: {e}")
             return None
 
     try:
         data, labels = load_data(data_path)
-    except Exception as e:
+    except Exception as e:  # noqa BLE001
         print(f"Failed to read {dataset_name}: {e}")
         return None
 
@@ -194,13 +194,13 @@ def run_gp_default_benchmark(
     if not os.path.isfile(data_path):
         try:
             save_pmlb_data(dataset_name, data_dir)
-        except Exception as e:
+        except Exception as e:  # noqa BLE001
             print(f"Failed to load {dataset_name}: {e}")
             return None
 
     try:
         data, labels = load_data(data_path)
-    except Exception as e:
+    except Exception as e:  # noqa BLE001
         print(f"Failed to read {dataset_name}: {e}")
         return None
 

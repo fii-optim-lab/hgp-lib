@@ -163,9 +163,7 @@ class ProgressListener:
                 self._pbar_exp.close()
 
 
-def send_progress(
-    progress_queue: Queue | None, msg_type: str, count: int = 1
-) -> None:
+def send_progress(progress_queue: Queue | None, msg_type: str, count: int = 1) -> None:
     """
     Send a progress update to the listener queue.
 

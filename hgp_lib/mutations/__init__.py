@@ -15,18 +15,15 @@ from .operator_mutations import (
 from .utils import MutationError
 
 __all__ = [
-    "MutationExecutor",
-    "MutationExecutorFactory",
+    "AddLiteral",
+    "DeleteMutation",
     "Mutation",
     "MutationError",
-    # Literal and operator mutations
-    "DeleteMutation",
+    "MutationExecutor",
+    "MutationExecutorFactory",
     "NegateMutation",
-    # Literal mutations
-    "ReplaceLiteral",
     "PromoteLiteral",
-    # Operator mutations
     "RemoveIntermediateOperator",
+    "ReplaceLiteral",
     "ReplaceOperator",
-    "AddLiteral",
 ]

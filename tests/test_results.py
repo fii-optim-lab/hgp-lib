@@ -33,14 +33,14 @@ class _Helpers:
             if train_score is not None:
                 g = replace(g, train_scores=[train_score])
             gens = [g]
-        defaults = dict(
-            global_best_rule=Literal(value=rule_value),
-            tp=3,
-            fp=1,
-            fn=2,
-            tn=4,
-            generations=gens,
-        )
+        defaults = {
+            "global_best_rule": Literal(value=rule_value),
+            "tp": 3,
+            "fp": 1,
+            "fn": 2,
+            "tn": 4,
+            "generations": gens,
+        }
         defaults.update(kwargs)
         return PopulationHistory(**defaults)
 
@@ -50,18 +50,18 @@ class _Helpers:
     ):
         if folds is None:
             folds = [_Helpers.make_fold()]
-        defaults = dict(
-            run_id=run_id,
-            seed=seed,
-            best_fold_idx=best_fold_idx,
-            folds=folds,
-            test_score=test_score,
-            test_tp=4,
-            test_fp=1,
-            test_fn=1,
-            test_tn=4,
-            feature_names=["col_a", "col_b"],
-        )
+        defaults = {
+            "run_id": run_id,
+            "seed": seed,
+            "best_fold_idx": best_fold_idx,
+            "folds": folds,
+            "test_score": test_score,
+            "test_tp": 4,
+            "test_fp": 1,
+            "test_fn": 1,
+            "test_tn": 4,
+            "feature_names": ["col_a", "col_b"],
+        }
         defaults.update(kwargs)
         return RunResult(**defaults)
 

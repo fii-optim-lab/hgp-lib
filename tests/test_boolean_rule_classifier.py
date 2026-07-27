@@ -25,11 +25,11 @@ class TestBooleanRuleClassifier(unittest.TestCase):
         self.labels = rng.integers(0, 2, size=40)
 
     def _make_config(self, **kwargs):
-        defaults = dict(
-            gp_config=BooleanGPConfig(score_fn=fast_f1_score),
-            num_epochs=10,
-            progress_bar=False,
-        )
+        defaults = {
+            "gp_config": BooleanGPConfig(score_fn=fast_f1_score),
+            "num_epochs": 10,
+            "progress_bar": False,
+        }
         defaults.update(kwargs)
         return TrainerConfig(**defaults)
 

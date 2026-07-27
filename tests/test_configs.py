@@ -236,12 +236,12 @@ class TestBenchmarkerConfig(unittest.TestCase):
         self.trainer_config = TrainerConfig(gp_config=self.gp_config, num_epochs=5)
 
     def _make_config(self, **kwargs):
-        defaults = dict(
-            data=self.data,
-            labels=self.labels,
-            trainer_config=self.trainer_config,
-            n_folds=2,
-        )
+        defaults = {
+            "data": self.data,
+            "labels": self.labels,
+            "trainer_config": self.trainer_config,
+            "n_folds": 2,
+        }
         defaults.update(kwargs)
         return BenchmarkerConfig(**defaults)
 

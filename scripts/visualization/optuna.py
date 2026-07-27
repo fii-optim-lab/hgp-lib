@@ -1,6 +1,7 @@
 import logging
 import os
 import tempfile
+import traceback
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -136,8 +137,8 @@ def upload_trial_artifacts(
                     artifact_store=artifact_store,
                 )
 
-            except Exception as e:
+            except Exception as e:  # noqa BLE001
                 logger.warning(
-                    f"Trial {trial.number}: Failed to generate {plot_name}: {e}"
+                    f"Trial {trial.number}: Failed to generate {plot_name}: {e} - {traceback.format_exc()}"
                 )
                 continue

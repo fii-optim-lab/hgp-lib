@@ -35,13 +35,13 @@ class TestBooleanGP(unittest.TestCase):
         self.score_fn = accuracy_score
 
     def _make_config(self, **kwargs):
-        defaults = dict(
-            score_fn=self.score_fn,
-            train_data=self.train_data,
-            train_labels=self.train_labels,
-            population_factory=PopulationGeneratorFactory(population_size=10),
-            optimize_scorer=False,
-        )
+        defaults = {
+            "score_fn": self.score_fn,
+            "train_data": self.train_data,
+            "train_labels": self.train_labels,
+            "population_factory": PopulationGeneratorFactory(population_size=10),
+            "optimize_scorer": False,
+        }
         defaults.update(kwargs)
         return BooleanGPConfig(**defaults)
 
@@ -49,37 +49,48 @@ class TestBooleanGP(unittest.TestCase):
     #  Validation
     # ------------------------------------------------------------------ #
     def test_boolean_gp_validation(self):
-        with self.subTest("score_fn must be callable"):
-            with self.assertRaises(TypeError):
-                BooleanGP(self._make_config(score_fn="not callable"))
+        with self.subTest("score_fn must be callable"), self.assertRaises(TypeError):
+            BooleanGP(self._make_config(score_fn="not callable"))
 
-        with self.subTest("population_factory must be PopulationGeneratorFactory"):
-            with self.assertRaises(TypeError):
-                BooleanGP(self._make_config(population_factory="not factory"))
+        with (
+            self.subTest("population_factory must be PopulationGeneratorFactory"),
+            self.assertRaises(TypeError),
+        ):
+            BooleanGP(self._make_config(population_factory="not factory"))
 
-        with self.subTest("mutation_factory must be MutationExecutorFactory"):
-            with self.assertRaises(TypeError):
-                BooleanGP(self._make_config(mutation_factory="not factory"))
+        with (
+            self.subTest("mutation_factory must be MutationExecutorFactory"),
+            self.assertRaises(TypeError),
+        ):
+            BooleanGP(self._make_config(mutation_factory="not factory"))
 
-        with self.subTest("crossover_executor must be CrossoverExecutor"):
-            with self.assertRaises(TypeError):
-                BooleanGP(self._make_config(crossover_executor="not executor"))
+        with (
+            self.subTest("crossover_executor must be CrossoverExecutor"),
+            self.assertRaises(TypeError),
+        ):
+            BooleanGP(self._make_config(crossover_executor="not executor"))
 
-        with self.subTest("selection must be BaseSelection"):
-            with self.assertRaises(TypeError):
-                BooleanGP(self._make_config(selection="not selection"))
+        with (
+            self.subTest("selection must be BaseSelection"),
+            self.assertRaises(TypeError),
+        ):
+            BooleanGP(self._make_config(selection="not selection"))
 
-        with self.subTest("regeneration must be bool"):
-            with self.assertRaises(TypeError):
-                BooleanGP(self._make_config(regeneration=1))
+        with self.subTest("regeneration must be bool"), self.assertRaises(TypeError):
+            BooleanGP(self._make_config(regeneration=1))
 
-        with self.subTest("regeneration_patience must be int"):
-            with self.assertRaises(TypeError):
-                BooleanGP(self._make_config(regeneration_patience=1.5))
+        with (
+            self.subTest("regeneration_patience must be int"),
+            self.assertRaises(TypeError),
+        ):
+            BooleanGP(self._make_config(regeneration_patience=1.5))
 
-        with self.subTest(
-            "regeneration_patience must be positive when regeneration=True"
-        ), self.assertRaises(ValueError):
+        with (
+            self.subTest(
+                "regeneration_patience must be positive when regeneration=True"
+            ),
+            self.assertRaises(ValueError),
+        ):
             BooleanGP(self._make_config(regeneration=True, regeneration_patience=0))
 
     # ------------------------------------------------------------------ #
@@ -401,13 +412,13 @@ class TestBooleanGP(unittest.TestCase):
     #  Hierarchical GP
     # ------------------------------------------------------------------ #
     def _make_hierarchical_config(self, **kwargs):
-        defaults = dict(
-            population_factory=PopulationGeneratorFactory(population_size=20),
-            max_depth=1,
-            num_child_populations=2,
-            sampling_strategy=FeatureSamplingStrategy(),
-            top_k_transfer=5,
-        )
+        defaults = {
+            "population_factory": PopulationGeneratorFactory(population_size=20),
+            "max_depth": 1,
+            "num_child_populations": 2,
+            "sampling_strategy": FeatureSamplingStrategy(),
+            "top_k_transfer": 5,
+        }
         defaults.update(kwargs)
         return self._make_config(**defaults)
 

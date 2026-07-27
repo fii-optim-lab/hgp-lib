@@ -232,6 +232,7 @@ class TestImports(unittest.TestCase):
             env=env,
             capture_output=True,
             text=True,
+            check=True,
         )
 
         self.assertEqual(

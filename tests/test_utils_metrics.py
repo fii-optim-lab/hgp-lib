@@ -128,28 +128,28 @@ class TestTransformDuplicates(unittest.TestCase):
     def test_removes_duplicates(self):
         data = np.array([[1, 0], [1, 0], [0, 1]])
         labels = np.array([1, 1, 0])
-        ud, ul, sw = transform_duplicates_to_sample_weight(data, labels)
+        ud, _ul, sw = transform_duplicates_to_sample_weight(data, labels)
         self.assertLess(len(ud), len(data))
         self.assertEqual(sw.sum(), len(data))
 
     def test_no_duplicates(self):
         data = np.array([[1, 0], [0, 1]])
         labels = np.array([1, 0])
-        ud, ul, sw = transform_duplicates_to_sample_weight(data, labels)
+        ud, _ul, sw = transform_duplicates_to_sample_weight(data, labels)
         self.assertEqual(len(ud), 2)
         np.testing.assert_array_equal(sw, [1, 1])
 
     def test_all_same(self):
         data = np.array([[1, 1], [1, 1], [1, 1]])
         labels = np.array([0, 0, 0])
-        ud, ul, sw = transform_duplicates_to_sample_weight(data, labels)
+        ud, _ul, sw = transform_duplicates_to_sample_weight(data, labels)
         self.assertEqual(len(ud), 1)
         self.assertEqual(sw[0], 3)
 
     def test_labels_preserved(self):
         data = np.array([[1, 0], [1, 0], [0, 1]])
         labels = np.array([1, 1, 0])
-        ud, ul, sw = transform_duplicates_to_sample_weight(data, labels)
+        ud, _ul, _sw = transform_duplicates_to_sample_weight(data, labels)
         # Each unique (data, label) pair should appear
         self.assertEqual(len(ud), 2)
 
@@ -164,7 +164,7 @@ class TestOptimizeScorersForData(unittest.TestCase):
     def test_optimizes_when_sw_supported(self):
         data = np.array([[1, 0], [1, 0], [0, 1]])
         labels = np.array([1, 1, 0])
-        opt_scorer, opt_data, opt_labels = optimize_scorers_for_data(
+        _opt_scorer, opt_data, _opt_labels = optimize_scorers_for_data(
             self._scorer_with_sw,
             data=data,
             labels=labels,
@@ -176,7 +176,7 @@ class TestOptimizeScorersForData(unittest.TestCase):
         labels = np.array([1, 1, 0])
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            opt_scorer, opt_data, opt_labels = optimize_scorers_for_data(
+            _opt_scorer, opt_data, _opt_labels = optimize_scorers_for_data(
                 self._scorer_without_sw,
                 data=data,
                 labels=labels,
@@ -201,7 +201,7 @@ class TestOptimizeScorersForData(unittest.TestCase):
     def test_multiple_scorers(self):
         data = np.array([[1, 0], [0, 1]])
         labels = np.array([1, 0])
-        s1, s2, opt_data, opt_labels = optimize_scorers_for_data(
+        s1, s2, _opt_data, _opt_labels = optimize_scorers_for_data(
             self._scorer_with_sw,
             self._scorer_with_sw,
             data=data,
