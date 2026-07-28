@@ -9,7 +9,7 @@ from tqdm import tqdm
 from ..configs import BenchmarkerConfig, validate_benchmarker_config
 from ..metrics import ExperimentResult, RunResult
 from ..preprocessing import StandardBinarizer
-from .progress import ProgressConfig, ProgressListener
+from .progress import ProgressConfig, ProgressListener, ProgressReporter
 from .runner import execute_single_run, single_run_wrapper
 
 
@@ -158,16 +158,17 @@ class GPBenchmarker:
 
         # LIFO cleanup: pool first (so workers stop emitting progress), then the listener, then the manager
         with contextlib.ExitStack() as stack:
-            queue = None
+            reporter = ProgressReporter()
             if any_progress:
                 manager = stack.enter_context(multiprocessing.Manager())
                 queue = manager.Queue()
+                reporter = ProgressReporter(queue)
                 listener = ProgressListener(queue, progress_config)
                 listener.start()
                 stack.callback(listener.stop)
 
             run_args = [
-                (run_id, self.config.base_seed + run_id, self.config, queue)
+                (run_id, self.config.base_seed + run_id, self.config, reporter)
                 for run_id in range(self.config.num_runs)
             ]
 

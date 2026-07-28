@@ -80,7 +80,7 @@ def load_data(data_path: str) -> tuple[pd.DataFrame, ndarray]:
         raise FileNotFoundError(f"Data file not found: {data_path}")
 
     logging.getLogger(__name__).info(f"Loading data from {data_path}...")
-    # TODO: Create a unified logging system
+    # TODO: (1) Create a unified logging system
 
     if path.suffix == ".hdf":
         df: pd.DataFrame = pd.read_hdf(data_path)

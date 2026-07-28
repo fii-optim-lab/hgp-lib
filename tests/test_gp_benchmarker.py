@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from hgp_lib.benchmarkers import GPBenchmarker
+from hgp_lib.benchmarkers.progress import ProgressReporter
 from hgp_lib.benchmarkers.runner import execute_single_run, single_run_wrapper
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.crossover import CrossoverExecutorFactory
@@ -483,15 +484,17 @@ class TestGPBenchmarker(unittest.TestCase):
         self.assertEqual(len(run.folds), 2)
         self.assertIsInstance(run.best_rule, Rule)
 
-    def test_execute_single_run_with_progress_queue(self):
-        """execute_single_run should send epoch/fold/run messages to the queue."""
+    def test_execute_single_run_with_reporter(self):
+        """execute_single_run should report epoch/fold/run progress to the queue."""
         config = self._make_config(
             num_runs=1,
             trainer_config=self._make_trainer_config(num_epochs=2, progress_bar=True),
         )
         config.binarizer = StandardBinarizer()
         q = Queue()
-        run = execute_single_run(run_id=0, seed=42, config=config, progress_queue=q)
+        run = execute_single_run(
+            run_id=0, seed=42, config=config, reporter=ProgressReporter(q)
+        )
         self.assertIsInstance(run, RunResult)
 
         # Drain the queue using get(timeout) to avoid the race where the
