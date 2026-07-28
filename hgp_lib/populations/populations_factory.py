@@ -73,7 +73,7 @@ class PopulationGeneratorFactory:
             train_labels (np.ndarray): Training labels (1-D array).
 
         Returns:
-            List[PopulationStrategy]: Strategies to pass to `PopulationGenerator`.
+            list[PopulationStrategy]: Strategies to pass to `PopulationGenerator`.
         """
         return [RandomStrategy(num_literals=num_literals)]
 

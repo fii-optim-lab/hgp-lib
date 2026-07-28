@@ -11,10 +11,10 @@ class And(Rule):
     `True`.
 
     Attributes:
-        subrules (List[Rule]):
+        subrules (list[Rule]):
             A list of child rules combined with logical AND. Must be a list longer than 1 element. Not checked at
             runtime for performance reasons. Default: `None`.
-        parent (Optional[Rule]):
+        parent (Rule | None):
             A reference to the parent rule, if part of a larger tree. Default: `None`.
         value (None):
             Always `None` for operator nodes (non-literals). Not checked at runtime for performance reasons. Default:
@@ -79,10 +79,10 @@ class Or(Rule):
     Logical disjunction (`OR`) operator node for rule trees. It evaluates to `True` if any subrule evaluates to `True`.
 
     Attributes:
-        subrules (List[Rule]):
+        subrules (list[Rule]):
             A list of child rules combined with logical AND. Must be a list longer than 1 element. Not checked at
             runtime for performance reasons. Default: `None`.
-        parent (Optional[Rule]):
+        parent (Rule | None):
             A reference to the parent rule, if part of a larger tree. Default: `None`.
         value (None):
             Always `None` for operator nodes (non-literals). Not checked at runtime for performance reasons. Default:

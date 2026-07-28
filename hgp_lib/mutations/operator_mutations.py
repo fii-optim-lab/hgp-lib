@@ -94,7 +94,7 @@ class ReplaceOperator(Mutation):
     Attributes:
         is_literal_mutation (bool): `False`.
         is_operator_mutation (bool): `True`.
-        operator_types (Tuple[Type[Rule]]): Tuple of operator classes that can replace one another (e.g., `(Or, And)`).
+        operator_types (tuple[type[Rule]]): Tuple of operator classes that can replace one another (e.g., `(Or, And)`).
 
     Notes:
         - The mutation has no effect on literal nodes.
@@ -154,7 +154,7 @@ class AddLiteral(Mutation):
     Attributes:
         is_literal_mutation (bool): `False`.
         is_operator_mutation (bool): `True`.
-        available_literals (Set[int]): Set of all possible literal indices from which new literals are sampled.
+        available_literals (set[int]): Set of all possible literal indices from which new literals are sampled.
 
     Notes:
         - The mutation raises a `MutationError` if all possible literals are already present under the operator.

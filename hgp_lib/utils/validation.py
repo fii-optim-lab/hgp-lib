@@ -85,7 +85,7 @@ def check_isinstance(value: Any, expected_type: type | tuple[type, ...]):
 
     Args:
         value (Any): Value to check.
-        expected_type (Type | Tuple[Type, ...]): Expected type or tuple of types.
+        expected_type (type | tuple[type, ...]): Expected type or tuple of types.
 
     Raises:
         TypeError: If value is not an instance of expected type.
@@ -140,7 +140,7 @@ def validate_operator_types(operator_types: Sequence[type[Rule]]):
     Validate ``operator_types`` parameter.
 
     Args:
-        operator_types (Sequence[Type[Rule]]): Sequence of Rule subclasses.
+        operator_types (Sequence[type[Rule]]): Sequence of Rule subclasses.
 
     Raises:
         TypeError: If not a sequence or contains non-Rule types.
@@ -180,7 +180,7 @@ def check_X_y(
     Args:
         X (np.ndarray | pd.DataFrame): Input data.
         y (np.ndarray): Target labels (1-D).
-        x_type (Type[np.ndarray] | Type[pd.DataFrame]): Expected type for X.
+        x_type (type[np.ndarray] | type[pd.DataFrame]): Expected type for X.
             Default: `np.ndarray`.
 
     Raises:

@@ -288,7 +288,7 @@ class BooleanGP:
             start with randomly generated rules.
 
         Returns:
-            List[Rule]: The top-K rules from this population, to be used in the
+            list[Rule]: The top-K rules from this population, to be used in the
                 parent's crossover pool during hierarchical GP.
 
         Examples:
@@ -390,7 +390,7 @@ class BooleanGP:
         Args:
             scores (ndarray):
                 Raw fitness scores for the population.
-            complexities (List[int]):
+            complexities (list[int]):
                 Number of nodes in each rule.
 
         Returns:

@@ -163,7 +163,7 @@ class ProgressListener:
                 self._pbar_exp.close()
 
 
-# "Queue | None" because Type[Queue] is <method>..
+# "Queue | None" because type[Queue] is <method>..
 def send_progress(
     progress_queue: "Queue | None", msg_type: str, count: int = 1
 ) -> None:

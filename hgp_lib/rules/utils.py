@@ -31,7 +31,7 @@ def is_operator_type(t: type[Rule]) -> bool:
     Check whether a type is an operator class (a ``Rule`` subclass that is not ``Literal``).
 
     Args:
-        t (Type[Rule]):
+        t (type[Rule]):
             The type to check.
 
     Returns:
@@ -119,7 +119,7 @@ def apply_feature_mapping(rule: Rule, feature_mapping: dict[int, int] | None) ->
 
     Args:
         rule (Rule): The rule to potentially remap.
-        feature_mapping (Dict[int, int] | None): A dictionary mapping old feature indices
+        feature_mapping (dict[int, int] | None): A dictionary mapping old feature indices
             to new feature indices, or None to skip remapping.
 
     Returns:
@@ -210,11 +210,11 @@ def _create_unsafe_rule(
     Creates a new rule while skipping subrules assignment and constructor validation. To be used internally.
 
     Attributes:
-        subrules (Optional[List[Rule]]):
+        subrules (list[Rule] | None):
             The list of child rules, for operators, or `None`, for literals. Default: `None`.
-        parent (Optional[Rule]):
+        parent (Rule | None):
             A reference to the parent rule in the tree (if any). Default: `None`.
-        value (Optional[int]):
+        value (int | None):
             The value held by this rule (e.g., for literals). Should be `None` for operators. Default: `None`.
         negated (bool):
             Whether this rule or literal is logically negated (e.g., `~A`). Default: `False`.

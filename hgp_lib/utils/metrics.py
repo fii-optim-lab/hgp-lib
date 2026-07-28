@@ -27,7 +27,7 @@ def confusion_matrix(
             Optional per-sample weights. Default: `None`.
 
     Returns:
-        Tuple[int, int, int, int]: ``(tp, fp, fn, tn)``.
+        tuple[int, int, int, int]: ``(tp, fp, fn, tn)``.
 
     Examples:
         >>> import numpy as np
@@ -181,7 +181,7 @@ def transform_duplicates_to_sample_weight(data: ndarray, labels: ndarray):
             1-D label array (same length as ``data``).
 
     Returns:
-        Tuple[ndarray, ndarray, ndarray]: ``(unique_data, unique_labels, sample_weights)``.
+        tuple[ndarray, ndarray, ndarray]: ``(unique_data, unique_labels, sample_weights)``.
 
     Examples:
         >>> import numpy as np
@@ -267,7 +267,7 @@ def optimize_scorers_for_data(
             1-D label array.
 
     Returns:
-        Tuple: ``(*optimised_scorers, data, labels)``.
+        tuple: ``(*optimised_scorers, data, labels)``.
 
     Examples:
         >>> import numpy as np

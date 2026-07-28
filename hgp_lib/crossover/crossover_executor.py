@@ -83,18 +83,18 @@ class CrossoverExecutor:
         to each child, enabling score propagation back to child populations.
 
         Args:
-            rules (List[Rule]):
+            rules (list[Rule]):
                 The collection of parent rules that will undergo crossover. May include
                 rules from both the current population and child populations.
-            feature_mappings (List[dict | None] | None):
+            feature_mappings (list[dict | None] | None):
                 A list of feature mapping dictionaries, one per rule. Each mapping translates
                 feature indices from a child population's space to the parent's space.
                 Use None for rules that don't need remapping (i.e., from the current population).
                 Default: `None`.
         Returns:
-            Tuple[List[Rule], List[int]]: A tuple containing:
-                - List[Rule]: The children produced by crossover operations.
-                - List[int]: The indices of parent rules that contributed to each child.
+            tuple[list[Rule], list[int]]: A tuple containing:
+                - list[Rule]: The children produced by crossover operations.
+                - list[int]: The indices of parent rules that contributed to each child.
                   For each child, both parent indices are recorded (so the list length
                   is 2 * number of children).
 

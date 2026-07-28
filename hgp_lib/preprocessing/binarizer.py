@@ -210,7 +210,7 @@ class StandardBinarizer(Binarizer):
         Return the output column names in order (see :meth:`Binarizer.get_feature_names_out`).
 
         Returns:
-            List[str]: The boolean output column names, index-aligned with the
+            list[str]: The boolean output column names, index-aligned with the
                 columns produced by ``fit_transform`` / ``transform``.
 
         Raises:
@@ -445,7 +445,7 @@ class StandardBinarizer(Binarizer):
         The set is mutated in place.
 
         Args:
-            column_names (Set[str]):
+            column_names (set[str]):
                 Mutable set of names already in use.
             new_column_name (str):
                 Desired column name.

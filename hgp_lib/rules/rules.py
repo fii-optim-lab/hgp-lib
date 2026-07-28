@@ -1,7 +1,6 @@
 # Reimplementation based on https://github.com/fidelity/boolxai/blob/main/boolxai/rules/rule.py
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Optional
 
 import numpy as np
 
@@ -18,11 +17,11 @@ class Rule(ABC):
     The tree can be traversed, copied, or evaluated against data.
 
     Attributes:
-        subrules (Optional[List[Rule]]):
+        subrules (list[Rule] | None):
             The list of child rules, for operators, or `None`, for literals. Default: `None`.
-        parent (Optional[Rule]):
+        parent (Rule | None):
             A reference to the parent rule in the tree (if any). Default: `None`.
-        value (Optional[int]):
+        value (int | None):
             The value held by this rule (e.g., for literals). Should be `None` for operators. Default: `None`.
         negated (bool):
             Whether this rule or literal is logically negated (e.g., `~A`). Default: `False`.
@@ -50,7 +49,7 @@ class Rule(ABC):
     def __init__(
         self,
         subrules: list["Rule"] | None = None,
-        parent: Optional["Rule"] = None,
+        parent: "Rule | None" = None,
         value: int | None = None,
         negated: bool = False,
         copy_subrules: bool = True,
@@ -74,7 +73,7 @@ class Rule(ABC):
         Iteratively flattens the rule subtree into a single list of all `Rule` nodes  using a queue.
 
         Returns:
-            List[Rule]: A flat list containing `self` followed by all descendant rules in right-to-left
+            list[Rule]: A flat list containing `self` followed by all descendant rules in right-to-left
                 preorder sequence.
 
         Examples:
@@ -171,12 +170,12 @@ class Rule(ABC):
     def __repr__(self) -> str:
         return self.to_str()
 
-    def copy(self, parent: Optional["Rule"] = None) -> "Rule":
+    def copy(self, parent: "Rule | None" = None) -> "Rule":
         """
         Creates a deep copy of this rule and its entire subtree, optionally assigning a new parent.
 
         Args:
-            parent (Optional[Rule]):
+            parent (Rule | None):
                 The parent rule for the new copy. If omitted, retains the current parent. Default: `None`.
 
         Returns:
@@ -252,7 +251,7 @@ class Rule(ABC):
         parent's feature space during crossover.
 
         Args:
-            feature_mapping (Dict[int, int]):
+            feature_mapping (dict[int, int]):
                 A dictionary mapping old feature indices to new feature indices.
                 For literals, `self.value` is replaced with `feature_mapping[self.value]`.
 

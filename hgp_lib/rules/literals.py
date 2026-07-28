@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from typing import Optional
 
 from .rules import Rule
 
@@ -12,9 +11,9 @@ class Literal(Rule):
     It may optionally be negated, in which case its logical value is inverted.
 
     Attributes:
-        subrules (Optional[List[Rule]]):
+        subrules (list[Rule] | None):
             The list of child rules, for operators, or `None`, for literals. Default: `None`.
-        parent (Optional[Rule]):
+        parent (Rule | None):
             A reference to the parent rule in the tree (if any). Default: `None`.
         value (int):
             The column index of the feature this literal refers to in `data`.
@@ -88,13 +87,13 @@ class Literal(Rule):
             value = feature_names[value]
         return f"~{value}" if self.negated else f"{value}"
 
-    def copy(self, parent: Optional["Rule"] = None) -> "Rule":
+    def copy(self, parent: "Rule | None" = None) -> "Rule":
         """
         Creates a copy of this Literal, optionally assigning a new parent.
         This uses a faster execution path to create literals.
 
         Args:
-            parent (Optional[Rule]):
+            parent (Rule | None):
                 The parent rule for the new copy. If omitted, retains the current parent. Default: `None`.
 
         Returns:

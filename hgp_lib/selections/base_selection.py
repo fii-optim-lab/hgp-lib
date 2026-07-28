@@ -59,8 +59,8 @@ class BaseSelection(ABC):
                 Number of rules to select. Must be between 1 and `len(rules)` (inclusive).
 
         Returns:
-            Tuple[List[Rule], ndarray]: A tuple containing:
-                - List[Rule]: Copies of the selected rules.
+            tuple[list[Rule], ndarray]: A tuple containing:
+                - list[Rule]: Copies of the selected rules.
                 - ndarray: The fitness scores of the selected rules.
 
         Examples:

@@ -19,7 +19,7 @@ class RandomStrategy(PopulationStrategy):
 
     Attributes:
         num_literals (int): The total number of available literals.
-        operator_types (Sequence[Type[Rule]]): A sequence of allowed operator types
+        operator_types (Sequence[type[Rule]]): A sequence of allowed operator types
             (e.g., `(Or, And)`). Default: `(Or, And)`.
 
     Examples:
@@ -51,7 +51,7 @@ class RandomStrategy(PopulationStrategy):
             n (int): Number of rules to generate.
 
         Returns:
-            List[Rule]: A list of randomly generated operator rules, each containing two literal subrules.
+            list[Rule]: A list of randomly generated operator rules, each containing two literal subrules.
         """
         if n <= 0:
             return []
@@ -176,7 +176,7 @@ class BestLiteralStrategy(PopulationStrategy):
             n (int): Number of rules to generate.
 
         Returns:
-            List[Rule]: A list of Literal instances.
+            list[Rule]: A list of Literal instances.
         """
         rules = []
         total_samples = len(self.train_data)

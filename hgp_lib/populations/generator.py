@@ -88,7 +88,7 @@ class PopulationGenerator:
         Generates the full population of rules.
 
         Returns:
-            List[Rule]: A list containing `population_size` generated rules.
+            list[Rule]: A list containing `population_size` generated rules.
         """
         population = []
         for strategy, count in zip(self.strategies, self.counts):

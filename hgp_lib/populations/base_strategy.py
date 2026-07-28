@@ -20,5 +20,5 @@ class PopulationStrategy(ABC):
             n (int): Number of rules to generate.
 
         Returns:
-            List[Rule]: A list of newly generated rule instances.
+            list[Rule]: A list of newly generated rule instances.
         """

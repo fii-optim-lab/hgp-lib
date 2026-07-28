@@ -63,7 +63,7 @@ class SklearnBinarizer(Binarizer):
         available, otherwise they are generated positionally.
 
         Returns:
-            List[str]: The boolean output column names.
+            list[str]: The boolean output column names.
 
         Raises:
             ValueError: If the binarizer has not been fitted yet.

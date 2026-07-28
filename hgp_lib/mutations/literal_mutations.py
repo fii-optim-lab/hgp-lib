@@ -240,7 +240,7 @@ class PromoteLiteral(Mutation):
         is_literal_mutation (bool): `True`.
         is_operator_mutation (bool): `False`.
         num_literals (int): The total number of possible literal values. Must be greater than `1`.
-        operator_types (Tuple[Type[Rule]]): Tuple of operator classes (e.g., `(Or, And)`) that can replace the literal.
+        operator_types (tuple[type[Rule]]): Tuple of operator classes (e.g., `(Or, And)`) that can replace the literal.
 
     Notes:
         - The literal is transformed inplace into an operator node by changing its class (`__class__`).

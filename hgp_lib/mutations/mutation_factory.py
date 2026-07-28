@@ -32,7 +32,7 @@ class MutationExecutorFactory:
         operator_p (float): Probability of selecting an operator node (vs. a literal)
             when choosing a mutation point in the rule tree. Must be in [0.0, 1.0].
             Default: `0.9`.
-        operator_types (Sequence[Type[Rule]]): Sequence of operator classes
+        operator_types (Sequence[type[Rule]]): Sequence of operator classes
             (e.g., `(Or, And)`) used by mutations. Default: `(Or, And)`.
 
     Examples:
@@ -93,7 +93,7 @@ class MutationExecutorFactory:
                 Total number of available literal values. Must be greater than `1`.
 
         Returns:
-            Tuple[Mutation, ...]: Literal mutations for the executor.
+            tuple[Mutation, ...]: Literal mutations for the executor.
 
         Examples:
             >>> from hgp_lib.mutations import MutationExecutorFactory
@@ -117,7 +117,7 @@ class MutationExecutorFactory:
             num_literals (int): Total number of available literal values.
 
         Returns:
-            Tuple[Mutation, ...]: Operator mutations for the executor.
+            tuple[Mutation, ...]: Operator mutations for the executor.
 
             Examples:
             >>> from hgp_lib.mutations import MutationExecutorFactory

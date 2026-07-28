@@ -18,10 +18,10 @@ class MutationExecutor:
     times when a `check_valid` predicate is provided.
 
     Args:
-        literal_mutations (Tuple[Mutation, ...]):
+        literal_mutations (tuple[Mutation, ...]):
             Mutations that can be applied to literal nodes. The sequence must be non-empty and
             each entry must declare `is_literal_mutation=True`.
-        operator_mutations (Tuple[Mutation, ...]):
+        operator_mutations (tuple[Mutation, ...]):
             Mutations that can be applied to operator nodes. The sequence must be non-empty and
             each entry must declare `is_operator_mutation=True`.
         mutation_p (float):
@@ -85,7 +85,7 @@ class MutationExecutor:
         In the event of a mutation failure, the original rule is kept in place.
 
         Args:
-            rules (List[Rule]):
+            rules (list[Rule]):
                 The mutable collection of rules that will be potentially replaced by mutated
                 versions depending on `mutation_p`.
 

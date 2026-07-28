@@ -14,7 +14,7 @@ from ..utils.metrics import confusion_matrix, optimize_scorers_for_data
 from .progress import ProgressSender, send_progress
 
 
-# "Queue | None" because Type[Queue] is <method>..
+# "Queue | None" because type[Queue] is <method>..
 def execute_single_run(
     run_id: int,
     seed: int,

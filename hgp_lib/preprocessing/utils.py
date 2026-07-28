@@ -52,7 +52,7 @@ def load_data(data_path: str) -> tuple[pd.DataFrame, ndarray]:
             Path to a ``.csv`` or ``.hdf`` file.
 
     Returns:
-        Tuple[pd.DataFrame, ndarray]: ``(data, labels)`` where ``data`` is the
+        tuple[pd.DataFrame, ndarray]: ``(data, labels)`` where ``data`` is the
         feature DataFrame (without the target column) and ``labels`` is a 1-D
         boolean numpy array.
 

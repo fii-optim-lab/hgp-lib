@@ -22,13 +22,13 @@ class RunResult:
         run_id (int): Zero-based index of this run.
         seed (int): Random seed used for the stratified split and k-fold.
         best_fold_idx (int): Index of the fold with the highest validation score.
-        folds (List[PopulationHistory]): Training history for each fold.
+        folds (list[PopulationHistory]): Training history for each fold.
         test_score (float): Score of the best rule on the held-out test set.
         test_tp (int): True positives on the test set.
         test_fp (int): False positives on the test set.
         test_fn (int): False negatives on the test set.
         test_tn (int): True negatives on the test set.
-        feature_names (List[str]): Output feature names in order, index-aligned so that
+        feature_names (list[str]): Output feature names in order, index-aligned so that
             ``feature_names[i]`` is the column name for feature index ``i`` (from the
             binarizer fitted on the best fold).
         binarizer (Binarizer | None): The binarizer fitted on the best fold, used to
@@ -308,7 +308,7 @@ class ExperimentResult:
     Aggregated results across multiple benchmark runs.
 
     Args:
-        runs (List[RunResult]): Results from each independent run.
+        runs (list[RunResult]): Results from each independent run.
 
     Examples:
         >>> from dataclasses import replace

@@ -28,7 +28,7 @@ class PopulationHistory:
         val_fp (int | None): False positives on validation data, or ``None``. Default: `None`.
         val_fn (int | None): False negatives on validation data, or ``None``. Default: `None`.
         val_tn (int | None): True negatives on validation data, or ``None``. Default: `None`.
-        generations (List[GenerationMetrics]):
+        generations (list[GenerationMetrics]):
             Per-epoch metrics. Default: empty list.
 
     Examples:

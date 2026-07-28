@@ -97,8 +97,8 @@ class TournamentSelection(BaseSelection):
                 Number of rules to select.
 
         Returns:
-            Tuple[List[Rule], ndarray]: A tuple containing:
-                - List[Rule]: Copies of the selected rules. The same rule may appear multiple times.
+            tuple[list[Rule], ndarray]: A tuple containing:
+                - list[Rule]: Copies of the selected rules. The same rule may appear multiple times.
                 - ndarray: The fitness scores of the selected rules.
 
         Examples:
