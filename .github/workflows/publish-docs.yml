@@ -5,12 +5,23 @@ on:
     types: [published]
   workflow_dispatch:
 
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run and latest checkout
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    environment: github-pages
-    permissions:
-      contents: write 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -18,7 +29,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.132'
 
       - name: Install Dependencies
         run: |
@@ -26,8 +37,17 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           python -m pip install -e .[dev]
 
+      - name: Build with MkDocs
+        run: mkdocs build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './site'
+
       - name: Deploy to GitHub Pages
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          mkdocs gh-deploy --force
+        id: deployment
+        uses: actions/deploy-pages@v4
