@@ -3,6 +3,7 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_bool_dtype, is_numeric_dtype
+from sklearn.exceptions import NotFittedError
 from tqdm import tqdm
 
 from hgp_lib.utils.validation import check_isinstance
@@ -10,6 +11,7 @@ from hgp_lib.utils.warnings import warn_once
 
 from .base import Binarizer
 from .binning import BinningStrategy, QuantileBinning, SupervisedTreeBinning
+from .errors import SchemaMismatchError
 from .utils import is_categorical_like
 from .warnings import (
     EmptyBinarizationWarning,
@@ -230,7 +232,7 @@ class StandardBinarizer(Binarizer):
                 columns produced by ``fit_transform`` / ``transform``.
 
         Raises:
-            ValueError: If the binarizer has not been fitted yet.
+            NotFittedError: If the binarizer has not been fitted yet.
 
         Examples:
             >>> import pandas as pd
@@ -241,7 +243,7 @@ class StandardBinarizer(Binarizer):
             ['x < 2.500', '2.500 <= x']
         """
         if not self._is_fitted:
-            raise ValueError(
+            raise NotFittedError(
                 "Binarizer must be fitted before calling get_feature_names_out"
             )
         return list(self._feature_names)
@@ -262,9 +264,9 @@ class StandardBinarizer(Binarizer):
 
         Raises:
             TypeError: If ``X`` is not a DataFrame.
-            ValueError: If the binarizer has not been fitted yet, or if a column dtype
-                differs from the one seen during fitting.
-            RuntimeError: If the columns differ from the fitting data.
+            NotFittedError: If the binarizer has not been fitted yet.
+            SchemaMismatchError: If the columns, a column dtype, or the number of
+                produced features differ from the fitting data.
 
         Examples:
             >>> import pandas as pd
@@ -276,10 +278,9 @@ class StandardBinarizer(Binarizer):
         """
         check_isinstance(X, pd.DataFrame)
         if not self._is_fitted:
-            raise ValueError("Binarizer must be fitted before calling transform")
+            raise NotFittedError("Binarizer must be fitted before calling transform")
         if not self._original_columns.equals(X.columns):
-            # TODO: (1) We should add custom Errors in the library where it makes sense.;
-            raise RuntimeError(
+            raise SchemaMismatchError(
                 f"Original columns do not match current columns. "
                 f"Original columns: {self._original_columns}. Current columns: {X.columns}."
             )
@@ -305,7 +306,7 @@ class StandardBinarizer(Binarizer):
                 values_list.extend(self._transform_column(column, series))
 
             if len(values_list) != len(names):
-                raise RuntimeError(
+                raise SchemaMismatchError(
                     f"Column '{column}' produced {len(values_list)} features at transform "
                     f"but {len(names)} were produced at fit."
                 )
@@ -394,7 +395,7 @@ class StandardBinarizer(Binarizer):
         expected = self._original_column_dtypes[column]
         actual = self._infer_kind(column, series)
         if actual != expected:
-            raise ValueError(
+            raise SchemaMismatchError(
                 f"Original column {column} was {expected.value}. "
                 f"Current column is {actual.value}. Current column must be {expected.value}."
             )

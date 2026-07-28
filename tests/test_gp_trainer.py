@@ -2,6 +2,7 @@ import random
 import unittest
 
 import numpy as np
+from sklearn.exceptions import NotFittedError
 
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
 from hgp_lib.crossover import CrossoverExecutor, CrossoverExecutorFactory
@@ -308,7 +309,7 @@ class TestGPTrainer(unittest.TestCase):
     def test_predict_before_fit_raises(self):
         config = self._make_trainer_config(num_epochs=5)
         trainer = GPTrainer(config)
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(NotFittedError):
             trainer.predict(self.train_data)
 
     def test_predict_returns_boolean_array(self):

@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from sklearn.exceptions import NotFittedError
 
 from hgp_lib.utils.validation import check_isinstance
 
@@ -51,7 +52,7 @@ class SklearnBinarizer(Binarizer):
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         check_isinstance(X, pd.DataFrame)
         if not self._is_fitted:
-            raise ValueError("Binarizer must be fitted before calling transform")
+            raise NotFittedError("Binarizer must be fitted before calling transform")
         array = np.asarray(self.transformer.transform(X))
         return pd.DataFrame(array.astype(bool), columns=self._columns, index=X.index)
 
@@ -66,10 +67,10 @@ class SklearnBinarizer(Binarizer):
             list[str]: The boolean output column names.
 
         Raises:
-            ValueError: If the binarizer has not been fitted yet.
+            NotFittedError: If the binarizer has not been fitted yet.
         """
         if not self._is_fitted:
-            raise ValueError(
+            raise NotFittedError(
                 "Binarizer must be fitted before calling get_feature_names_out"
             )
         return list(self._columns)

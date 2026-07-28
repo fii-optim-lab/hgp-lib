@@ -3,6 +3,7 @@ import unittest
 from collections.abc import Sequence
 
 import numpy as np
+from sklearn.exceptions import NotFittedError
 
 from hgp_lib.algorithms import BooleanGP
 from hgp_lib.configs import BooleanGPConfig
@@ -291,7 +292,7 @@ class TestBooleanGP(unittest.TestCase):
     # ------------------------------------------------------------------ #
     def test_evaluate_best_before_step_raises(self):
         gp = BooleanGP(self._make_config())
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(NotFittedError):
             gp.evaluate_best(self.val_data, self.val_labels)
 
     def test_evaluate_best_returns_float(self):

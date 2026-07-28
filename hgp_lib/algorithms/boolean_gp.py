@@ -3,6 +3,7 @@ from dataclasses import replace
 
 import numpy as np
 from numpy import ndarray
+from sklearn.exceptions import NotFittedError
 
 from hgp_lib.utils.metrics import confusion_matrix
 
@@ -593,7 +594,7 @@ class BooleanGP:
             float: Score of the global best rule on the provided data.
 
         Raises:
-            RuntimeError: If no best rule is available (run at least one step first).
+            NotFittedError: If no best rule is available (run at least one step first).
 
         Examples:
             >>> import numpy as np
@@ -613,7 +614,7 @@ class BooleanGP:
             True
         """
         if self.global_best_rule is None:
-            raise RuntimeError("No best rule available. Run at least one step first.")
+            raise NotFittedError("No best rule available. Run at least one step first.")
 
         fn = self._original_score_fn if score_fn is None else score_fn
         return float(fn(labels, self.global_best_rule.evaluate(data)))

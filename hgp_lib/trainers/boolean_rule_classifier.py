@@ -2,6 +2,7 @@ from dataclasses import replace
 
 import numpy as np
 import pandas as pd
+from sklearn.exceptions import NotFittedError
 
 from ..configs import TrainerConfig, validate_trainer_config
 from ..metrics import PopulationHistory
@@ -159,7 +160,7 @@ class BooleanRuleClassifier:
 
         Raises:
             TypeError: If ``X`` is not a ``pandas.DataFrame``.
-            RuntimeError: If called before ``fit``.
+            NotFittedError: If called before ``fit``.
         """
         check_isinstance(X, pd.DataFrame)
         self._check_fitted("predict")
@@ -190,6 +191,6 @@ class BooleanRuleClassifier:
 
     def _check_fitted(self, attr: str) -> None:
         if self._history is None:
-            raise RuntimeError(
+            raise NotFittedError(
                 f"BooleanRuleClassifier must be fit before accessing '{attr}'"
             )

@@ -4,6 +4,7 @@ import os
 
 import numpy as np
 import pandas as pd
+from sklearn.exceptions import NotFittedError
 from tqdm import tqdm
 
 from ..configs import BenchmarkerConfig, validate_benchmarker_config
@@ -217,8 +218,9 @@ class GPBenchmarker:
             np.ndarray: 1-D boolean array with one prediction per input row.
 
         Raises:
-            RuntimeError: If called before ``fit`` (no results are available yet), or
-                if the best run has no fitted binarizer to transform the raw data.
+            NotFittedError: If called before ``fit`` (no results are available yet).
+            RuntimeError: If the best run has no fitted binarizer to transform the
+                raw data.
 
         Examples:
             >>> from sklearn.metrics import accuracy_score
@@ -244,7 +246,7 @@ class GPBenchmarker:
             (8,)
         """
         if self._run_results is None:
-            raise RuntimeError("GPBenchmarker must be fit before calling predict")
+            raise NotFittedError("GPBenchmarker must be fit before calling predict")
 
         best_run = self._run_results.best_run
         if best_run.binarizer is None:
