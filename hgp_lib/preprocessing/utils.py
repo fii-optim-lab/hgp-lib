@@ -59,7 +59,7 @@ def load_data(data_path: str) -> tuple[pd.DataFrame, ndarray]:
     Raises:
         FileNotFoundError: If ``data_path`` does not exist.
         ValueError: If the file extension is not ``.csv`` or ``.hdf``.
-        RuntimeError: If no ``"target"`` column is found.
+        KeyError: If no ``"target"`` column is found.
 
     Examples:
         >>> import tempfile, os
@@ -92,7 +92,7 @@ def load_data(data_path: str) -> tuple[pd.DataFrame, ndarray]:
     if "target" in df.columns:
         target_column = "target"
     else:
-        raise RuntimeError(f"Unknown target column. Available: {df.columns.tolist()}")
+        raise KeyError(f"Unknown target column. Available: {df.columns.tolist()}")
 
     labels = df[target_column].to_numpy(dtype=bool, copy=True)
     data = df.drop([target_column], axis=1)

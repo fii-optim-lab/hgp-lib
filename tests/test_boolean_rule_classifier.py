@@ -4,6 +4,7 @@ import unittest
 
 import numpy as np
 import pandas as pd
+from sklearn.exceptions import NotFittedError
 
 from hgp_lib import BooleanRuleClassifier
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
@@ -132,17 +133,17 @@ class TestBooleanRuleClassifier(unittest.TestCase):
     # ------------------------------------------------------------------ #
     def test_predict_before_fit_raises(self):
         clf = BooleanRuleClassifier(self._make_config())
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(NotFittedError):
             clf.predict(self.data)
 
     def test_rule_before_fit_raises(self):
         clf = BooleanRuleClassifier(self._make_config())
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(NotFittedError):
             _ = clf.rule
 
     def test_feature_names_before_fit_raises(self):
         clf = BooleanRuleClassifier(self._make_config())
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(NotFittedError):
             _ = clf.feature_names
 
 

@@ -16,6 +16,10 @@
 
 ::: hgp_lib.preprocessing.binning.SupervisedTreeBinning
 
+## Errors
+
+::: hgp_lib.preprocessing.errors.SchemaMismatchError
+
 ## Warnings
 
 ::: hgp_lib.preprocessing.warnings.BinarizerWarning

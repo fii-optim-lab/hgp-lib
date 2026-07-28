@@ -7,6 +7,7 @@ from multiprocessing import Queue
 
 import numpy as np
 import pandas as pd
+from sklearn.exceptions import NotFittedError
 
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.benchmarkers.progress import ProgressReporter
@@ -587,7 +588,7 @@ class TestGPBenchmarker(unittest.TestCase):
     # ------------------------------------------------------------------ #
     def test_predict_before_fit_raises(self):
         benchmarker = GPBenchmarker(self._make_config(num_runs=1))
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(NotFittedError):
             benchmarker.predict(self.data)
 
     def test_predict_returns_boolean_array(self):

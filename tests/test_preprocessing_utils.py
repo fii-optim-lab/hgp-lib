@@ -104,7 +104,7 @@ class TestLoadData(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
             path = self._write_csv(df, tmpdir)
-            with self.assertRaises(RuntimeError):
+            with self.assertRaises(KeyError):
                 load_data(path)
 
     # ------------------------------------------------------------------ #

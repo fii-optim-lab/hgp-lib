@@ -2,8 +2,9 @@ import unittest
 
 import numpy as np
 import pandas as pd
+from sklearn.exceptions import NotFittedError
 
-from hgp_lib.preprocessing import StandardBinarizer
+from hgp_lib.preprocessing import SchemaMismatchError, StandardBinarizer
 from hgp_lib.preprocessing.binning import (
     BinningStrategy,
     QuantileBinning,
@@ -73,7 +74,7 @@ class TestStandardBinarizer(unittest.TestCase):
 
     def test_transform_before_fit_raises(self):
         b = StandardBinarizer()
-        with self.assertRaises(ValueError):
+        with self.assertRaises(NotFittedError):
             b.transform(pd.DataFrame({"x": [1.0]}))
 
     # ------------------------------------------------------------------ #
@@ -349,25 +350,25 @@ class TestStandardBinarizer(unittest.TestCase):
     def test_transform_dtype_change_raises(self):
         b = StandardBinarizer()
         b.fit_transform(pd.DataFrame({"x": [True, False]}))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(SchemaMismatchError):
             b.transform(pd.DataFrame({"x": pd.array(["a", "b"], dtype="string")}))
 
     def test_transform_numeric_to_categorical_raises(self):
         b = StandardBinarizer(num_bins=2)
         b.fit_transform(pd.DataFrame({"x": [1.0, 2.0, 3.0]}))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(SchemaMismatchError):
             b.transform(pd.DataFrame({"x": pd.Categorical(["a", "b", "c"])}))
 
     def test_transform_different_columns_raises(self):
         b = StandardBinarizer(num_bins=2)
         b.fit_transform(pd.DataFrame({"x": [1.0, 2.0, 3.0]}))
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(SchemaMismatchError):
             b.transform(pd.DataFrame({"y": [1.0, 2.0]}))
 
     def test_transform_different_column_order_raises(self):
         b = StandardBinarizer(num_bins=2)
         b.fit_transform(pd.DataFrame({"a": [1.0, 2.0], "b": [3.0, 4.0]}))
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(SchemaMismatchError):
             b.transform(pd.DataFrame({"b": [3.0], "a": [1.0]}))
 
     def test_unsupported_dtype_fit_transform(self):
@@ -399,7 +400,7 @@ class TestStandardBinarizer(unittest.TestCase):
 
     def test_get_feature_names_out_before_fit_raises(self):
         b = StandardBinarizer()
-        with self.assertRaises(ValueError):
+        with self.assertRaises(NotFittedError):
             b.get_feature_names_out()
 
 
@@ -412,7 +413,7 @@ class TestSklearnBinarizer(unittest.TestCase):
         b = SklearnBinarizer(
             KBinsDiscretizer(n_bins=2, encode="onehot-dense", strategy="uniform")
         )
-        with self.assertRaises(ValueError):
+        with self.assertRaises(NotFittedError):
             b.transform(pd.DataFrame({"x": [0.0, 1.0]}))
 
     def test_feature_names_positional_fallback(self):
@@ -453,7 +454,7 @@ class TestSklearnBinarizer(unittest.TestCase):
         b = SklearnBinarizer(
             KBinsDiscretizer(n_bins=2, encode="onehot-dense", strategy="uniform")
         )
-        with self.assertRaises(ValueError):
+        with self.assertRaises(NotFittedError):
             b.get_feature_names_out()
 
 

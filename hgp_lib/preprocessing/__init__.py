@@ -1,6 +1,7 @@
 from .base import Binarizer
 from .binarizer import StandardBinarizer
 from .binning import BinningStrategy, QuantileBinning, SupervisedTreeBinning
+from .errors import SchemaMismatchError
 from .sklearn_binarizer import SklearnBinarizer
 from .utils import is_categorical_like, load_data
 from .warnings import (
@@ -18,6 +19,7 @@ __all__ = [
     "EmptyBinarizationWarning",
     "HighCardinalityWarning",
     "QuantileBinning",
+    "SchemaMismatchError",
     "SklearnBinarizer",
     "StandardBinarizer",
     "StringColumnWarning",

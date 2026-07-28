@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.exceptions import NotFittedError
 from tqdm import tqdm
 
 from ..algorithms import BooleanGP
@@ -163,7 +164,7 @@ class GPTrainer:
             np.ndarray: 1-D boolean array with one prediction per input row.
 
         Raises:
-            RuntimeError: If called before ``fit`` (no best rule is available yet).
+            NotFittedError: If called before ``fit`` (no best rule is available yet).
 
         Examples:
             >>> import numpy as np
@@ -186,5 +187,5 @@ class GPTrainer:
             (2,)
         """
         if self.gp_algo.global_best_rule is None:
-            raise RuntimeError("GPTrainer must be fit before calling predict")
+            raise NotFittedError("GPTrainer must be fit before calling predict")
         return self.gp_algo.global_best_rule.evaluate(data)
