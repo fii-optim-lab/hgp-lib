@@ -78,7 +78,7 @@ class TestMutationExecutorFactory(unittest.TestCase):
     def test_literal_mutations_empty_raises(self):
         class Empty(MutationExecutorFactory):
             def create_literal_mutations(self, num_literals):
-                return tuple()
+                return ()
 
         with self.assertRaises(ValueError):
             Empty().create(5)
@@ -86,7 +86,7 @@ class TestMutationExecutorFactory(unittest.TestCase):
     def test_operator_mutations_empty_raises(self):
         class Empty(MutationExecutorFactory):
             def create_operator_mutations(self, num_literals):
-                return tuple()
+                return ()
 
         with self.assertRaises(ValueError):
             Empty().create(5)

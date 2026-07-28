@@ -1,22 +1,20 @@
 import logging
-
-import numpy as np
-import optuna
-
 import os
 import tempfile
+import traceback
 
 import matplotlib
-
 import matplotlib.pyplot as plt
-
+import numpy as np
+import optuna
 from optuna.artifacts import upload_artifact
 
 from hgp_lib.metrics.results import ExperimentResult
+
 from .plots import (
-    plot_experiment_boxplots,
-    plot_best_fold_generations,
     plot_all_folds_val_scores,
+    plot_best_fold_generations,
+    plot_experiment_boxplots,
     plot_population_bands,
 )
 
@@ -139,8 +137,8 @@ def upload_trial_artifacts(
                     artifact_store=artifact_store,
                 )
 
-            except Exception as e:
+            except Exception as e:  # noqa BLE001
                 logger.warning(
-                    f"Trial {trial.number}: Failed to generate {plot_name}: {e}"
+                    f"Trial {trial.number}: Failed to generate {plot_name}: {e} - {traceback.format_exc()}"
                 )
                 continue

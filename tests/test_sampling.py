@@ -1,12 +1,13 @@
 """Tests for sampling strategies."""
 
 import unittest
+
 import numpy as np
 
 from hgp_lib.populations.sampling import (
+    CombinedSamplingStrategy,
     FeatureSamplingStrategy,
     InstanceSamplingStrategy,
-    CombinedSamplingStrategy,
 )
 
 

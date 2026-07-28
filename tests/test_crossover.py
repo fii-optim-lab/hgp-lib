@@ -1,17 +1,16 @@
-import unittest
 import random
+import unittest
 
 import numpy as np
 
 from hgp_lib.crossover import CrossoverExecutor, CrossoverExecutorFactory
-from hgp_lib.rules import Rule, Literal, And, Or
+from hgp_lib.rules import And, Literal, Or, Rule
 
 
 class TestCrossoverExecutor(unittest.TestCase):
     def test_crossover_executor_validation(self):
-        with self.subTest("crossover_p type"):
-            with self.assertRaises(TypeError):
-                CrossoverExecutorFactory(crossover_p=1)  # int instead of float
+        with self.subTest("crossover_p type"), self.assertRaises(TypeError):
+            CrossoverExecutorFactory(crossover_p=1)  # int instead of float
 
         with self.subTest("crossover_p bounds"):
             with self.assertRaises(ValueError):
@@ -19,17 +18,17 @@ class TestCrossoverExecutor(unittest.TestCase):
             with self.assertRaises(ValueError):
                 CrossoverExecutorFactory(crossover_p=-0.1)
 
-        with self.subTest("crossover_strategy invalid"):
-            with self.assertRaises(ValueError):
-                CrossoverExecutorFactory(crossover_strategy="invalid")
+        with self.subTest("crossover_strategy invalid"), self.assertRaises(ValueError):
+            CrossoverExecutorFactory(crossover_strategy="invalid")
 
-        with self.subTest("num_tries requires check_valid"):
-            with self.assertRaises(ValueError):
-                CrossoverExecutorFactory(num_tries=2).create()
+        with (
+            self.subTest("num_tries requires check_valid"),
+            self.assertRaises(ValueError),
+        ):
+            CrossoverExecutorFactory(num_tries=2).create()
 
-        with self.subTest("num_tries must be positive"):
-            with self.assertRaises(ValueError):
-                CrossoverExecutorFactory(num_tries=0)
+        with self.subTest("num_tries must be positive"), self.assertRaises(ValueError):
+            CrossoverExecutorFactory(num_tries=0)
 
     def test_operator_p_validation(self):
         """Test that operator_p outside [0.0, 1.0] raises ValueError."""

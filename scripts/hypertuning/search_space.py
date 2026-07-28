@@ -22,12 +22,12 @@ Fixed params (plain scalar)::
 """
 
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any
 
 import yaml
 
 
-def _parse_entry(raw: Any) -> Tuple[tuple, dict]:
+def _parse_entry(raw: Any) -> tuple[tuple, dict]:
     """
     Parse a single YAML entry into ``(args, kwargs)``.
 
@@ -49,7 +49,7 @@ def _parse_entry(raw: Any) -> Tuple[tuple, dict]:
 
 def load_search_space(
     config_path: str | Path,
-) -> Dict[str, Tuple[tuple, dict]]:
+) -> dict[str, tuple[tuple, dict]]:
     """
     Load a YAML search-space config.
 

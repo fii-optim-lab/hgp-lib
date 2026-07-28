@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Sequence, Tuple
+from collections.abc import Sequence
 
 import numpy as np
 from numpy import ndarray
@@ -42,7 +42,7 @@ class BaseSelection(ABC):
         rules: Sequence[Rule],
         scores: np.ndarray | Sequence[float],
         n_select: int,
-    ) -> Tuple[List[Rule], ndarray]:
+    ) -> tuple[list[Rule], ndarray]:
         """
         Selects `n_select` rules from the population based on their fitness scores.
 
@@ -84,4 +84,3 @@ class BaseSelection(ABC):
             >>> selected_rules
             [1, 2]
         """
-        pass

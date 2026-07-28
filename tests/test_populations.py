@@ -1,15 +1,16 @@
-import unittest
 import random
+import unittest
+
 import numpy as np
 
+from hgp_lib.mutations import MutationExecutorFactory
 from hgp_lib.populations import (
+    BestLiteralStrategy,
     PopulationGenerator,
     PopulationGeneratorFactory,
     RandomStrategy,
-    BestLiteralStrategy,
 )
-from hgp_lib.mutations import MutationExecutorFactory
-from hgp_lib.rules import And, Or, Literal
+from hgp_lib.rules import And, Literal, Or
 from hgp_lib.utils.metrics import fast_accuracy_score
 
 

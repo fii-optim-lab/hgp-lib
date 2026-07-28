@@ -6,12 +6,12 @@ import numpy as np
 
 from hgp_lib.mutations import (
     DeleteMutation,
-    NegateMutation,
-    ReplaceLiteral,
-    PromoteLiteral,
     MutationError,
+    NegateMutation,
+    PromoteLiteral,
+    ReplaceLiteral,
 )
-from hgp_lib.rules import Literal, And, Or
+from hgp_lib.rules import And, Literal, Or
 
 
 class TestDeleteMutation(unittest.TestCase):

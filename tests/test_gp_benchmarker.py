@@ -1,13 +1,12 @@
 import io
 import queue
-import unittest
 import random
+import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from multiprocessing import Queue
 
 import numpy as np
 import pandas as pd
-from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.benchmarkers.runner import execute_single_run, single_run_wrapper
@@ -19,6 +18,7 @@ from hgp_lib.populations import PopulationGeneratorFactory
 from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.rules import Rule
 from hgp_lib.selections import RouletteSelection
+from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 
 class TestGPBenchmarker(unittest.TestCase):
@@ -45,30 +45,33 @@ class TestGPBenchmarker(unittest.TestCase):
         self.score_fn = accuracy_score
 
     def _make_gp_config(self, **kwargs):
-        defaults = dict(score_fn=self.score_fn, optimize_scorer=False)
+        defaults = {"score_fn": self.score_fn, "optimize_scorer": False}
         defaults.update(kwargs)
         return BooleanGPConfig(**defaults)
 
     def _make_trainer_config(self, gp_config=None, **kwargs):
         if gp_config is None:
             gp_config = self._make_gp_config()
-        defaults = dict(
-            gp_config=gp_config, num_epochs=5, val_every=1, progress_bar=False
-        )
+        defaults = {
+            "gp_config": gp_config,
+            "num_epochs": 5,
+            "val_every": 1,
+            "progress_bar": False,
+        }
         defaults.update(kwargs)
         return TrainerConfig(**defaults)
 
     def _make_config(self, trainer_config=None, **kwargs):
         if trainer_config is None:
             trainer_config = self._make_trainer_config()
-        defaults = dict(
-            data=self.data,
-            labels=self.labels,
-            trainer_config=trainer_config,
-            num_runs=2,
-            n_folds=2,
-            n_jobs=1,
-        )
+        defaults = {
+            "data": self.data,
+            "labels": self.labels,
+            "trainer_config": trainer_config,
+            "num_runs": 2,
+            "n_folds": 2,
+            "n_jobs": 1,
+        }
         defaults.update(kwargs)
         return BenchmarkerConfig(**defaults)
 
@@ -76,97 +79,91 @@ class TestGPBenchmarker(unittest.TestCase):
     #  Validation
     # ------------------------------------------------------------------ #
     def test_benchmarker_validation(self):
-        with self.subTest("score_fn must be callable"):
-            with self.assertRaises(TypeError):
-                GPBenchmarker(
-                    self._make_config(
-                        trainer_config=self._make_trainer_config(
-                            gp_config=self._make_gp_config(score_fn="not callable")
-                        )
+        with self.subTest("score_fn must be callable"), self.assertRaises(TypeError):
+            GPBenchmarker(
+                self._make_config(
+                    trainer_config=self._make_trainer_config(
+                        gp_config=self._make_gp_config(score_fn="not callable")
                     )
                 )
+            )
 
-        with self.subTest("num_epochs must be int"):
-            with self.assertRaises(TypeError):
-                GPBenchmarker(
-                    self._make_config(
-                        trainer_config=self._make_trainer_config(num_epochs=5.0)
+        with self.subTest("num_epochs must be int"), self.assertRaises(TypeError):
+            GPBenchmarker(
+                self._make_config(
+                    trainer_config=self._make_trainer_config(num_epochs=5.0)
+                )
+            )
+
+        with self.subTest("num_epochs must be positive"), self.assertRaises(ValueError):
+            GPBenchmarker(
+                self._make_config(
+                    trainer_config=self._make_trainer_config(num_epochs=0)
+                )
+            )
+
+        with self.subTest("data must be a DataFrame"), self.assertRaises(TypeError):
+            GPBenchmarker(self._make_config(data="not a dataframe"))
+
+        with self.subTest("labels must be ndarray"), self.assertRaises(TypeError):
+            GPBenchmarker(self._make_config(labels="not array"))
+
+        with (
+            self.subTest("labels length must match data rows"),
+            self.assertRaises(ValueError),
+        ):
+            GPBenchmarker(self._make_config(labels=np.array([1, 0])))
+
+        with self.subTest("num_runs must be positive"), self.assertRaises(ValueError):
+            GPBenchmarker(self._make_config(num_runs=0))
+
+        with (
+            self.subTest("test_size must be in (0, 1) — low"),
+            self.assertRaises(ValueError),
+        ):
+            GPBenchmarker(self._make_config(test_size=0.0))
+
+        with (
+            self.subTest("test_size must be in (0, 1) — high"),
+            self.assertRaises(ValueError),
+        ):
+            GPBenchmarker(self._make_config(test_size=1.0))
+
+        with self.subTest("n_folds must be at least 2"), self.assertRaises(ValueError):
+            GPBenchmarker(self._make_config(n_folds=1))
+
+        with self.subTest("data must be 2D"), self.assertRaises(ValueError):
+            GPBenchmarker(self._make_config(data=pd.DataFrame(np.array([1, 2, 3]))))
+
+        with self.subTest("labels must be 1D"), self.assertRaises(ValueError):
+            GPBenchmarker(self._make_config(labels=np.array([[1, 0], [1, 0]])))
+
+        with self.subTest("population_factory type"), self.assertRaises(TypeError):
+            GPBenchmarker(
+                self._make_config(
+                    trainer_config=self._make_trainer_config(
+                        gp_config=self._make_gp_config(population_factory="bad")
                     )
                 )
+            )
 
-        with self.subTest("num_epochs must be positive"):
-            with self.assertRaises(ValueError):
-                GPBenchmarker(
-                    self._make_config(
-                        trainer_config=self._make_trainer_config(num_epochs=0)
+        with self.subTest("mutation_factory type"), self.assertRaises(TypeError):
+            GPBenchmarker(
+                self._make_config(
+                    trainer_config=self._make_trainer_config(
+                        gp_config=self._make_gp_config(mutation_factory="bad")
                     )
                 )
+            )
 
-        with self.subTest("data must be a DataFrame"):
-            with self.assertRaises(TypeError):
-                GPBenchmarker(self._make_config(data="not a dataframe"))
-
-        with self.subTest("labels must be ndarray"):
-            with self.assertRaises(TypeError):
-                GPBenchmarker(self._make_config(labels="not array"))
-
-        with self.subTest("labels length must match data rows"):
-            with self.assertRaises(ValueError):
-                GPBenchmarker(self._make_config(labels=np.array([1, 0])))
-
-        with self.subTest("num_runs must be positive"):
-            with self.assertRaises(ValueError):
-                GPBenchmarker(self._make_config(num_runs=0))
-
-        with self.subTest("test_size must be in (0, 1) — low"):
-            with self.assertRaises(ValueError):
-                GPBenchmarker(self._make_config(test_size=0.0))
-
-        with self.subTest("test_size must be in (0, 1) — high"):
-            with self.assertRaises(ValueError):
-                GPBenchmarker(self._make_config(test_size=1.0))
-
-        with self.subTest("n_folds must be at least 2"):
-            with self.assertRaises(ValueError):
-                GPBenchmarker(self._make_config(n_folds=1))
-
-        with self.subTest("data must be 2D"):
-            with self.assertRaises(ValueError):
-                GPBenchmarker(self._make_config(data=pd.DataFrame(np.array([1, 2, 3]))))
-
-        with self.subTest("labels must be 1D"):
-            with self.assertRaises(ValueError):
-                GPBenchmarker(self._make_config(labels=np.array([[1, 0], [1, 0]])))
-
-        with self.subTest("population_factory type"):
-            with self.assertRaises(TypeError):
-                GPBenchmarker(
-                    self._make_config(
-                        trainer_config=self._make_trainer_config(
-                            gp_config=self._make_gp_config(population_factory="bad")
-                        )
+        with self.subTest("selection type"), self.assertRaises(TypeError):
+            GPBenchmarker(
+                self._make_config(
+                    trainer_config=self._make_trainer_config(
+                        gp_config=self._make_gp_config(selection="bad")
                     )
                 )
-
-        with self.subTest("mutation_factory type"):
-            with self.assertRaises(TypeError):
-                GPBenchmarker(
-                    self._make_config(
-                        trainer_config=self._make_trainer_config(
-                            gp_config=self._make_gp_config(mutation_factory="bad")
-                        )
-                    )
-                )
-
-        with self.subTest("selection type"):
-            with self.assertRaises(TypeError):
-                GPBenchmarker(
-                    self._make_config(
-                        trainer_config=self._make_trainer_config(
-                            gp_config=self._make_gp_config(selection="bad")
-                        )
-                    )
-                )
+            )
 
     # ------------------------------------------------------------------ #
     #  Initialization
@@ -319,11 +316,11 @@ class TestGPBenchmarker(unittest.TestCase):
         self.assertTrue(len(readable) > 0)
 
     def test_reproducibility_with_seed(self):
-        cfg_kwargs = dict(
-            trainer_config=self._make_trainer_config(num_epochs=2),
-            n_jobs=1,
-            base_seed=12345,
-        )
+        cfg_kwargs = {
+            "trainer_config": self._make_trainer_config(num_epochs=2),
+            "n_jobs": 1,
+            "base_seed": 12345,
+        }
         r1 = GPBenchmarker(self._make_config(**cfg_kwargs)).fit()
         r2 = GPBenchmarker(self._make_config(**cfg_kwargs)).fit()
         self.assertEqual(

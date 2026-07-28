@@ -65,7 +65,7 @@ dev = [
     "mkdocs-bibtex",
     "pytest",
     "flake8",
-    "ruff==0.15.22",
+    "ruff",
     "seaborn",
     "tables",
     "prettytable",
@@ -76,7 +76,7 @@ dev = [
     "matplotlib",
 ]
 [tool.ruff]
-exclude = [".venv"]
+exclude = [".venv", "docs", "README.md"]
 
 [tool.coverage.run]
 source = ["hgp_lib"]

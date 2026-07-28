@@ -3,10 +3,10 @@ import unittest
 from multiprocessing import Queue
 
 from hgp_lib.benchmarkers.progress import (
+    _SHUTDOWN_SENTINEL,
     ProgressConfig,
     ProgressListener,
     send_progress,
-    _SHUTDOWN_SENTINEL,
 )
 
 
@@ -46,7 +46,7 @@ class TestSendProgress(unittest.TestCase):
     def test_default_count(self):
         q = Queue()
         send_progress(q, "run")
-        msg, count = q.get(timeout=1)
+        _msg, count = q.get(timeout=1)
         self.assertEqual(count, 1)
 
     def test_multiple_messages(self):

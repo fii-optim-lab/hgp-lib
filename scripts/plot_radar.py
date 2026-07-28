@@ -91,7 +91,7 @@ def plot_radar_performance(series, output_path):
     angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
     angles_closed = angles + angles[:1]
 
-    fig, ax = plt.subplots(figsize=(14, 14), subplot_kw={"projection": "polar"})
+    _fig, ax = plt.subplots(figsize=(14, 14), subplot_kw={"projection": "polar"})
     ax.set_ylim(0, 1)
 
     for clf_name in clf_names:

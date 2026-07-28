@@ -3,8 +3,8 @@
 import unittest
 from dataclasses import replace
 
-from hgp_lib.metrics.history import PopulationHistory
 from hgp_lib.metrics.core import GenerationMetrics
+from hgp_lib.metrics.history import PopulationHistory
 from hgp_lib.rules import Literal
 
 
@@ -22,13 +22,13 @@ class TestPopulationHistory(unittest.TestCase):
         return g
 
     def _make_history(self, generations=None, **kwargs):
-        defaults = dict(
-            global_best_rule=Literal(value=0),
-            tp=0,
-            fp=0,
-            fn=0,
-            tn=0,
-        )
+        defaults = {
+            "global_best_rule": Literal(value=0),
+            "tp": 0,
+            "fp": 0,
+            "fn": 0,
+            "tn": 0,
+        }
         defaults.update(kwargs)
         if generations is not None:
             defaults["generations"] = generations

@@ -5,14 +5,14 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from hgp_lib.rules import Literal, And, Or
+from hgp_lib.rules import And, Literal, Or
 from hgp_lib.utils.validation import (
     ComplexityCheck,
-    validate_callable,
     check_isinstance,
+    check_X_y,
+    validate_callable,
     validate_num_literals,
     validate_operator_types,
-    check_X_y,
 )
 
 

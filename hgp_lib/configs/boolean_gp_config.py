@@ -1,5 +1,5 @@
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Callable
 
 from numpy import ndarray
 
@@ -7,7 +7,7 @@ from ..crossover import CrossoverExecutorFactory
 from ..mutations.mutation_factory import MutationExecutorFactory
 from ..populations import SamplingStrategy
 from ..populations.populations_factory import PopulationGeneratorFactory
-from ..rules import Rule, Literal
+from ..rules import Literal, Rule
 from ..selections import BaseSelection
 from ..utils.validation import check_isinstance, check_X_y, validate_callable
 
@@ -209,6 +209,6 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
         )
 
     if require_data:
-        setattr(config, "_validated_with_data", True)
+        config._validated_with_data = True
     else:
-        setattr(config, "_validated_without_data", True)
+        config._validated_without_data = True

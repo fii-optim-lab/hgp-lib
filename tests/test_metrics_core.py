@@ -4,18 +4,18 @@ import unittest
 from dataclasses import replace
 
 from hgp_lib.metrics.core import GenerationMetrics
-from hgp_lib.rules import Literal, And
+from hgp_lib.rules import And, Literal
 
 
 class TestGenerationMetrics(unittest.TestCase):
     def _make(self, **kwargs):
-        defaults = dict(
-            best_idx=0,
-            best_rule=Literal(value=0),
-            train_scores=[0.8],
-            complexities=[1],
-            child_population_generation_metrics=[],
-        )
+        defaults = {
+            "best_idx": 0,
+            "best_rule": Literal(value=0),
+            "train_scores": [0.8],
+            "complexities": [1],
+            "child_population_generation_metrics": [],
+        }
         defaults.update(kwargs)
         return GenerationMetrics.from_population(**defaults)
 

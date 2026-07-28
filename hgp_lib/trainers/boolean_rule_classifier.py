@@ -1,5 +1,4 @@
 from dataclasses import replace
-from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -64,7 +63,7 @@ class BooleanRuleClassifier:
     """
 
     def __init__(
-        self, trainer_config: TrainerConfig, binarizer: Optional[Binarizer] = None
+        self, trainer_config: TrainerConfig, binarizer: Binarizer | None = None
     ):
         validate_trainer_config(trainer_config, require_data=False)
         if binarizer is None:
@@ -78,13 +77,13 @@ class BooleanRuleClassifier:
 
         self.trainer_config = trainer_config
         self.binarizer = binarizer
-        self._history: Optional[PopulationHistory] = None
+        self._history: PopulationHistory | None = None
 
     def fit(
         self,
         X: pd.DataFrame,
         y: "np.ndarray | pd.Series",
-        X_val: Optional[pd.DataFrame] = None,
+        X_val: pd.DataFrame | None = None,
         y_val: "np.ndarray | pd.Series | None" = None,
     ) -> PopulationHistory:
         """
@@ -174,7 +173,7 @@ class BooleanRuleClassifier:
         return self._history.global_best_rule
 
     @property
-    def feature_names(self) -> List[str]:
+    def feature_names(self) -> list[str]:
         """
         The binarized feature names in order (from the fitted binarizer), so that
         ``feature_names[i]`` names the feature a literal references with index ``i``.

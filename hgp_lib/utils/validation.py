@@ -1,5 +1,7 @@
 import inspect
-from typing import Sequence, Tuple, Type, Callable, Any
+from collections.abc import Callable, Sequence
+from typing import Any
+
 import numpy as np
 import pandas as pd
 
@@ -77,7 +79,7 @@ def validate_callable(maybe_callable: Callable, error_message: str | None = None
         raise TypeError(error_message)
 
 
-def check_isinstance(value: Any, expected_type: Type | Tuple[Type, ...]):
+def check_isinstance(value: Any, expected_type: type | tuple[type, ...]):
     """
     Check that a value is an instance of expected type(s).
 
@@ -133,7 +135,7 @@ def validate_num_literals(num_literals: int):
         )
 
 
-def validate_operator_types(operator_types: Sequence[Type[Rule]]):
+def validate_operator_types(operator_types: Sequence[type[Rule]]):
     """
     Validate ``operator_types`` parameter.
 
@@ -166,7 +168,7 @@ def validate_operator_types(operator_types: Sequence[Type[Rule]]):
 def check_X_y(
     X: np.ndarray | pd.DataFrame,
     y: np.ndarray,
-    x_type: Type[np.ndarray] | Type[pd.DataFrame] = np.ndarray,
+    x_type: type[np.ndarray] | type[pd.DataFrame] = np.ndarray,
 ):
     """
     Validate input data and labels.

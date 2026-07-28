@@ -1,29 +1,26 @@
 import argparse
+import os
 import random
 import subprocess
 import sys
-import os
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import freeze_support
 from time import sleep
 
-import pandas as pd
 import numpy as np
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.model_selection import train_test_split, StratifiedKFold
-from sklearn.metrics import f1_score
-
-from hgp_lib.preprocessing import load_data, StandardBinarizer
-from hgp_lib.benchmarkers import GPBenchmarker
-from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
-from hgp_lib.utils.metrics import fast_f1_score
+import pandas as pd
 from preprocess.pmlb_preprocess import save_pmlb_data
+from sklearn.compose import make_column_selector, make_column_transformer
+from sklearn.metrics import f1_score
+from sklearn.model_selection import StratifiedKFold, train_test_split
+from sklearn.preprocessing import KBinsDiscretizer, OneHotEncoder
+from sklearn.tree import DecisionTreeClassifier
 from tqdm.contrib.concurrent import process_map
 
-
-from sklearn.compose import make_column_transformer
-from sklearn.preprocessing import KBinsDiscretizer, OneHotEncoder
-from sklearn.compose import make_column_selector
+from hgp_lib.benchmarkers import GPBenchmarker
+from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
+from hgp_lib.preprocessing import StandardBinarizer, load_data
+from hgp_lib.utils.metrics import fast_f1_score
 
 
 def get_binary_classification_datasets():
@@ -63,20 +60,20 @@ def run_sklearn_benchmark(
     n_runs: int = 30,
     n_folds: int = 5,
     data_dir: str = "data",
-    max_leaf_nodes: int = None,
+    max_leaf_nodes: int | None = None,
     binarizer_type: str = "standard",
 ) -> dict:
     data_path = f"{data_dir}/{dataset_name}.hdf"
     if not os.path.isfile(data_path):
         try:
             save_pmlb_data(dataset_name, data_dir)
-        except Exception as e:
+        except Exception as e:  # noqa BLE001
             print(f"Failed to load {dataset_name}: {e}")
             return None
 
     try:
         data, labels = load_data(data_path)
-    except Exception as e:
+    except Exception as e:  # noqa BLE001
         print(f"Failed to read {dataset_name}: {e}")
         return None
 
@@ -197,13 +194,13 @@ def run_gp_default_benchmark(
     if not os.path.isfile(data_path):
         try:
             save_pmlb_data(dataset_name, data_dir)
-        except Exception as e:
+        except Exception as e:  # noqa BLE001
             print(f"Failed to load {dataset_name}: {e}")
             return None
 
     try:
         data, labels = load_data(data_path)
-    except Exception as e:
+    except Exception as e:  # noqa BLE001
         print(f"Failed to read {dataset_name}: {e}")
         return None
 

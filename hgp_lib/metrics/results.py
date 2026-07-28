@@ -2,13 +2,12 @@
 
 from dataclasses import dataclass
 from functools import cached_property
-from typing import List, Optional
 
 import numpy as np
 
-from . import PopulationHistory
 from ..preprocessing.base import Binarizer
 from ..rules import Rule
+from . import PopulationHistory
 
 
 @dataclass
@@ -56,14 +55,14 @@ class RunResult:
     run_id: int
     seed: int
     best_fold_idx: int
-    folds: List[PopulationHistory]
+    folds: list[PopulationHistory]
     test_score: float
     test_tp: int
     test_fp: int
     test_fn: int
     test_tn: int
-    feature_names: List[str]
-    binarizer: Optional[Binarizer] = None
+    feature_names: list[str]
+    binarizer: Binarizer | None = None
 
     @cached_property
     def best_fold(self) -> PopulationHistory:
@@ -111,7 +110,7 @@ class RunResult:
         return self.best_fold.global_best_rule
 
     @cached_property
-    def fold_val_scores(self) -> List[float]:
+    def fold_val_scores(self) -> list[float]:
         """
         Best validation score from each fold (folds without validation are excluded).
 
@@ -148,7 +147,7 @@ class RunResult:
         ]
 
     @cached_property
-    def fold_train_scores(self) -> List[float]:
+    def fold_train_scores(self) -> list[float]:
         """
         Best training score from each fold (folds without generations are excluded).
 
@@ -347,7 +346,7 @@ class ExperimentResult:
         1
     """
 
-    runs: List[RunResult]
+    runs: list[RunResult]
 
     @cached_property
     def best_run(self) -> RunResult:

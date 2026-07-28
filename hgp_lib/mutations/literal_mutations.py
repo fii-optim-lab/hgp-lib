@@ -1,12 +1,11 @@
 import random
-from typing import Type, Tuple
 
 import numpy as np
 
+from ..rules import And, Literal, Or, Rule
+from ..rules.utils import _create_unsafe_rule
 from .base_mutation import Mutation
 from .utils import MutationError
-from ..rules import Rule, Or, And, Literal
-from ..rules.utils import _create_unsafe_rule
 
 
 class DeleteMutation(Mutation):
@@ -266,7 +265,7 @@ class PromoteLiteral(Mutation):
     """
 
     def __init__(
-        self, num_literals: int, operator_types: Tuple[Type[Rule], ...] = (Or, And)
+        self, num_literals: int, operator_types: tuple[type[Rule], ...] = (Or, And)
     ):
         super().__init__(is_literal_mutation=True, is_operator_mutation=False)
 

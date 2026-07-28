@@ -1,11 +1,11 @@
-from typing import List, Sequence, Tuple
+from collections.abc import Sequence
 
 import numpy as np
 from numpy import ndarray
 
-from .base_selection import BaseSelection
 from ..rules import Rule
 from ..utils.validation import check_isinstance
+from .base_selection import BaseSelection
 
 
 class TournamentSelection(BaseSelection):
@@ -75,7 +75,7 @@ class TournamentSelection(BaseSelection):
         rules: Sequence[Rule],
         scores: np.ndarray | Sequence[float],
         n_select: int,
-    ) -> Tuple[List[Rule], ndarray]:
+    ) -> tuple[list[Rule], ndarray]:
         """
         Selects `n_select` rules using tournament selection.
 

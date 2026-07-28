@@ -1,9 +1,10 @@
+from collections.abc import Callable
 from dataclasses import replace
-from typing import Callable, List
 
 import numpy as np
-from hgp_lib.utils.metrics import confusion_matrix
 from numpy import ndarray
+
+from hgp_lib.utils.metrics import confusion_matrix
 
 from ..configs import BooleanGPConfig, validate_gp_config
 from ..metrics import GenerationMetrics
@@ -110,10 +111,10 @@ class BooleanGP:
         self._epoch = -1
 
         self.config = config
-        self.child_populations: List["BooleanGP"] = []
+        self.child_populations: list[BooleanGP] = []
         self.feature_mapping: dict[int, int] | None = None
         self._transfer_size: int = 0
-        self.parent_rule_indices: List[int] = []
+        self.parent_rule_indices: list[int] = []
 
         if config.max_depth > current_depth:
             self._create_child_populations()
@@ -270,7 +271,7 @@ class BooleanGP:
 
         return self._new_generation(scores, children_metrics)
 
-    def _get_top_k_rules(self) -> List[Rule]:
+    def _get_top_k_rules(self) -> list[Rule]:
         """Retrieve the top-K rules for transfer to the parent population.
 
         Returns the first `_top_k` rules from the population, which are expected
@@ -379,7 +380,7 @@ class BooleanGP:
         return child_feedbacks
 
     def _compute_regularized_scores(
-        self, scores: ndarray, complexities: List[int]
+        self, scores: ndarray, complexities: list[int]
     ) -> ndarray:
         """
         Compute regularized scores: ``score - complexity_penalty * ln(complexity)``.
@@ -421,7 +422,7 @@ class BooleanGP:
         return scores - self.complexity_penalty * np.log(complexities)
 
     def _new_generation(
-        self, scores: ndarray, children_metrics: List[GenerationMetrics]
+        self, scores: ndarray, children_metrics: list[GenerationMetrics]
     ) -> GenerationMetrics:
         """
         Creates a new generation by selecting individuals and optionally regenerating the population.

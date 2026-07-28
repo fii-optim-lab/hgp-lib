@@ -3,8 +3,8 @@
 import unittest
 from unittest.mock import patch
 
-from hgp_lib.mutations import Mutation, MutationExecutor, NegateMutation, MutationError
-from hgp_lib.rules import Rule, Literal, And
+from hgp_lib.mutations import Mutation, MutationError, MutationExecutor, NegateMutation
+from hgp_lib.rules import And, Literal, Rule
 
 
 def _fake_select_first(rule, operator_p=0.9):

@@ -1,5 +1,5 @@
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from numpy import ndarray
 
@@ -110,6 +110,6 @@ def validate_trainer_config(config: TrainerConfig, require_data: bool = True) ->
         )
 
     if require_data:
-        setattr(config, "_validated_with_data", True)
+        config._validated_with_data = True
     else:
-        setattr(config, "_validated_without_data", True)
+        config._validated_without_data = True

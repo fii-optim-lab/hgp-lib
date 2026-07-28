@@ -2,8 +2,6 @@
 
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import List
-
 
 from ..rules import Rule
 from .core import GenerationMetrics
@@ -54,7 +52,7 @@ class PopulationHistory:
     val_fp: int | None = None
     val_fn: int | None = None
     val_tn: int | None = None
-    generations: List[GenerationMetrics] = field(default_factory=list)
+    generations: list[GenerationMetrics] = field(default_factory=list)
 
     def __len__(self) -> int:
         return len(self.generations)

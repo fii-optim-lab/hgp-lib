@@ -1,5 +1,3 @@
-from typing import List
-
 import numpy as np
 from tqdm import tqdm
 
@@ -81,7 +79,7 @@ class GPTrainer:
         Returns:
             HierarchicalHistory: History with parent and child population metrics.
         """
-        parent_generations: List[GenerationMetrics] = []
+        parent_generations: list[GenerationMetrics] = []
         val_score = 0.0
 
         with tqdm(

@@ -1,8 +1,7 @@
 import warnings
-from typing import Set
 
 # Messages of warnings already emitted in this process, used to deduplicate.
-_emitted_messages: Set[str] = set()
+_emitted_messages: set[str] = set()
 
 
 def warn_once(warning: Warning) -> None:

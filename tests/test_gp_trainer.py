@@ -1,16 +1,16 @@
-import unittest
 import random
+import unittest
 
 import numpy as np
-from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
-from hgp_lib.trainers import GPTrainer
 from hgp_lib.crossover import CrossoverExecutor, CrossoverExecutorFactory
-from hgp_lib.metrics import PopulationHistory, GenerationMetrics
+from hgp_lib.metrics import GenerationMetrics, PopulationHistory
 from hgp_lib.populations import PopulationGeneratorFactory
-from hgp_lib.selections import RouletteSelection, TournamentSelection
 from hgp_lib.rules import Rule
+from hgp_lib.selections import RouletteSelection, TournamentSelection
+from hgp_lib.trainers import GPTrainer
+from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 
 class TestGPTrainer(unittest.TestCase):
@@ -38,79 +38,77 @@ class TestGPTrainer(unittest.TestCase):
         self.score_fn = accuracy_score
 
     def _make_gp_config(self, **kwargs):
-        defaults = dict(
-            score_fn=self.score_fn,
-            train_data=self.train_data,
-            train_labels=self.train_labels,
-            optimize_scorer=False,
-        )
+        defaults = {
+            "score_fn": self.score_fn,
+            "train_data": self.train_data,
+            "train_labels": self.train_labels,
+            "optimize_scorer": False,
+        }
         defaults.update(kwargs)
         return BooleanGPConfig(**defaults)
 
     def _make_trainer_config(self, gp_config=None, **kwargs):
         if gp_config is None:
             gp_config = self._make_gp_config()
-        defaults = dict(
-            gp_config=gp_config,
-            num_epochs=10,
-            progress_bar=False,
-        )
+        defaults = {
+            "gp_config": gp_config,
+            "num_epochs": 10,
+            "progress_bar": False,
+        }
         defaults.update(kwargs)
         return TrainerConfig(**defaults)
 
     def test_gp_trainer_validation(self):
-        with self.subTest("score_fn must be callable"):
-            with self.assertRaises(TypeError):
-                gp_config = self._make_gp_config(score_fn="not callable")
-                config = self._make_trainer_config(gp_config=gp_config)
-                GPTrainer(config)
+        with self.subTest("score_fn must be callable"), self.assertRaises(TypeError):
+            gp_config = self._make_gp_config(score_fn="not callable")
+            config = self._make_trainer_config(gp_config=gp_config)
+            GPTrainer(config)
 
-        with self.subTest("num_epochs must be int"):
-            with self.assertRaises(TypeError):
-                config = self._make_trainer_config(num_epochs=10.5)
-                GPTrainer(config)
+        with self.subTest("num_epochs must be int"), self.assertRaises(TypeError):
+            config = self._make_trainer_config(num_epochs=10.5)
+            GPTrainer(config)
 
-        with self.subTest("num_epochs must be positive"):
-            with self.assertRaises(ValueError):
-                config = self._make_trainer_config(num_epochs=0)
-                GPTrainer(config)
+        with self.subTest("num_epochs must be positive"), self.assertRaises(ValueError):
+            config = self._make_trainer_config(num_epochs=0)
+            GPTrainer(config)
 
-        with self.subTest("train_data must be ndarray"):
-            with self.assertRaises(TypeError):
-                gp_config = self._make_gp_config(train_data="not array")
-                config = self._make_trainer_config(gp_config=gp_config)
-                GPTrainer(config)
+        with self.subTest("train_data must be ndarray"), self.assertRaises(TypeError):
+            gp_config = self._make_gp_config(train_data="not array")
+            config = self._make_trainer_config(gp_config=gp_config)
+            GPTrainer(config)
 
-        with self.subTest("train_labels must be ndarray"):
-            with self.assertRaises(TypeError):
-                gp_config = self._make_gp_config(train_labels="not array")
-                config = self._make_trainer_config(gp_config=gp_config)
-                GPTrainer(config)
+        with self.subTest("train_labels must be ndarray"), self.assertRaises(TypeError):
+            gp_config = self._make_gp_config(train_labels="not array")
+            config = self._make_trainer_config(gp_config=gp_config)
+            GPTrainer(config)
 
-        with self.subTest("train_labels length must match train_data rows"):
-            with self.assertRaises(ValueError):
-                gp_config = self._make_gp_config(train_labels=np.array([1, 0]))
-                config = self._make_trainer_config(gp_config=gp_config)
-                GPTrainer(config)
+        with (
+            self.subTest("train_labels length must match train_data rows"),
+            self.assertRaises(ValueError),
+        ):
+            gp_config = self._make_gp_config(train_labels=np.array([1, 0]))
+            config = self._make_trainer_config(gp_config=gp_config)
+            GPTrainer(config)
 
-        with self.subTest("val_data and val_labels must both be provided or both None"):
-            with self.assertRaises(ValueError):
-                config = self._make_trainer_config(
-                    val_data=self.val_data, val_labels=None
-                )
-                GPTrainer(config)
+        with (
+            self.subTest("val_data and val_labels must both be provided or both None"),
+            self.assertRaises(ValueError),
+        ):
+            config = self._make_trainer_config(val_data=self.val_data, val_labels=None)
+            GPTrainer(config)
 
-        with self.subTest("val_labels length must match val_data rows"):
-            with self.assertRaises(ValueError):
-                config = self._make_trainer_config(
-                    val_data=self.val_data, val_labels=np.array([1])
-                )
-                GPTrainer(config)
+        with (
+            self.subTest("val_labels length must match val_data rows"),
+            self.assertRaises(ValueError),
+        ):
+            config = self._make_trainer_config(
+                val_data=self.val_data, val_labels=np.array([1])
+            )
+            GPTrainer(config)
 
-        with self.subTest("val_every must be positive"):
-            with self.assertRaises(ValueError):
-                config = self._make_trainer_config(val_every=0)
-                GPTrainer(config)
+        with self.subTest("val_every must be positive"), self.assertRaises(ValueError):
+            config = self._make_trainer_config(val_every=0)
+            GPTrainer(config)
 
     def test_gp_trainer_init(self):
         config = self._make_trainer_config()

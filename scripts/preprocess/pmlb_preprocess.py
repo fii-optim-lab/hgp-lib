@@ -1,6 +1,5 @@
-import os
-
 import argparse
+import os
 
 
 def save_pmlb_data(name: str, data_path: str):

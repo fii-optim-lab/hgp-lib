@@ -3,12 +3,12 @@
 import unittest
 
 from hgp_lib.mutations import (
-    RemoveIntermediateOperator,
-    ReplaceOperator,
     AddLiteral,
     MutationError,
+    RemoveIntermediateOperator,
+    ReplaceOperator,
 )
-from hgp_lib.rules import Literal, And, Or
+from hgp_lib.rules import And, Literal, Or
 
 
 class TestRemoveIntermediateOperator(unittest.TestCase):

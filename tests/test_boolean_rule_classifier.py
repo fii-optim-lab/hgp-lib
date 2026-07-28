@@ -5,10 +5,10 @@ import unittest
 import numpy as np
 import pandas as pd
 
+from hgp_lib import BooleanRuleClassifier
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
 from hgp_lib.metrics import PopulationHistory
-from hgp_lib import BooleanRuleClassifier
-from hgp_lib.preprocessing import StandardBinarizer, SklearnBinarizer
+from hgp_lib.preprocessing import SklearnBinarizer, StandardBinarizer
 from hgp_lib.rules import Rule
 from hgp_lib.utils.metrics import fast_f1_score
 
@@ -25,11 +25,11 @@ class TestBooleanRuleClassifier(unittest.TestCase):
         self.labels = rng.integers(0, 2, size=40)
 
     def _make_config(self, **kwargs):
-        defaults = dict(
-            gp_config=BooleanGPConfig(score_fn=fast_f1_score),
-            num_epochs=10,
-            progress_bar=False,
-        )
+        defaults = {
+            "gp_config": BooleanGPConfig(score_fn=fast_f1_score),
+            "num_epochs": 10,
+            "progress_bar": False,
+        }
         defaults.update(kwargs)
         return TrainerConfig(**defaults)
 

@@ -1,15 +1,16 @@
+from collections.abc import Callable, Sequence
 from math import ceil
-from typing import Sequence, Type, Callable, List
+
 import numpy as np
 
-from .base_strategy import PopulationStrategy
-from ..rules import Rule, Literal, And, Or
+from ..rules import And, Literal, Or, Rule
 from ..utils.validation import (
-    validate_num_literals,
-    validate_operator_types,
     check_X_y,
     validate_callable,
+    validate_num_literals,
+    validate_operator_types,
 )
+from .base_strategy import PopulationStrategy
 
 
 class RandomStrategy(PopulationStrategy):
@@ -34,7 +35,7 @@ class RandomStrategy(PopulationStrategy):
     """
 
     def __init__(
-        self, num_literals: int, operator_types: Sequence[Type[Rule]] = (Or, And)
+        self, num_literals: int, operator_types: Sequence[type[Rule]] = (Or, And)
     ):
         validate_num_literals(num_literals)
         validate_operator_types(operator_types)
@@ -42,7 +43,7 @@ class RandomStrategy(PopulationStrategy):
         self.num_literals = num_literals
         self.operator_types = operator_types
 
-    def generate(self, n: int) -> List[Rule]:
+    def generate(self, n: int) -> list[Rule]:
         """
         Generates n rules with a random operator and two random literals.
 
@@ -131,8 +132,8 @@ class BestLiteralStrategy(PopulationStrategy):
         score_fn: Callable[[np.ndarray, np.ndarray], float],
         train_data: np.ndarray,
         train_labels: np.ndarray,
-        sample_size: int | float | None = None,
-        feature_size: int | float | None = None,
+        sample_size: float | None = None,
+        feature_size: float | None = None,
     ):
         validate_num_literals(num_literals)
         validate_callable(score_fn)
@@ -152,7 +153,7 @@ class BestLiteralStrategy(PopulationStrategy):
         self._sample_count = self._resolve_size(sample_size, len(train_data))
         self._feature_count = self._resolve_size(feature_size, num_literals)
 
-    def _resolve_size(self, size: int | float | None, total: int) -> int:
+    def _resolve_size(self, size: float | None, total: int) -> int:
         if size is None:
             return total
         if isinstance(size, float):
@@ -167,7 +168,7 @@ class BestLiteralStrategy(PopulationStrategy):
             return size
         raise TypeError(f"size must be int, float or None, got {type(size)}")
 
-    def generate(self, n: int) -> List[Rule]:
+    def generate(self, n: int) -> list[Rule]:
         """
         Generates n literal rules that perform best on random data/feature subsets.
 

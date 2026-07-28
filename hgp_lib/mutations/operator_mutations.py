@@ -1,11 +1,9 @@
 import random
-from typing import Tuple, Type
 
-
+from ..rules import And, Literal, Or, Rule
+from ..rules.utils import _create_unsafe_rule
 from .base_mutation import Mutation
 from .utils import MutationError
-from ..rules import Rule, Or, And, Literal
-from ..rules.utils import _create_unsafe_rule
 
 
 class RemoveIntermediateOperator(Mutation):
@@ -113,7 +111,7 @@ class ReplaceOperator(Mutation):
         Or(0, 1)
     """
 
-    def __init__(self, operator_types: Tuple[Type[Rule], ...] = (Or, And)):
+    def __init__(self, operator_types: tuple[type[Rule], ...] = (Or, And)):
         super().__init__(is_literal_mutation=False, is_operator_mutation=True)
 
         # operator_types was validated

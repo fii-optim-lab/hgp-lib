@@ -3,15 +3,15 @@
 import unittest
 
 import numpy as np
-from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 from hgp_lib.algorithms import BooleanGP
 from hgp_lib.configs import BooleanGPConfig
 from hgp_lib.populations import (
+    CombinedSamplingStrategy,
     FeatureSamplingStrategy,
     InstanceSamplingStrategy,
-    CombinedSamplingStrategy,
 )
+from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
 
 
 class TestSamplingStrategies(unittest.TestCase):
@@ -465,7 +465,7 @@ class TestBooleanGPSamplingIntegration(unittest.TestCase):
                 self.assertEqual(set(child.feature_mapping.keys()), expected_keys)
 
                 # All mapped values should be valid parent feature indices
-                for child_idx, parent_idx in child.feature_mapping.items():
+                for parent_idx in child.feature_mapping.values():
                     self.assertGreaterEqual(parent_idx, 0)
                     self.assertLess(parent_idx, num_features)
 

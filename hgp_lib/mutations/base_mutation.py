@@ -69,4 +69,3 @@ class Mutation(ABC):
             >>> rule
             ~0
         """
-        pass

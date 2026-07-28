@@ -1,9 +1,9 @@
-from typing import Callable, List, Sequence, Tuple
+from collections.abc import Callable, Sequence
 
 import numpy as np
 
 from ..rules import Rule
-from ..rules.utils import deep_swap, apply_feature_mapping, select_crossover_point
+from ..rules.utils import apply_feature_mapping, deep_swap, select_crossover_point
 
 
 class CrossoverExecutor:
@@ -69,8 +69,8 @@ class CrossoverExecutor:
         self.operator_p: float = operator_p
 
     def apply(
-        self, rules: List[Rule], feature_mappings: List[dict | None] | None = None
-    ) -> Tuple[List[Rule], List[int]]:
+        self, rules: list[Rule], feature_mappings: list[dict | None] | None = None
+    ) -> tuple[list[Rule], list[int]]:
         """
         Applies crossover to the provided list of rules and returns children with parent tracking.
 

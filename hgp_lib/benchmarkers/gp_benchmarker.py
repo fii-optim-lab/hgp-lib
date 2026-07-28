@@ -1,7 +1,6 @@
 import contextlib
 import multiprocessing
 import os
-from typing import List
 
 import numpy as np
 import pandas as pd
@@ -9,10 +8,9 @@ from tqdm import tqdm
 
 from ..configs import BenchmarkerConfig, validate_benchmarker_config
 from ..metrics import ExperimentResult, RunResult
-
+from ..preprocessing import StandardBinarizer
 from .progress import ProgressConfig, ProgressListener
 from .runner import execute_single_run, single_run_wrapper
-from ..preprocessing import StandardBinarizer
 
 
 @contextlib.contextmanager
@@ -119,7 +117,7 @@ class GPBenchmarker:
 
     def _run_sequential(self) -> ExperimentResult:
         """Run all benchmark runs sequentially with nested progress bars."""
-        run_results: List[RunResult] = []
+        run_results: list[RunResult] = []
 
         if self.config.show_run_progress:
             self.config.trainer_config.leave_progress_bar = False

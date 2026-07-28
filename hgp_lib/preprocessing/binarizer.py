@@ -1,5 +1,3 @@
-from typing import List, Optional, Set
-
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_bool_dtype, is_numeric_dtype
@@ -12,10 +10,10 @@ from .base import Binarizer
 from .binning import BinningStrategy, QuantileBinning, SupervisedTreeBinning
 from .utils import is_categorical_like
 from .warnings import (
+    EmptyBinarizationWarning,
     HighCardinalityWarning,
     StringColumnWarning,
     UnseenNaNWarning,
-    EmptyBinarizationWarning,
 )
 
 
@@ -85,9 +83,9 @@ class StandardBinarizer(Binarizer):
     def __init__(
         self,
         num_bins: int = 5,
-        column_strategy: Optional[dict[str, int]] = None,
+        column_strategy: dict[str, int] | None = None,
         precision: int = 3,
-        numeric_binning: Optional[BinningStrategy] = None,
+        numeric_binning: BinningStrategy | None = None,
         progress_bar: bool = True,
         leave_progress_bar: bool = False,
     ):
@@ -104,18 +102,18 @@ class StandardBinarizer(Binarizer):
         self._numerical_bins: dict = {}
         self._original_column_dtypes: dict = {}
         self._output_names: dict = {}
-        self._na_columns: Set[str] = set()
-        self._skipped_columns: Set[str] = set()
+        self._na_columns: set[str] = set()
+        self._skipped_columns: set[str] = set()
         self._original_columns = None
         self._is_fitted = False
-        self._feature_names: List[str] = []
+        self._feature_names: list[str] = []
 
     def _validate_params(
         self,
         num_bins: int,
-        column_strategy: Optional[dict[str, int]],
+        column_strategy: dict[str, int] | None,
         precision: int,
-        numeric_binning: Optional[BinningStrategy],
+        numeric_binning: BinningStrategy | None,
     ) -> None:
         check_isinstance(num_bins, int)
         if num_bins < 2:
@@ -138,7 +136,7 @@ class StandardBinarizer(Binarizer):
             check_isinstance(numeric_binning, BinningStrategy)
 
     def fit_transform(
-        self, X: pd.DataFrame, y: Optional[np.ndarray] = None
+        self, X: pd.DataFrame, y: np.ndarray | None = None
     ) -> pd.DataFrame:
         """
         Learn the binarisation mapping from ``X`` (and optionally ``y``) and return the
@@ -173,7 +171,7 @@ class StandardBinarizer(Binarizer):
         self._reset_state()
 
         outputs: dict = {}
-        used_names: Set[str] = set()
+        used_names: set[str] = set()
 
         for column in tqdm(
             X.columns,
@@ -191,7 +189,7 @@ class StandardBinarizer(Binarizer):
 
             pieces.extend(self._fit_column(column, series, y, nan_mask))
 
-            names: List[str] = []
+            names: list[str] = []
             for base_name, values in pieces:
                 name = self._ensure_unique_column_names(used_names, base_name)
                 outputs[name] = values
@@ -204,10 +202,10 @@ class StandardBinarizer(Binarizer):
 
         self._original_columns = X.columns
         self._is_fitted = True
-        self._feature_names = [str(name) for name in outputs.keys()]
+        self._feature_names = [str(name) for name in outputs]
         return pd.DataFrame(outputs, index=X.index)
 
-    def get_feature_names_out(self) -> List[str]:
+    def get_feature_names_out(self) -> list[str]:
         """
         Return the output column names in order (see :meth:`Binarizer.get_feature_names_out`).
 
@@ -279,7 +277,7 @@ class StandardBinarizer(Binarizer):
         ):
             series = X[column]
             names = self._output_names[column]
-            values_list: List[np.ndarray] = []
+            values_list: list[np.ndarray] = []
 
             nan_mask = series.isna().to_numpy()
             if column in self._na_columns:
@@ -308,7 +306,7 @@ class StandardBinarizer(Binarizer):
         self,
         column: str,
         series: pd.Series,
-        y: Optional[np.ndarray],
+        y: np.ndarray | None,
         nan_mask: np.ndarray,
     ):
         """Dispatch a single column to the matching dtype hook and record its dtype."""
@@ -352,7 +350,7 @@ class StandardBinarizer(Binarizer):
         self,
         column: str,
         series: pd.Series,
-        y: Optional[np.ndarray],
+        y: np.ndarray | None,
         nan_mask: np.ndarray,
     ):
         """Bin a numeric column and one-hot encode the bins."""
@@ -380,7 +378,7 @@ class StandardBinarizer(Binarizer):
             for i in range(len(edges) - 1)
         ]
 
-    def _transform_column(self, column: str, series: pd.Series) -> List[np.ndarray]:
+    def _transform_column(self, column: str, series: pd.Series) -> list[np.ndarray]:
         """Apply the learned encoding for a single column, verifying its dtype."""
         expected = self._original_column_dtypes[column]
         actual = self._infer_kind(column, series)
@@ -395,24 +393,24 @@ class StandardBinarizer(Binarizer):
             return self._transform_categorical(column, series)
         return self._transform_numeric(column, series)
 
-    def _transform_boolean(self, series: pd.Series) -> List[np.ndarray]:
+    def _transform_boolean(self, series: pd.Series) -> list[np.ndarray]:
         return [series.to_numpy(dtype=bool)]
 
     def _transform_categorical(
         self, column: str, series: pd.Series
-    ) -> List[np.ndarray]:
+    ) -> list[np.ndarray]:
         return [
             (series == value).to_numpy() for value in self._categorical_values[column]
         ]
 
-    def _transform_numeric(self, column: str, series: pd.Series) -> List[np.ndarray]:
+    def _transform_numeric(self, column: str, series: pd.Series) -> list[np.ndarray]:
         edges = self._numerical_bins[column]
         binned = pd.cut(
             series.to_numpy(), bins=edges, labels=False, include_lowest=True
         )
         return [binned == i for i in range(len(edges) - 1)]
 
-    def _resolve_numeric_binning(self, y: Optional[np.ndarray]) -> BinningStrategy:
+    def _resolve_numeric_binning(self, y: np.ndarray | None) -> BinningStrategy:
         """Pick the numeric binning strategy: the configured one, or a default by ``y``."""
         if self.numeric_binning is not None:
             return self.numeric_binning
@@ -440,7 +438,7 @@ class StandardBinarizer(Binarizer):
         self._is_fitted = False
 
     def _ensure_unique_column_names(
-        self, column_names: Set[str], new_column_name: str
+        self, column_names: set[str], new_column_name: str
     ) -> str:
         """
         Register ``new_column_name`` in ``column_names``, appending a numeric suffix if needed.
