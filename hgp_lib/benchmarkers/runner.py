@@ -1,7 +1,6 @@
 import random
 from copy import deepcopy
 from dataclasses import replace
-from multiprocessing import Queue
 
 import numpy as np
 from sklearn.model_selection import StratifiedKFold, train_test_split
@@ -11,15 +10,14 @@ from ..configs import BenchmarkerConfig
 from ..metrics import PopulationHistory, RunResult
 from ..trainers import GPTrainer
 from ..utils.metrics import confusion_matrix, optimize_scorers_for_data
-from .progress import ProgressSender, send_progress
+from .progress import ProgressReporter
 
 
-# "Queue | None" because type[Queue] is <method>..
 def execute_single_run(
     run_id: int,
     seed: int,
     config: BenchmarkerConfig,
-    progress_queue: "Queue | None" = None,
+    reporter: ProgressReporter | None = None,
 ) -> RunResult:
     """
     Execute one benchmark run: stratified train/test split, per-fold binarization,
@@ -37,7 +35,8 @@ def execute_single_run(
         run_id (int): Index of the run (0-based).
         seed (int): Random seed for stratified split and k-fold.
         config (BenchmarkerConfig): Configuration for the benchmark run.
-        progress_queue (Queue | None): Optional queue for sending progress updates.
+        reporter (ProgressReporter | None): Where to report epoch/fold/run
+            progress. Default: an inert reporter that discards updates.
 
     Returns:
         RunResult: Contains run_id, seed, folds, test_score, best_rule, feature_names.
@@ -48,13 +47,13 @@ def execute_single_run(
     trainer_template = config.trainer_config
     gp_template = trainer_template.gp_config
 
-    use_queue = progress_queue is not None
-    show_folds = (
-        config.show_fold_progress and trainer_template.progress_bar and not use_queue
-    )
-    show_epochs = (
-        config.show_epoch_progress and trainer_template.progress_bar and not use_queue
-    )
+    if reporter is None:
+        reporter = ProgressReporter()
+
+    # Local bars would collide with the centralized ones the listener draws.
+    show_local_bars = trainer_template.progress_bar and not reporter.enabled
+    show_folds = config.show_fold_progress and show_local_bars
+    show_epochs = config.show_epoch_progress and show_local_bars
     config.binarizer.progress_bar = show_epochs
 
     np.random.seed(seed)
@@ -78,7 +77,7 @@ def execute_single_run(
     if show_folds:
         fold_splits = tqdm(fold_splits, total=config.n_folds, desc="Folds", leave=False)
 
-    epoch_callback = ProgressSender(progress_queue, "epoch") if use_queue else None
+    epoch_callback = reporter.epoch if reporter.enabled else None
 
     best_fold_idx = 0
     best_fold_score = -float("inf")
@@ -124,7 +123,7 @@ def execute_single_run(
 
         folds.append(history)
 
-        send_progress(progress_queue, "fold", 1)
+        reporter.fold()
 
     del train_data, train_labels
 
@@ -149,7 +148,7 @@ def execute_single_run(
 
     tp, fp, fn, tn = test_cm(test_labels, test_pred)
 
-    send_progress(progress_queue, "run", 1)
+    reporter.run()
 
     return RunResult(
         run_id=run_id,
@@ -167,16 +166,16 @@ def execute_single_run(
 
 
 def single_run_wrapper(
-    args: tuple[int, int, BenchmarkerConfig, "Queue | None"],
+    args: tuple[int, int, BenchmarkerConfig, ProgressReporter | None],
 ) -> RunResult:
     """
     Picklable wrapper for multiprocessing Pool.
 
     Args:
-        args (tuple): Tuple of (run_id, seed, config, progress_queue).
+        args (tuple): Tuple of (run_id, seed, config, reporter).
 
     Returns:
         RunResult: Result for the run.
     """
-    run_id, seed, config, progress_queue = args
-    return execute_single_run(run_id, seed, config, progress_queue)
+    run_id, seed, config, reporter = args
+    return execute_single_run(run_id, seed, config, reporter)

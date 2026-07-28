@@ -4,9 +4,10 @@ from multiprocessing import Queue
 
 from hgp_lib.benchmarkers.progress import (
     _SHUTDOWN_SENTINEL,
+    ProgressChannel,
     ProgressConfig,
     ProgressListener,
-    send_progress,
+    ProgressReporter,
 )
 
 
@@ -31,31 +32,59 @@ class TestProgressConfig(unittest.TestCase):
         self.assertFalse(cfg.show_epoch_progress)
 
 
-class TestSendProgress(unittest.TestCase):
-    def test_none_queue_is_noop(self):
+class TestProgressChannel(unittest.TestCase):
+    def test_values_are_the_wire_literals(self):
+        self.assertEqual(ProgressChannel.EPOCH.value, "epoch")
+        self.assertEqual(ProgressChannel.FOLD.value, "fold")
+        self.assertEqual(ProgressChannel.RUN.value, "run")
+
+
+class TestProgressReporter(unittest.TestCase):
+    def test_without_queue_is_inert(self):
+        reporter = ProgressReporter()
+        self.assertFalse(reporter.enabled)
         # Should not raise
-        send_progress(None, "epoch", 5)
+        reporter.epoch(5)
+        reporter.fold()
+        reporter.run()
+
+    def test_with_queue_is_enabled(self):
+        self.assertTrue(ProgressReporter(Queue()).enabled)
 
     def test_sends_to_queue(self):
-        q = Queue()
-        send_progress(q, "fold", 3)
-        msg, count = q.get(timeout=1)
+        reporter = ProgressReporter(Queue())
+        reporter.fold(3)
+        msg, count = reporter.queue.get(timeout=1)
         self.assertEqual(msg, "fold")
         self.assertEqual(count, 3)
 
     def test_default_count(self):
-        q = Queue()
-        send_progress(q, "run")
-        _msg, count = q.get(timeout=1)
+        reporter = ProgressReporter(Queue())
+        reporter.run()
+        _msg, count = reporter.queue.get(timeout=1)
         self.assertEqual(count, 1)
 
+    def test_channels_travel_as_plain_strings(self):
+        """The listener matches on str, so messages must not carry enum members."""
+        reporter = ProgressReporter(Queue())
+        reporter.epoch()
+        msg, _count = reporter.queue.get(timeout=1)
+        self.assertIs(type(msg), str)
+
     def test_multiple_messages(self):
-        q = Queue()
-        send_progress(q, "epoch", 10)
-        send_progress(q, "fold", 1)
-        send_progress(q, "run", 1)
-        msgs = [q.get(timeout=1) for _ in range(3)]
+        reporter = ProgressReporter(Queue())
+        reporter.epoch(10)
+        reporter.fold()
+        reporter.run()
+        msgs = [reporter.queue.get(timeout=1) for _ in range(3)]
         self.assertEqual(msgs, [("epoch", 10), ("fold", 1), ("run", 1)])
+
+    def test_methods_are_usable_as_callbacks(self):
+        """Bound methods match the Callable[[int], None] progress_callback shape."""
+        reporter = ProgressReporter(Queue())
+        callback = reporter.epoch
+        callback(7)
+        self.assertEqual(reporter.queue.get(timeout=1), ("epoch", 7))
 
 
 class TestProgressListener(unittest.TestCase):
@@ -98,6 +127,18 @@ class TestProgressListener(unittest.TestCase):
         q.put(("fold", 1))
         q.put(("fold", 1))
         q.put(("run", 1))
+        listener.join()
+        self.assertFalse(listener._thread.is_alive())
+
+    def test_reporter_drives_listener(self):
+        """Messages produced by a reporter are understood by the listener."""
+        q = Queue()
+        listener = ProgressListener(q, self._make_config(runs=1, folds=1, epochs=1))
+        listener.start()
+        reporter = ProgressReporter(q)
+        reporter.epoch()
+        reporter.fold()
+        reporter.run()
         listener.join()
         self.assertFalse(listener._thread.is_alive())
 

@@ -262,7 +262,7 @@ class StandardBinarizer(Binarizer):
         if not self._is_fitted:
             raise ValueError("Binarizer must be fitted before calling transform")
         if not self._original_columns.equals(X.columns):
-            # TODO: We should add custom Errors in the library where it makes sense.;
+            # TODO: (1) We should add custom Errors in the library where it makes sense.;
             raise RuntimeError(
                 f"Original columns do not match current columns. "
                 f"Original columns: {self._original_columns}. Current columns: {X.columns}."
@@ -310,7 +310,7 @@ class StandardBinarizer(Binarizer):
         nan_mask: np.ndarray,
     ):
         """Dispatch a single column to the matching dtype hook and record its dtype."""
-        # TODO: Instead of string values, we should have an enum. And an enum-like dispatch.
+        # TODO: (1) Instead of string values, we should have an enum. And an enum-like dispatch.
         if is_bool_dtype(series):
             self._original_column_dtypes[column] = "bool"
             return self._fit_boolean(column, series)

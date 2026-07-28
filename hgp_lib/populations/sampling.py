@@ -125,7 +125,7 @@ class SamplingStrategy(ABC):
             data=data,
             labels=labels,
             feature_mapping=feature_mapping,
-            # TODO: Remove feature indices and also update tests
+            # TODO: (1) Remove feature indices and also update tests
             feature_indices=feature_indices,
             instance_indices=instance_indices,
         )

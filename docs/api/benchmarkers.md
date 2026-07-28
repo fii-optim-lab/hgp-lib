@@ -6,4 +6,6 @@
 
 ::: hgp_lib.benchmarkers.progress.ProgressListener
 
-::: hgp_lib.benchmarkers.progress.send_progress
+::: hgp_lib.benchmarkers.progress.ProgressReporter
+
+::: hgp_lib.benchmarkers.progress.ProgressChannel
