@@ -1,3 +1,5 @@
+from enum import Enum
+
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_bool_dtype, is_numeric_dtype
@@ -15,6 +17,20 @@ from .warnings import (
     StringColumnWarning,
     UnseenNaNWarning,
 )
+
+
+class ColumnKind(str, Enum):
+    """The kinds of column a binarizer knows how to encode.
+
+    Examples:
+        >>> from hgp_lib.preprocessing.binarizer import ColumnKind
+        >>> ColumnKind.BOOL.value
+        'bool'
+    """
+
+    BOOL = "bool"
+    CATEGORY = "category"
+    NUMERIC = "numeric"
 
 
 class StandardBinarizer(Binarizer):
@@ -309,20 +325,15 @@ class StandardBinarizer(Binarizer):
         y: np.ndarray | None,
         nan_mask: np.ndarray,
     ):
-        """Dispatch a single column to the matching dtype hook and record its dtype."""
-        # TODO: (1) Instead of string values, we should have an enum. And an enum-like dispatch.
-        if is_bool_dtype(series):
-            self._original_column_dtypes[column] = "bool"
+        """Dispatch a single column to the matching dtype hook and record its kind."""
+        kind = self._infer_kind(column, series)
+        self._original_column_dtypes[column] = kind
+
+        if kind == ColumnKind.BOOL:
             return self._fit_boolean(column, series)
-        if is_categorical_like(series):
-            self._original_column_dtypes[column] = "category"
+        if kind == ColumnKind.CATEGORY:
             return self._fit_categorical(column, series)
-        if is_numeric_dtype(series):
-            self._original_column_dtypes[column] = "numeric"
-            return self._fit_numeric(column, series, y, nan_mask)
-        raise ValueError(
-            f"Unsupported column type for column {column} of type {series.dtype}"
-        )
+        return self._fit_numeric(column, series, y, nan_mask)
 
     def _fit_boolean(self, column: str, series: pd.Series):
         """Pass a boolean column through as a single feature."""
@@ -379,17 +390,17 @@ class StandardBinarizer(Binarizer):
         ]
 
     def _transform_column(self, column: str, series: pd.Series) -> list[np.ndarray]:
-        """Apply the learned encoding for a single column, verifying its dtype."""
+        """Apply the learned encoding for a single column, verifying its kind."""
         expected = self._original_column_dtypes[column]
         actual = self._infer_kind(column, series)
         if actual != expected:
             raise ValueError(
-                f"Original column {column} was {expected}. "
-                f"Current column is {actual}. Current column must be {expected}."
+                f"Original column {column} was {expected.value}. "
+                f"Current column is {actual.value}. Current column must be {expected.value}."
             )
-        if expected == "bool":
+        if expected == ColumnKind.BOOL:
             return self._transform_boolean(series)
-        if expected == "category":
+        if expected == ColumnKind.CATEGORY:
             return self._transform_categorical(column, series)
         return self._transform_numeric(column, series)
 
@@ -416,13 +427,18 @@ class StandardBinarizer(Binarizer):
             return self.numeric_binning
         return SupervisedTreeBinning() if y is not None else QuantileBinning()
 
-    def _infer_kind(self, column: str, series: pd.Series) -> str:
+    def _infer_kind(self, column: str, series: pd.Series) -> ColumnKind:
+        """Classify a column, raising ValueError for unsupported dtypes.
+
+        The order of the checks matters: `is_numeric_dtype` is also True for
+        boolean columns, so booleans must be tested first.
+        """
         if is_bool_dtype(series):
-            return "bool"
+            return ColumnKind.BOOL
         if is_categorical_like(series):
-            return "category"
+            return ColumnKind.CATEGORY
         if is_numeric_dtype(series):
-            return "numeric"
+            return ColumnKind.NUMERIC
         raise ValueError(
             f"Unsupported column type for column {column} of type {series.dtype}"
         )
