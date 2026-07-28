@@ -31,9 +31,8 @@ class TestSamplingStrategies(unittest.TestCase):
 
         # ceil(20 * 0.25) = 5 features per child
         result = results[0]
-        self.assertEqual(len(result.feature_indices), 5)
         self.assertEqual(result.data.shape, (100, 5))
-        self.assertIsNone(result.instance_indices)
+        self.assertEqual(len(result.feature_mapping), 5)
         np.testing.assert_array_equal(result.labels, self.labels)
 
     def test_feature_sampling_with_fraction(self):
@@ -44,7 +43,8 @@ class TestSamplingStrategies(unittest.TestCase):
         self.assertEqual(len(results), 4)
 
         # ceil(20 * 0.5) = 10 features per child
-        self.assertEqual(len(results[0].feature_indices), 10)
+        self.assertEqual(results[0].data.shape, (100, 10))
+        self.assertEqual(len(results[0].feature_mapping), 10)
 
     def test_instance_sampling_basic(self):
         """Test that InstanceSamplingStrategy samples correct number of instances."""
@@ -55,8 +55,8 @@ class TestSamplingStrategies(unittest.TestCase):
 
         # ceil(100 * 0.25) = 25 instances per child
         result = results[0]
-        self.assertEqual(len(result.instance_indices), 25)
         self.assertEqual(result.data.shape, (25, 20))
+        self.assertEqual(len(result.labels), 25)
         self.assertIsNone(result.feature_mapping)
 
     def test_combined_sampling(self):
@@ -68,9 +68,9 @@ class TestSamplingStrategies(unittest.TestCase):
 
         # Features: ceil(20 * 0.25) = 5, Instances: ceil(100 * 0.25) = 25
         result = results[0]
-        self.assertEqual(len(result.feature_indices), 5)
-        self.assertEqual(len(result.instance_indices), 25)
         self.assertEqual(result.data.shape, (25, 5))
+        self.assertEqual(len(result.labels), 25)
+        self.assertEqual(len(result.feature_mapping), 5)
 
 
 class TestChildPopulationCreation(unittest.TestCase):

@@ -16,19 +16,15 @@ from hgp_lib.utils.validation import check_isinstance
 
 @dataclass
 class SamplingResult:
-    """Result of a sampling operation containing sampled data and index mappings.
+    """Result of a sampling operation containing sampled data and the feature mapping.
 
     Attributes:
         data: Sampled training data as 2D boolean ndarray (instances x features).
         labels: Sampled labels as 1D integer ndarray.
-        feature_indices: Selected feature indices from the parent's feature space as 1D ndarray.
-            For example, if the parent has 20 features and we sample [3, 7, 12], the child's
-            feature 0 corresponds to parent's feature 3, feature 1 to parent's 7, etc.
-        instance_indices: Selected instance indices as 1D ndarray, or None for feature-only sampling.
         feature_mapping: Dictionary mapping child feature indices to parent feature indices.
             Direction: child_index -> parent_index.
 
-            For example, if feature_indices is [3, 7, 12], then feature_mapping is:
+            For example, if the sampled features are [3, 7, 12], then feature_mapping is:
                 {0: 3, 1: 7, 2: 12}
 
             This mapping is used during crossover to translate rules evolved in the child's
@@ -41,8 +37,6 @@ class SamplingResult:
 
     data: ndarray
     labels: ndarray
-    feature_indices: ndarray
-    instance_indices: ndarray | None
     feature_mapping: dict[int, int] | None
 
 
@@ -113,6 +107,18 @@ class SamplingStrategy(ABC):
     def create_sampling_result(
         data, labels, feature_indices: ndarray | None, instance_indices: ndarray | None
     ):
+        """Slice `data` and `labels` by the given indices and build the result.
+
+        Args:
+            data: Parent training data as 2D boolean array (instances x features).
+            labels: Parent training labels as 1D integer array.
+            feature_indices: Feature columns to keep, or None to keep all features.
+            instance_indices: Instance rows to keep, or None to keep all instances.
+
+        Returns:
+            SamplingResult: The sampled data and labels, with `feature_mapping` set
+                from `feature_indices` (None when no features were sampled).
+        """
         if instance_indices is not None:
             data = data[instance_indices]
             labels = labels[instance_indices]
@@ -125,9 +131,6 @@ class SamplingStrategy(ABC):
             data=data,
             labels=labels,
             feature_mapping=feature_mapping,
-            # TODO: (1) Remove feature indices and also update tests
-            feature_indices=feature_indices,
-            instance_indices=instance_indices,
         )
 
     @abstractmethod
@@ -178,8 +181,10 @@ class FeatureSamplingStrategy(SamplingStrategy):
         >>> results = strategy.sample(data, labels, num_children=3)
         >>> len(results)
         3
-        >>> len(results[0].feature_indices)
-        5
+        >>> results[0].data.shape
+        (100, 5)
+        >>> results[0].feature_mapping.keys()
+        dict_keys([0, 1, 2, 3, 4])
     """
 
     def __init__(self, feature_fraction: float = 1.0, replace: bool = False):
@@ -200,7 +205,7 @@ class FeatureSamplingStrategy(SamplingStrategy):
 
         Returns:
             List of SamplingResult, one per child, with sampled feature columns,
-            all instances preserved, and instance_indices set to None.
+            all instances preserved, and feature_mapping set.
         """
         num_features = data.shape[1]
         features_per_child = ceil(num_features * self.feature_fraction)
@@ -242,8 +247,10 @@ class InstanceSamplingStrategy(SamplingStrategy):
         >>> results = strategy.sample(data, labels, num_children=3)
         >>> len(results)
         3
-        >>> len(results[0].instance_indices)
-        80
+        >>> results[0].data.shape
+        (80, 10)
+        >>> results[0].feature_mapping is None
+        True
     """
 
     def __init__(self, sample_fraction: float = 1.0, replace: bool = False):
@@ -339,7 +346,7 @@ class CombinedSamplingStrategy(SamplingStrategy):
 
         Returns:
             List of SamplingResult, one per child, with both feature and instance
-            subsets applied, containing both feature_indices and instance_indices.
+            subsets applied and feature_mapping set.
         """
         num_instances, num_features = data.shape
         samples_per_child = ceil(num_instances * self.sample_fraction)
