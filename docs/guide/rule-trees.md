@@ -71,9 +71,3 @@ export HGP_LOW_MEMORY=1
 ```
 
 The `hgp_lib.rules` package reads `HGP_LOW_MEMORY` at import time and binds [`And`](../api/rules.md#hgp_lib.rules.operators.And) and [`Or`](../api/rules.md#hgp_lib.rules.operators.Or) to the chosen backend.
-
-## Traversal helpers
-
-`flatten` collects all nodes iteratively with a queue, which avoids Python recursion overhead and stack limits on deep trees.
-A recursive variant (`r_flatten`) is also available when a left-to-right preorder is needed.
-`__len__` counts nodes with the same iterative approach.
