@@ -249,10 +249,5 @@ class GPBenchmarker:
             raise NotFittedError("GPBenchmarker must be fit before calling predict")
 
         best_run = self._run_results.best_run
-        if best_run.binarizer is None:
-            raise RuntimeError(
-                "best run has no fitted binarizer; cannot predict on raw data"
-            )
-
         binarized = best_run.binarizer.transform(data).to_numpy(dtype=bool)
         return best_run.best_rule.evaluate(binarized)
