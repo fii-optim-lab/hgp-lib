@@ -306,7 +306,7 @@ def create_objective(
                 params, data, labels, fast_f1_score, n_jobs, n_runs, n_folds, verbose
             )
             result = GPBenchmarker(config).fit()
-        except Exception:  # noqa BLE001
+        except Exception:  # noqa: BLE001
             logger.error(f"Trial {trial.number} failed: {traceback.format_exc()}")
             raise optuna.TrialPruned()
 

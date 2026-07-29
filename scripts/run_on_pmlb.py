@@ -67,13 +67,13 @@ def run_sklearn_benchmark(
     if not os.path.isfile(data_path):
         try:
             save_pmlb_data(dataset_name, data_dir)
-        except Exception as e:  # noqa BLE001
+        except Exception as e:  # noqa: BLE001
             print(f"Failed to load {dataset_name}: {e}")
             return None
 
     try:
         data, labels = load_data(data_path)
-    except Exception as e:  # noqa BLE001
+    except Exception as e:  # noqa: BLE001
         print(f"Failed to read {dataset_name}: {e}")
         return None
 
@@ -194,13 +194,13 @@ def run_gp_default_benchmark(
     if not os.path.isfile(data_path):
         try:
             save_pmlb_data(dataset_name, data_dir)
-        except Exception as e:  # noqa BLE001
+        except Exception as e:  # noqa: BLE001
             print(f"Failed to load {dataset_name}: {e}")
             return None
 
     try:
         data, labels = load_data(data_path)
-    except Exception as e:  # noqa BLE001
+    except Exception as e:  # noqa: BLE001
         print(f"Failed to read {dataset_name}: {e}")
         return None
 

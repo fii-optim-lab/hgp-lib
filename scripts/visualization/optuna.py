@@ -137,7 +137,7 @@ def upload_trial_artifacts(
                     artifact_store=artifact_store,
                 )
 
-            except Exception as e:  # noqa BLE001
+            except Exception as e:  # noqa: BLE001
                 logger.warning(
                     f"Trial {trial.number}: Failed to generate {plot_name}: {e} - {traceback.format_exc()}"
                 )
