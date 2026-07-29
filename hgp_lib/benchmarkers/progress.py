@@ -178,12 +178,9 @@ class ProgressListener:
                     finished_runs += count
         finally:
             # Ensure bars are closed properly
-            if self._pbar_epoch is not None:
-                self._pbar_epoch.close()
-            if self._pbar_fold is not None:
-                self._pbar_fold.close()
-            if self._pbar_exp is not None:
-                self._pbar_exp.close()
+            self._pbar_epoch.close()
+            self._pbar_fold.close()
+            self._pbar_exp.close()
 
 
 class ProgressReporter:
