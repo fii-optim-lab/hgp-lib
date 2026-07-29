@@ -219,8 +219,6 @@ class GPBenchmarker:
 
         Raises:
             NotFittedError: If called before ``fit`` (no results are available yet).
-            RuntimeError: If the best run has no fitted binarizer to transform the
-                raw data.
 
         Examples:
             >>> from sklearn.metrics import accuracy_score
