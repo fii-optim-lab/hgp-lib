@@ -35,8 +35,19 @@ See [Theory](https://fii-optim-lab.github.io/hgp-lib/theory/) for how the search
 ```bash
 pip install hgp-lib
 # or
-pip install 'hgp-lib[dev]'
+pip install "hgp-lib[dev]"
 ```
+
+Editable install:
+```bash
+git clone https://github.com/fii-optim-lab/hgp-lib.git
+cd hgp-lib
+# Create a python virtual environment first, and activate it
+pip install -e ".[dev]"
+# Now you are able to change the code and run the tests
+python -m pytest
+```
+
 
 ## Quickstart
 
