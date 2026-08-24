@@ -53,8 +53,6 @@ Children are rewarded not only for their own score, but also for how much they c
 This structure searches the space more effectively than a flat population.
 Deeper hierarchies escape plateaus that a shallow search gets stuck on, because the specialized children keep supplying fresh building blocks that the parent can combine.
 
-TODO: Update the GeneABAC citation once the paper is published at PPSN 2026.
-
 ## References
 
 \bibliography
