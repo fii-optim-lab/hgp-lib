@@ -30,18 +30,9 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install .[dev]
     - name: Test with pytest
-      # Run from outside the checkout so the source `hgp_lib/` cannot shadow the
-      # installed package. Doctests are collected from the installed package via
-      # `--pyargs hgp_lib`, and the unit tests from the repo's `tests/` directory.
-      # This tests the actually-installed artifact and avoids the "import file
-      # mismatch" without `--import-mode=importlib`. Keeping the default (prepend)
-      # import mode is also what lets multiprocessing workers re-import test modules
-      # under Python 3.14's forkserver start method, which would otherwise hang.
-      working-directory: ${{ runner.temp }}
-      run: pytest --pyargs hgp_lib "${{ github.workspace }}/tests"
+      run: |
+        pytest
     - name: Lint with Ruff
-      working-directory: ${{ github.workspace }}
       run: ruff check
     - name: Check formatting with Ruff
-      working-directory: ${{ github.workspace }}
       run: ruff format --diff --check
