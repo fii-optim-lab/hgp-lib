@@ -49,8 +49,8 @@ dependencies = [
     "scikit-learn",
     "tqdm",
 ]
-[tool.setuptools.packages.find]
-include = ["hgp_lib*"]
+[tool.setuptools]
+package-dir = {"" = "src"}
 
 [project.urls]
 Repository = "https://github.com/fii-optim-lab/hgp-lib"

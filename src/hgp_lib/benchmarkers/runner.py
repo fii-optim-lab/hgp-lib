@@ -1,0 +1,181 @@
+import random
+from copy import deepcopy
+from dataclasses import replace
+
+import numpy as np
+from sklearn.model_selection import StratifiedKFold, train_test_split
+from tqdm import tqdm
+
+from ..configs import BenchmarkerConfig
+from ..metrics import PopulationHistory, RunResult
+from ..trainers import GPTrainer
+from ..utils.metrics import confusion_matrix, optimize_scorers_for_data
+from .progress import ProgressReporter
+
+
+def execute_single_run(
+    run_id: int,
+    seed: int,
+    config: BenchmarkerConfig,
+    reporter: ProgressReporter | None = None,
+) -> RunResult:
+    """
+    Execute one benchmark run: stratified train/test split, per-fold binarization,
+    k-fold CV training, best-fold selection, and test-set evaluation.
+
+    This is a module-level function so it can be pickled for `multiprocessing`.
+
+    **Per-fold binarization:** For each fold a fresh `clone` of the configured
+    binarizer is fitted on the training fold (with labels, enabling supervised
+    binning for numerical features) and used to transform the validation fold.
+    After selecting the best fold, its binarizer transforms the held-out test
+    data. This prevents data leakage across folds and between train/test sets.
+
+    Args:
+        run_id (int): Index of the run (0-based).
+        seed (int): Random seed for stratified split and k-fold.
+        config (BenchmarkerConfig): Configuration for the benchmark run.
+        reporter (ProgressReporter | None): Where to report epoch/fold/run
+            progress. Default: an inert reporter that discards updates.
+
+    Returns:
+        RunResult: Contains run_id, seed, folds, test_score, best_rule, feature_names.
+
+    Raises:
+        RuntimeError: If no best rule is available after training a fold.
+    """
+    trainer_template = config.trainer_config
+    gp_template = trainer_template.gp_config
+
+    if reporter is None:
+        reporter = ProgressReporter()
+
+    # Local bars would collide with the centralized ones the listener draws.
+    show_local_bars = trainer_template.progress_bar and not reporter.enabled
+    show_folds = config.show_fold_progress and show_local_bars
+    show_epochs = config.show_epoch_progress and show_local_bars
+    config.binarizer.progress_bar = show_epochs
+
+    np.random.seed(seed)
+    random.seed(seed)
+
+    train_data, test_data, train_labels, test_labels = train_test_split(
+        config.data,
+        config.labels,
+        test_size=config.test_size,
+        stratify=config.labels,
+        random_state=seed,
+    )
+
+    skf = StratifiedKFold(n_splits=config.n_folds, shuffle=True, random_state=seed)
+
+    folds: list[PopulationHistory] = []
+    binarizers = []
+    feature_names_per_binarizer = []
+
+    fold_splits = skf.split(train_data, train_labels)
+    if show_folds:
+        fold_splits = tqdm(fold_splits, total=config.n_folds, desc="Folds", leave=False)
+
+    epoch_callback = reporter.epoch if reporter.enabled else None
+
+    best_fold_idx = 0
+    best_fold_score = -float("inf")
+    for fold_idx, (train_idx, val_idx) in enumerate(fold_splits):
+        fold_train = train_data.iloc[train_idx]
+        fold_train_labels = train_labels[train_idx]
+
+        binarizer = deepcopy(config.binarizer)
+        fold_train = binarizer.fit_transform(fold_train, fold_train_labels)
+        binarizers.append(binarizer)
+        feature_names_per_binarizer.append(binarizer.get_feature_names_out())
+        fold_train = fold_train.to_numpy(dtype=bool)
+
+        fold_val = binarizer.transform(train_data.iloc[val_idx]).to_numpy(dtype=bool)
+        fold_val_labels = train_labels[val_idx]
+
+        fold_gp_config = replace(
+            gp_template,
+            train_data=fold_train,
+            train_labels=fold_train_labels,
+        )
+        fold_trainer_config = replace(
+            trainer_template,
+            gp_config=fold_gp_config,
+            val_data=fold_val,
+            val_labels=fold_val_labels,
+            progress_bar=show_epochs,
+            progress_callback=epoch_callback,
+        )
+
+        trainer = GPTrainer(fold_trainer_config)
+        history = trainer.fit()
+
+        # Prefer validation score; fall back to training score
+        fold_score = (
+            history.best_val_score
+            if history.best_val_score is not None
+            else history.best_train_score
+        )
+        if fold_score is not None and fold_score > best_fold_score:
+            best_fold_score = fold_score
+            best_fold_idx = fold_idx
+
+        folds.append(history)
+
+        reporter.fold()
+
+    del train_data, train_labels
+
+    best_rule = folds[best_fold_idx].global_best_rule
+
+    # Transform test data using best fold's binarizer
+    best_binarizer = binarizers[best_fold_idx]
+    feature_names = feature_names_per_binarizer[best_fold_idx]
+    test_data = best_binarizer.transform(test_data).to_numpy(dtype=bool)
+
+    if gp_template.optimize_scorer:
+        test_score_fn, test_cm, test_data, test_labels = optimize_scorers_for_data(
+            gp_template.score_fn, confusion_matrix, data=test_data, labels=test_labels
+        )
+    else:
+        test_score_fn = gp_template.score_fn
+        test_cm = confusion_matrix
+
+    test_pred = best_rule.evaluate(test_data)
+
+    test_score = float(test_score_fn(test_labels, test_pred))
+
+    tp, fp, fn, tn = test_cm(test_labels, test_pred)
+
+    reporter.run()
+
+    return RunResult(
+        run_id=run_id,
+        seed=seed,
+        best_fold_idx=best_fold_idx,
+        folds=folds,
+        test_score=test_score,
+        test_tp=tp,
+        test_fp=fp,
+        test_fn=fn,
+        test_tn=tn,
+        feature_names=feature_names,
+        binarizer=best_binarizer,
+    )
+
+
+def single_run_wrapper(
+    args: tuple[int, int, BenchmarkerConfig, ProgressReporter | None],
+) -> RunResult:
+    """
+    Picklable wrapper for multiprocessing Pool.
+
+    Args:
+        args (tuple): Tuple of (run_id, seed, config, reporter).
+
+    Returns:
+        RunResult: Result for the run.
+    """
+    run_id, seed, config, reporter = args
+    return execute_single_run(run_id, seed, config, reporter)
