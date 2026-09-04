@@ -18,7 +18,6 @@ class EvaluationBackend(ABC):
     ) -> EvaluationContext:
         pass
 
-
     @abstractmethod
     def evaluate_population(
         self,
