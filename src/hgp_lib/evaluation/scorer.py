@@ -12,46 +12,6 @@ from ..utils.validation import validate_callable
 _warned_scorers: set[int] = set()
 
 
-def confusion_matrix(
-    y_true: np.ndarray, y_pred: np.ndarray, sample_weight: np.ndarray | None = None
-) -> tuple[int, int, int, int]:
-    """
-    Compute confusion matrix values from boolean label and prediction arrays.
-
-    Args:
-        y_true (np.ndarray):
-            Boolean ground-truth labels.
-        y_pred (np.ndarray):
-            Boolean predictions.
-        sample_weight (np.ndarray | None):
-            Optional per-sample weights. Default: `None`.
-
-    Returns:
-        tuple[int, int, int, int]: ``(tp, fp, fn, tn)``.
-
-    Examples:
-        >>> import numpy as np
-        >>> from hgp_lib.evaluation.scorer import confusion_matrix
-        >>> y_true = np.array([True, False, True, False])
-        >>> y_pred = np.array([True, True, False, False])
-        >>> confusion_matrix(y_true, y_pred)
-        (1, 1, 1, 1)
-    """
-    if sample_weight is None:
-        tp = (y_pred & y_true).sum()
-        fp = (y_pred & ~y_true).sum()
-        total_true = y_true.sum()
-        fn = total_true - tp
-        tn = len(y_pred) - total_true - fp
-    else:
-        tp = ((y_pred & y_true) * sample_weight).sum()
-        fp = ((y_pred & ~y_true) * sample_weight).sum()
-        total_true = (y_true * sample_weight).sum()
-        fn = total_true - tp
-        tn = sample_weight.sum() - total_true - fp
-    return int(tp), int(fp), int(fn), int(tn)
-
-
 def fast_f1_score(
     y_true: ndarray,
     y_pred: ndarray,
@@ -247,6 +207,8 @@ class SampleWeightScorer:
 
     def __call__(self, y_true: ndarray, y_pred: ndarray):
         return self.scorer(y_true, y_pred, sample_weight=self.sample_weight)
+
+
 
 
 def optimize_scorers_for_data(
