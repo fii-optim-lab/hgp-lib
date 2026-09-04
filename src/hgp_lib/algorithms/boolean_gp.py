@@ -9,7 +9,11 @@ from ..configs import BooleanGPConfig, validate_gp_config
 from ..metrics import GenerationMetrics
 from ..rules import Rule
 from ..selections import TournamentSelection
-from ..evaluation.scorer import confusion_matrix, fast_f1_score, optimize_scorers_for_data
+from ..evaluation.scorer import (
+    confusion_matrix,
+    fast_f1_score,
+    optimize_scorers_for_data,
+)
 
 
 class BooleanGP:
