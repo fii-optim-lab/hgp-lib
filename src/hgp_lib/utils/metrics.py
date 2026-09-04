@@ -206,6 +206,8 @@ def transform_duplicates_to_sample_weight(data: ndarray, labels: ndarray):
         return_index=True,
         return_counts=True,
     )
+    if len(unique_idx) == len(labels):
+        return data, labels, None
 
     return data[unique_idx], labels[unique_idx], sample_weight
 
@@ -255,7 +257,7 @@ def optimize_scorers_for_data(
 
     If every scorer accepts ``sample_weight``, duplicate rows are removed and
     each scorer is wrapped with ``SampleWeightScorer`` to inject the computed
-    weights. Otherwise a warning is issued (once per scorer) and the original
+    weights. Otherwise, a warning is issued (once per scorer) and the original
     data is returned unchanged.
 
     Args:
@@ -298,5 +300,6 @@ def optimize_scorers_for_data(
         data, labels, sample_weight = transform_duplicates_to_sample_weight(
             data, labels
         )
-        scorers = [SampleWeightScorer(scorer, sample_weight) for scorer in scorers]
+        if sample_weight is not None:
+            scorers = [SampleWeightScorer(scorer, sample_weight) for scorer in scorers]
     return *scorers, data, labels

@@ -137,7 +137,7 @@ class TestTransformDuplicates(unittest.TestCase):
         labels = np.array([1, 0])
         ud, _ul, sw = transform_duplicates_to_sample_weight(data, labels)
         self.assertEqual(len(ud), 2)
-        np.testing.assert_array_equal(sw, [1, 1])
+        self.assertIsNone(sw)
 
     def test_all_same(self):
         data = np.array([[1, 1], [1, 1], [1, 1]])
