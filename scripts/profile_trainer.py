@@ -51,7 +51,6 @@ from hgp_lib.rules import Rule
 from hgp_lib.selections import TournamentSelection
 from hgp_lib.trainers import GPTrainer
 from hgp_lib.utils import ComplexityCheck
-from hgp_lib.utils.metrics import fast_f1_score
 
 
 def preprocess_data(data_path: str, num_bins: int = 5) -> tuple:

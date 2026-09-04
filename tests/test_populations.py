@@ -11,7 +11,7 @@ from hgp_lib.populations import (
     RandomStrategy,
 )
 from hgp_lib.rules import And, Literal, Or
-from hgp_lib.utils.metrics import fast_accuracy_score
+from hgp_lib.evaluation.scorer import fast_accuracy_score
 
 
 class TestPopulations(unittest.TestCase):

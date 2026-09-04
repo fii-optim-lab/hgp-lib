@@ -6,8 +6,8 @@ from unittest.mock import patch
 
 import numpy as np
 
-import hgp_lib.utils.metrics
-from hgp_lib.utils.metrics import (
+import hgp_lib.evaluation.scorer
+from hgp_lib.evaluation.scorer import (
     accepts_sample_weight,
     confusion_matrix,
     fast_f1_score,
@@ -186,7 +186,7 @@ class TestOptimizeScorersForData(unittest.TestCase):
 
     def test_warns_without_sw(self):
         # Clear the warned set to ensure warning fires
-        hgp_lib.utils.metrics._warned_scorers.clear()
+        hgp_lib.evaluation.scorer._warned_scorers.clear()
         data = np.array([[1, 0], [0, 1]])
         labels = np.array([1, 0])
         with warnings.catch_warnings(record=True) as w:

@@ -1,6 +1,6 @@
 from collections.abc import Callable
 
-from hgp_lib.rules import Rule
+from ..rules import Rule
 
 from ..utils.validation import check_isinstance
 from .crossover_executor import CrossoverExecutor

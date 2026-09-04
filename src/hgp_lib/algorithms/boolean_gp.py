@@ -9,7 +9,7 @@ from ..configs import BooleanGPConfig, validate_gp_config
 from ..metrics import GenerationMetrics
 from ..rules import Rule
 from ..selections import TournamentSelection
-from ..utils.metrics import confusion_matrix, fast_f1_score, optimize_scorers_for_data
+from ..evaluation.scorer import confusion_matrix, fast_f1_score, optimize_scorers_for_data
 
 
 class BooleanGP:
@@ -496,7 +496,7 @@ class BooleanGP:
             >>> import numpy as np
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
-            >>> from hgp_lib.utils.metrics import fast_accuracy_score
+            >>> from hgp_lib.evaluation.scorer import fast_accuracy_score
             >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
             >>> labels = np.array([1, 0, 1, 0])
             >>> config = BooleanGPConfig(
@@ -531,7 +531,7 @@ class BooleanGP:
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
             >>> from hgp_lib.rules import Literal
-            >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
+            >>> from hgp_lib.evaluation.scorer import fast_accuracy_score as accuracy_score
             >>> data = np.array([[True, False], [False, True]])
             >>> labels = np.array([1, 0])
             >>> config = BooleanGPConfig(
@@ -587,7 +587,7 @@ class BooleanGP:
             >>> import numpy as np
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
-            >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
+            >>> from hgp_lib.evaluation.scorer import fast_accuracy_score as accuracy_score
             >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
             >>> labels = np.array([1, 0, 1, 0])
             >>> config = BooleanGPConfig(

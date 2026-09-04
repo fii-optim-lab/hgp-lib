@@ -38,7 +38,7 @@ from hgp_lib.populations import (
 )
 from hgp_lib.preprocessing import StandardBinarizer, load_data
 from hgp_lib.selections import RouletteSelection, TournamentSelection
-from hgp_lib.utils.metrics import fast_f1_score
+from hgp_lib.evaluation.scorer import fast_f1_score
 from hgp_lib.utils.validation import ComplexityCheck
 
 logging.basicConfig(
