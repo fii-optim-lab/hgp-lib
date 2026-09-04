@@ -6,8 +6,8 @@ from pandas.api.types import is_bool_dtype, is_numeric_dtype
 from sklearn.exceptions import NotFittedError
 from tqdm import tqdm
 
-from hgp_lib.utils.validation import check_isinstance
-from hgp_lib.utils.warnings import warn_once
+from ..utils.validation import check_isinstance
+from ..utils.warnings import warn_once
 
 from .base import Binarizer
 from .binning import BinningStrategy, QuantileBinning, SupervisedTreeBinning

@@ -5,7 +5,7 @@ from tqdm import tqdm
 from ..algorithms import BooleanGP
 from ..configs import TrainerConfig, validate_trainer_config
 from ..metrics import GenerationMetrics, PopulationHistory
-from ..utils.metrics import confusion_matrix, optimize_scorers_for_data
+from ..evaluation.scorer import confusion_matrix, optimize_scorers_for_data
 
 
 class GPTrainer:

@@ -11,7 +11,7 @@ from hgp_lib.crossover import CrossoverExecutor, CrossoverExecutorFactory
 from hgp_lib.populations import FeatureSamplingStrategy, PopulationGeneratorFactory
 from hgp_lib.rules import Literal, Rule
 from hgp_lib.selections import RouletteSelection, TournamentSelection
-from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
+from hgp_lib.evaluation.scorer import fast_accuracy_score as accuracy_score
 
 
 class TestBooleanGP(unittest.TestCase):

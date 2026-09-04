@@ -91,7 +91,7 @@ import numpy as np
 from sklearn.datasets import load_breast_cancer
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.benchmarkers import GPBenchmarker
-from hgp_lib.utils.metrics import fast_f1_score
+from hgp_lib.evaluation.scorer import fast_f1_score
 
 X, y = load_breast_cancer(return_X_y=True, as_frame=True)  # raw DataFrame + target
 

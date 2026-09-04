@@ -7,7 +7,7 @@ from sklearn.preprocessing import KBinsDiscretizer
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.preprocessing import SklearnBinarizer, StandardBinarizer
-from hgp_lib.utils.metrics import fast_f1_score
+from hgp_lib.evaluation.scorer import fast_f1_score
 
 
 def _make_dataset(n: int = 60):
