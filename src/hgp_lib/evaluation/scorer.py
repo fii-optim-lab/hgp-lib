@@ -299,6 +299,8 @@ class SampleWeightScorer:
         return self.scorer(y_true, y_pred, sample_weight=self.sample_weight)
 
 
+
+
 def optimize_scorers_for_data(
     *scorers: Callable[[ndarray, ndarray], Any],
     data: ndarray,

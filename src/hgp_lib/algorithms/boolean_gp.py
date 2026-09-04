@@ -15,6 +15,9 @@ from ..utils.metrics import (
     fast_f1_score,
     optimize_scorers_for_data,
 )
+from ..metrics import GenerationMetrics
+from ..rules import Rule
+from ..selections import TournamentSelection
 
 class BooleanGP:
     """
