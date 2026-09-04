@@ -35,7 +35,6 @@ from hgp_lib.utils.validation import ComplexityCheck
 gp_config = BooleanGPConfig(
     train_data=train_data.to_numpy(dtype=bool),
     train_labels=train_labels,
-    score_fn=score_fn,
     population_factory=population_factory,
     mutation_factory=mutation_factory,
     crossover_factory=crossover_factory,

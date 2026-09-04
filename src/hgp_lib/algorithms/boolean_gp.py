@@ -5,13 +5,11 @@ import numpy as np
 from numpy import ndarray
 from sklearn.exceptions import NotFittedError
 
-from hgp_lib.utils.metrics import confusion_matrix
-
 from ..configs import BooleanGPConfig, validate_gp_config
 from ..metrics import GenerationMetrics
 from ..rules import Rule
 from ..selections import TournamentSelection
-from ..utils.metrics import optimize_scorers_for_data
+from ..utils.metrics import confusion_matrix, fast_f1_score, optimize_scorers_for_data
 
 
 class BooleanGP:
@@ -40,13 +38,11 @@ class BooleanGP:
         >>> import numpy as np
         >>> from hgp_lib.configs import BooleanGPConfig
         >>> from hgp_lib.algorithms import BooleanGP
-        >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
         >>>
         >>>
         >>> train_data = np.array([[True, False, True, False], [False, True, False, True]])
         >>> train_labels = np.array([1, 0])
         >>> config = BooleanGPConfig(
-        ...     score_fn=accuracy_score,
         ...     train_data=train_data,
         ...     train_labels=train_labels,
         ...     optimize_scorer=False,
@@ -61,6 +57,8 @@ class BooleanGP:
         train_data = config.train_data
         train_labels = config.train_labels
 
+        if config.score_fn is None:
+            config.score_fn = fast_f1_score
         score_fn = config.score_fn
         self._original_score_fn = score_fn
 
@@ -160,12 +158,10 @@ class BooleanGP:
             >>> import numpy as np
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
-            >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
             >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
             >>> labels = np.array([1, 0, 1, 0])
             >>> config = BooleanGPConfig(
-            ...     score_fn=accuracy_score, train_data=data, train_labels=labels,
-            ...     optimize_scorer=False,
+            ...     train_data=data, train_labels=labels, optimize_scorer=False,
             ... )
             >>> gp = BooleanGP(config)
             >>> metrics = gp.step()
@@ -189,12 +185,10 @@ class BooleanGP:
             >>> import numpy as np
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
-            >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
             >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
             >>> labels = np.array([1, 0, 1, 0])
             >>> config = BooleanGPConfig(
-            ...     score_fn=accuracy_score, train_data=data, train_labels=labels,
-            ...     optimize_scorer=False,
+            ...     train_data=data, train_labels=labels, optimize_scorer=False,
             ... )
             >>> gp = BooleanGP(config)
             >>> pop_before = len(gp.population)
@@ -242,12 +236,10 @@ class BooleanGP:
             >>> import numpy as np
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
-            >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
             >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
             >>> labels = np.array([1, 0, 1, 0])
             >>> config = BooleanGPConfig(
-            ...     score_fn=accuracy_score, train_data=data, train_labels=labels,
-            ...     optimize_scorer=False,
+            ...     train_data=data, train_labels=labels, optimize_scorer=False,
             ... )
             >>> gp = BooleanGP(config)
             >>> gp._forward()
@@ -297,11 +289,9 @@ class BooleanGP:
             >>> from hgp_lib.algorithms import BooleanGP
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.populations import FeatureSamplingStrategy
-            >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
             >>> data = np.random.rand(50, 10) > 0.5
             >>> labels = np.random.randint(0, 2, 50)
             >>> config = BooleanGPConfig(
-            ...     score_fn=accuracy_score,
             ...     train_data=data,
             ...     train_labels=labels,
             ...     max_depth=1,
@@ -401,12 +391,10 @@ class BooleanGP:
             >>> import numpy as np
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
-            >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
             >>> data = np.array([[True, False], [False, True]])
             >>> labels = np.array([1, 0])
             >>> config = BooleanGPConfig(
-            ...     score_fn=accuracy_score, train_data=data, train_labels=labels,
-            ...     optimize_scorer=False,
+            ...     train_data=data, train_labels=labels, optimize_scorer=False,
             ... )
             >>> gp = BooleanGP(config)
             >>> gp.complexity_penalty = 0.0
@@ -508,15 +496,14 @@ class BooleanGP:
             >>> import numpy as np
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
-            >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
+            >>> from hgp_lib.utils.metrics import fast_accuracy_score
             >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
             >>> labels = np.array([1, 0, 1, 0])
             >>> config = BooleanGPConfig(
-            ...     score_fn=accuracy_score, train_data=data, train_labels=labels,
-            ...     optimize_scorer=False,
+            ...     train_data=data, train_labels=labels, optimize_scorer=False,
             ... )
             >>> gp = BooleanGP(config)
-            >>> scores = gp.evaluate_population(data, labels, accuracy_score)
+            >>> scores = gp.evaluate_population(data, labels, fast_accuracy_score)
             >>> len(scores) == len(gp.population)
             True
             >>> all(0.0 <= s <= 1.0 for s in scores)

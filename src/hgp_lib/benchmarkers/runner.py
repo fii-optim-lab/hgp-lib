@@ -9,7 +9,7 @@ from tqdm import tqdm
 from ..configs import BenchmarkerConfig
 from ..metrics import PopulationHistory, RunResult
 from ..trainers import GPTrainer
-from ..utils.metrics import confusion_matrix, optimize_scorers_for_data
+from ..utils.metrics import confusion_matrix, fast_f1_score, optimize_scorers_for_data
 from .progress import ProgressReporter
 
 
@@ -134,6 +134,8 @@ def execute_single_run(
     feature_names = feature_names_per_binarizer[best_fold_idx]
     test_data = best_binarizer.transform(test_data).to_numpy(dtype=bool)
 
+    if gp_template.score_fn is None:
+        gp_template.score_fn = fast_f1_score
     if gp_template.optimize_scorer:
         test_score_fn, test_cm, test_data, test_labels = optimize_scorers_for_data(
             gp_template.score_fn, confusion_matrix, data=test_data, labels=test_labels

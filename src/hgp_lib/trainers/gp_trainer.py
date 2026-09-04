@@ -23,14 +23,12 @@ class GPTrainer:
         >>> import numpy as np
         >>> from hgp_lib.configs import BooleanGPConfig, TrainerConfig
         >>> from hgp_lib.trainers import GPTrainer
-        >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
         >>>
         >>> train_data = np.array([[True, False, True, False], [False, True, False, True]])
         >>> train_labels = np.array([1, 0])
         >>> val_data = np.array([[True, True, False, False]])
         >>> val_labels = np.array([1])
         >>> gp_config = BooleanGPConfig(
-        ...     score_fn=accuracy_score,
         ...     train_data=train_data,
         ...     train_labels=train_labels,
         ...     optimize_scorer=False,
@@ -170,11 +168,9 @@ class GPTrainer:
             >>> import numpy as np
             >>> from hgp_lib.configs import BooleanGPConfig, TrainerConfig
             >>> from hgp_lib.trainers import GPTrainer
-            >>> from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
             >>> train_data = np.array([[True, False], [False, True]])
             >>> train_labels = np.array([1, 0])
             >>> gp_config = BooleanGPConfig(
-            ...     score_fn=accuracy_score,
             ...     train_data=train_data,
             ...     train_labels=train_labels,
             ...     optimize_scorer=False,

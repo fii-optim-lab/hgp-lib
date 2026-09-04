@@ -38,7 +38,6 @@ class BooleanRuleClassifier:
         >>> from sklearn.model_selection import train_test_split
         >>> from hgp_lib import BooleanRuleClassifier
         >>> from hgp_lib.configs import BooleanGPConfig, TrainerConfig
-        >>> from hgp_lib.utils.metrics import fast_f1_score
         >>> X, y = load_breast_cancer(return_X_y=True, as_frame=True)
         >>> X_train, X_test, y_train, y_test = train_test_split(
         ...     X, y, test_size=0.2, stratify=y, random_state=0
@@ -47,7 +46,7 @@ class BooleanRuleClassifier:
         ...     X_train, y_train, test_size=0.25, stratify=y_train, random_state=0
         ... )
         >>> config = TrainerConfig(
-        ...     gp_config=BooleanGPConfig(score_fn=fast_f1_score),
+        ...     gp_config=BooleanGPConfig(),
         ...     num_epochs=10,
         ...     val_every=5,
         ...     progress_bar=False,

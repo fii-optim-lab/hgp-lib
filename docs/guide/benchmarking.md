@@ -98,9 +98,7 @@ X, y = load_breast_cancer(return_X_y=True, as_frame=True)  # raw DataFrame + tar
 # Nested configs: BooleanGPConfig -> TrainerConfig -> BenchmarkerConfig.
 # train_data/train_labels are not needed in gp_config here;
 # the benchmarker binarizes and sets them per fold.
-gp_config = BooleanGPConfig(
-    score_fn=fast_f1_score,
-)
+gp_config = BooleanGPConfig()
 trainer_config = TrainerConfig(
     gp_config=gp_config,
     num_epochs=1000,

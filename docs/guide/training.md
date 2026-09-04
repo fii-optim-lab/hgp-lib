@@ -20,7 +20,6 @@ from sklearn.model_selection import train_test_split
 from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
 from hgp_lib.trainers import GPTrainer
-from hgp_lib.utils.metrics import fast_f1_score
 
 X, y = load_breast_cancer(return_X_y=True, as_frame=True)
 X_train, X_val, y_train, y_val = train_test_split(
@@ -37,7 +36,6 @@ val_labels = y_val.to_numpy()
 gp_config = BooleanGPConfig(
     train_data=train_data.to_numpy(dtype=bool),
     train_labels=train_labels,
-    score_fn=fast_f1_score,
 )
 config = TrainerConfig(
     gp_config=gp_config,
@@ -109,7 +107,6 @@ from sklearn.model_selection import train_test_split
 from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
 from hgp_lib.trainers import GPTrainer
-from hgp_lib.utils.metrics import fast_f1_score
 
 X, y = load_breast_cancer(return_X_y=True, as_frame=True)
 X_train, X_test, y_train, y_test = train_test_split(
@@ -121,7 +118,6 @@ train_bin = binarizer.fit_transform(X_train, y_train.to_numpy())
 test_bin = binarizer.transform(X_test)
 
 gp = BooleanGPConfig(
-    score_fn=fast_f1_score,
     train_data=train_bin.to_numpy(),
     train_labels=y_train.to_numpy(),
 )

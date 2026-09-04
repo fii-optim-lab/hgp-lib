@@ -32,7 +32,6 @@ from sklearn.model_selection import train_test_split
 
 from hgp_lib import BooleanRuleClassifier
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
-from hgp_lib.utils.metrics import fast_f1_score
 
 X, y = load_breast_cancer(return_X_y=True, as_frame=True)
 X_train, X_test, y_train, y_test = train_test_split(
@@ -43,7 +42,7 @@ X_train, X_val, y_train, y_val = train_test_split(
 )
 
 config = TrainerConfig(
-    gp_config=BooleanGPConfig(score_fn=fast_f1_score), num_epochs=1000, val_every=100
+    gp_config=BooleanGPConfig(), num_epochs=1000, val_every=100
 )
 clf = BooleanRuleClassifier(config)  # StandardBinarizer by default; pass binarizer=... to customize
 clf.fit(X_train, y_train, X_val, y_val)  # validation data is binarized internally too
@@ -63,11 +62,10 @@ import numpy as np
 from sklearn.datasets import load_breast_cancer
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.benchmarkers import GPBenchmarker
-from hgp_lib.utils.metrics import fast_f1_score
 
 X, y = load_breast_cancer(return_X_y=True, as_frame=True)
 
-gp_config = BooleanGPConfig(score_fn=fast_f1_score)
+gp_config = BooleanGPConfig()
 trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=1000, val_every=100)
 config = BenchmarkerConfig(
     data=X,

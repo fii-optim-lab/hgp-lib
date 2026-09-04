@@ -57,7 +57,6 @@ class GPBenchmarker:
             options. See `BenchmarkerConfig` for more details.
 
     Examples:
-        >>> from sklearn.metrics import accuracy_score
         >>> import numpy as np
         >>> import pandas as pd
         >>> from hgp_lib.configs import BooleanGPConfig, TrainerConfig, BenchmarkerConfig
@@ -68,7 +67,7 @@ class GPBenchmarker:
         ...     "f2": [False, True, True, False, False, True, True, False],
         ... })
         >>> labels = np.array([1, 0, 1, 0, 1, 0, 1, 0])
-        >>> gp_config = BooleanGPConfig(score_fn=accuracy_score, optimize_scorer=False)
+        >>> gp_config = BooleanGPConfig(optimize_scorer=False)
         >>> trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=3, progress_bar=False)
         >>> config = BenchmarkerConfig(
         ...     data=data, labels=labels, trainer_config=trainer_config,
@@ -97,14 +96,13 @@ class GPBenchmarker:
             int: The number of parallel workers to use (always >= 1).
 
         Examples:
-            >>> from sklearn.metrics import accuracy_score
             >>> import numpy as np
             >>> import pandas as pd
             >>> from hgp_lib.configs import BooleanGPConfig, TrainerConfig, BenchmarkerConfig
             >>> from hgp_lib.benchmarkers import GPBenchmarker
             >>> data = pd.DataFrame({"f": [True, False, True, False, True, False, True, False]})
             >>> labels = np.array([1, 0, 1, 0, 1, 0, 1, 0])
-            >>> gp = BooleanGPConfig(score_fn=accuracy_score, optimize_scorer=False)
+            >>> gp = BooleanGPConfig(optimize_scorer=False)
             >>> tc = TrainerConfig(gp_config=gp, num_epochs=1, progress_bar=False)
             >>> cfg = BenchmarkerConfig(data=data, labels=labels, trainer_config=tc,
             ...     num_runs=3, n_folds=2, n_jobs=1)
@@ -221,7 +219,6 @@ class GPBenchmarker:
             NotFittedError: If called before ``fit`` (no results are available yet).
 
         Examples:
-            >>> from sklearn.metrics import accuracy_score
             >>> import numpy as np
             >>> import pandas as pd
             >>> from hgp_lib.configs import BooleanGPConfig, TrainerConfig, BenchmarkerConfig
@@ -231,7 +228,7 @@ class GPBenchmarker:
             ...     "f2": [False, True, True, False, False, True, True, False],
             ... })
             >>> labels = np.array([1, 0, 1, 0, 1, 0, 1, 0])
-            >>> gp_config = BooleanGPConfig(score_fn=accuracy_score, optimize_scorer=False)
+            >>> gp_config = BooleanGPConfig(optimize_scorer=False)
             >>> trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=3, progress_bar=False)
             >>> config = BenchmarkerConfig(
             ...     data=data, labels=labels, trainer_config=trainer_config,
