@@ -9,7 +9,7 @@ from tqdm import tqdm
 from ..configs import BenchmarkerConfig
 from ..metrics import PopulationHistory, RunResult
 from ..trainers import GPTrainer
-from ..utils.metrics import confusion_matrix, fast_f1_score, optimize_scorers_for_data
+from hgp_lib.evaluation.scorer import confusion_matrix, fast_f1_score, optimize_scorers_for_data
 from .progress import ProgressReporter
 
 

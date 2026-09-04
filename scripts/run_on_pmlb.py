@@ -20,7 +20,7 @@ from tqdm.contrib.concurrent import process_map
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.preprocessing import StandardBinarizer, load_data
-from hgp_lib.utils.metrics import fast_f1_score
+from hgp_lib.evaluation.scorer import fast_f1_score
 
 
 def get_binary_classification_datasets():

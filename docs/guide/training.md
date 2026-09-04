@@ -62,15 +62,17 @@ from hgp_lib.crossover import CrossoverExecutorFactory
 from hgp_lib.mutations import MutationExecutorFactory
 from hgp_lib.populations import PopulationGeneratorFactory
 from hgp_lib.selections import TournamentSelection
-from hgp_lib.utils.metrics import fast_f1_score
+from hgp_lib.evaluation.scorer import fast_f1_score
 
 population_factory = PopulationGeneratorFactory(population_size=100)
 mutation_factory = MutationExecutorFactory(mutation_p=0.1, operator_p=0.5)
 crossover_factory = CrossoverExecutorFactory(crossover_p=0.7)
 selection = TournamentSelection()
 
+
 def check_valid(rule):  # keep rules compact
     return len(rule) <= 25
+
 
 gp_config = BooleanGPConfig(
     train_data=train_data.to_numpy(dtype=bool),

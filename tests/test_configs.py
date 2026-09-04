@@ -18,7 +18,7 @@ from hgp_lib.mutations import MutationExecutorFactory
 from hgp_lib.populations import PopulationGeneratorFactory
 from hgp_lib.populations.sampling import FeatureSamplingStrategy
 from hgp_lib.preprocessing import StandardBinarizer
-from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
+from hgp_lib.evaluation.scorer import fast_accuracy_score as accuracy_score
 
 
 class TestBooleanGPConfig(unittest.TestCase):

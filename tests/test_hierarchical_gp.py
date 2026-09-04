@@ -11,7 +11,7 @@ from hgp_lib.populations import (
     FeatureSamplingStrategy,
     InstanceSamplingStrategy,
 )
-from hgp_lib.utils.metrics import fast_accuracy_score as accuracy_score
+from hgp_lib.evaluation.scorer import fast_accuracy_score as accuracy_score
 
 
 class TestSamplingStrategies(unittest.TestCase):

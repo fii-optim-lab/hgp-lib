@@ -11,7 +11,7 @@ from hgp_lib.configs import BooleanGPConfig, TrainerConfig
 from hgp_lib.metrics import PopulationHistory
 from hgp_lib.preprocessing import SklearnBinarizer, StandardBinarizer
 from hgp_lib.rules import Rule
-from hgp_lib.utils.metrics import fast_f1_score
+from hgp_lib.evaluation.scorer import fast_f1_score
 
 
 class TestBooleanRuleClassifier(unittest.TestCase):

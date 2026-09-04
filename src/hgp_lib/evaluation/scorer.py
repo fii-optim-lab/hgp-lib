@@ -6,7 +6,7 @@ from typing import Any
 import numpy as np
 from numpy import ndarray
 
-from hgp_lib.utils.validation import validate_callable
+from ..utils.validation import validate_callable
 
 # Track scorers that have already been warned about missing sample_weight support
 _warned_scorers: set[int] = set()
@@ -31,7 +31,7 @@ def confusion_matrix(
 
     Examples:
         >>> import numpy as np
-        >>> from hgp_lib.utils.metrics import confusion_matrix
+        >>> from hgp_lib.evaluation.scorer import confusion_matrix
         >>> y_true = np.array([True, False, True, False])
         >>> y_pred = np.array([True, True, False, False])
         >>> confusion_matrix(y_true, y_pred)
@@ -73,7 +73,7 @@ def fast_f1_score(
 
     Examples:
         >>> import numpy as np
-        >>> from hgp_lib.utils.metrics import fast_f1_score
+        >>> from hgp_lib.evaluation.scorer import fast_f1_score
         >>> y_pred = np.array([True, True, False, False])
         >>> y_true = np.array([True, False, False, True])
         >>> fast_f1_score(y_true, y_pred)
@@ -114,7 +114,7 @@ def fast_accuracy_score(
 
     Examples:
         >>> import numpy as np
-        >>> from hgp_lib.utils.metrics import fast_accuracy_score
+        >>> from hgp_lib.evaluation.scorer import fast_accuracy_score
         >>> y_pred = np.array([True, True, False, False])
         >>> y_true = np.array([True, False, False, True])
         >>> fast_accuracy_score(y_true, y_pred)
@@ -141,7 +141,7 @@ def accepts_sample_weight(scorer: Callable) -> bool:
         bool: ``True`` if the scorer accepts ``sample_weight``.
 
     Examples:
-        >>> from hgp_lib.utils.metrics import accepts_sample_weight
+        >>> from hgp_lib.evaluation.scorer import accepts_sample_weight
         >>> def with_sw(p, l, sample_weight=None): return 0.0
         >>> accepts_sample_weight(with_sw)
         True
@@ -185,7 +185,7 @@ def transform_duplicates_to_sample_weight(data: ndarray, labels: ndarray):
 
     Examples:
         >>> import numpy as np
-        >>> from hgp_lib.utils.metrics import transform_duplicates_to_sample_weight
+        >>> from hgp_lib.evaluation.scorer import transform_duplicates_to_sample_weight
         >>> data = np.array([[1, 0], [1, 0], [0, 1]])
         >>> labels = np.array([1, 1, 0])
         >>> ud, ul, sw = transform_duplicates_to_sample_weight(data, labels)
@@ -231,7 +231,7 @@ class SampleWeightScorer:
 
     Examples:
         >>> import numpy as np
-        >>> from hgp_lib.utils.metrics import SampleWeightScorer, fast_f1_score
+        >>> from hgp_lib.evaluation.scorer import SampleWeightScorer, fast_f1_score
         >>> weighted = SampleWeightScorer(fast_f1_score, np.array([2, 1, 1]))
         >>> y_true = np.array([True, False, True])
         >>> y_pred = np.array([True, False, False])
@@ -273,7 +273,7 @@ def optimize_scorers_for_data(
 
     Examples:
         >>> import numpy as np
-        >>> from hgp_lib.utils.metrics import optimize_scorers_for_data
+        >>> from hgp_lib.evaluation.scorer import optimize_scorers_for_data
         >>> from sklearn.metrics import accuracy_score
         >>> data = np.array([[1, 0], [1, 0], [0, 1]])
         >>> labels = np.array([1, 1, 0])
