@@ -64,6 +64,7 @@ dev = [
     "mkdocs-material",
     "mkdocs-bibtex",
     "pytest",
+    "pytest-benchmark",
     "flake8",
     "ruff",
     "seaborn",
@@ -98,3 +99,7 @@ exclude_also = [
 testpaths = ["tests", "src/hgp_lib"]
 pythonpath = ["src"]
 addopts = "--doctest-modules"
+markers = [
+    "fast: benchmarks intended for quick local runs",
+    "scenario(name): benchmark scenario identifier",
+]

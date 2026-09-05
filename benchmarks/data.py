@@ -14,10 +14,10 @@ DATA_DIR = REPO_ROOT / "data"
 
 
 OPENML_DATASETS = {
-    # "banknote_authentication": 1462,
-    # "diabetes": 37,
-    # "spambase": 44,
-    # "ionosphere": 59,
+    "banknote_authentication": 1462,
+    "diabetes": 37,
+    "spambase": 44,
+    "ionosphere": 59,
 }
 
 DATASET_NAMES = [
@@ -31,9 +31,7 @@ def _encode_binary_target(y) -> np.ndarray:
     classes = np.unique(y)
 
     if len(classes) != 2:
-        raise ValueError(
-            f"Expected a binary target, found classes {classes!r}."
-        )
+        raise ValueError(f"Expected a binary target, found classes {classes!r}.")
 
     return y == classes[1]
 
@@ -51,15 +49,14 @@ def _download_dataset(
             data_id=OPENML_DATASETS[name],
             return_X_y=True,
             as_frame=True,
+            data_home=DATA_DIR / "openml",
         )
 
     X = X.astype(np.float64)
     y = _encode_binary_target(y)
 
     if not np.isfinite(X.to_numpy()).all():
-        raise ValueError(
-            f"Dataset {name!r} contains non-finite values."
-        )
+        raise ValueError(f"Dataset {name!r} contains non-finite values.")
 
     return X, y
 
@@ -106,9 +103,7 @@ def load_fold(
 ]:
     """Load one deterministic stratified fold."""
     if not 0 <= fold < N_SPLITS:
-        raise ValueError(
-            f"Fold must be between 0 and {N_SPLITS - 1}."
-        )
+        raise ValueError(f"Fold must be between 0 and {N_SPLITS - 1}.")
 
     X, y = load_dataset(name)
 
@@ -119,9 +114,7 @@ def load_fold(
     )
 
     train_indices, test_indices = next(
-        split
-        for index, split in enumerate(splitter.split(X, y))
-        if index == fold
+        split for index, split in enumerate(splitter.split(X, y)) if index == fold
     )
 
     return (
