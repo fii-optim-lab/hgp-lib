@@ -104,6 +104,10 @@ def print_report(machines: dict[str, list[dict]]) -> None:
         ]
         print(pd.DataFrame(table_rows).to_string(index=False))
         print()
+        for scenario, group in pd.DataFrame(table_rows).groupby("Scenario"):
+            print(f"scenario: {scenario}")
+            print(group.to_string(index=False))
+            print()
 
 
 def main() -> None:
