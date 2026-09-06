@@ -210,7 +210,7 @@ class SampleWeightScorer:
 
 
 
-
+# TODO: Check if we should move this to numpy
 def optimize_scorers_for_data(
     *scorers: Callable[[ndarray, ndarray], Any], data: ndarray, labels: ndarray
 ):
