@@ -1,16 +1,19 @@
 """Tests for hgp_lib.rules.utils."""
 
+import json
 import random
 import unittest
 
-from hgp_lib.rules import And, Literal, Or
+from hgp_lib.rules import And, Literal, Or, Rule
 from hgp_lib.rules.utils import (
     apply_feature_mapping,
     deep_swap,
+    deserialize,
     is_operator,
     is_operator_type,
     replace_with_rule,
     select_crossover_point,
+    serialize,
 )
 
 
@@ -224,6 +227,136 @@ class TestSelectCrossoverPoint(unittest.TestCase):
                 operator_count += 1
         # With operator_p=0.9, expect ~90% operators
         self.assertGreater(operator_count / n, 0.7)
+
+
+class TestSerialization(unittest.TestCase):
+    def setUp(self):
+        self.rule = And(
+            [
+                Literal(value=0),
+                Or(
+                    [Literal(value=1, negated=True), Literal(value=2)],
+                    negated=True,
+                ),
+            ],
+            negated=True,
+        )
+        self.feature_mapping = {0: "age", 1: "income", 2: "employed"}
+
+    def test_serialize_format(self):
+        self.assertEqual(
+            serialize(self.rule, self.feature_mapping),
+            {
+                "feature_mapping": self.feature_mapping,
+                "rule": {
+                    "And": {
+                        "negated": True,
+                        "subrules": [
+                            {"Literal": {"negated": False, "value": 0}},
+                            {
+                                "Or": {
+                                    "negated": True,
+                                    "subrules": [
+                                        {
+                                            "Literal": {
+                                                "negated": True,
+                                                "value": 1,
+                                            }
+                                        },
+                                        {
+                                            "Literal": {
+                                                "negated": False,
+                                                "value": 2,
+                                            }
+                                        },
+                                    ],
+                                }
+                            },
+                        ],
+                    }
+                },
+            },
+        )
+
+    def test_json_round_trip(self):
+        payload = json.loads(json.dumps(serialize(self.rule, self.feature_mapping)))
+        restored, feature_mapping = deserialize(payload)
+        self.assertEqual(str(restored), str(self.rule))
+        self.assertEqual(feature_mapping, self.feature_mapping)
+
+    def test_parent_references(self):
+        restored, _ = deserialize(serialize(self.rule))
+        self.assertIsNone(restored.parent)
+        for node in restored.flatten():
+            for child in node.subrules:
+                self.assertIs(child.parent, node)
+
+    def test_none_feature_mapping(self):
+        restored, feature_mapping = deserialize(serialize(Literal(value=3)))
+        self.assertEqual(str(restored), "3")
+        self.assertIsNone(feature_mapping)
+
+    def test_serialization_does_not_mutate_inputs(self):
+        original_rule = str(self.rule)
+        original_mapping = self.feature_mapping.copy()
+        payload = serialize(self.rule, self.feature_mapping)
+        payload["feature_mapping"][0] = "changed"
+        self.assertEqual(str(self.rule), original_rule)
+        self.assertEqual(self.feature_mapping, original_mapping)
+
+    def test_low_memory_operator(self):
+        from hgp_lib.rules.low_memory_operators import And as LowMemoryAnd
+
+        rule = LowMemoryAnd([Literal(value=0), Literal(value=1)])
+        restored, _ = deserialize(serialize(rule))
+        self.assertEqual(str(restored), "And(0, 1)")
+
+    def test_invalid_envelope(self):
+        with self.assertRaises(ValueError):
+            deserialize({"rule": {"Literal": {"negated": False, "value": 0}}})
+
+    def test_invalid_rule_type(self):
+        payload = {
+            "feature_mapping": None,
+            "rule": {"Xor": {"negated": False, "subrules": []}},
+        }
+        with self.assertRaises(ValueError):
+            deserialize(payload)
+
+    def test_invalid_literal_value(self):
+        payload = {
+            "feature_mapping": None,
+            "rule": {"Literal": {"negated": False, "value": True}},
+        }
+        with self.assertRaises(TypeError):
+            deserialize(payload)
+
+    def test_empty_operator(self):
+        payload = {
+            "feature_mapping": None,
+            "rule": {"And": {"negated": False, "subrules": []}},
+        }
+        with self.assertRaises(ValueError):
+            deserialize(payload)
+
+    def test_invalid_feature_mapping(self):
+        with self.assertRaises(TypeError):
+            serialize(self.rule, {0: 1})
+        with self.assertRaises(ValueError):
+            deserialize(
+                {
+                    "feature_mapping": {"not-an-index": "age"},
+                    "rule": {"Literal": {"negated": False, "value": 0}},
+                }
+            )
+
+    def test_unsupported_rule(self):
+        class UnsupportedRule(Rule):
+            def evaluate(self, data):
+                return data[:, 0]
+
+        with self.assertRaises(TypeError):
+            serialize(UnsupportedRule())
 
 
 if __name__ == "__main__":

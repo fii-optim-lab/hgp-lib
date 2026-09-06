@@ -1,11 +1,12 @@
 import argparse
+import json
 import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BENCHMARK_DIR = ROOT / "benchmarks"
-RESULTS_DIR = ROOT / "benchmark-results"
+RESULTS_DIR = BENCHMARK_DIR / "results"
 
 
 def parse_args() -> argparse.Namespace:
@@ -16,11 +17,9 @@ def parse_args() -> argparse.Namespace:
     selection.add_argument("--all", action="store_true")
     selection.add_argument("--scenario")
 
-    parser.add_argument(
-        "--save",
-        default="current",
-        help="Result label, for example 2.1.0 or 2.1.0-new-selection.",
-    )
+    parser.add_argument("--machine", required=True)
+    parser.add_argument("--version", required=True)
+    parser.add_argument("--name")
 
     return parser.parse_args()
 
@@ -44,18 +43,23 @@ def main() -> None:
     elif args.scenario:
         command += ["--hgp-scenario", args.scenario]
 
-    name = args.save.removesuffix(".json")
-    output = RESULTS_DIR / f"{name}.json"
+    parts = [args.machine, args.version]
+    if args.name:
+        parts.append(args.name)
+    output = RESULTS_DIR / f"{'-'.join(parts)}.json"
     command.append(f"--benchmark-json={output}")
 
     print("Running:", " ".join(map(str, command)))
     subprocess.run(command, cwd=ROOT, check=True)
+
+    payload = json.loads(output.read_text())
+    payload["hgp_benchmark"] = {
+        "machine": args.machine,
+        "version": args.version,
+        "name": args.name,
+    }
+    output.write_text(json.dumps(payload, indent=2) + "\n")
     print(f"Saved benchmark results to {output}")
-    subprocess.run(
-        [sys.executable, str(BENCHMARK_DIR / "compare.py")],
-        cwd=ROOT,
-        check=True,
-    )
 
 
 if __name__ == "__main__":

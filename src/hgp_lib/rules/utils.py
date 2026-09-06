@@ -226,3 +226,207 @@ def _create_unsafe_rule(
     new.value = value
     new.negated = negated
     return new
+
+
+def serialize(
+    rule: Rule, feature_mapping: dict[int, str] | None = None
+) -> dict[str, object]:
+    """
+    Serialize a rule and optional feature names into JSON-compatible data.
+
+    Args:
+        rule (Rule): Rule tree to serialize.
+        feature_mapping (dict[int, str] | None): Optional mapping from literal indices
+            to feature names. Default: `None`.
+
+    Returns:
+        dict[str, object]: Serialized feature mapping and rule tree.
+
+    Raises:
+        TypeError: If the rule type or feature mapping types are unsupported.
+        ValueError: If a feature mapping index is negative.
+
+    Examples:
+        >>> from hgp_lib.rules import And, Literal
+        >>> from hgp_lib.rules.utils import serialize
+        >>> rule = And([Literal(value=0), Literal(value=1, negated=True)])
+        >>> serialized = serialize(rule, {0: "age", 1: "income"})
+        >>> serialized["feature_mapping"]
+        {0: 'age', 1: 'income'}
+        >>> serialized["rule"]
+        {'And': {'negated': False, 'subrules': [{'Literal': {'negated': False, 'value': 0}}, {'Literal': {'negated': True, 'value': 1}}]}}
+    """
+    if not isinstance(rule, Rule):
+        raise TypeError(f"rule must be a Rule, is {type(rule)}")
+    return {
+        "feature_mapping": _serialize_feature_mapping(feature_mapping),
+        "rule": _serialize_node(rule),
+    }
+
+
+def deserialize(
+    serialized_rule: dict[str, object],
+) -> tuple[Rule, dict[int, str] | None]:
+    """
+    Deserialize a rule and its optional feature-name mapping.
+
+    String mapping keys produced by JSON decoding are converted back to integers.
+
+    Args:
+        serialized_rule (dict[str, object]): Data produced by :func:`serialize`.
+
+    Returns:
+        tuple[Rule, dict[int, str] | None]: The reconstructed rule and feature mapping.
+
+    Raises:
+        TypeError: If a serialized value has an invalid type.
+        ValueError: If the serialized structure or a mapping index is invalid.
+
+    Examples:
+        >>> from hgp_lib.rules import Or, Literal
+        >>> from hgp_lib.rules.utils import deserialize, serialize
+        >>> original = Or([Literal(value=0), Literal(value=2, negated=True)])
+        >>> restored, feature_mapping = deserialize(
+        ...     serialize(original, {0: "age", 2: "income"})
+        ... )
+        >>> str(restored)
+        'Or(0, ~2)'
+        >>> feature_mapping
+        {0: 'age', 2: 'income'}
+        >>> all(child.parent is restored for child in restored.subrules)
+        True
+    """
+    if not isinstance(serialized_rule, dict):
+        raise TypeError("serialized_rule must be a dictionary")
+    if set(serialized_rule) != {"feature_mapping", "rule"}:
+        raise ValueError("serialized_rule must contain feature_mapping and rule")
+
+    feature_mapping = _deserialize_feature_mapping(serialized_rule["feature_mapping"])
+    rule = _deserialize_node(serialized_rule["rule"])
+    return rule, feature_mapping
+
+
+def _serialize_feature_mapping(
+    feature_mapping: dict[int, str] | None,
+) -> dict[int, str] | None:
+    if feature_mapping is None:
+        return None
+    if not isinstance(feature_mapping, dict):
+        raise TypeError("feature_mapping must be a dictionary or None")
+
+    result = {}
+    for index, name in feature_mapping.items():
+        if isinstance(index, bool) or not isinstance(index, int):
+            raise TypeError("feature mapping indices must be integers")
+        if index < 0:
+            raise ValueError("feature mapping indices must be non-negative")
+        if not isinstance(name, str):
+            raise TypeError("feature mapping names must be strings")
+        result[index] = name
+    return result
+
+
+def _deserialize_feature_mapping(
+    feature_mapping: object,
+) -> dict[int, str] | None:
+    if feature_mapping is None:
+        return None
+    if not isinstance(feature_mapping, dict):
+        raise TypeError("feature_mapping must be a dictionary or None")
+
+    result = {}
+    for raw_index, name in feature_mapping.items():
+        if isinstance(raw_index, bool):
+            raise TypeError("feature mapping indices must be integers")
+        if isinstance(raw_index, int):
+            index = raw_index
+        elif isinstance(raw_index, str):
+            try:
+                index = int(raw_index)
+            except ValueError as error:
+                raise ValueError(
+                    f"Invalid feature mapping index: {raw_index!r}"
+                ) from error
+        else:
+            raise TypeError("feature mapping indices must be integers")
+        if index < 0:
+            raise ValueError("feature mapping indices must be non-negative")
+        if not isinstance(name, str):
+            raise TypeError("feature mapping names must be strings")
+        if index in result:
+            raise ValueError(f"Duplicate feature mapping index: {index}")
+        result[index] = name
+    return result
+
+
+def _serialize_node(rule: Rule) -> dict[str, dict[str, object]]:
+    from .low_memory_operators import And as LowMemoryAnd
+    from .low_memory_operators import Or as LowMemoryOr
+    from .operators import And as StandardAnd
+    from .operators import Or as StandardOr
+
+    if isinstance(rule, Literal):
+        return {
+            "Literal": {
+                "negated": bool(rule.negated),
+                "value": int(rule.value),
+            }
+        }
+    if isinstance(rule, (StandardAnd, LowMemoryAnd)):
+        name = "And"
+    elif isinstance(rule, (StandardOr, LowMemoryOr)):
+        name = "Or"
+    else:
+        raise TypeError(f"Unsupported rule type: {type(rule).__name__}")
+    return {
+        name: {
+            "negated": bool(rule.negated),
+            "subrules": [_serialize_node(subrule) for subrule in rule.subrules],
+        }
+    }
+
+
+def _deserialize_node(serialized_node: object) -> Rule:
+    from . import And, Or
+
+    if not isinstance(serialized_node, dict):
+        raise TypeError("A serialized rule node must be a dictionary")
+    if len(serialized_node) != 1:
+        raise ValueError("A serialized rule node must contain exactly one rule type")
+
+    name, attributes = next(iter(serialized_node.items()))
+    if not isinstance(attributes, dict):
+        raise TypeError("Serialized rule attributes must be a dictionary")
+
+    if name == "Literal":
+        if set(attributes) != {"negated", "value"}:
+            raise ValueError("Literal must contain negated and value")
+        negated = attributes["negated"]
+        value = attributes["value"]
+        if not isinstance(negated, bool):
+            raise TypeError("Literal negated must be boolean")
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise TypeError("Literal value must be an integer")
+        if value < 0:
+            raise ValueError("Literal value must be non-negative")
+        return Literal(value=value, negated=negated)
+
+    if name not in {"And", "Or"}:
+        raise ValueError(f"Unknown rule type: {name!r}")
+    if set(attributes) != {"negated", "subrules"}:
+        raise ValueError(f"{name} must contain negated and subrules")
+    negated = attributes["negated"]
+    subrules = attributes["subrules"]
+    if not isinstance(negated, bool):
+        raise TypeError(f"{name} negated must be boolean")
+    if not isinstance(subrules, list):
+        raise TypeError(f"{name} subrules must be a list")
+    if not subrules:
+        raise ValueError(f"{name} must contain at least one subrule")
+
+    rule_type = And if name == "And" else Or
+    return rule_type(
+        [_deserialize_node(subrule) for subrule in subrules],
+        negated=negated,
+        copy_subrules=False,
+    )
