@@ -20,7 +20,9 @@ Create only rule artifacts, replacing existing files:
 python benchmarks/create_artifacts.py --rule_artifacts --overwrite
 ```
 
-Rule artifacts are committed under `benchmarks/artifacts/rule_evaluation` so benchmark runs do not evolve populations.
+### Rule artifacts
+
+Rule artifacts are committed under `benchmarks/artifacts/rule_evaluation`.
 Each dataset and fold has one JSON file containing 100 rules.
 The first serialized rule stores the binarized feature-name mapping shared by the population; later rules omit the duplicate mapping.
 The rules are evolved for 500 generations with these fold policies:
@@ -32,9 +34,6 @@ The rules are evolved for 500 generations with these fold policies:
 | 2 | 100 | -0.001 (high reward) |
 | 3 | 250 | -0.0005 (medium reward) |
 | 4 | 500 | -0.001 (high reward) |
-
-The complexity checks are passed to HGP's mutation and crossover logic; artifact generation does not filter or replace the final population.
-Negative values reward larger rules through BooleanGP's existing regularized-selection formula and are assigned after configuration validation.
 
 ## Running benchmarks
 
@@ -97,7 +96,6 @@ A rule-evaluation scenario is one timed benchmark that evaluates all five folds 
 It records one per-dataset runtime plus the mean and population standard deviation of the five fold scores.
 Full-run scenarios still store one measurement per fold; reports aggregate their runtimes and scores by scenario.
 
-Datasets are cached under `./data`; the four OpenML datasets are downloaded on first use.
 
 ## Comparing machines and versions
 
