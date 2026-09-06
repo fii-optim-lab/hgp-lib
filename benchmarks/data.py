@@ -5,7 +5,6 @@ import pandas as pd
 from sklearn.datasets import fetch_openml, load_breast_cancer
 from sklearn.model_selection import StratifiedKFold
 
-
 RANDOM_STATE = 42
 N_SPLITS = 5
 

@@ -25,8 +25,6 @@ def dataset_parameter(dataset: str):
             warmup=False,
         ),
     ]
-    if dataset == "breast_cancer":
-        marks.append(pytest.mark.fast)
     return pytest.param(dataset, id=dataset, marks=marks)
 
 
@@ -57,8 +55,8 @@ def test_full_run(benchmark, dataset, fold):
     random.seed(fold)
     classifier = benchmark.pedantic(
         fit_classifier,
-        rounds=1,
-        iterations=1,
+        rounds=2,
+        iterations=2,
     )
 
     predictions = classifier.predict(X_test)

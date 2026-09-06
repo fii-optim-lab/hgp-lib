@@ -40,6 +40,7 @@ def dataset_parameter(dataset: str):
 def test_rule_evaluation(benchmark, dataset):
     evaluators = []
     metadata_per_fold = []
+    repeats = 25
 
     for fold in range(N_SPLITS):
         rules, data, labels, metadata = load_evaluation_artifact(dataset, fold)
@@ -58,14 +59,23 @@ def test_rule_evaluation(benchmark, dataset):
         )
         gp.population = rules
         gp.population_size = len(rules)
+
+        data = np.tile(data, (repeats, 1))
+        labels = np.tile(labels, repeats)
         evaluators.append((gp, data, labels))
         metadata_per_fold.append(metadata)
 
     def evaluate_folds():
-        return [
+        ret = [
             gp.evaluate_population(data, labels, fast_f1_score)
             for gp, data, labels in evaluators
         ]
+        for _ in range(repeats):
+            [
+                gp.evaluate_population(data, labels, fast_f1_score)
+                for gp, data, labels in evaluators
+            ]
+        return ret
 
     scores_per_fold = benchmark(evaluate_folds)
     if any(len(scores) != POPULATION_SIZE for scores in scores_per_fold):
