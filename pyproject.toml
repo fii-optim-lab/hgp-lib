@@ -1,6 +1,6 @@
 [project]
 name = "hgp-lib"
-version = "1.2.1"
+version = "1.2.2"
 requires-python = ">=3.10"
 description = "hgp-lib: Hierarchical Genetic Programming Library for Generating Boolean Rules from Tabular Data"
 readme = "README.md"
