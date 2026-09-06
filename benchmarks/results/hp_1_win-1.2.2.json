@@ -1,0 +1,1734 @@
+{
+  "machine_info": {
+    "node": "OnePath",
+    "processor": "Intel64 Family 6 Model 198 Stepping 2, GenuineIntel",
+    "machine": "AMD64",
+    "python_compiler": "MSC v.1944 64 bit (AMD64)",
+    "python_implementation": "CPython",
+    "python_implementation_version": "3.14.0",
+    "python_version": "3.14.0",
+    "python_build": [
+      "tags/v3.14.0:ebf955d",
+      "Oct  7 2025 10:15:03"
+    ],
+    "release": "11",
+    "system": "Windows",
+    "cpu": {
+      "python_version": "3.14.0.final.0 (64 bit)",
+      "cpuinfo_version": [
+        10,
+        1,
+        1
+      ],
+      "cpuinfo_version_string": "10.1.1",
+      "arch": "X86_64",
+      "bits": 64,
+      "count": 24,
+      "arch_string_raw": "AMD64",
+      "vendor_id_raw": "GenuineIntel",
+      "brand_raw": "Intel(R) Core(TM) Ultra 9 285HX",
+      "hz_advertised_friendly": "3.0720 GHz",
+      "hz_actual_friendly": "3.0720 GHz",
+      "hz_advertised": [
+        3072000000,
+        0
+      ],
+      "hz_actual": [
+        3072000000,
+        0
+      ],
+      "flags": [
+        "3dnow",
+        "3dnowprefetch",
+        "abm",
+        "acpi",
+        "adx",
+        "aes",
+        "apic",
+        "avx",
+        "avx2",
+        "bmi1",
+        "bmi2",
+        "clflush",
+        "clflushopt",
+        "clwb",
+        "cmov",
+        "cx16",
+        "cx8",
+        "de",
+        "dts",
+        "erms",
+        "est",
+        "f16c",
+        "fma",
+        "fpu",
+        "fxsr",
+        "gfni",
+        "ht",
+        "hypervisor",
+        "ia64",
+        "intel_pt",
+        "invpcid",
+        "lahf_lm",
+        "mca",
+        "mce",
+        "mmx",
+        "monitor",
+        "movbe",
+        "msr",
+        "mtrr",
+        "osxsave",
+        "pae",
+        "pat",
+        "pbe",
+        "pcid",
+        "pclmulqdq",
+        "pdcm",
+        "pge",
+        "pni",
+        "popcnt",
+        "pqe",
+        "pse",
+        "pse36",
+        "rdpid",
+        "rdrnd",
+        "rdseed",
+        "sep",
+        "serial",
+        "sha",
+        "smap",
+        "smep",
+        "ss",
+        "sse",
+        "sse2",
+        "sse4_1",
+        "sse4_2",
+        "ssse3",
+        "tm",
+        "tm2",
+        "tsc",
+        "tscdeadline",
+        "umip",
+        "vaes",
+        "vme",
+        "vpclmulqdq",
+        "x2apic",
+        "xsave",
+        "xtpr"
+      ],
+      "l2_cache_size": 65536,
+      "l2_cache_line_size": 3072,
+      "l2_cache_associativity": 7,
+      "stepping": 2,
+      "model": 198,
+      "family": 6
+    }
+  },
+  "commit_info": {
+    "id": "a62b92cead764fd8da72dcf105e270aa289e331b",
+    "time": "2026-09-06T21:15:57+03:00",
+    "author_time": "2026-09-06T21:15:57+03:00",
+    "dirty": false,
+    "project": "hgp-lib",
+    "branch": "benchmark-performance"
+  },
+  "benchmarks": [
+    {
+      "group": "full_run.breast_cancer.500_epochs",
+      "name": "test_full_run[fold-0-breast_cancer]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-0-breast_cancer]",
+      "params": {
+        "fold": 0,
+        "dataset": "breast_cancer"
+      },
+      "param": "fold-0-breast_cancer",
+      "extra_info": {
+        "scenario_id": "full_run.breast_cancer.500_epochs",
+        "case_id": "fold-0",
+        "dataset": "breast_cancer",
+        "fold": 0,
+        "num_epochs": 500,
+        "test_score": 0.9444444444444444
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 2.0705520999908913,
+        "max": 2.150219200004358,
+        "mean": 2.1103856499976246,
+        "stddev": 0.05633314665698909,
+        "rounds": 2,
+        "median": 2.1103856499976246,
+        "iqr": 0.07966710001346655,
+        "q1": 2.0705520999908913,
+        "q3": 2.150219200004358,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 2.0705520999908913,
+        "hd15iqr": 2.150219200004358,
+        "ops": 0.4738470430753382,
+        "total": 4.220771299995249,
+        "data": [
+          2.150219200004358,
+          2.0705520999908913
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.banknote_authentication.500_epochs",
+      "name": "test_full_run[fold-0-banknote_authentication]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-0-banknote_authentication]",
+      "params": {
+        "fold": 0,
+        "dataset": "banknote_authentication"
+      },
+      "param": "fold-0-banknote_authentication",
+      "extra_info": {
+        "scenario_id": "full_run.banknote_authentication.500_epochs",
+        "case_id": "fold-0",
+        "dataset": "banknote_authentication",
+        "fold": 0,
+        "num_epochs": 500,
+        "test_score": 0.967741935483871
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 2.0621186000062153,
+        "max": 2.2252850999939255,
+        "mean": 2.1437018500000704,
+        "stddev": 0.11537613860378465,
+        "rounds": 2,
+        "median": 2.1437018500000704,
+        "iqr": 0.16316649998771027,
+        "q1": 2.0621186000062153,
+        "q3": 2.2252850999939255,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 2.0621186000062153,
+        "hd15iqr": 2.2252850999939255,
+        "ops": 0.46648278070943827,
+        "total": 4.287403700000141,
+        "data": [
+          2.0621186000062153,
+          2.2252850999939255
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.diabetes.500_epochs",
+      "name": "test_full_run[fold-0-diabetes]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-0-diabetes]",
+      "params": {
+        "fold": 0,
+        "dataset": "diabetes"
+      },
+      "param": "fold-0-diabetes",
+      "extra_info": {
+        "scenario_id": "full_run.diabetes.500_epochs",
+        "case_id": "fold-0",
+        "dataset": "diabetes",
+        "fold": 0,
+        "num_epochs": 500,
+        "test_score": 0.6666666666666666
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 2.4014006000070367,
+        "max": 2.5060973499930697,
+        "mean": 2.453748975000053,
+        "stddev": 0.07403178188331648,
+        "rounds": 2,
+        "median": 2.453748975000053,
+        "iqr": 0.10469674998603296,
+        "q1": 2.4014006000070367,
+        "q3": 2.5060973499930697,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 2.4014006000070367,
+        "hd15iqr": 2.5060973499930697,
+        "ops": 0.40753965062786357,
+        "total": 4.907497950000106,
+        "data": [
+          2.5060973499930697,
+          2.4014006000070367
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.spambase.500_epochs",
+      "name": "test_full_run[fold-0-spambase]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-0-spambase]",
+      "params": {
+        "fold": 0,
+        "dataset": "spambase"
+      },
+      "param": "fold-0-spambase",
+      "extra_info": {
+        "scenario_id": "full_run.spambase.500_epochs",
+        "case_id": "fold-0",
+        "dataset": "spambase",
+        "fold": 0,
+        "num_epochs": 500,
+        "test_score": 0.8897849462365591
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 3.6675916999956826,
+        "max": 4.441611550006201,
+        "mean": 4.054601625000942,
+        "stddev": 0.5473146847154317,
+        "rounds": 2,
+        "median": 4.054601625000942,
+        "iqr": 0.774019850010518,
+        "q1": 3.6675916999956826,
+        "q3": 4.441611550006201,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 3.6675916999956826,
+        "hd15iqr": 4.441611550006201,
+        "ops": 0.2466333545159983,
+        "total": 8.109203250001883,
+        "data": [
+          4.441611550006201,
+          3.6675916999956826
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.ionosphere.500_epochs",
+      "name": "test_full_run[fold-0-ionosphere]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-0-ionosphere]",
+      "params": {
+        "fold": 0,
+        "dataset": "ionosphere"
+      },
+      "param": "fold-0-ionosphere",
+      "extra_info": {
+        "scenario_id": "full_run.ionosphere.500_epochs",
+        "case_id": "fold-0",
+        "dataset": "ionosphere",
+        "fold": 0,
+        "num_epochs": 500,
+        "test_score": 0.9555555555555556
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 1.6488374999898952,
+        "max": 2.125746199992136,
+        "mean": 1.8872918499910156,
+        "stddev": 0.3372253757784454,
+        "rounds": 2,
+        "median": 1.8872918499910156,
+        "iqr": 0.47690870000224095,
+        "q1": 1.6488374999898952,
+        "q3": 2.125746199992136,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 1.6488374999898952,
+        "hd15iqr": 2.125746199992136,
+        "ops": 0.529859756457254,
+        "total": 3.7745836999820312,
+        "data": [
+          1.6488374999898952,
+          2.125746199992136
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.breast_cancer.500_epochs",
+      "name": "test_full_run[fold-1-breast_cancer]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-1-breast_cancer]",
+      "params": {
+        "fold": 1,
+        "dataset": "breast_cancer"
+      },
+      "param": "fold-1-breast_cancer",
+      "extra_info": {
+        "scenario_id": "full_run.breast_cancer.500_epochs",
+        "case_id": "fold-1",
+        "dataset": "breast_cancer",
+        "fold": 1,
+        "num_epochs": 500,
+        "test_score": 0.881578947368421
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 1.9187417499924777,
+        "max": 2.073504750005668,
+        "mean": 1.9961232499990729,
+        "stddev": 0.10943396678610062,
+        "rounds": 2,
+        "median": 1.9961232499990729,
+        "iqr": 0.15476300001319032,
+        "q1": 1.9187417499924777,
+        "q3": 2.073504750005668,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 1.9187417499924777,
+        "hd15iqr": 2.073504750005668,
+        "ops": 0.5009710697976513,
+        "total": 3.9922464999981457,
+        "data": [
+          2.073504750005668,
+          1.9187417499924777
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.banknote_authentication.500_epochs",
+      "name": "test_full_run[fold-1-banknote_authentication]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-1-banknote_authentication]",
+      "params": {
+        "fold": 1,
+        "dataset": "banknote_authentication"
+      },
+      "param": "fold-1-banknote_authentication",
+      "extra_info": {
+        "scenario_id": "full_run.banknote_authentication.500_epochs",
+        "case_id": "fold-1",
+        "dataset": "banknote_authentication",
+        "fold": 1,
+        "num_epochs": 500,
+        "test_score": 0.9539748953974896
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 1.6796327499905601,
+        "max": 2.637282600000617,
+        "mean": 2.1584576749955886,
+        "stddev": 0.6771607029443915,
+        "rounds": 2,
+        "median": 2.1584576749955886,
+        "iqr": 0.957649850010057,
+        "q1": 1.6796327499905601,
+        "q3": 2.637282600000617,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 1.6796327499905601,
+        "hd15iqr": 2.637282600000617,
+        "ops": 0.4632937729492628,
+        "total": 4.316915349991177,
+        "data": [
+          2.637282600000617,
+          1.6796327499905601
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.diabetes.500_epochs",
+      "name": "test_full_run[fold-1-diabetes]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-1-diabetes]",
+      "params": {
+        "fold": 1,
+        "dataset": "diabetes"
+      },
+      "param": "fold-1-diabetes",
+      "extra_info": {
+        "scenario_id": "full_run.diabetes.500_epochs",
+        "case_id": "fold-1",
+        "dataset": "diabetes",
+        "fold": 1,
+        "num_epochs": 500,
+        "test_score": 0.5344827586206896
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 2.510515250003664,
+        "max": 2.761701549999998,
+        "mean": 2.636108400001831,
+        "stddev": 0.1776155360685663,
+        "rounds": 2,
+        "median": 2.636108400001831,
+        "iqr": 0.25118629999633413,
+        "q1": 2.510515250003664,
+        "q3": 2.761701549999998,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 2.510515250003664,
+        "hd15iqr": 2.761701549999998,
+        "ops": 0.37934707085615504,
+        "total": 5.272216800003662,
+        "data": [
+          2.510515250003664,
+          2.761701549999998
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.spambase.500_epochs",
+      "name": "test_full_run[fold-1-spambase]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-1-spambase]",
+      "params": {
+        "fold": 1,
+        "dataset": "spambase"
+      },
+      "param": "fold-1-spambase",
+      "extra_info": {
+        "scenario_id": "full_run.spambase.500_epochs",
+        "case_id": "fold-1",
+        "dataset": "spambase",
+        "fold": 1,
+        "num_epochs": 500,
+        "test_score": 0.844319775596073
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 3.690831449988764,
+        "max": 3.8177520999888657,
+        "mean": 3.7542917749888147,
+        "stddev": 0.08974645228767643,
+        "rounds": 2,
+        "median": 3.7542917749888147,
+        "iqr": 0.1269206500001019,
+        "q1": 3.690831449988764,
+        "q3": 3.8177520999888657,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 3.690831449988764,
+        "hd15iqr": 3.8177520999888657,
+        "ops": 0.26636182266440367,
+        "total": 7.5085835499776294,
+        "data": [
+          3.690831449988764,
+          3.8177520999888657
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.ionosphere.500_epochs",
+      "name": "test_full_run[fold-1-ionosphere]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-1-ionosphere]",
+      "params": {
+        "fold": 1,
+        "dataset": "ionosphere"
+      },
+      "param": "fold-1-ionosphere",
+      "extra_info": {
+        "scenario_id": "full_run.ionosphere.500_epochs",
+        "case_id": "fold-1",
+        "dataset": "ionosphere",
+        "fold": 1,
+        "num_epochs": 500,
+        "test_score": 0.9438202247191011
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 1.6897445999929914,
+        "max": 2.0047526999987895,
+        "mean": 1.8472486499958904,
+        "stddev": 0.2227443636427899,
+        "rounds": 2,
+        "median": 1.8472486499958904,
+        "iqr": 0.31500810000579804,
+        "q1": 1.6897445999929914,
+        "q3": 2.0047526999987895,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 1.6897445999929914,
+        "hd15iqr": 2.0047526999987895,
+        "ops": 0.5413456385539784,
+        "total": 3.694497299991781,
+        "data": [
+          1.6897445999929914,
+          2.0047526999987895
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.breast_cancer.500_epochs",
+      "name": "test_full_run[fold-2-breast_cancer]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-2-breast_cancer]",
+      "params": {
+        "fold": 2,
+        "dataset": "breast_cancer"
+      },
+      "param": "fold-2-breast_cancer",
+      "extra_info": {
+        "scenario_id": "full_run.breast_cancer.500_epochs",
+        "case_id": "fold-2",
+        "dataset": "breast_cancer",
+        "fold": 2,
+        "num_epochs": 500,
+        "test_score": 0.9251700680272109
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 1.9113866000116104,
+        "max": 2.181745599998976,
+        "mean": 2.0465661000052933,
+        "stddev": 0.19117268224588,
+        "rounds": 2,
+        "median": 2.0465661000052933,
+        "iqr": 0.2703589999873657,
+        "q1": 1.9113866000116104,
+        "q3": 2.181745599998976,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 1.9113866000116104,
+        "hd15iqr": 2.181745599998976,
+        "ops": 0.4886233579249718,
+        "total": 4.0931322000105865,
+        "data": [
+          1.9113866000116104,
+          2.181745599998976
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.banknote_authentication.500_epochs",
+      "name": "test_full_run[fold-2-banknote_authentication]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-2-banknote_authentication]",
+      "params": {
+        "fold": 2,
+        "dataset": "banknote_authentication"
+      },
+      "param": "fold-2-banknote_authentication",
+      "extra_info": {
+        "scenario_id": "full_run.banknote_authentication.500_epochs",
+        "case_id": "fold-2",
+        "dataset": "banknote_authentication",
+        "fold": 2,
+        "num_epochs": 500,
+        "test_score": 0.9718875502008032
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 1.99681120000605,
+        "max": 2.281311850005295,
+        "mean": 2.1390615250056726,
+        "stddev": 0.20117233886644673,
+        "rounds": 2,
+        "median": 2.1390615250056726,
+        "iqr": 0.28450064999924507,
+        "q1": 1.99681120000605,
+        "q3": 2.281311850005295,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 1.99681120000605,
+        "hd15iqr": 2.281311850005295,
+        "ops": 0.46749473463478247,
+        "total": 4.278123050011345,
+        "data": [
+          1.99681120000605,
+          2.281311850005295
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.diabetes.500_epochs",
+      "name": "test_full_run[fold-2-diabetes]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-2-diabetes]",
+      "params": {
+        "fold": 2,
+        "dataset": "diabetes"
+      },
+      "param": "fold-2-diabetes",
+      "extra_info": {
+        "scenario_id": "full_run.diabetes.500_epochs",
+        "case_id": "fold-2",
+        "dataset": "diabetes",
+        "fold": 2,
+        "num_epochs": 500,
+        "test_score": 0.6862745098039216
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 2.2963114500016673,
+        "max": 2.6263409499952104,
+        "mean": 2.461326199998439,
+        "stddev": 0.23336609743704,
+        "rounds": 2,
+        "median": 2.461326199998439,
+        "iqr": 0.33002949999354314,
+        "q1": 2.2963114500016673,
+        "q3": 2.6263409499952104,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 2.2963114500016673,
+        "hd15iqr": 2.6263409499952104,
+        "ops": 0.40628503446663605,
+        "total": 4.922652399996878,
+        "data": [
+          2.2963114500016673,
+          2.6263409499952104
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.spambase.500_epochs",
+      "name": "test_full_run[fold-2-spambase]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-2-spambase]",
+      "params": {
+        "fold": 2,
+        "dataset": "spambase"
+      },
+      "param": "fold-2-spambase",
+      "extra_info": {
+        "scenario_id": "full_run.spambase.500_epochs",
+        "case_id": "fold-2",
+        "dataset": "spambase",
+        "fold": 2,
+        "num_epochs": 500,
+        "test_score": 0.871866295264624
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 3.4280098500021268,
+        "max": 3.6621333000075538,
+        "mean": 3.5450715750048403,
+        "stddev": 0.16555027913362708,
+        "rounds": 2,
+        "median": 3.5450715750048403,
+        "iqr": 0.234123450005427,
+        "q1": 3.4280098500021268,
+        "q3": 3.6621333000075538,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 3.4280098500021268,
+        "hd15iqr": 3.6621333000075538,
+        "ops": 0.28208175176227146,
+        "total": 7.0901431500096805,
+        "data": [
+          3.6621333000075538,
+          3.4280098500021268
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.ionosphere.500_epochs",
+      "name": "test_full_run[fold-2-ionosphere]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-2-ionosphere]",
+      "params": {
+        "fold": 2,
+        "dataset": "ionosphere"
+      },
+      "param": "fold-2-ionosphere",
+      "extra_info": {
+        "scenario_id": "full_run.ionosphere.500_epochs",
+        "case_id": "fold-2",
+        "dataset": "ionosphere",
+        "fold": 2,
+        "num_epochs": 500,
+        "test_score": 0.946236559139785
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 1.5947082499915268,
+        "max": 1.842302050004946,
+        "mean": 1.7185051499982364,
+        "stddev": 0.17507525496923465,
+        "rounds": 2,
+        "median": 1.7185051499982364,
+        "iqr": 0.24759380001341924,
+        "q1": 1.5947082499915268,
+        "q3": 1.842302050004946,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 1.5947082499915268,
+        "hd15iqr": 1.842302050004946,
+        "ops": 0.5819010783884041,
+        "total": 3.437010299996473,
+        "data": [
+          1.5947082499915268,
+          1.842302050004946
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.breast_cancer.500_epochs",
+      "name": "test_full_run[fold-3-breast_cancer]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-3-breast_cancer]",
+      "params": {
+        "fold": 3,
+        "dataset": "breast_cancer"
+      },
+      "param": "fold-3-breast_cancer",
+      "extra_info": {
+        "scenario_id": "full_run.breast_cancer.500_epochs",
+        "case_id": "fold-3",
+        "dataset": "breast_cancer",
+        "fold": 3,
+        "num_epochs": 500,
+        "test_score": 0.9285714285714286
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 2.7153925499878824,
+        "max": 2.8105904999974882,
+        "mean": 2.7629915249926853,
+        "stddev": 0.06731511600685025,
+        "rounds": 2,
+        "median": 2.7629915249926853,
+        "iqr": 0.09519795000960585,
+        "q1": 2.7153925499878824,
+        "q3": 2.8105904999974882,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 2.7153925499878824,
+        "hd15iqr": 2.8105904999974882,
+        "ops": 0.36192655350350644,
+        "total": 5.525983049985371,
+        "data": [
+          2.8105904999974882,
+          2.7153925499878824
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.banknote_authentication.500_epochs",
+      "name": "test_full_run[fold-3-banknote_authentication]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-3-banknote_authentication]",
+      "params": {
+        "fold": 3,
+        "dataset": "banknote_authentication"
+      },
+      "param": "fold-3-banknote_authentication",
+      "extra_info": {
+        "scenario_id": "full_run.banknote_authentication.500_epochs",
+        "case_id": "fold-3",
+        "dataset": "banknote_authentication",
+        "fold": 3,
+        "num_epochs": 500,
+        "test_score": 0.9603174603174603
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 2.1240604000049643,
+        "max": 2.1315641999972286,
+        "mean": 2.1278123000010964,
+        "stddev": 0.005305987859197613,
+        "rounds": 2,
+        "median": 2.1278123000010964,
+        "iqr": 0.007503799992264248,
+        "q1": 2.1240604000049643,
+        "q3": 2.1315641999972286,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 2.1240604000049643,
+        "hd15iqr": 2.1315641999972286,
+        "ops": 0.4699662653512646,
+        "total": 4.255624600002193,
+        "data": [
+          2.1240604000049643,
+          2.1315641999972286
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.diabetes.500_epochs",
+      "name": "test_full_run[fold-3-diabetes]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-3-diabetes]",
+      "params": {
+        "fold": 3,
+        "dataset": "diabetes"
+      },
+      "param": "fold-3-diabetes",
+      "extra_info": {
+        "scenario_id": "full_run.diabetes.500_epochs",
+        "case_id": "fold-3",
+        "dataset": "diabetes",
+        "fold": 3,
+        "num_epochs": 500,
+        "test_score": 0.6229508196721312
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 2.293882450001547,
+        "max": 2.3061297000094783,
+        "mean": 2.3000060750055127,
+        "stddev": 0.008660113531495109,
+        "rounds": 2,
+        "median": 2.3000060750055127,
+        "iqr": 0.012247250007931143,
+        "q1": 2.293882450001547,
+        "q3": 2.3061297000094783,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 2.293882450001547,
+        "hd15iqr": 2.3061297000094783,
+        "ops": 0.43478146030444864,
+        "total": 4.600012150011025,
+        "data": [
+          2.293882450001547,
+          2.3061297000094783
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.spambase.500_epochs",
+      "name": "test_full_run[fold-3-spambase]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-3-spambase]",
+      "params": {
+        "fold": 3,
+        "dataset": "spambase"
+      },
+      "param": "fold-3-spambase",
+      "extra_info": {
+        "scenario_id": "full_run.spambase.500_epochs",
+        "case_id": "fold-3",
+        "dataset": "spambase",
+        "fold": 3,
+        "num_epochs": 500,
+        "test_score": 0.8835904628330996
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 3.5921269000100438,
+        "max": 3.6242041000077734,
+        "mean": 3.6081655000089086,
+        "stddev": 0.022682005639871723,
+        "rounds": 2,
+        "median": 3.6081655000089086,
+        "iqr": 0.03207719999772962,
+        "q1": 3.5921269000100438,
+        "q3": 3.6242041000077734,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 3.5921269000100438,
+        "hd15iqr": 3.6242041000077734,
+        "ops": 0.27714914961565124,
+        "total": 7.216331000017817,
+        "data": [
+          3.6242041000077734,
+          3.5921269000100438
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.ionosphere.500_epochs",
+      "name": "test_full_run[fold-3-ionosphere]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-3-ionosphere]",
+      "params": {
+        "fold": 3,
+        "dataset": "ionosphere"
+      },
+      "param": "fold-3-ionosphere",
+      "extra_info": {
+        "scenario_id": "full_run.ionosphere.500_epochs",
+        "case_id": "fold-3",
+        "dataset": "ionosphere",
+        "fold": 3,
+        "num_epochs": 500,
+        "test_score": 0.9555555555555556
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 1.8756892499950482,
+        "max": 2.122685249996721,
+        "mean": 1.9991872499958845,
+        "stddev": 0.17465254652713524,
+        "rounds": 2,
+        "median": 1.9991872499958845,
+        "iqr": 0.24699600000167266,
+        "q1": 1.8756892499950482,
+        "q3": 2.122685249996721,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 1.8756892499950482,
+        "hd15iqr": 2.122685249996721,
+        "ops": 0.5002032701049182,
+        "total": 3.998374499991769,
+        "data": [
+          2.122685249996721,
+          1.8756892499950482
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.breast_cancer.500_epochs",
+      "name": "test_full_run[fold-4-breast_cancer]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-4-breast_cancer]",
+      "params": {
+        "fold": 4,
+        "dataset": "breast_cancer"
+      },
+      "param": "fold-4-breast_cancer",
+      "extra_info": {
+        "scenario_id": "full_run.breast_cancer.500_epochs",
+        "case_id": "fold-4",
+        "dataset": "breast_cancer",
+        "fold": 4,
+        "num_epochs": 500,
+        "test_score": 0.9285714285714286
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 1.5013508500123862,
+        "max": 2.0632938500057207,
+        "mean": 1.7823223500090535,
+        "stddev": 0.3973537059355989,
+        "rounds": 2,
+        "median": 1.7823223500090535,
+        "iqr": 0.5619429999933345,
+        "q1": 1.5013508500123862,
+        "q3": 2.0632938500057207,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 1.5013508500123862,
+        "hd15iqr": 2.0632938500057207,
+        "ops": 0.5610657353844665,
+        "total": 3.564644700018107,
+        "data": [
+          2.0632938500057207,
+          1.5013508500123862
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.banknote_authentication.500_epochs",
+      "name": "test_full_run[fold-4-banknote_authentication]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-4-banknote_authentication]",
+      "params": {
+        "fold": 4,
+        "dataset": "banknote_authentication"
+      },
+      "param": "fold-4-banknote_authentication",
+      "extra_info": {
+        "scenario_id": "full_run.banknote_authentication.500_epochs",
+        "case_id": "fold-4",
+        "dataset": "banknote_authentication",
+        "fold": 4,
+        "num_epochs": 500,
+        "test_score": 0.9711934156378601
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 2.1533837499882793,
+        "max": 2.2763626000087243,
+        "mean": 2.214873174998502,
+        "stddev": 0.08695917879198001,
+        "rounds": 2,
+        "median": 2.214873174998502,
+        "iqr": 0.12297885002044495,
+        "q1": 2.1533837499882793,
+        "q3": 2.2763626000087243,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 2.1533837499882793,
+        "hd15iqr": 2.2763626000087243,
+        "ops": 0.4514931199167539,
+        "total": 4.429746349997004,
+        "data": [
+          2.2763626000087243,
+          2.1533837499882793
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.diabetes.500_epochs",
+      "name": "test_full_run[fold-4-diabetes]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-4-diabetes]",
+      "params": {
+        "fold": 4,
+        "dataset": "diabetes"
+      },
+      "param": "fold-4-diabetes",
+      "extra_info": {
+        "scenario_id": "full_run.diabetes.500_epochs",
+        "case_id": "fold-4",
+        "dataset": "diabetes",
+        "fold": 4,
+        "num_epochs": 500,
+        "test_score": 0.5909090909090909
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 2.5459952499950305,
+        "max": 2.6596241000079317,
+        "mean": 2.602809675001481,
+        "stddev": 0.08034773038255158,
+        "rounds": 2,
+        "median": 2.602809675001481,
+        "iqr": 0.11362885001290124,
+        "q1": 2.5459952499950305,
+        "q3": 2.6596241000079317,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 2.5459952499950305,
+        "hd15iqr": 2.6596241000079317,
+        "ops": 0.3842002008846194,
+        "total": 5.205619350002962,
+        "data": [
+          2.5459952499950305,
+          2.6596241000079317
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.spambase.500_epochs",
+      "name": "test_full_run[fold-4-spambase]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-4-spambase]",
+      "params": {
+        "fold": 4,
+        "dataset": "spambase"
+      },
+      "param": "fold-4-spambase",
+      "extra_info": {
+        "scenario_id": "full_run.spambase.500_epochs",
+        "case_id": "fold-4",
+        "dataset": "spambase",
+        "fold": 4,
+        "num_epochs": 500,
+        "test_score": 0.8821081830790569
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 3.64822770000319,
+        "max": 3.856712550012162,
+        "mean": 3.752470125007676,
+        "stddev": 0.14742105121600435,
+        "rounds": 2,
+        "median": 3.752470125007676,
+        "iqr": 0.208484850008972,
+        "q1": 3.64822770000319,
+        "q3": 3.856712550012162,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 3.64822770000319,
+        "hd15iqr": 3.856712550012162,
+        "ops": 0.2664911289594756,
+        "total": 7.504940250015352,
+        "data": [
+          3.856712550012162,
+          3.64822770000319
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "full_run.ionosphere.500_epochs",
+      "name": "test_full_run[fold-4-ionosphere]",
+      "fullname": "benchmarks/test_full_run.py::test_full_run[fold-4-ionosphere]",
+      "params": {
+        "fold": 4,
+        "dataset": "ionosphere"
+      },
+      "param": "fold-4-ionosphere",
+      "extra_info": {
+        "scenario_id": "full_run.ionosphere.500_epochs",
+        "case_id": "fold-4",
+        "dataset": "ionosphere",
+        "fold": 4,
+        "num_epochs": 500,
+        "test_score": 0.9090909090909091
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 1.7030880499951309,
+        "max": 1.9119958000082988,
+        "mean": 1.8075419250017148,
+        "stddev": 0.14772008667673514,
+        "rounds": 2,
+        "median": 1.8075419250017148,
+        "iqr": 0.20890775001316797,
+        "q1": 1.7030880499951309,
+        "q3": 1.9119958000082988,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 1.7030880499951309,
+        "hd15iqr": 1.9119958000082988,
+        "ops": 0.5532375134253393,
+        "total": 3.6150838500034297,
+        "data": [
+          1.9119958000082988,
+          1.7030880499951309
+        ],
+        "iterations": 2
+      }
+    },
+    {
+      "group": "rule_evaluation.breast_cancer.100_rules",
+      "name": "test_rule_evaluation[breast_cancer]",
+      "fullname": "benchmarks/test_rule_evaluation.py::test_rule_evaluation[breast_cancer]",
+      "params": {
+        "dataset": "breast_cancer"
+      },
+      "param": "breast_cancer",
+      "extra_info": {
+        "scenario_id": "rule_evaluation.breast_cancer.100_rules",
+        "case_id": "all-folds",
+        "dataset": "breast_cancer",
+        "num_folds": 5,
+        "population_size": 100,
+        "fold_scores": [
+          0.920506749754624,
+          0.8488573485703347,
+          0.8555632683829824,
+          0.8914505874662781,
+          0.897340410646127
+        ],
+        "test_score": 0.8827436729640692,
+        "test_score_std": 0.026840202882638182,
+        "mean_rule_complexity": 36.068,
+        "max_rule_complexity": 220
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.8622422000044025,
+        "max": 0.8717998000211082,
+        "mean": 0.8673378800041973,
+        "stddev": 0.0035827726815421687,
+        "rounds": 5,
+        "median": 0.8681794999865815,
+        "iqr": 0.004698724995250814,
+        "q1": 0.8648313500088989,
+        "q3": 0.8695300750041497,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 0.8622422000044025,
+        "hd15iqr": 0.8717998000211082,
+        "ops": 1.1529532181797024,
+        "total": 4.336689400020987,
+        "data": [
+          0.8681794999865815,
+          0.8622422000044025,
+          0.8656944000103977,
+          0.8687734999984968,
+          0.8717998000211082
+        ],
+        "iterations": 1
+      }
+    },
+    {
+      "group": "rule_evaluation.banknote_authentication.100_rules",
+      "name": "test_rule_evaluation[banknote_authentication]",
+      "fullname": "benchmarks/test_rule_evaluation.py::test_rule_evaluation[banknote_authentication]",
+      "params": {
+        "dataset": "banknote_authentication"
+      },
+      "param": "banknote_authentication",
+      "extra_info": {
+        "scenario_id": "rule_evaluation.banknote_authentication.100_rules",
+        "case_id": "all-folds",
+        "dataset": "banknote_authentication",
+        "num_folds": 5,
+        "population_size": 100,
+        "fold_scores": [
+          0.8992449014034972,
+          0.8517279510330097,
+          0.877162329943623,
+          0.7672929662316461,
+          0.8864350027619394
+        ],
+        "test_score": 0.8563726302747432,
+        "test_score_std": 0.04718209210051666,
+        "mean_rule_complexity": 51.876,
+        "max_rule_complexity": 191
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 1.6157671999826562,
+        "max": 1.6574066999892239,
+        "mean": 1.6313747999898625,
+        "stddev": 0.015830505515529166,
+        "rounds": 5,
+        "median": 1.627782900002785,
+        "iqr": 0.017518675020255614,
+        "q1": 1.6213563499768497,
+        "q3": 1.6388750249971054,
+        "iqr_outliers": 0,
+        "stddev_outliers": 1,
+        "outliers": "1;0",
+        "ld15iqr": 1.6157671999826562,
+        "hd15iqr": 1.6574066999892239,
+        "ops": 0.6129799234401648,
+        "total": 8.156873999949312,
+        "data": [
+          1.6157671999826562,
+          1.6232193999749143,
+          1.6574066999892239,
+          1.627782900002785,
+          1.6326977999997325
+        ],
+        "iterations": 1
+      }
+    },
+    {
+      "group": "rule_evaluation.diabetes.100_rules",
+      "name": "test_rule_evaluation[diabetes]",
+      "fullname": "benchmarks/test_rule_evaluation.py::test_rule_evaluation[diabetes]",
+      "params": {
+        "dataset": "diabetes"
+      },
+      "param": "diabetes",
+      "extra_info": {
+        "scenario_id": "rule_evaluation.diabetes.100_rules",
+        "case_id": "all-folds",
+        "dataset": "diabetes",
+        "num_folds": 5,
+        "population_size": 100,
+        "fold_scores": [
+          0.6550747216355282,
+          0.5426503707575643,
+          0.6236005376325853,
+          0.5768702897733838,
+          0.595153229171008
+        ],
+        "test_score": 0.5986698297940138,
+        "test_score_std": 0.03854560476312276,
+        "mean_rule_complexity": 13.216,
+        "max_rule_complexity": 57
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.39757669999380596,
+        "max": 0.40232650001416914,
+        "mean": 0.40063256000285036,
+        "stddev": 0.0018030572346233922,
+        "rounds": 5,
+        "median": 0.40108090001740493,
+        "iqr": 0.0016349750076187775,
+        "q1": 0.39998742499301443,
+        "q3": 0.4016224000006332,
+        "iqr_outliers": 0,
+        "stddev_outliers": 1,
+        "outliers": "1;0",
+        "ld15iqr": 0.39757669999380596,
+        "hd15iqr": 0.40232650001416914,
+        "ops": 2.4960527421757366,
+        "total": 2.003162800014252,
+        "data": [
+          0.4007909999927506,
+          0.4013876999961212,
+          0.40232650001416914,
+          0.40108090001740493,
+          0.39757669999380596
+        ],
+        "iterations": 1
+      }
+    },
+    {
+      "group": "rule_evaluation.spambase.100_rules",
+      "name": "test_rule_evaluation[spambase]",
+      "fullname": "benchmarks/test_rule_evaluation.py::test_rule_evaluation[spambase]",
+      "params": {
+        "dataset": "spambase"
+      },
+      "param": "spambase",
+      "extra_info": {
+        "scenario_id": "rule_evaluation.spambase.100_rules",
+        "case_id": "all-folds",
+        "dataset": "spambase",
+        "num_folds": 5,
+        "population_size": 100,
+        "fold_scores": [
+          0.7739306560929516,
+          0.8123683928795519,
+          0.7844544458320177,
+          0.7851360665678037,
+          0.7550323097228114
+        ],
+        "test_score": 0.7821843742190273,
+        "test_score_std": 0.018602683487390744,
+        "mean_rule_complexity": 16.918,
+        "max_rule_complexity": 96
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 6.628212700015865,
+        "max": 6.7421637999941595,
+        "mean": 6.685745880001923,
+        "stddev": 0.0511885744286376,
+        "rounds": 5,
+        "median": 6.6604684999911115,
+        "iqr": 0.08659027498651994,
+        "q1": 6.652208575011173,
+        "q3": 6.738798849997693,
+        "iqr_outliers": 0,
+        "stddev_outliers": 3,
+        "outliers": "3;0",
+        "ld15iqr": 6.628212700015865,
+        "hd15iqr": 6.7421637999941595,
+        "ops": 0.1495719427492976,
+        "total": 33.428729400009615,
+        "data": [
+          6.7421637999941595,
+          6.628212700015865,
+          6.7376771999988705,
+          6.660207200009609,
+          6.6604684999911115
+        ],
+        "iterations": 1
+      }
+    },
+    {
+      "group": "rule_evaluation.ionosphere.100_rules",
+      "name": "test_rule_evaluation[ionosphere]",
+      "fullname": "benchmarks/test_rule_evaluation.py::test_rule_evaluation[ionosphere]",
+      "params": {
+        "dataset": "ionosphere"
+      },
+      "param": "ionosphere",
+      "extra_info": {
+        "scenario_id": "rule_evaluation.ionosphere.100_rules",
+        "case_id": "all-folds",
+        "dataset": "ionosphere",
+        "num_folds": 5,
+        "population_size": 100,
+        "fold_scores": [
+          0.8599001971545661,
+          0.914054902203499,
+          0.8442831576247533,
+          0.9269414866889748,
+          0.8544124268905047
+        ],
+        "test_score": 0.8799184341124595,
+        "test_score_std": 0.03375685137274605,
+        "mean_rule_complexity": 13.892,
+        "max_rule_complexity": 51
+      },
+      "options": {
+        "disable_gc": true,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.2709546000114642,
+        "max": 0.2769822000118438,
+        "mean": 0.27307890000520274,
+        "stddev": 0.0024989926632673787,
+        "rounds": 5,
+        "median": 0.2722819999908097,
+        "iqr": 0.003658274988993071,
+        "q1": 0.27110385001287796,
+        "q3": 0.274762125001871,
+        "iqr_outliers": 0,
+        "stddev_outliers": 1,
+        "outliers": "1;0",
+        "ld15iqr": 0.2709546000114642,
+        "hd15iqr": 0.2769822000118438,
+        "ops": 3.6619453204950942,
+        "total": 1.3653945000260137,
+        "data": [
+          0.2722819999908097,
+          0.27402209999854676,
+          0.2711536000133492,
+          0.2769822000118438,
+          0.2709546000114642
+        ],
+        "iterations": 1
+      }
+    }
+  ],
+  "datetime": "2026-09-06T18:21:24.183680+00:00",
+  "version": "5.3.0",
+  "hgp_benchmark": {
+    "machine": "hp_1_win",
+    "version": "1.2.2",
+    "name": null
+  }
+}

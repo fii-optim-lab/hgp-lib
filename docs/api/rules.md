@@ -7,3 +7,9 @@
 ::: hgp_lib.rules.operators.And
 
 ::: hgp_lib.rules.operators.Or
+
+## Rule utilities
+
+::: hgp_lib.rules.utils.serialize
+
+::: hgp_lib.rules.utils.deserialize

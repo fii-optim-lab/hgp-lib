@@ -1,6 +1,6 @@
 [project]
 name = "hgp-lib"
-version = "1.2.1"
+version = "1.2.2"
 requires-python = ">=3.10"
 description = "hgp-lib: Hierarchical Genetic Programming Library for Generating Boolean Rules from Tabular Data"
 readme = "README.md"
@@ -64,6 +64,7 @@ dev = [
     "mkdocs-material",
     "mkdocs-bibtex",
     "pytest",
+    "pytest-benchmark",
     "flake8",
     "ruff",
     "seaborn",
@@ -98,3 +99,7 @@ exclude_also = [
 testpaths = ["tests", "src/hgp_lib"]
 pythonpath = ["src"]
 addopts = "--doctest-modules"
+markers = [
+    "fast: benchmarks intended for quick local runs",
+    "scenario(name): benchmark scenario identifier",
+]
