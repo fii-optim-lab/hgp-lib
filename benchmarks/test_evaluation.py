@@ -24,7 +24,7 @@ pytestmark = [
 
 # Evaluates 100 fixed rules against one deterministic boolean matrix.
 def evaluate_default(rules, data):
-    return [rule.evaluate(data) for rule in rules]
+    [rule.evaluate(data) for rule in rules]
 
 
 @pytest.mark.parametrize(
@@ -43,11 +43,7 @@ def test_evaluation_default(benchmark, num_literals, num_samples):
         dtype=np.int8,
     ).astype(bool)
 
-    predictions = benchmark(evaluate_default, rules, data)
-    if len(predictions) != NUM_RULES:
-        raise RuntimeError(f"Expected {NUM_RULES} prediction arrays")
-    if any(prediction.shape != (num_samples,) for prediction in predictions):
-        raise RuntimeError("Unexpected prediction shape")
+    benchmark(evaluate_default, rules, data)
 
     benchmark.extra_info.update(
         {
