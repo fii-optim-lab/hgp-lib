@@ -90,7 +90,7 @@ Each dataset has a `full_run.<dataset>.500_epochs` scenario. These retain one me
 
 ### Dataset rule evaluation
 
-Each dataset has a `rule_evaluation.<dataset>.100_rules` scenario. One timed call evaluates all five fold populations sequentially and stores the five fold scores as mean ± population standard deviation.
+Each dataset has a `rule_evaluation.<dataset>.100_rules` scenario. One timed call evaluates all five fold populations sequentially and stores the five fold scores as mean +/- population standard deviation.
 
 ### Default scoring
 
@@ -112,16 +112,28 @@ The `evaluation_default` family evaluates 100 fixed rules against deterministic 
 
 ## Comparing machines and versions
 
-Print a Markdown report:
+Print a report for every available machine:
 
 ```bash
 python benchmarks/compare_results.py
 ```
 
-Write it directly to a publishable file:
+Select machines by repeating `--machine`:
+
+```bash
+python benchmarks/compare_results.py \
+  --machine macbook-m2 \
+  --machine workstation-linux
+```
+
+Write the report directly to a publishable Markdown file:
 
 ```bash
 python benchmarks/compare_results.py --output benchmark-report.md
 ```
 
-The report has separate machine sections and scenario tables. Versions are compared only when machine, scenario, and optional result name match. Each version shows runtime, relative speed versus the first available version, and score mean ± standard deviation when available.
+The report is titled `hgp-lib performance report` and contains one table per scenario and optional result name.
+All selected machines share the same table, with Time and vs previous subcolumns.
+A Result subcolumn is shown for the first machine when scores are available; another machine receives one only when its result differs or has no matching first-machine result.
+Versions are compared only within the same machine, scenario, and result name, and each timing change is relative to that machine's previous available version.
+Generated labels and placeholders use ASCII characters for reliable display across platforms.
