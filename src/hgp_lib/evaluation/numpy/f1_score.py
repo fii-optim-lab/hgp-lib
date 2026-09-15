@@ -77,4 +77,4 @@ def create_fast_np_f1_score(
         return _F1ZeroWeighted(sample_weight).__call__
     return _F1WeightedScorer(y_true_sum, sample_weight).__call__
 
-# TODO: Also implement batched fast f1 score
+# TODO: Also implement batched fast f1 score in a future version
