@@ -9,6 +9,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     selection = parser.add_mutually_exclusive_group(required=True)
     selection.add_argument("--rule_artifacts", action="store_true")
+    selection.add_argument("--evaluation_artifacts", action="store_true")
     selection.add_argument("--all", action="store_true")
     parser.add_argument("--overwrite", action="store_true")
     return parser.parse_args()
@@ -19,10 +20,13 @@ def main() -> None:
     sys.path.insert(0, str(ROOT))
     sys.path.insert(0, str(ROOT / "src"))
 
+    from benchmarks.evaluation_artifacts import create_evaluation_artifacts
     from benchmarks.rule_artifacts import create_rule_artifacts
 
     if args.rule_artifacts or args.all:
         create_rule_artifacts(overwrite=args.overwrite)
+    if args.evaluation_artifacts or args.all:
+        create_evaluation_artifacts(overwrite=args.overwrite)
 
 
 if __name__ == "__main__":

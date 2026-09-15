@@ -8,32 +8,40 @@ python -m pip install -e '.[dev]'
 
 ## Creating artifacts
 
-Create every currently supported artifact and skip files that already exist:
+Create every missing artifact:
 
 ```bash
 python benchmarks/create_artifacts.py --all
 ```
 
-Create only rule artifacts, replacing existing files:
+Create or replace only one artifact family:
 
 ```bash
 python benchmarks/create_artifacts.py --rule_artifacts --overwrite
+python benchmarks/create_artifacts.py --evaluation_artifacts --overwrite
 ```
 
-### Rule artifacts
+### Evolved rule artifacts
 
-Rule artifacts are committed under `benchmarks/artifacts/rule_evaluation`.
-Each dataset and fold has one JSON file containing 100 rules.
-The first serialized rule stores the binarized feature-name mapping shared by the population; later rules omit the duplicate mapping.
+Artifacts under `benchmarks/artifacts/rule_evaluation` contain the 100 evolved rules used by the dataset rule-evaluation scenarios.
 The rules are evolved for 500 generations with these fold policies:
 
 | Fold | Complexity check | Complexity penalty |
 | ---: | ---: | ---: |
 | 0 | 50 | 0 |
 | 1 | 100 | 0 |
-| 2 | 100 | -0.001 (high reward) |
-| 3 | 250 | -0.0005 (medium reward) |
-| 4 | 500 | -0.001 (high reward) |
+| 2 | 100 | -0.001 |
+| 3 | 250 | -0.0005 |
+| 4 | 500 | -0.001 |
+
+### Default evaluation artifacts
+
+Artifacts under `benchmarks/artifacts/evaluation_default` contain two deterministic sets of 100 rules:
+
+- 100 rules containing exactly 100 literal nodes each.
+- 100 rules containing exactly 1,000 literal nodes each.
+
+Every root is a random `And` or `Or`. Operators have between two and six children, and rule depth does not exceed 20.
 
 ## Running benchmarks
 
@@ -46,7 +54,7 @@ python benchmarks/benchmark.py \
   --version 2.1.0
 ```
 
-An optional name distinguishes multiple results for the same machine and version:
+An optional name distinguishes comparable variants for the same machine and version:
 
 ```bash
 python benchmarks/benchmark.py \
@@ -56,53 +64,76 @@ python benchmarks/benchmark.py \
   --name new-selection
 ```
 
-Run one scenario by its identifier:
+Run one scenario family by its identifier:
 
 ```bash
 python benchmarks/benchmark.py \
-  --scenario rule_evaluation.spambase.100_rules \
+  --scenario scoring_default \
   --machine macbook-m2 \
   --version 2.1.0
 ```
 
-Results are saved under `benchmarks/results` and are intended to be committed:
+Results are committed under `benchmarks/results` as:
 
 ```text
 <machine>-<version>.json
 <machine>-<version>-<name>.json
 ```
 
-Machine, version, and optional name are also stored inside the JSON, so reports do not depend on parsing the filename.
+Machine, version, and optional name are also stored inside the JSON.
 
 ## Scenarios
 
-Each dataset has a 500-epoch full-run scenario:
+### Full runs
 
-- `full_run.breast_cancer.500_epochs`
-- `full_run.banknote_authentication.500_epochs`
-- `full_run.diabetes.500_epochs`
-- `full_run.spambase.500_epochs`
-- `full_run.ionosphere.500_epochs`
+Each dataset has a `full_run.<dataset>.500_epochs` scenario. These retain one measurement per fold; reports aggregate the five runtimes and scores.
 
-Each dataset also has a fixed-population evaluation scenario:
+### Dataset rule evaluation
 
-- `rule_evaluation.breast_cancer.100_rules`
-- `rule_evaluation.banknote_authentication.100_rules`
-- `rule_evaluation.diabetes.100_rules`
-- `rule_evaluation.spambase.100_rules`
-- `rule_evaluation.ionosphere.100_rules`
+Each dataset has a `rule_evaluation.<dataset>.100_rules` scenario. One timed call evaluates all five fold populations sequentially and stores the five fold scores as mean +/- population standard deviation.
 
-A rule-evaluation scenario is one timed benchmark that evaluates all five folds sequentially.
-It records one per-dataset runtime plus the mean and population standard deviation of the five fold scores.
-Full-run scenarios still store one measurement per fold; reports aggregate their runtimes and scores by scenario.
+### Default scoring
 
+The `scoring_default` family scores 100 deterministic predictions with 100 independent sample-weight arrays using `fast_f1_score`:
+
+- `scoring_default_1_000`
+- `scoring_default_10_000`
+- `scoring_default_100_000`
+- `scoring_default_1_000_000`
+
+### Default rule evaluation
+
+The `evaluation_default` family evaluates 100 fixed rules against deterministic boolean matrices:
+
+- `evaluation_default_100_literals_1_000_samples`
+- `evaluation_default_100_literals_10_000_samples`
+- `evaluation_default_1_000_literals_1_000_samples`
+- `evaluation_default_1_000_literals_10_000_samples`
 
 ## Comparing machines and versions
+
+Print a report for every available machine:
 
 ```bash
 python benchmarks/compare_results.py
 ```
 
-The report reads every JSON file under `benchmarks/results` and prints a separate table for each machine.
-Rows are ordered by scenario and then version. Each row contains the scenario, version and optional result name, aggregate runtime, and `mean ± std` score when available.
-Run performance comparisons under similar system load on each machine.
+Select machines by repeating `--machine`:
+
+```bash
+python benchmarks/compare_results.py \
+  --machine macbook-m2 \
+  --machine workstation-linux
+```
+
+Write the report directly to a publishable Markdown file:
+
+```bash
+python benchmarks/compare_results.py --output benchmark-report.md
+```
+
+The report is titled `hgp-lib performance report` and contains one table per scenario and optional result name.
+All selected machines share the same table, with Time and vs previous subcolumns.
+A Result subcolumn is shown for the first machine when scores are available; another machine receives one only when its result differs or has no matching first-machine result.
+Versions are compared only within the same machine, scenario, and result name, and each timing change is relative to that machine's previous available version.
+Generated labels and placeholders use ASCII characters for reliable display across platforms.
