@@ -8,3 +8,5 @@ class EvaluationContext:
     data: Any
     labels: Any
     score_fn: Callable
+
+# TODO: I need something that is both fast and easy to use (with multiple scorers)
