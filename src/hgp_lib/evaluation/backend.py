@@ -1,35 +1,41 @@
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from typing import Any
 
 import numpy as np
 
 from ..rules import Rule
-from .evaluation_context import EvaluationContext
+from .context import EvaluationContext
 
 
 class EvaluationBackend(ABC):
     @abstractmethod
-    def prepare_evaluation_context(
+    def prepare(
         self,
-        data: np.ndarray,
-        labels: np.ndarray,
+        data: Any,
+        labels: Any,
         score_fn: Callable | None,
+        *,
         optimize_scorer: bool,
     ) -> EvaluationContext:
         pass
 
     @abstractmethod
-    def evaluate_population(
+    def predict(
         self,
-        population: list[Rule],
-        evaluation: EvaluationContext,
-    ) -> np.ndarray:
+        rule: Rule,
+        data: Any,
+    ) -> Any:
         pass
 
     @abstractmethod
-    def evaluate_rule(
+    def score_population(
         self,
-        rule: Rule,
-        data: np.ndarray,
+        population: Sequence[Rule],
+        context: EvaluationContext,
     ) -> np.ndarray:
         pass
+
+    @staticmethod
+    def to_numpy(values: Any) -> np.ndarray:
+        return np.asarray(values)
