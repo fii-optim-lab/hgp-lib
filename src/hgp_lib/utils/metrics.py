@@ -38,9 +38,9 @@ def confusion_matrix(
         (1, 1, 1, 1)
     """
     if sample_weight is None:
-        tp = (y_pred & y_true).sum()
-        fp = (y_pred & ~y_true).sum()
-        total_true = y_true.sum()
+        tp = np.count_nonzero(y_pred & y_true)
+        fp = np.count_nonzero(y_pred & ~y_true)
+        total_true = np.count_nonzero(y_true)
         fn = total_true - tp
         tn = len(y_pred) - total_true - fp
     else:
@@ -80,11 +80,11 @@ def fast_f1_score(
         0.5
     """
     if sample_weight is None:
-        y_pred_sum = y_pred.sum()
-        y_true_sum = y_true.sum()
+        y_pred_sum = np.count_nonzero(y_pred)
+        y_true_sum = np.count_nonzero(y_true)
         if y_pred_sum == 0 or y_true_sum == 0:
             return 1.0 if y_pred_sum == 0 and y_true_sum == 0 else 0.0
-        return float(2 * (y_pred & y_true).sum() / (y_pred_sum + y_true_sum))
+        return float(2 * np.count_nonzero(y_pred & y_true) / (y_pred_sum + y_true_sum))
 
     y_pred_sum = np.dot(y_pred, sample_weight)
     y_true_sum = np.dot(y_true, sample_weight)
