@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Performance Improvements
+
+- `BooleanGP` stores the training data in column-major order, which speeds up rule evaluation.
+
 ---
 
 ## [1.2.2](https://github.com/fii-optim-lab/hgp-lib/releases/tag/1.2.2)
