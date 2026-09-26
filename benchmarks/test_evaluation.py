@@ -36,12 +36,14 @@ def evaluate_default(rules, data):
 def test_evaluation_default(benchmark, num_literals, num_samples):
     rules = load_artifact(num_literals)
     rng = np.random.default_rng(SEEDS[(num_literals, num_samples)])
-    data = rng.integers(
-        0,
-        2,
-        size=(num_samples, num_literals),
-        dtype=np.int8,
-    ).astype(bool)
+    data = np.asfortranarray(
+        rng.integers(
+            0,
+            2,
+            size=(num_samples, num_literals),
+            dtype=np.int8,
+        ).astype(bool)
+    )
 
     benchmark(evaluate_default, rules, data)
 

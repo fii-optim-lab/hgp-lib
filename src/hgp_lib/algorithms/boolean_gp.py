@@ -75,7 +75,7 @@ class BooleanGP:
         self.score_fn = score_fn
         self.train_cm = train_cm
         self.complexity_penalty = config.complexity_penalty
-        self.train_data = train_data
+        self.train_data = np.asfortranarray(train_data)
         self.train_labels = train_labels
 
         self.current_depth = current_depth
