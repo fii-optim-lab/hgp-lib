@@ -9,7 +9,12 @@ from ..configs import BooleanGPConfig, validate_gp_config
 from ..metrics import GenerationMetrics
 from ..rules import Rule
 from ..selections import TournamentSelection
-from ..utils.metrics import confusion_matrix, fast_f1_score, optimize_scorers_for_data
+from ..utils.metrics import (
+    SampleWeightScorer,
+    confusion_matrix,
+    fast_f1_score,
+    optimize_scorers_for_data,
+)
 
 
 class BooleanGP:
@@ -33,6 +38,11 @@ class BooleanGP:
         config (BooleanGPConfig): Configuration containing `train_data`,
             `train_labels`, `score_fn`, `population_factory`,
             `mutation_factory`, and optional components.
+        current_depth (int): Depth of this population in the hierarchy. Default: `0`.
+        sample_weight (ndarray | None): Weights of the rows of `config.train_data`.
+            Child populations receive the weights of the rows sampled from their
+            parent's deduplicated data. Used only when `optimize_scorer` is enabled.
+            Default: `None`.
 
     Examples:
         >>> import numpy as np
@@ -51,7 +61,12 @@ class BooleanGP:
         >>> gen_metrics = gp.step()
     """
 
-    def __init__(self, config: BooleanGPConfig, current_depth: int = 0):
+    def __init__(
+        self,
+        config: BooleanGPConfig,
+        current_depth: int = 0,
+        sample_weight: ndarray | None = None,
+    ):
         validate_gp_config(config)
 
         train_data = config.train_data
@@ -68,9 +83,14 @@ class BooleanGP:
                 confusion_matrix,
                 data=config.train_data,
                 labels=config.train_labels,
+                sample_weight=sample_weight,
             )
         else:
             train_cm = confusion_matrix
+        # Weights of the deduplicated training rows, passed on to child populations.
+        self.train_sample_weight = (
+            train_cm.sample_weight if isinstance(train_cm, SampleWeightScorer) else None
+        )
 
         self.score_fn = score_fn
         self.train_cm = train_cm
@@ -129,6 +149,7 @@ class BooleanGP:
             self.train_data,
             self.train_labels,
             self.config.num_child_populations,
+            sample_weight=self.train_sample_weight,
         )
 
         for result in results:
@@ -137,7 +158,11 @@ class BooleanGP:
                 train_data=result.data,
                 train_labels=result.labels,
             )
-            child = BooleanGP(child_config, current_depth=self.current_depth + 1)
+            child = BooleanGP(
+                child_config,
+                current_depth=self.current_depth + 1,
+                sample_weight=result.sample_weight,
+            )
             child.feature_mapping = result.feature_mapping
 
             self.child_populations.append(child)

@@ -11,6 +11,7 @@ from math import ceil
 import numpy as np
 from numpy import ndarray
 
+from hgp_lib.utils.metrics import select_weighted_rows
 from hgp_lib.utils.validation import check_isinstance
 
 
@@ -33,11 +34,14 @@ class SamplingResult:
             parent's space.
 
             Set to None for instance-only sampling where all features are preserved.
+        sample_weight: Weights of the sampled rows, or None when the parent data has no
+            weights. Default: `None`.
     """
 
     data: ndarray
     labels: ndarray
     feature_mapping: dict[int, int] | None
+    sample_weight: ndarray | None = None
 
 
 class SamplingStrategy(ABC):
@@ -105,7 +109,11 @@ class SamplingStrategy(ABC):
 
     @staticmethod
     def create_sampling_result(
-        data, labels, feature_indices: ndarray | None, instance_indices: ndarray | None
+        data,
+        labels,
+        feature_indices: ndarray | None,
+        instance_indices: ndarray | None,
+        sample_weight: ndarray | None = None,
     ):
         """Slice `data` and `labels` by the given indices and build the result.
 
@@ -114,12 +122,20 @@ class SamplingStrategy(ABC):
             labels: Parent training labels as 1D integer array.
             feature_indices: Feature columns to keep, or None to keep all features.
             instance_indices: Instance rows to keep, or None to keep all instances.
+                When `sample_weight` is given, these index the original rows that the
+                weighted rows stand for, in `range(sample_weight.sum())`.
+            sample_weight: Weights of the rows of `data`, or None. Default: `None`.
 
         Returns:
-            SamplingResult: The sampled data and labels, with `feature_mapping` set
-                from `feature_indices` (None when no features were sampled).
+            SamplingResult: The sampled data, labels and weights, with
+                `feature_mapping` set from `feature_indices` (None when no features
+                were sampled).
         """
         if instance_indices is not None:
+            if sample_weight is not None:
+                instance_indices, sample_weight = select_weighted_rows(
+                    sample_weight, instance_indices
+                )
             data = data[instance_indices]
             labels = labels[instance_indices]
         feature_mapping = None
@@ -131,6 +147,7 @@ class SamplingStrategy(ABC):
             data=data,
             labels=labels,
             feature_mapping=feature_mapping,
+            sample_weight=sample_weight,
         )
 
     @abstractmethod
@@ -139,6 +156,7 @@ class SamplingStrategy(ABC):
         data: ndarray,
         labels: ndarray,
         num_children: int,
+        sample_weight: ndarray | None = None,
     ) -> list[SamplingResult]:
         """Sample data and/or features for child populations.
 
@@ -146,6 +164,9 @@ class SamplingStrategy(ABC):
             data: Training data as 2D boolean array (instances x features).
             labels: Training labels as 1D integer array.
             num_children: Number of child populations to create.
+            sample_weight: Weights of the rows of `data` (e.g. after deduplication),
+                or None. Instances are then sampled from the original rows the weights
+                stand for. Default: `None`.
 
         Returns:
             List of SamplingResult, one per child (exactly `num_children` elements).
@@ -195,6 +216,7 @@ class FeatureSamplingStrategy(SamplingStrategy):
         data: ndarray,
         labels: ndarray,
         num_children: int,
+        sample_weight: ndarray | None = None,
     ) -> list[SamplingResult]:
         """Sample features for child populations.
 
@@ -202,10 +224,11 @@ class FeatureSamplingStrategy(SamplingStrategy):
             data: Training data as 2D boolean array (instances x features).
             labels: Training labels as 1D integer array.
             num_children: Number of child populations to create.
+            sample_weight: Weights of the rows of `data`, or None. Default: `None`.
 
         Returns:
             List of SamplingResult, one per child, with sampled feature columns,
-            all instances preserved, and feature_mapping set.
+            all instances and their weights preserved, and feature_mapping set.
         """
         num_features = data.shape[1]
         features_per_child = ceil(num_features * self.feature_fraction)
@@ -219,7 +242,9 @@ class FeatureSamplingStrategy(SamplingStrategy):
         )
 
         return [
-            self.create_sampling_result(data, labels, feature_indices, None)
+            self.create_sampling_result(
+                data, labels, feature_indices, None, sample_weight
+            )
             for feature_indices in feature_allocation
         ]
 
@@ -261,6 +286,7 @@ class InstanceSamplingStrategy(SamplingStrategy):
         data: ndarray,
         labels: ndarray,
         num_children: int,
+        sample_weight: ndarray | None = None,
     ) -> list[SamplingResult]:
         """Sample instances for child populations.
 
@@ -268,12 +294,15 @@ class InstanceSamplingStrategy(SamplingStrategy):
             data: Training data as 2D boolean array (instances x features).
             labels: Training labels as 1D integer array.
             num_children: Number of child populations to create.
+            sample_weight: Weights of the rows of `data`, or None. When given,
+                instances are sampled from the original rows the weights stand for.
+                Default: `None`.
 
         Returns:
-            List of SamplingResult, one per child, with sampled instance rows,
-            all features preserved, and feature_mapping set to None.
+            List of SamplingResult, one per child, with sampled instance rows and
+            their weights, all features preserved, and feature_mapping set to None.
         """
-        num_instances = len(data)
+        num_instances = len(data) if sample_weight is None else int(sample_weight.sum())
         samples_per_child = ceil(num_instances * self.sample_fraction)
         if samples_per_child < self.MIN_INSTANCES:
             # ValueError: Cannot sample less than 2 instances. There are only 1 instances and sample_fraction is 0.39!
@@ -286,7 +315,9 @@ class InstanceSamplingStrategy(SamplingStrategy):
         )
 
         return [
-            self.create_sampling_result(data, labels, None, sample_indices)
+            self.create_sampling_result(
+                data, labels, None, sample_indices, sample_weight
+            )
             for sample_indices in sample_allocation
         ]
 
@@ -336,6 +367,7 @@ class CombinedSamplingStrategy(SamplingStrategy):
         data: ndarray,
         labels: ndarray,
         num_children: int,
+        sample_weight: ndarray | None = None,
     ) -> list[SamplingResult]:
         """Sample both features and instances for all children at once.
 
@@ -343,12 +375,17 @@ class CombinedSamplingStrategy(SamplingStrategy):
             data: Training data as 2D boolean array (instances x features).
             labels: Training labels as 1D integer array.
             num_children: Number of child populations to create.
+            sample_weight: Weights of the rows of `data`, or None. When given,
+                instances are sampled from the original rows the weights stand for.
+                Default: `None`.
 
         Returns:
             List of SamplingResult, one per child, with both feature and instance
-            subsets applied and feature_mapping set.
+            subsets applied, the weights of the sampled rows, and feature_mapping set.
         """
         num_instances, num_features = data.shape
+        if sample_weight is not None:
+            num_instances = int(sample_weight.sum())
         samples_per_child = ceil(num_instances * self.sample_fraction)
         features_per_child = ceil(num_features * self.feature_fraction)
         if samples_per_child < self.MIN_INSTANCES:
@@ -374,6 +411,7 @@ class CombinedSamplingStrategy(SamplingStrategy):
                 labels,
                 feature_indices,
                 sample_indices,
+                sample_weight,
             )
             for sample_indices, feature_indices in zip(
                 sample_allocation, feature_allocation

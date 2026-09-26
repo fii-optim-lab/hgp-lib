@@ -11,7 +11,7 @@ from hgp_lib.populations import (
     RandomStrategy,
 )
 from hgp_lib.rules import And, Literal, Or
-from hgp_lib.utils.metrics import fast_accuracy_score
+from hgp_lib.utils.metrics import fast_accuracy_score, optimize_scorers_for_data
 
 
 class TestPopulations(unittest.TestCase):
@@ -141,6 +141,31 @@ class TestPopulations(unittest.TestCase):
         rules_subset = strategy_subset.generate(n=1)
         rule_subset = rules_subset[0]
         self.assertIsInstance(rule_subset, Literal)
+
+    def test_best_literal_strategy_weighted_subset(self):
+        # Duplicated rows are collapsed into sample weights, as BooleanGP does.
+        repeats = [3, 1, 2, 1]
+        score_fn, data, labels = optimize_scorers_for_data(
+            self.score_fn,
+            data=np.repeat(self.train_data, repeats, axis=0),
+            labels=np.repeat(self.train_labels, repeats),
+        )
+        self.assertEqual(len(data), 4)
+
+        # Row subsets must be scored with their own weights, not all 4 weights.
+        strategy = BestLiteralStrategy(
+            num_literals=self.num_literals,
+            score_fn=score_fn,
+            train_data=data,
+            train_labels=labels,
+            sample_size=3,
+        )
+
+        # Feature 0 matches the labels, so it is the best literal on every subset.
+        for rule in strategy.generate(n=10):
+            self.assertIsInstance(rule, Literal)
+            self.assertEqual(rule.value, 0)
+            self.assertFalse(rule.negated)
 
     def test_best_literal_strategy_no_labels(self):
         with self.assertRaises(ValueError):

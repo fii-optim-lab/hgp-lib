@@ -4,6 +4,7 @@ from math import ceil
 import numpy as np
 
 from ..rules import And, Literal, Or, Rule
+from ..utils.metrics import SampleWeightScorer, select_weighted_rows
 from ..utils.validation import (
     check_X_y,
     validate_callable,
@@ -88,12 +89,16 @@ class BestLiteralStrategy(PopulationStrategy):
     All possible literals in the feature subset (both positive and negated) are evaluated against the data subset,
     and the one with the highest score is returned.
 
+    When `score_fn` is a `SampleWeightScorer`, `train_data` holds deduplicated rows with those weights. Row subsets
+    are then drawn from the original rows the weights stand for, and scored with the weights of the subset.
+
     Attributes:
         num_literals (int): The total number of available literals.
         score_fn (Callable): Function to evaluate a rule. Signature: `score_fn(y_true, y_pred) -> float`.
         train_data (np.ndarray): The training data array.
         train_labels (np.ndarray): The training labels.
-        sample_size (int | float | None): Size of the sample subset (rows) to use for evaluation.
+        sample_size (int | float | None): Size of the sample subset (rows) to use for evaluation. With weighted
+            data, it counts original rows.
             - If `int`: Number of samples.
             - If `float`: Fraction of samples in (0.0, 1.0].
             - If `None`: Use all samples.
@@ -150,7 +155,16 @@ class BestLiteralStrategy(PopulationStrategy):
         self.train_data = train_data
         self.train_labels = train_labels
 
-        self._sample_count = self._resolve_size(sample_size, len(train_data))
+        # A weight-bound scorer means the rows of train_data are deduplicated.
+        self._sample_weight = (
+            score_fn.sample_weight if isinstance(score_fn, SampleWeightScorer) else None
+        )
+        self._total_samples = (
+            len(train_data)
+            if self._sample_weight is None
+            else int(self._sample_weight.sum())
+        )
+        self._sample_count = self._resolve_size(sample_size, self._total_samples)
         self._feature_count = self._resolve_size(feature_size, num_literals)
 
     def _resolve_size(self, size: float | None, total: int) -> int:
@@ -179,15 +193,21 @@ class BestLiteralStrategy(PopulationStrategy):
             list[Rule]: A list of Literal instances.
         """
         rules = []
-        total_samples = len(self.train_data)
+        total_samples = self._total_samples
 
         for _ in range(n):
+            score_fn = self.score_fn
             if self._sample_count == total_samples:
                 row_indices = slice(None)
             else:
                 row_indices = np.random.choice(
                     total_samples, self._sample_count, replace=False
                 )
+                if self._sample_weight is not None:
+                    row_indices, weights = select_weighted_rows(
+                        self._sample_weight, row_indices
+                    )
+                    score_fn = SampleWeightScorer(self.score_fn.scorer, weights)
 
             if self._feature_count == self.num_literals:
                 feature_indices = range(self.num_literals)
@@ -204,14 +224,14 @@ class BestLiteralStrategy(PopulationStrategy):
 
             for i in feature_indices:
                 preds_pos = subset_data[:, i]
-                score_pos = self.score_fn(subset_labels, preds_pos)
+                score_pos = score_fn(subset_labels, preds_pos)
 
                 if score_pos > best_score:
                     best_score = score_pos
                     best_rule = Literal(value=i, negated=False)
 
                 preds_neg = ~preds_pos
-                score_neg = self.score_fn(subset_labels, preds_neg)
+                score_neg = score_fn(subset_labels, preds_neg)
 
                 if score_neg > best_score:
                     best_score = score_neg

@@ -167,21 +167,29 @@ def accepts_sample_weight(scorer: Callable) -> bool:
         return False
 
 
-def transform_duplicates_to_sample_weight(data: ndarray, labels: ndarray):
+def transform_duplicates_to_sample_weight(
+    data: ndarray, labels: ndarray, sample_weight: ndarray | None = None
+):
     """
     Remove duplicate rows from ``(data, labels)`` and return sample weights.
 
     Rows that appear multiple times are collapsed into a single row with a
-    weight equal to the original count.
+    weight equal to the original count, or to the sum of their weights when
+    ``sample_weight`` is given.
 
     Args:
         data (ndarray):
             2-D input data.
         labels (ndarray):
             1-D label array (same length as ``data``).
+        sample_weight (ndarray | None):
+            Optional weights of the input rows, e.g. rows that were already
+            deduplicated. Default: `None`.
 
     Returns:
-        tuple[ndarray, ndarray, ndarray]: ``(unique_data, unique_labels, sample_weights)``.
+        tuple[ndarray, ndarray, ndarray | None]: ``(unique_data, unique_labels, sample_weights)``.
+            When there are no duplicates, the inputs are returned unchanged, with
+            ``sample_weight`` as the weights.
 
     Examples:
         >>> import numpy as np
@@ -193,6 +201,9 @@ def transform_duplicates_to_sample_weight(data: ndarray, labels: ndarray):
         True
         >>> bool(sw.sum() == len(data))
         True
+        >>> _, _, sw = transform_duplicates_to_sample_weight(data, labels, np.array([2, 3, 1]))
+        >>> sw.tolist()
+        [1, 5]
     """
     Xy_packed = np.ascontiguousarray(
         np.packbits(np.hstack((data, labels[:, None])), axis=1)
@@ -201,15 +212,54 @@ def transform_duplicates_to_sample_weight(data: ndarray, labels: ndarray):
     row_dtype = np.dtype((np.void, Xy_packed.shape[1]))
     row_view = Xy_packed.view(row_dtype).ravel()
 
-    _, unique_idx, sample_weight = np.unique(
-        row_view,
-        return_index=True,
-        return_counts=True,
-    )
+    if sample_weight is None:
+        _, unique_idx, counts = np.unique(
+            row_view,
+            return_index=True,
+            return_counts=True,
+        )
+    else:
+        _, unique_idx, inverse = np.unique(
+            row_view,
+            return_index=True,
+            return_inverse=True,
+        )
+        counts = np.bincount(inverse, weights=sample_weight).astype(sample_weight.dtype)
     if len(unique_idx) == len(labels):
-        return data, labels, None
+        return data, labels, sample_weight
 
-    return data[unique_idx], labels[unique_idx], sample_weight
+    return data[unique_idx], labels[unique_idx], counts
+
+
+def select_weighted_rows(sample_weight: ndarray, indices: ndarray):
+    """
+    Map indices of original rows to deduplicated rows and their new weights.
+
+    Deduplicated row ``i`` stands for ``sample_weight[i]`` consecutive original rows,
+    so drawing indices from ``range(sample_weight.sum())`` samples original rows
+    without expanding the data.
+
+    Args:
+        sample_weight (ndarray):
+            Integer weights of the deduplicated rows.
+        indices (ndarray):
+            Distinct indices of original rows, in ``[0, sample_weight.sum())``.
+
+    Returns:
+        tuple[ndarray, ndarray]: ``(rows, weights)``, the deduplicated rows that were
+            selected and how many selected original rows each of them stands for.
+
+    Examples:
+        >>> import numpy as np
+        >>> from hgp_lib.utils.metrics import select_weighted_rows
+        >>> rows, weights = select_weighted_rows(np.array([3, 1, 2]), np.array([0, 2, 4, 5]))
+        >>> rows.tolist(), weights.tolist()
+        ([0, 2], [2, 2])
+    """
+    owners = np.searchsorted(np.cumsum(sample_weight), indices, side="right")
+    counts = np.bincount(owners, minlength=len(sample_weight))
+    rows = np.flatnonzero(counts)
+    return rows, counts[rows]
 
 
 class SampleWeightScorer:
@@ -250,7 +300,10 @@ class SampleWeightScorer:
 
 
 def optimize_scorers_for_data(
-    *scorers: Callable[[ndarray, ndarray], Any], data: ndarray, labels: ndarray
+    *scorers: Callable[[ndarray, ndarray], Any],
+    data: ndarray,
+    labels: ndarray,
+    sample_weight: ndarray | None = None,
 ):
     """
     Optimise scorers by deduplicating data and binding ``sample_weight``.
@@ -267,6 +320,9 @@ def optimize_scorers_for_data(
             2-D input data.
         labels (ndarray):
             1-D label array.
+        sample_weight (ndarray | None):
+            Optional weights of the input rows, e.g. rows that were already
+            deduplicated. Duplicates add up their weights. Default: `None`.
 
     Returns:
         tuple: ``(*optimised_scorers, data, labels)``.
@@ -298,7 +354,7 @@ def optimize_scorers_for_data(
                 )
     if scorers_ok:
         data, labels, sample_weight = transform_duplicates_to_sample_weight(
-            data, labels
+            data, labels, sample_weight
         )
         if sample_weight is not None:
             scorers = [SampleWeightScorer(scorer, sample_weight) for scorer in scorers]

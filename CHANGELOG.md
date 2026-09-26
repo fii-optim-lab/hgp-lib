@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### API Changes
+
+- `SamplingStrategy.sample` takes an optional `sample_weight`, which custom sampling strategies must accept.
+- Added `select_weighted_rows`, and an optional `sample_weight` to `transform_duplicates_to_sample_weight` and `optimize_scorers_for_data`.
+
+### Bug Fixes
+
+- Child populations now keep the sample weights of their parent.
+- `BestLiteralStrategy` no longer fails when `sample_size` is set and the data has duplicate rows.
+
 ### Performance Improvements
 
 - `BooleanGP` stores the training data in column-major order, which speeds up rule evaluation.
