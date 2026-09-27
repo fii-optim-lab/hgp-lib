@@ -8,6 +8,13 @@ Install the development environment:
 pip install -e .[dev]
 ```
 
+The `TorchBackend` tests and doctests are skipped when PyTorch is not installed.
+To run them, also install the `torch` extra:
+
+```bash
+pip install -e .[dev,torch]
+```
+
 ## Contributing Guidelines
 
 1. **Pull Requests**: All contributions must be made through pull requests.

@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from functools import cached_property
 
 from ..rules import Rule
-from .core import GenerationMetrics
+from .generation import GenerationMetrics
 
 
 @dataclass
@@ -32,7 +32,7 @@ class PopulationHistory:
             Per-epoch metrics. Default: empty list.
 
     Examples:
-        >>> from hgp_lib.metrics import PopulationHistory, GenerationMetrics
+        >>> from hgp_lib.results import PopulationHistory, GenerationMetrics
         >>> from hgp_lib.rules import Literal
         >>> ph = PopulationHistory(
         ...     global_best_rule=Literal(value=0), tp=5, fp=1, fn=2, tn=7,
@@ -65,7 +65,7 @@ class PopulationHistory:
 
         Examples:
             >>> from dataclasses import replace
-            >>> from hgp_lib.metrics import PopulationHistory, GenerationMetrics
+            >>> from hgp_lib.results import PopulationHistory, GenerationMetrics
             >>> from hgp_lib.rules import Literal
             >>> g1 = GenerationMetrics.from_population(
             ...     best_idx=0, best_rule=Literal(value=0),
@@ -93,7 +93,7 @@ class PopulationHistory:
         no generations.
 
         Examples:
-            >>> from hgp_lib.metrics import PopulationHistory, GenerationMetrics
+            >>> from hgp_lib.results import PopulationHistory, GenerationMetrics
             >>> from hgp_lib.rules import Literal
             >>> g1 = GenerationMetrics.from_population(
             ...     best_idx=0, best_rule=Literal(value=0),

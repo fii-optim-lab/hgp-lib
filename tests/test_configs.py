@@ -18,7 +18,8 @@ from hgp_lib.mutations import MutationExecutorFactory
 from hgp_lib.populations import PopulationGeneratorFactory
 from hgp_lib.populations.sampling import FeatureSamplingStrategy
 from hgp_lib.preprocessing import StandardBinarizer
-from hgp_lib.evaluation.scorer import fast_accuracy_score as accuracy_score
+from hgp_lib.evaluation import NumpyBackend
+from hgp_lib.evaluation import fast_accuracy_score as accuracy_score
 
 
 class TestBooleanGPConfig(unittest.TestCase):
@@ -131,7 +132,8 @@ class TestBooleanGPConfig(unittest.TestCase):
 
     def test_defaults(self):
         config = BooleanGPConfig(score_fn=accuracy_score)
-        self.assertTrue(config.optimize_scorer)
+        self.assertIsNone(config.optimize_scorer)
+        self.assertEqual(config.backend, NumpyBackend())
         self.assertFalse(config.regeneration)
         self.assertEqual(config.regeneration_patience, 100)
         self.assertEqual(config.max_depth, 0)
@@ -332,7 +334,7 @@ class TestComplexityCheck(unittest.TestCase):
 
     def test_complexity_check_accepts_small_rules(self):
         from hgp_lib.rules import And, Literal, Or
-        from hgp_lib.utils import ComplexityCheck
+        from hgp_lib.rules import ComplexityCheck
 
         check = ComplexityCheck(5)
         self.assertTrue(check(Literal(value=0)))  # len=1
@@ -343,7 +345,7 @@ class TestComplexityCheck(unittest.TestCase):
 
     def test_complexity_check_rejects_large_rules(self):
         from hgp_lib.rules import And, Literal, Or
-        from hgp_lib.utils import ComplexityCheck
+        from hgp_lib.rules import ComplexityCheck
 
         check = ComplexityCheck(3)
         self.assertFalse(

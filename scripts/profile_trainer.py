@@ -31,6 +31,7 @@ from timed_decorator.builder import create_timed_decorator, get_timed_decorator
 from hgp_lib import BooleanGPConfig, TrainerConfig
 from hgp_lib.algorithms import BooleanGP
 from hgp_lib.crossover import CrossoverExecutor
+from hgp_lib.evaluation import fast_f1_score
 from hgp_lib.mutations import (
     AddLiteral,
     DeleteMutation,
@@ -47,10 +48,9 @@ from hgp_lib.populations import (
     PopulationGeneratorFactory,
 )
 from hgp_lib.preprocessing import StandardBinarizer, load_data
-from hgp_lib.rules import Rule
+from hgp_lib.rules import ComplexityCheck, Rule
 from hgp_lib.selections import TournamentSelection
 from hgp_lib.trainers import GPTrainer
-from hgp_lib.utils import ComplexityCheck
 
 
 def preprocess_data(data_path: str, num_bins: int = 5) -> tuple:
@@ -148,19 +148,21 @@ def setup_timing() -> dict:
 def apply_timing_decorators() -> None:
     decorator = get_timed_decorator("GPTimer")
 
-    global fast_f1_score
-    fast_f1_score = decorator(fast_f1_score)
+    # fast_f1_score is not wrapped: the backend replaces it with its own kernel, and a
+    # wrapped function would fall back to the slower generic path. NumpyEvaluator.score
+    # (below) times rule evaluation and scoring together.
 
     # Rule evaluation - these are the hot paths
-    # Literal.evaluate = decorator(Literal.evaluate)
     # Rule.flatten = decorator(Rule.flatten)
     # Rule.copy = decorator(Rule.copy)
     Rule.__len__ = decorator(Rule.__len__)
     ComplexityCheck.__call__ = decorator(ComplexityCheck.__call__)
-    # And.evaluate = decorator(And.evaluate)
-    # Or.evaluate = decorator(Or.evaluate)
 
     import hgp_lib
+    from hgp_lib.evaluation.numpy import NumpyEvaluator
+
+    # Scoring the population on the bound training rows (evaluation + kernels).
+    NumpyEvaluator.score = decorator(NumpyEvaluator.score)
 
     hgp_lib.rules.utils.select_crossover_point = decorator(
         hgp_lib.rules.utils.select_crossover_point
@@ -191,7 +193,6 @@ def apply_timing_decorators() -> None:
     # GP algorithm core
     BooleanGP.step = decorator(BooleanGP.step)
     BooleanGP._new_generation = decorator(BooleanGP._new_generation)
-    BooleanGP.evaluate_population = decorator(BooleanGP.evaluate_population)
     BooleanGP._update_best = decorator(BooleanGP._update_best)
 
     # Hierarchical GP operations

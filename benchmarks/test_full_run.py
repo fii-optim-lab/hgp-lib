@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from hgp_lib import BooleanGPConfig, BooleanRuleClassifier, TrainerConfig
-from hgp_lib.utils.metrics import fast_f1_score
+from hgp_lib.evaluation import fast_f1_score
 
 from .data import DATASET_NAMES, N_SPLITS, load_fold
 

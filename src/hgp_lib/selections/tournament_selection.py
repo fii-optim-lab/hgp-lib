@@ -120,6 +120,10 @@ class TournamentSelection(BaseSelection):
             >>> all(isinstance(rule, Rule) for rule in selected_rules)
             True
         """
+        # TODO: Fails with "kth out of bounds" in np.argpartition when there are fewer
+        #  rules than tournament_size (e.g. population_size=5 with the default
+        #  tournament_size). Validate it in BooleanGPConfig or clamp the tournament size
+        #  to len(rules).
         n = len(rules)
 
         scores_array = np.asarray(scores)

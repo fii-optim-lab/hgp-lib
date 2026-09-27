@@ -8,8 +8,7 @@ from hgp_lib.algorithms import BooleanGP
 from hgp_lib.configs import BooleanGPConfig
 from hgp_lib.populations import PopulationGeneratorFactory
 from hgp_lib.preprocessing import StandardBinarizer
-from hgp_lib.rules import Rule, deserialize, serialize
-from hgp_lib.utils import ComplexityCheck
+from hgp_lib.rules import ComplexityCheck, Rule, deserialize, serialize
 
 from .data import DATASET_NAMES, N_SPLITS, load_fold
 

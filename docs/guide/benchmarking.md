@@ -1,5 +1,3 @@
-from hgp_lib.utils.metrics import fast_f1_score
-
 # Benchmarking
 
 The benchmarker runs multiple full runs (default 30), each with a stratified train/test split and k-fold CV on the training set.
@@ -19,6 +17,7 @@ By default a [`StandardBinarizer`](../api/preprocessing.md#hgp_lib.preprocessing
 You can pass a custom binarizer (unfitted) via the `binarizer` parameter:
 
 ```python
+from hgp_lib.configs import BenchmarkerConfig
 from hgp_lib.preprocessing import StandardBinarizer
 
 binarizer = StandardBinarizer(num_bins=10)  # must be unfitted
@@ -34,10 +33,11 @@ See [Binarization](binarization.md) for how the binarizer works and its paramete
 
 ## Feature names
 
-The [`RunResult`](../api/metrics.md#hgp_lib.metrics.results.RunResult) includes `feature_names`, a `list[str]` of the binarized column names in order, index-aligned so that `feature_names[i]` names the feature a literal references with index `i`.
+The [`RunResult`](../api/results.md#hgp_lib.results.experiment.RunResult) includes `feature_names`, a `list[str]` of the binarized column names in order, index-aligned so that `feature_names[i]` names the feature a literal references with index `i`.
 Use this to display rules in human-readable form:
 
 ```python
+result = GPBenchmarker(config).fit()
 best_run = result.best_run
 print(result.best_rule.to_str(best_run.feature_names))
 ```
@@ -58,30 +58,23 @@ The best rule of the whole experiment is the best rule from the best fold of tha
 
 ## Scorer optimization
 
-The benchmarker can optimize scorers per fold by deduplicating data and using sample weights.
-This speeds up scoring for datasets with many duplicate rows.
-To use it, pass a base scorer (not pre-optimized) that accepts a `sample_weight` parameter, and set `optimize_scorer=True` in [`BooleanGPConfig`](../api/configs.md#hgp_lib.configs.boolean_gp_config.BooleanGPConfig) (the default).
+Training and validation rows with the same features and label can be merged into one row with an integer sample weight.
+Rules are then evaluated on fewer rows, with exactly the same scores.
+This happens separately for every fold, and for every child population in hierarchical GP.
+The held-out test set is scored once, on its rows as they are.
 
-Do not pass pre-optimized scorers (e.g. from [`optimize_scorers_for_data`](../api/utils.md#hgp_lib.utils.metrics.optimize_scorers_for_data)) to the benchmarker.
-Pre-optimized scorers have sample weights bound to the original data, which become invalid after train/test/fold splits.
-Either pass a base scorer with `optimize_scorer=True` (default), or use `optimize_scorer=False` for scorers without `sample_weight` support.
+`optimize_scorer` in [`BooleanGPConfig`](../api/configs.md#hgp_lib.configs.boolean_gp_config.BooleanGPConfig) decides when rows may be merged:
 
-A scorer that supports sample weights looks like this:
+- `None` (default): for the built-in scorers ([`fast_f1_score`](../api/evaluation.md#hgp_lib.evaluation.scorers.fast_f1_score), [`fast_accuracy_score`](../api/evaluation.md#hgp_lib.evaluation.scorers.fast_accuracy_score)), never for a custom `score_fn`.
+- `True`: also for a custom `score_fn` that accepts `sample_weight`. If it does not, a `FutureWarning` is emitted and rows are not merged.
+- `False`: never.
+
+A custom scorer that supports sample weights must give the same score for a row with weight `k` as for `k` copies of that row, like most scikit-learn metrics:
 
 ```python
-import numpy as np
+from sklearn.metrics import balanced_accuracy_score
 
-def f1_score(y_true, y_pred, sample_weight=None):
-    if sample_weight is None:
-        tp = (y_true & y_pred).sum()
-        pred_sum, label_sum = y_pred.sum(), y_true.sum()
-    else:
-        tp = np.dot(y_pred & y_true, sample_weight)
-        pred_sum = np.dot(y_pred, sample_weight)
-        label_sum = np.dot(y_true, sample_weight)
-    if pred_sum == 0 or label_sum == 0:
-        return 1.0 if pred_sum == label_sum == 0 else 0.0
-    return 2 * tp / (pred_sum + label_sum)
+gp_config = BooleanGPConfig(score_fn=balanced_accuracy_score, optimize_scorer=True)
 ```
 
 ## Full example
@@ -91,7 +84,6 @@ import numpy as np
 from sklearn.datasets import load_breast_cancer
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.benchmarkers import GPBenchmarker
-from hgp_lib.evaluation.scorer import fast_f1_score
 
 X, y = load_breast_cancer(return_X_y=True, as_frame=True)  # raw DataFrame + target
 
@@ -116,6 +108,9 @@ config = BenchmarkerConfig(
 benchmarker = GPBenchmarker(config)
 result = benchmarker.fit()
 
+# With the default settings, only the data is needed:
+# GPBenchmarker(BenchmarkerConfig(data=X, labels=y.to_numpy())).fit()
+
 # Aggregated metrics
 test_scores = result.test_scores
 print(f"Test score: {np.mean(test_scores):.4f} ± {np.std(test_scores):.4f}")
@@ -138,7 +133,7 @@ benchmarker.fit()
 predictions = benchmarker.predict(X)  # 1-D boolean array
 ```
 
-The fitted binarizer is stored on [`RunResult.binarizer`](../api/metrics.md#hgp_lib.metrics.results.RunResult), so `predict` reproduces the exact encoding used during the best run.
+The fitted binarizer is stored on [`RunResult.binarizer`](../api/results.md#hgp_lib.results.experiment.RunResult), so `predict` reproduces the exact encoding used during the best run.
 
 ## Hyperparameter tuning
 

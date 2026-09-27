@@ -5,9 +5,8 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from hgp_lib.rules import And, Literal, Or
+from hgp_lib.rules import And, ComplexityCheck, Literal, Or
 from hgp_lib.utils.validation import (
-    ComplexityCheck,
     check_isinstance,
     check_X_y,
     validate_callable,

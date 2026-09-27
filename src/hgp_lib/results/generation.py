@@ -32,7 +32,7 @@ class GenerationMetrics:
             if validation was not performed. Default: `None`.
 
     Examples:
-        >>> from hgp_lib.metrics import GenerationMetrics
+        >>> from hgp_lib.results import GenerationMetrics
         >>> from hgp_lib.rules import Literal
         >>> m = GenerationMetrics.from_population(
         ...     best_idx=1,
@@ -88,7 +88,7 @@ class GenerationMetrics:
             GenerationMetrics: A new instance with ``val_score=None``.
 
         Examples:
-            >>> from hgp_lib.metrics import GenerationMetrics
+            >>> from hgp_lib.results import GenerationMetrics
             >>> from hgp_lib.rules import Literal
             >>> m = GenerationMetrics.from_population(
             ...     best_idx=0, best_rule=Literal(value=0),
@@ -112,7 +112,7 @@ class GenerationMetrics:
         Training score of the best rule in this generation.
 
         Examples:
-            >>> from hgp_lib.metrics import GenerationMetrics
+            >>> from hgp_lib.results import GenerationMetrics
             >>> from hgp_lib.rules import Literal
             >>> m = GenerationMetrics.from_population(
             ...     best_idx=2, best_rule=Literal(value=0),
@@ -130,7 +130,7 @@ class GenerationMetrics:
         Node count of the best rule in this generation.
 
         Examples:
-            >>> from hgp_lib.metrics import GenerationMetrics
+            >>> from hgp_lib.results import GenerationMetrics
             >>> from hgp_lib.rules import Literal
             >>> m = GenerationMetrics.from_population(
             ...     best_idx=0, best_rule=Literal(value=0),
@@ -148,7 +148,7 @@ class GenerationMetrics:
         Number of rules in the population at this generation.
 
         Examples:
-            >>> from hgp_lib.metrics import GenerationMetrics
+            >>> from hgp_lib.results import GenerationMetrics
             >>> from hgp_lib.rules import Literal
             >>> m = GenerationMetrics.from_population(
             ...     best_idx=0, best_rule=Literal(value=0),

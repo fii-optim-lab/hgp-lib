@@ -14,13 +14,14 @@ from hgp_lib.benchmarkers.progress import ProgressReporter
 from hgp_lib.benchmarkers.runner import execute_single_run, single_run_wrapper
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
 from hgp_lib.crossover import CrossoverExecutorFactory
-from hgp_lib.metrics import ExperimentResult, RunResult
+from hgp_lib.results import ExperimentResult, RunResult
 from hgp_lib.mutations import MutationExecutorFactory
 from hgp_lib.populations import PopulationGeneratorFactory
 from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.rules import Rule
 from hgp_lib.selections import RouletteSelection
-from hgp_lib.evaluation.scorer import fast_accuracy_score as accuracy_score
+from hgp_lib.evaluation import fast_accuracy_score as accuracy_score
+from hgp_lib.evaluation import predict
 
 
 class TestGPBenchmarker(unittest.TestCase):
@@ -462,8 +463,8 @@ class TestGPBenchmarker(unittest.TestCase):
         ).fit()
         self.assertIsNotNone(result.runs[0].test_score)
 
-    def test_optimize_scorer_default_is_true(self):
-        self.assertTrue(BooleanGPConfig(score_fn=accuracy_score).optimize_scorer)
+    def test_optimize_scorer_default_is_none(self):
+        self.assertIsNone(BooleanGPConfig(score_fn=accuracy_score).optimize_scorer)
 
     def test_progress_bar_disabled(self):
         benchmarker = GPBenchmarker(self._make_config())
@@ -613,7 +614,7 @@ class TestGPBenchmarker(unittest.TestCase):
         predictions = benchmarker.predict(self.data)
         best_run = result.best_run
         binarized = best_run.binarizer.transform(self.data).to_numpy(dtype=bool)
-        expected = best_run.best_rule.evaluate(binarized)
+        expected = predict(best_run.best_rule, binarized)
         np.testing.assert_array_equal(predictions, expected)
 
 

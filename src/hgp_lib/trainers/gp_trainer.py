@@ -4,8 +4,8 @@ from tqdm import tqdm
 
 from ..algorithms import BooleanGP
 from ..configs import TrainerConfig, validate_trainer_config
-from ..metrics import GenerationMetrics, PopulationHistory
-from ..evaluation.scorer import confusion_matrix, optimize_scorers_for_data
+from ..evaluation import Dataset
+from ..results import GenerationMetrics, PopulationHistory
 
 
 class GPTrainer:
@@ -56,21 +56,12 @@ class GPTrainer:
         self.leave_progress_bar = config.leave_progress_bar
         self.progress_callback = config.progress_callback
 
-        self.score_fn = self.gp_algo.score_fn  # Maybe optimized
-        if config.val_data is not None and config.gp_config.optimize_scorer:
-            self.val_score_fn, self.val_cm, self.val_data, self.val_labels = (
-                optimize_scorers_for_data(
-                    config.gp_config.score_fn,
-                    confusion_matrix,
-                    data=config.val_data,
-                    labels=config.val_labels,
-                )
+        # Validation rows are scored repeatedly, so the scorer is bound to them once.
+        self.val_evaluator = None
+        if config.val_data is not None:
+            self.val_evaluator = self.gp_algo.backend.bind(
+                Dataset(config.val_data, config.val_labels), self.gp_algo.scorer
             )
-        else:
-            self.val_score_fn = config.gp_config.score_fn
-            self.val_cm = confusion_matrix
-            self.val_data = config.val_data
-            self.val_labels = config.val_labels
 
     def fit(self) -> PopulationHistory:
         """
@@ -91,13 +82,11 @@ class GPTrainer:
                 gen_metrics = self.gp_algo.step()
 
                 # Get validation scores if validation data is available
-                if self.val_data is not None and (
+                if self.val_evaluator is not None and (
                     (epoch + 1) % self.val_every == 0 or epoch == self.num_epochs - 1
                 ):
-                    val_score = self.gp_algo.evaluate_best(
-                        self.val_data,
-                        self.val_labels,
-                        self.val_score_fn,
+                    val_score = float(
+                        self.val_evaluator.score([self.gp_algo.global_best_rule])[0]
                     )
 
                     gen_metrics.val_score = val_score
@@ -122,14 +111,12 @@ class GPTrainer:
         if remaining_epochs > 0 and self.progress_callback is not None:
             self.progress_callback(remaining_epochs)
 
-        tp, fp, fn, tn = self.gp_algo.train_cm(
-            self.gp_algo.train_labels,
-            self.gp_algo.global_best_rule.evaluate(self.gp_algo.train_data),
-        )
+        best_rule = self.gp_algo.global_best_rule
+        tp, fp, fn, tn = self.gp_algo.evaluator.confusion_matrix(best_rule)
         val_tp, val_fp, val_fn, val_tn = None, None, None, None
-        if self.val_data is not None:
-            val_tp, val_fp, val_fn, val_tn = self.val_cm(
-                self.val_labels, self.gp_algo.global_best_rule.evaluate(self.val_data)
+        if self.val_evaluator is not None:
+            val_tp, val_fp, val_fn, val_tn = self.val_evaluator.confusion_matrix(
+                best_rule
             )
         return PopulationHistory(
             generations=parent_generations,
@@ -184,4 +171,4 @@ class GPTrainer:
         """
         if self.gp_algo.global_best_rule is None:
             raise NotFittedError("GPTrainer must be fit before calling predict")
-        return self.gp_algo.global_best_rule.evaluate(data)
+        return self.gp_algo.backend.predict(self.gp_algo.global_best_rule, data)

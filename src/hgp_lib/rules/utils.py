@@ -360,10 +360,7 @@ def _deserialize_feature_mapping(
 
 
 def _serialize_node(rule: Rule) -> dict[str, dict[str, object]]:
-    from .low_memory_operators import And as LowMemoryAnd
-    from .low_memory_operators import Or as LowMemoryOr
-    from .operators import And as StandardAnd
-    from .operators import Or as StandardOr
+    from .operators import And, Or
 
     if isinstance(rule, Literal):
         return {
@@ -372,9 +369,9 @@ def _serialize_node(rule: Rule) -> dict[str, dict[str, object]]:
                 "value": int(rule.value),
             }
         }
-    if isinstance(rule, (StandardAnd, LowMemoryAnd)):
+    if isinstance(rule, And):
         name = "And"
-    elif isinstance(rule, (StandardOr, LowMemoryOr)):
+    elif isinstance(rule, Or):
         name = "Or"
     else:
         raise TypeError(f"Unsupported rule type: {type(rule).__name__}")

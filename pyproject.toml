@@ -1,6 +1,6 @@
 [project]
 name = "hgp-lib"
-version = "1.2.2"
+version = "2.0.0"
 requires-python = ">=3.10"
 description = "hgp-lib: Hierarchical Genetic Programming Library for Generating Boolean Rules from Tabular Data"
 readme = "README.md"
@@ -58,6 +58,9 @@ Issues = "https://github.com/fii-optim-lab/hgp-lib/issues"
 
 
 [project.optional-dependencies]
+torch = [
+    "torch>=2.0",
+]
 dev = [
     "mkdocs",
     "mkdocstrings-python",

@@ -11,7 +11,8 @@ from hgp_lib.crossover import CrossoverExecutor, CrossoverExecutorFactory
 from hgp_lib.populations import FeatureSamplingStrategy, PopulationGeneratorFactory
 from hgp_lib.rules import Literal, Rule
 from hgp_lib.selections import RouletteSelection, TournamentSelection
-from hgp_lib.evaluation.scorer import fast_accuracy_score as accuracy_score
+from hgp_lib.evaluation import fast_accuracy_score as accuracy_score
+from hgp_lib.evaluation import fast_f1_score, predict
 
 
 class TestBooleanGP(unittest.TestCase):
@@ -110,9 +111,52 @@ class TestBooleanGP(unittest.TestCase):
         self.assertIsInstance(gp.crossover_executor, CrossoverExecutor)
         self.assertIsInstance(gp.selection, TournamentSelection)
 
-    def test_original_score_fn_property(self):
+    def test_scorer_is_resolved_without_changing_the_config(self):
         gp = BooleanGP(self._make_config())
-        self.assertIs(gp.original_score_fn, self.score_fn)
+        self.assertIs(gp.scorer.fn, self.score_fn)
+
+        config = self._make_config(score_fn=None)
+        gp = BooleanGP(config)
+        self.assertIs(gp.scorer.fn, fast_f1_score)
+        self.assertIsNone(config.score_fn)
+
+    def test_merging_follows_optimize_scorer(self):
+        data = np.repeat(self.train_data, [3, 1, 2, 1], axis=0)
+        labels = np.repeat(self.train_labels, [3, 1, 2, 1])
+        cases = [
+            (fast_f1_score, None, True),
+            (fast_f1_score, False, False),
+            (self.score_fn, None, True),  # fast_accuracy_score is built in
+        ]
+        for score_fn, optimize, merged in cases:
+            gp = BooleanGP(
+                self._make_config(
+                    score_fn=score_fn,
+                    optimize_scorer=optimize,
+                    train_data=data,
+                    train_labels=labels,
+                )
+            )
+            self.assertEqual(len(gp.train_data) < len(data), merged)
+            self.assertEqual(gp.evaluator.dataset.n_rows, len(data))
+
+    def test_merged_and_unmerged_training_are_identical(self):
+        data = np.repeat(self.train_data, [3, 1, 2, 1], axis=0)
+        labels = np.repeat(self.train_labels, [3, 1, 2, 1])
+        histories = []
+        for optimize in (True, False):
+            np.random.seed(7)
+            random.seed(7)
+            gp = BooleanGP(
+                self._make_config(
+                    score_fn=fast_f1_score,
+                    optimize_scorer=optimize,
+                    train_data=data,
+                    train_labels=labels,
+                )
+            )
+            histories.append([gp.step().train_scores for _ in range(5)])
+        self.assertEqual(histories[0], histories[1])
 
     # ------------------------------------------------------------------ #
     #  step
@@ -311,12 +355,11 @@ class TestBooleanGP(unittest.TestCase):
         score = gp.evaluate_best(self.val_data, self.val_labels, score_fn=custom_score)
         self.assertIsInstance(score, float)
 
-    def test_evaluate_best_uses_original_score_fn(self):
-        """When optimize_scorer=True, evaluate_best should use the original (non-optimized) fn."""
+    def test_evaluate_best_with_merged_training_rows(self):
+        """evaluate_best scores the given rows, not the (merged) training rows."""
         config = self._make_config(score_fn=self.score_fn, optimize_scorer=True)
         gp = BooleanGP(config)
         gp.step()
-        # Should not raise — uses original fn which handles sample_weight=None
         score = gp.evaluate_best(self.val_data, self.val_labels)
         self.assertIsInstance(score, float)
 
@@ -572,10 +615,10 @@ class TestScoreFnArgumentOrder(unittest.TestCase):
         gp, train_data, train_labels = self._make_gp(seen)
         gp.step()
         seen.clear()
-        gp.evaluate_best(train_data, train_labels, gp.score_fn)
+        gp.evaluate_best(train_data, train_labels, gp.scorer.fn)
         y_true, y_pred = seen[-1]
         np.testing.assert_array_equal(y_true, train_labels)
-        np.testing.assert_array_equal(y_pred, gp.global_best_rule.evaluate(train_data))
+        np.testing.assert_array_equal(y_pred, predict(gp.global_best_rule, train_data))
 
 
 if __name__ == "__main__":

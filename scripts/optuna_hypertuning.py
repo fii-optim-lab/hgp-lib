@@ -38,8 +38,8 @@ from hgp_lib.populations import (
 )
 from hgp_lib.preprocessing import StandardBinarizer, load_data
 from hgp_lib.selections import RouletteSelection, TournamentSelection
-from hgp_lib.evaluation.scorer import fast_f1_score
-from hgp_lib.utils.validation import ComplexityCheck
+from hgp_lib.evaluation import fast_f1_score
+from hgp_lib.rules import ComplexityCheck
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -413,15 +413,11 @@ def main(args: argparse.Namespace) -> None:
     best = study.best_trial
     print(f"\nBest validation score: {best.value:.4f}")
 
-    # Access user attributes with new naming
+    # User attributes are set by store_trial_attributes
     best_test_score = best.user_attrs.get("04_best_test_score")
-    is_hierarchical = best.user_attrs.get("06_hierarchy_is_hierarchical")
-
     if best_test_score is not None:
         print(f"Best test score: {best_test_score:.4f}")
-
-    if is_hierarchical is not None:
-        print(f"Is hierarchical: {is_hierarchical}")
+    print(f"Is hierarchical: {best.params.get('max_depth', 0) > 0}")
 
     print("\nBest hyperparameters:")
     for key, value in best.params.items():

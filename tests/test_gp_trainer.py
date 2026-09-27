@@ -1,17 +1,20 @@
 import random
 import unittest
+import warnings
 
 import numpy as np
 from sklearn.exceptions import NotFittedError
 
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
 from hgp_lib.crossover import CrossoverExecutor, CrossoverExecutorFactory
-from hgp_lib.metrics import GenerationMetrics, PopulationHistory
-from hgp_lib.populations import PopulationGeneratorFactory
+from hgp_lib.evaluation import fast_accuracy_score as accuracy_score
+from hgp_lib.evaluation import predict
+from hgp_lib.results import GenerationMetrics, PopulationHistory
+from hgp_lib.populations import CombinedSamplingStrategy, PopulationGeneratorFactory
 from hgp_lib.rules import Rule
 from hgp_lib.selections import RouletteSelection, TournamentSelection
 from hgp_lib.trainers import GPTrainer
-from hgp_lib.evaluation.scorer import fast_accuracy_score as accuracy_score
+from hgp_lib.utils import warnings as hgp_warnings
 
 
 class TestGPTrainer(unittest.TestCase):
@@ -117,8 +120,7 @@ class TestGPTrainer(unittest.TestCase):
 
         self.assertEqual(trainer.num_epochs, 10)
         self.assertIsNotNone(trainer.gp_algo)
-        self.assertIsNone(trainer.val_data)
-        self.assertIsNone(trainer.val_labels)
+        self.assertIsNone(trainer.val_evaluator)
 
     def test_gp_trainer_init_with_validation(self):
         config = self._make_trainer_config(
@@ -126,8 +128,10 @@ class TestGPTrainer(unittest.TestCase):
         )
         trainer = GPTrainer(config)
 
-        self.assertIsNotNone(trainer.val_data)
-        self.assertIsNotNone(trainer.val_labels)
+        self.assertIsNotNone(trainer.val_evaluator)
+        np.testing.assert_array_equal(
+            trainer.val_evaluator.dataset.labels, self.val_labels
+        )
 
     def test_gp_trainer_defaults(self):
         config = self._make_trainer_config()
@@ -236,11 +240,32 @@ class TestGPTrainer(unittest.TestCase):
         result = trainer.fit()
         self.assertEqual(len(result.generations), 5)
 
-    def test_val_score_fn_defaults_to_score_fn(self):
-        config = self._make_trainer_config(num_epochs=5)
+    def test_validation_uses_the_training_scorer(self):
+        config = self._make_trainer_config(
+            num_epochs=5, val_data=self.val_data, val_labels=self.val_labels
+        )
         trainer = GPTrainer(config)
 
-        self.assertEqual(trainer.val_score_fn, trainer.config.gp_config.score_fn)
+        self.assertIs(trainer.val_evaluator.scorer, trainer.gp_algo.scorer)
+
+    def test_confusion_matrices_count_original_rows(self):
+        repeats = [3, 1, 2, 1]
+        gp_config = self._make_gp_config(
+            optimize_scorer=True,
+            train_data=np.repeat(self.train_data, repeats, axis=0),
+            train_labels=np.repeat(self.train_labels, repeats),
+        )
+        config = self._make_trainer_config(
+            gp_config=gp_config,
+            num_epochs=3,
+            val_data=np.repeat(self.val_data, [4, 2], axis=0),
+            val_labels=np.repeat(self.val_labels, [4, 2]),
+        )
+        history = GPTrainer(config).fit()
+        self.assertEqual(history.tp + history.fp + history.fn + history.tn, 7)
+        self.assertEqual(
+            history.val_tp + history.val_fp + history.val_fn + history.val_tn, 6
+        )
 
     def test_train_history_tracks_best_scores(self):
         config = self._make_trainer_config(num_epochs=10)
@@ -328,8 +353,38 @@ class TestGPTrainer(unittest.TestCase):
         result = trainer.fit()
 
         predictions = trainer.predict(self.train_data)
-        expected = result.global_best_rule.evaluate(self.train_data)
+        expected = predict(result.global_best_rule, self.train_data)
         np.testing.assert_array_equal(predictions, expected)
+
+    def test_fitting_raises_no_hgp_lib_deprecation_warning(self):
+        """The library itself never calls its deprecated APIs."""
+        hgp_warnings._emitted_messages.clear()
+        gp_config = self._make_gp_config(
+            max_depth=1,
+            num_child_populations=2,
+            sampling_strategy=CombinedSamplingStrategy(
+                feature_fraction=0.5, sample_fraction=0.5, replace=True
+            ),
+            top_k_transfer=2,
+        )
+        config = self._make_trainer_config(
+            gp_config=gp_config,
+            num_epochs=5,
+            val_data=self.val_data,
+            val_labels=self.val_labels,
+            val_every=2,
+        )
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            trainer = GPTrainer(config)
+            trainer.fit()
+            trainer.predict(self.train_data)
+        messages = [
+            str(w.message)
+            for w in caught
+            if issubclass(w.category, (DeprecationWarning, FutureWarning))
+        ]
+        self.assertEqual([m for m in messages if "hgp_lib" in m or "Rule." in m], [])
 
 
 if __name__ == "__main__":

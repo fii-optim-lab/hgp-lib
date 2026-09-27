@@ -22,41 +22,17 @@ class Literal(Rule):
 
     Examples:
         >>> import numpy as np
+        >>> from hgp_lib.evaluation import predict
         >>> data = np.array([[True, False, True], [False, True, False]])
-        >>> literal = Literal(value=0)
-        >>> literal.evaluate(data)
+        >>> predict(Literal(value=0), data)
         array([ True, False])
-        >>> negated_literal = Literal(value=1, negated=True)
-        >>> negated_literal.evaluate(data)
+        >>> predict(Literal(value=1, negated=True), data)
         array([ True, False])
         >>> str(Literal(value=2))
         '2'
         >>> str(Literal(value=2, negated=True))
         '~2'
     """
-
-    def evaluate(self, data):
-        """
-        Evaluates this literal on the given data array, based on the `self.value` feature.
-
-        Args:
-            data (np.ndarray):
-                Input data passed to subrules. Must be a 2D ndarray, with instances on rows and features on columns.
-                Not checked at runtime for performance reasons.
-
-        Returns:
-            np.ndarray:
-                The boolean result of evaluating this rule vectorized across all instances.
-
-        Examples:
-            >>> import numpy as np
-            >>> data = np.array([[True, False], [False, True]])
-            >>> Literal(value=0).evaluate(data)
-            array([ True, False])
-            >>> Literal(value=1, negated=True).evaluate(data)
-            array([ True, False])
-        """
-        return ~data[:, self.value] if self.negated else data[:, self.value]
 
     def to_str(
         self, feature_names: Sequence[str] | None = None, indent: int = -1

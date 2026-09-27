@@ -30,7 +30,7 @@ Pass these to [`BooleanGPConfig`](../api/configs.md#hgp_lib.configs.boolean_gp_c
 
 ```python
 from hgp_lib.configs import BooleanGPConfig
-from hgp_lib.utils.validation import ComplexityCheck
+from hgp_lib.rules import ComplexityCheck
 
 gp_config = BooleanGPConfig(
     train_data=train_data.to_numpy(dtype=bool),
@@ -51,7 +51,7 @@ gp_config = BooleanGPConfig(
 It is called after each mutation and crossover, and any rule it rejects is discarded.
 The operation that produced it is retried, so `check_valid` shapes which rules the search is allowed to keep.
 
-[`ComplexityCheck`](../api/utils.md#hgp_lib.utils.validation.ComplexityCheck) is the built-in case.
+[`ComplexityCheck`](../api/rules.md#hgp_lib.rules.constraints.ComplexityCheck) is the built-in case.
 It rejects any rule larger than a node count, which caps the size of the evolved rules.
 
 You can pass any callable with the same signature to enforce stricter constraints.

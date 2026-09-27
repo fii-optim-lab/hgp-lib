@@ -1,7 +1,4 @@
-from collections.abc import Callable
-
-import numpy as np
-
+from ..evaluation import Evaluator
 from ..utils.validation import check_isinstance
 from .base_strategy import PopulationStrategy
 from .generator import PopulationGenerator
@@ -26,21 +23,19 @@ class PopulationGeneratorFactory:
         >>> factory.population_size
         50
 
-        Subclass to use custom strategies:
+        Subclass to use custom strategies. The evaluator holds the population's training
+        rows and its scorer:
 
-        >>> from sklearn.metrics import accuracy_score
         >>> import numpy as np
+        >>> from hgp_lib.evaluation import Dataset, NumpyBackend, resolve_scorer
         >>> from hgp_lib.populations import PopulationGeneratorFactory, BestLiteralStrategy
         >>> class MyFactory(PopulationGeneratorFactory):
-        ...     def create_strategies(self, num_literals, score_fn, train_data, train_labels):
-        ...         return [BestLiteralStrategy(
-        ...             num_literals=num_literals, score_fn=score_fn,
-        ...             train_data=train_data, train_labels=train_labels,
-        ...         )]
+        ...     def create_strategies(self, num_literals, evaluator):
+        ...         return [BestLiteralStrategy(num_literals=num_literals, evaluator=evaluator)]
         >>> factory = MyFactory(population_size=20)
         >>> data = np.array([[True, False], [False, True]])
-        >>> labels = np.array([1, 0])
-        >>> gen = factory.create(2, accuracy_score, data, labels)
+        >>> evaluator = NumpyBackend().bind(Dataset(data, np.array([1, 0])), resolve_scorer())
+        >>> gen = factory.create(2, evaluator)
         >>> len(gen.generate())
         20
     """
@@ -54,11 +49,7 @@ class PopulationGeneratorFactory:
         self.population_size = population_size
 
     def create_strategies(
-        self,
-        num_literals: int,
-        score_fn: Callable[[np.ndarray, np.ndarray], float],
-        train_data: np.ndarray,
-        train_labels: np.ndarray,
+        self, num_literals: int, evaluator: Evaluator
     ) -> list[PopulationStrategy]:
         """
         Create the list of strategies for the generator.
@@ -67,38 +58,29 @@ class PopulationGeneratorFactory:
         a single `RandomStrategy(num_literals=num_literals)`.
 
         Args:
-            num_literals (int): Number of boolean features (columns in train_data).
-            score_fn (Callable): Fitness function `(y_true, y_pred) -> float`.
-            train_data (np.ndarray): Training data (2-D boolean array).
-            train_labels (np.ndarray): Training labels (1-D array).
+            num_literals (int): Number of boolean features (columns of the training data).
+            evaluator (Evaluator): The population's training rows (``evaluator.dataset``,
+                possibly merged into sample weights) with its scorer bound to them. Use
+                ``evaluator.score`` to score rules on all rows, and ``evaluator.scorer``
+                on subsets from ``evaluator.dataset.take``.
 
         Returns:
             list[PopulationStrategy]: Strategies to pass to `PopulationGenerator`.
         """
         return [RandomStrategy(num_literals=num_literals)]
 
-    def create(
-        self,
-        num_literals: int,
-        score_fn: Callable[[np.ndarray, np.ndarray], float],
-        train_data: np.ndarray,
-        train_labels: np.ndarray,
-    ) -> PopulationGenerator:
+    def create(self, num_literals: int, evaluator: Evaluator) -> PopulationGenerator:
         """
         Create a `PopulationGenerator` with data-dependent strategies.
 
         Args:
-            num_literals (int): Number of boolean features (columns in train_data).
-            score_fn (Callable): Fitness function `(y_true, y_pred) -> float`.
-            train_data (np.ndarray): Training data (2-D boolean array).
-            train_labels (np.ndarray): Training labels (1-D array).
+            num_literals (int): Number of boolean features (columns of the training data).
+            evaluator (Evaluator): The population's training rows with its scorer.
 
         Returns:
             PopulationGenerator: A generator ready to produce the initial population.
         """
-        strategies = self.create_strategies(
-            num_literals, score_fn, train_data, train_labels
-        )
+        strategies = self.create_strategies(num_literals, evaluator)
         return PopulationGenerator(
             strategies=strategies, population_size=self.population_size
         )

@@ -5,8 +5,8 @@ import pandas as pd
 from sklearn.exceptions import NotFittedError
 
 from ..configs import TrainerConfig, validate_trainer_config
-from ..metrics import PopulationHistory
 from ..preprocessing import Binarizer, StandardBinarizer
+from ..results import PopulationHistory
 from ..rules import Rule
 from ..utils.validation import check_isinstance
 from .gp_trainer import GPTrainer
@@ -24,10 +24,11 @@ class BooleanRuleClassifier:
     be dropped into places that expect an estimator.
 
     Args:
-        trainer_config (TrainerConfig):
+        trainer_config (TrainerConfig | None):
             Training configuration (epochs, scorer, evolutionary operators, ...). Its
             nested ``gp_config`` does not need ``train_data``/``train_labels``; they are
-            filled from the data passed to ``fit``.
+            filled from the data passed to ``fit``. When ``None`` (default),
+            ``TrainerConfig()`` is used: 1000 epochs with the default `BooleanGPConfig`.
         binarizer (Binarizer | None):
             Binarizer used to turn raw features into boolean columns. When ``None``
             (default), a :class:`StandardBinarizer` with default settings is used. The
@@ -60,11 +61,21 @@ class BooleanRuleClassifier:
         True
         >>> isinstance(clf.format_rule(), str)
         True
+
+        All configurations have defaults, so ``BooleanRuleClassifier()`` trains for 1000
+        epochs with the default settings:
+
+        >>> BooleanRuleClassifier().trainer_config.num_epochs
+        1000
     """
 
     def __init__(
-        self, trainer_config: TrainerConfig, binarizer: Binarizer | None = None
+        self,
+        trainer_config: TrainerConfig | None = None,
+        binarizer: Binarizer | None = None,
     ):
+        if trainer_config is None:
+            trainer_config = TrainerConfig()
         validate_trainer_config(trainer_config, require_data=False)
         if binarizer is None:
             binarizer = StandardBinarizer()
@@ -164,7 +175,8 @@ class BooleanRuleClassifier:
         check_isinstance(X, pd.DataFrame)
         self._check_fitted("predict")
         data = self.binarizer.transform(X).to_numpy(dtype=bool)
-        return self._history.global_best_rule.evaluate(data)
+        backend = self.trainer_config.gp_config.backend
+        return backend.predict(self._history.global_best_rule, data)
 
     @property
     def rule(self) -> Rule:

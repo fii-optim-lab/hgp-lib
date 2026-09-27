@@ -4,6 +4,7 @@ import unittest
 
 import numpy as np
 
+from hgp_lib.evaluation import Dataset
 from hgp_lib.populations.sampling import (
     CombinedSamplingStrategy,
     FeatureSamplingStrategy,
@@ -112,7 +113,7 @@ class SamplingAssertions(unittest.TestCase):
         """feature_mapping keys cover the child columns and values are valid parents."""
         self.assertIsNotNone(result.feature_mapping)
         self.assertEqual(
-            set(result.feature_mapping.keys()), set(range(result.data.shape[1]))
+            set(result.feature_mapping.keys()), set(range(result.dataset.data.shape[1]))
         )
         values = list(result.feature_mapping.values())
         self.assertEqual(len(set(values)), len(values), "duplicate parent features")
@@ -130,7 +131,7 @@ class SamplingAssertions(unittest.TestCase):
         """
         for child_col, parent_col in result.feature_mapping.items():
             np.testing.assert_array_equal(
-                result.data[:, child_col],
+                result.dataset.data[:, child_col],
                 parent_data[rows, parent_col],
                 f"child column {child_col} is not parent column {parent_col}",
             )
@@ -142,7 +143,7 @@ class SamplingAssertions(unittest.TestCase):
         else:
             projection = parent_data[:, list(result.feature_mapping.values())]
 
-        for row, label in zip(result.data, result.labels):
+        for row, label in zip(result.dataset.data, result.dataset.labels):
             candidates = np.flatnonzero((projection == row).all(axis=1))
             self.assertGreater(candidates.size, 0, "child row is not a parent row")
             self.assertIn(label, parent_labels[candidates])
@@ -159,23 +160,23 @@ class TestFeatureSamplingStrategy(SamplingAssertions):
     def test_returns_correct_number_of_results(self):
         """sample() returns exactly num_children results."""
         strategy = FeatureSamplingStrategy(feature_fraction=1.0)
-        results = strategy.sample(self.data, self.labels, num_children=5)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=5)
         self.assertEqual(len(results), 5)
 
     def test_data_dimensions_correct(self):
         """Sampled data keeps every instance and ceil(features * fraction) columns."""
         strategy = FeatureSamplingStrategy(feature_fraction=0.3)
-        results = strategy.sample(self.data, self.labels, num_children=3)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=3)
 
         for result in results:
             # ceil(20 * 0.3) = 6
-            self.assertEqual(result.data.shape, (100, 6))
-            np.testing.assert_array_equal(result.labels, self.labels)
+            self.assertEqual(result.dataset.data.shape, (100, 6))
+            np.testing.assert_array_equal(result.dataset.labels, self.labels)
 
     def test_feature_mapping_matches_sampled_columns(self):
         """feature_mapping names exactly the parent columns present in the data."""
         strategy = FeatureSamplingStrategy(feature_fraction=0.3)
-        results = strategy.sample(self.data, self.labels, num_children=3)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=3)
 
         for result in results:
             self.assert_feature_mapping_well_formed(result, self.data.shape[1])
@@ -184,16 +185,16 @@ class TestFeatureSamplingStrategy(SamplingAssertions):
     def test_full_fraction_keeps_all_features_in_order(self):
         """With feature_fraction=1.0 children get the identity mapping."""
         strategy = FeatureSamplingStrategy(feature_fraction=1.0)
-        results = strategy.sample(self.data, self.labels, num_children=3)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=3)
 
         for result in results:
-            np.testing.assert_array_equal(result.data, self.data)
+            np.testing.assert_array_equal(result.dataset.data, self.data)
             self.assertEqual(result.feature_mapping, {i: i for i in range(20)})
 
     def test_features_do_not_overlap_when_replace_false(self):
         """With replace=False no parent feature reaches two children."""
         strategy = FeatureSamplingStrategy(feature_fraction=0.3, replace=False)
-        results = strategy.sample(self.data, self.labels, num_children=3)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=3)
 
         seen = set()
         for result in results:
@@ -207,7 +208,7 @@ class TestFeatureSamplingStrategy(SamplingAssertions):
         """A fraction that yields fewer than MIN_FEATURES columns raises ValueError."""
         strategy = FeatureSamplingStrategy(feature_fraction=0.1)
         with self.assertRaises(ValueError):
-            strategy.sample(self.data[:, :5], self.labels, num_children=2)
+            strategy.sample(Dataset(self.data[:, :5], self.labels), num_children=2)
 
     def test_invalid_feature_fraction_raises(self):
         """feature_fraction <= 0 raises ValueError."""
@@ -229,46 +230,46 @@ class TestInstanceSamplingStrategy(SamplingAssertions):
     def test_returns_correct_number_of_results(self):
         """sample() returns exactly num_children results."""
         strategy = InstanceSamplingStrategy(sample_fraction=1.0)
-        results = strategy.sample(self.data, self.labels, num_children=5)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=5)
         self.assertEqual(len(results), 5)
 
     def test_data_dimensions_correct(self):
         """Sampled data keeps every feature and ceil(instances * fraction) rows."""
         strategy = InstanceSamplingStrategy(sample_fraction=0.3)
-        results = strategy.sample(self.data, self.labels, num_children=3)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=3)
 
         for result in results:
             # ceil(100 * 0.3) = 30
-            self.assertEqual(result.data.shape, (30, 20))
-            self.assertEqual(len(result.labels), 30)
+            self.assertEqual(result.dataset.data.shape, (30, 20))
+            self.assertEqual(len(result.dataset.labels), 30)
             self.assertIsNone(result.feature_mapping)
 
     def test_rows_and_labels_are_sliced_together(self):
         """Each child label belongs to the instance sitting in the same row."""
         strategy = InstanceSamplingStrategy(sample_fraction=0.3)
-        results = strategy.sample(self.data, self.labels, num_children=3)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=3)
 
         for result in results:
-            instances = recover_row_indices(result.data)
-            np.testing.assert_array_equal(result.labels, self.labels[instances])
+            instances = recover_row_indices(result.dataset.data)
+            np.testing.assert_array_equal(result.dataset.labels, self.labels[instances])
 
     def test_instances_are_unique_within_a_child(self):
         """No instance is handed to the same child twice."""
         strategy = InstanceSamplingStrategy(sample_fraction=0.3, replace=True)
-        results = strategy.sample(self.data, self.labels, num_children=3)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=3)
 
         for result in results:
-            instances = recover_row_indices(result.data)
+            instances = recover_row_indices(result.dataset.data)
             self.assertEqual(len(np.unique(instances)), len(instances))
 
     def test_instances_do_not_overlap_when_replace_false(self):
         """With replace=False no instance reaches two children."""
         strategy = InstanceSamplingStrategy(sample_fraction=0.3, replace=False)
-        results = strategy.sample(self.data, self.labels, num_children=3)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=3)
 
         seen = set()
         for result in results:
-            current = set(recover_row_indices(result.data).tolist())
+            current = set(recover_row_indices(result.dataset.data).tolist())
             self.assertEqual(
                 len(current & seen), 0, f"instances reused across children: {current}"
             )
@@ -277,17 +278,17 @@ class TestInstanceSamplingStrategy(SamplingAssertions):
     def test_full_fraction_keeps_all_instances(self):
         """With sample_fraction=1.0 children get the whole dataset."""
         strategy = InstanceSamplingStrategy(sample_fraction=1.0)
-        results = strategy.sample(self.data, self.labels, num_children=3)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=3)
 
         for result in results:
-            np.testing.assert_array_equal(result.data, self.data)
-            np.testing.assert_array_equal(result.labels, self.labels)
+            np.testing.assert_array_equal(result.dataset.data, self.data)
+            np.testing.assert_array_equal(result.dataset.labels, self.labels)
 
     def test_too_few_instances_raises(self):
         """A fraction that yields fewer than MIN_INSTANCES rows raises ValueError."""
         strategy = InstanceSamplingStrategy(sample_fraction=0.1)
         with self.assertRaises(ValueError):
-            strategy.sample(self.data[:5], self.labels[:5], num_children=2)
+            strategy.sample(Dataset(self.data[:5], self.labels[:5]), num_children=2)
 
     def test_invalid_sample_fraction_raises(self):
         """sample_fraction <= 0 raises ValueError."""
@@ -308,23 +309,23 @@ class TestCombinedSamplingStrategy(SamplingAssertions):
     def test_returns_correct_number_of_results(self):
         """sample() returns exactly num_children results."""
         strategy = CombinedSamplingStrategy(feature_fraction=1.0, sample_fraction=1.0)
-        results = strategy.sample(self.data, self.labels, num_children=5)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=5)
         self.assertEqual(len(results), 5)
 
     def test_data_dimensions_correct(self):
         """Both fractions are applied to the sampled data."""
         strategy = CombinedSamplingStrategy(feature_fraction=0.3, sample_fraction=0.3)
-        results = strategy.sample(self.data, self.labels, num_children=3)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=3)
 
         for result in results:
             # ceil(100 * 0.3) = 30 rows, ceil(20 * 0.3) = 6 columns
-            self.assertEqual(result.data.shape, (30, 6))
-            self.assertEqual(len(result.labels), 30)
+            self.assertEqual(result.dataset.data.shape, (30, 6))
+            self.assertEqual(len(result.dataset.labels), 30)
 
     def test_feature_mapping_well_formed(self):
         """feature_mapping covers the child columns and names distinct parents."""
         strategy = CombinedSamplingStrategy(feature_fraction=0.3, sample_fraction=0.3)
-        results = strategy.sample(self.data, self.labels, num_children=3)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=3)
 
         for result in results:
             self.assert_feature_mapping_well_formed(result, self.data.shape[1])
@@ -332,7 +333,7 @@ class TestCombinedSamplingStrategy(SamplingAssertions):
     def test_rows_come_from_the_parent(self):
         """Sampled rows and labels are consistent with the parent's projection."""
         strategy = CombinedSamplingStrategy(feature_fraction=0.3, sample_fraction=0.3)
-        results = strategy.sample(self.data, self.labels, num_children=3)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=3)
 
         for result in results:
             self.assert_rows_exist_in_parent(result, self.data, self.labels)
@@ -340,7 +341,7 @@ class TestCombinedSamplingStrategy(SamplingAssertions):
     def test_columns_match_mapping_when_all_instances_kept(self):
         """With sample_fraction=1.0 the columns can be compared to the parent directly."""
         strategy = CombinedSamplingStrategy(feature_fraction=0.3, sample_fraction=1.0)
-        results = strategy.sample(self.data, self.labels, num_children=3)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=3)
 
         for result in results:
             self.assert_columns_match_mapping(result, self.data)
@@ -350,7 +351,7 @@ class TestCombinedSamplingStrategy(SamplingAssertions):
         strategy = CombinedSamplingStrategy(
             feature_fraction=0.3, sample_fraction=0.3, replace=False
         )
-        results = strategy.sample(self.data, self.labels, num_children=3)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=3)
 
         seen = set()
         for result in results:
@@ -366,11 +367,11 @@ class TestCombinedSamplingStrategy(SamplingAssertions):
         strategy = CombinedSamplingStrategy(
             feature_fraction=1.0, sample_fraction=0.3, replace=False
         )
-        results = strategy.sample(data, self.labels, num_children=3)
+        results = strategy.sample(Dataset(data, self.labels), num_children=3)
 
         seen = set()
         for result in results:
-            current = set(recover_row_indices(result.data).tolist())
+            current = set(recover_row_indices(result.dataset.data).tolist())
             self.assertEqual(
                 len(current & seen), 0, f"instances reused across children: {current}"
             )
@@ -411,7 +412,9 @@ class TestSamplingRandomized(SamplingAssertions):
             strategy = FeatureSamplingStrategy(
                 feature_fraction=feature_fraction, replace=replace
             )
-            results = strategy.sample(data, labels, num_children=int(num_children))
+            results = strategy.sample(
+                Dataset(data, labels), num_children=int(num_children)
+            )
 
             self.assertEqual(len(results), num_children)
 
@@ -433,7 +436,9 @@ class TestSamplingRandomized(SamplingAssertions):
             strategy = InstanceSamplingStrategy(
                 sample_fraction=sample_fraction, replace=replace
             )
-            results = strategy.sample(data, labels, num_children=int(num_children))
+            results = strategy.sample(
+                Dataset(data, labels), num_children=int(num_children)
+            )
 
             self.assertEqual(len(results), num_children)
 
@@ -458,7 +463,9 @@ class TestSamplingRandomized(SamplingAssertions):
                 sample_fraction=sample_fraction,
                 replace=replace,
             )
-            results = strategy.sample(data, labels, num_children=int(num_children))
+            results = strategy.sample(
+                Dataset(data, labels), num_children=int(num_children)
+            )
 
             self.assertEqual(len(results), num_children)
 
@@ -480,12 +487,14 @@ class TestSamplingRandomized(SamplingAssertions):
             strategy = FeatureSamplingStrategy(
                 feature_fraction=feature_fraction, replace=replace
             )
-            results = strategy.sample(data, labels, num_children=int(num_children))
+            results = strategy.sample(
+                Dataset(data, labels), num_children=int(num_children)
+            )
 
             for result in results:
                 self.assert_feature_mapping_well_formed(result, num_features)
                 self.assert_columns_match_mapping(result, data)
-                np.testing.assert_array_equal(result.labels, labels)
+                np.testing.assert_array_equal(result.dataset.labels, labels)
 
         self._run_randomized_test(check)
 
@@ -508,13 +517,46 @@ class TestSamplingRandomized(SamplingAssertions):
                 sample_fraction=sample_fraction,
                 replace=replace,
             )
-            results = strategy.sample(data, labels, num_children=int(num_children))
+            results = strategy.sample(
+                Dataset(data, labels), num_children=int(num_children)
+            )
 
             for result in results:
                 self.assert_feature_mapping_well_formed(result, num_features)
                 self.assert_rows_exist_in_parent(result, data, labels)
 
         self._run_randomized_test(check)
+
+
+class TestWeightedSampling(unittest.TestCase):
+    """Sampling a merged dataset counts and draws original rows."""
+
+    def setUp(self):
+        np.random.seed(0)
+        base = identifiable_data(10, 6)
+        pick = np.random.randint(0, 10, size=200)
+        self.dataset = Dataset(
+            base[pick], np.random.randint(0, 2, 10)[pick]
+        ).deduplicate()
+        self.assertEqual(self.dataset.n_rows, 200)
+
+    def test_instance_counts_refer_to_original_rows(self):
+        strategy = InstanceSamplingStrategy(sample_fraction=0.3, replace=False)
+        results = strategy.sample(self.dataset, num_children=3)
+        for result in results:
+            # ceil(200 * 0.3) = 60 original rows, stored in at most 10 merged rows.
+            self.assertEqual(result.dataset.n_rows, 60)
+            self.assertLessEqual(len(result.dataset.labels), 10)
+
+    def test_partitioned_children_share_no_original_row(self):
+        strategy = InstanceSamplingStrategy(sample_fraction=0.5, replace=False)
+        first, second = strategy.sample(self.dataset, num_children=2)
+        self.assertEqual(first.dataset.n_rows + second.dataset.n_rows, 200)
+
+    def test_feature_sampling_keeps_weights(self):
+        strategy = FeatureSamplingStrategy(feature_fraction=0.5)
+        for result in strategy.sample(self.dataset, num_children=2):
+            self.assertIs(result.dataset.sample_weight, self.dataset.sample_weight)
 
 
 if __name__ == "__main__":

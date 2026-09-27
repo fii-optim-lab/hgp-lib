@@ -3,7 +3,7 @@
 import unittest
 from dataclasses import replace
 
-from hgp_lib.metrics.core import GenerationMetrics
+from hgp_lib.results import GenerationMetrics
 from hgp_lib.rules import And, Literal
 
 

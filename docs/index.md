@@ -14,6 +14,7 @@ Internally it combines genetic programming with hierarchical population structur
 - Built-in benchmarking with stratified k-fold CV and parallel execution
 - Automatic binarization of numeric and categorical features
 - Scorer optimization via data deduplication and sample weights
+- Pluggable evaluation backends: a tuned NumPy backend by default, and a PyTorch backend for GPUs
 - Configurable mutations, crossover, and selection strategies
 - Dataclass-based configuration for reproducibility
 
@@ -41,7 +42,7 @@ from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 
 from hgp_lib import BooleanRuleClassifier
-from hgp_lib.configs import BooleanGPConfig, TrainerConfig
+from hgp_lib.configs import TrainerConfig
 
 X, y = load_breast_cancer(return_X_y=True, as_frame=True)
 X_train, X_test, y_train, y_test = train_test_split(
@@ -51,9 +52,7 @@ X_train, X_val, y_train, y_val = train_test_split(
     X_train, y_train, test_size=0.25, stratify=y_train, random_state=0
 )
 
-config = TrainerConfig(
-    gp_config=BooleanGPConfig(), num_epochs=500, val_every=50
-)
+config = TrainerConfig(num_epochs=500, val_every=50)  # default BooleanGPConfig
 clf = BooleanRuleClassifier(config)
 clf.fit(X_train, y_train, X_val, y_val)  # validation is binarized internally too
 
@@ -82,10 +81,11 @@ See [Interpretability](interpretability.md) for why this matters.
 - [Theory](theory.md): how the GP search works and why it beats greedy trees
 - [Interpretability](interpretability.md): readable rules and explainable models
 - [Data Preparation](guide/data-preparation.md): binarization and avoiding leakage
-- [Training](guide/training.md): [`GPTrainer`](api/trainers.md#hgp_lib.trainers.gp_trainer.GPTrainer) and run configuration
+- [Binarization](guide/binarization.md): how the binarizers work and their parameters
+- [Training](guide/training.md): [`GPTrainer`](api/trainers.md#hgp_lib.trainers.gp_trainer.GPTrainer), run configuration and evaluation backends
 - [Benchmarking](guide/benchmarking.md): aggregated runs and scorer optimization
 - [Configuring HGP](guide/configuring.md): factories and hierarchical GP settings
-- [Extending HGP](guide/extending.md): custom strategies, mutations, and low-level use
-- [Rule Trees](guide/rule-trees.md): the rule data structure and its speed optimizations
+- [Extending HGP](guide/extending.md): custom strategies, backends, mutations, and low-level use
+- [Rule Trees](guide/rule-trees.md): the rule data structure, evaluating rules, and the NumPy backend
 - [Experiments](experiments/index.md): reproducing dataset experiments (PMLB, PaySim, AEAC)
 - [API Reference](api/index.md): full module documentation

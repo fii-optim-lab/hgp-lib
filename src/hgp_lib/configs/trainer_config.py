@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from numpy import ndarray
 
@@ -14,7 +14,8 @@ class TrainerConfig:
 
     Attributes:
         gp_config (BooleanGPConfig): Configuration for the underlying BooleanGP.
-        num_epochs (int): Number of training epochs.
+            Default: `BooleanGPConfig()`.
+        num_epochs (int): Number of training epochs. Default: `1000`.
         val_data (ndarray | None): Validation data; optional.
         val_labels (ndarray | None): Validation labels; optional.
         val_every (int): Validate every N epochs.
@@ -36,10 +37,12 @@ class TrainerConfig:
         10
         >>> config.val_every
         100
+        >>> TrainerConfig().num_epochs
+        1000
     """
 
-    gp_config: BooleanGPConfig
-    num_epochs: int
+    gp_config: BooleanGPConfig = field(default_factory=BooleanGPConfig)
+    num_epochs: int = 1000
     val_data: ndarray | None = None
     val_labels: ndarray | None = None
     val_every: int = 100

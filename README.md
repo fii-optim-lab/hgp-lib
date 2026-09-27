@@ -34,7 +34,9 @@ See [Theory](https://fii-optim-lab.github.io/hgp-lib/theory/) for how the search
 
 ```bash
 pip install hgp-lib
-# or
+# with the PyTorch evaluation backend, for GPUs
+pip install "hgp-lib[torch]"
+# with the development tools
 pip install "hgp-lib[dev]"
 ```
 
@@ -60,7 +62,6 @@ from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 
 from hgp_lib import BooleanRuleClassifier
-from hgp_lib.configs import BooleanGPConfig, TrainerConfig
 
 X, y = load_breast_cancer(return_X_y=True, as_frame=True)
 X_train, X_test, y_train, y_test = train_test_split(
@@ -70,10 +71,7 @@ X_train, X_val, y_train, y_val = train_test_split(
     X_train, y_train, test_size=0.25, stratify=y_train, random_state=0
 )
 
-config = TrainerConfig(
-    gp_config=BooleanGPConfig(), num_epochs=1000, val_every=100
-)
-clf = BooleanRuleClassifier(config)  # StandardBinarizer by default; pass binarizer=... to customize
+clf = BooleanRuleClassifier()  # 1000 epochs, F1 score, StandardBinarizer by default
 clf.fit(X_train, y_train, X_val, y_val)  # validation data is binarized internally too
 
 predictions = clf.predict(X_test)  # raw data is binarized internally
@@ -82,6 +80,7 @@ print(clf.format_rule())           # the evolved rule as plain logic
 
 Validation data is optional; when given, it is binarized with the same fitted binarizer and used to track a validation score during training.
 `clf.format_rule()` prints the rule with the binarized column names, so the model reads as plain logic.
+To change the settings, pass a `TrainerConfig` (for example `BooleanRuleClassifier(TrainerConfig(num_epochs=500))`) or a custom binarizer.
 To binarize and train manually with `GPTrainer`, see [Training](https://fii-optim-lab.github.io/hgp-lib/guide/training/); the [Data Preparation](https://fii-optim-lab.github.io/hgp-lib/guide/data-preparation/) guide shows how to avoid leaking data between splits.
 
 ## Benchmarking
@@ -95,18 +94,15 @@ The benchmarker binarizes data internally, per fold, so you pass a raw `pandas.D
 ```python
 import numpy as np
 from sklearn.datasets import load_breast_cancer
-from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
+from hgp_lib.configs import BenchmarkerConfig
 from hgp_lib.benchmarkers import GPBenchmarker
 
 X, y = load_breast_cancer(return_X_y=True, as_frame=True)
 
-gp_config = BooleanGPConfig()
-trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=1000, val_every=100)
 config = BenchmarkerConfig(
     data=X,
     labels=y.to_numpy(),
-    trainer_config=trainer_config,
-    num_runs=30,
+    num_runs=30,  # the defaults, spelled out
     n_folds=5,
     test_size=0.2,
     n_jobs=-1,
@@ -144,9 +140,11 @@ The [Extending HGP](https://fii-optim-lab.github.io/hgp-lib/guide/extending/) gu
 ## Documentation
 
 - [Getting Started](https://fii-optim-lab.github.io/hgp-lib/getting-started/)
+- [Migrating from 1.x](https://fii-optim-lab.github.io/hgp-lib/migration/)
 - [Theory](https://fii-optim-lab.github.io/hgp-lib/theory/)
 - [Interpretability](https://fii-optim-lab.github.io/hgp-lib/interpretability/)
 - [Data Preparation](https://fii-optim-lab.github.io/hgp-lib/guide/data-preparation/)
+- [Binarization](https://fii-optim-lab.github.io/hgp-lib/guide/binarization/)
 - [Training](https://fii-optim-lab.github.io/hgp-lib/guide/training/)
 - [Benchmarking](https://fii-optim-lab.github.io/hgp-lib/guide/benchmarking/)
 - [Configuring HGP](https://fii-optim-lab.github.io/hgp-lib/guide/configuring/)

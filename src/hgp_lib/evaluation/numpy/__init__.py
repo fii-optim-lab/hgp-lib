@@ -1,1 +1,3 @@
-from .backend import NumpyBackend
+from .backend import NumpyBackend, NumpyEvaluator
+
+__all__ = ["NumpyBackend", "NumpyEvaluator"]

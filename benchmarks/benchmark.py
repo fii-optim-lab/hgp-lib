@@ -33,6 +33,8 @@ def main() -> None:
         "-m",
         "pytest",
         str(BENCHMARK_DIR),
+        # Backend option comparisons have their own runner, benchmark_backends.py.
+        f"--ignore={BENCHMARK_DIR / 'backends'}",
         "-o",
         "addopts=",
         "--benchmark-only",

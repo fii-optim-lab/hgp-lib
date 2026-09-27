@@ -3,9 +3,12 @@
 import unittest
 from dataclasses import replace
 
-from hgp_lib.metrics.core import GenerationMetrics
-from hgp_lib.metrics.history import PopulationHistory
-from hgp_lib.metrics.results import ExperimentResult, RunResult
+from hgp_lib.results import (
+    ExperimentResult,
+    GenerationMetrics,
+    PopulationHistory,
+    RunResult,
+)
 from hgp_lib.rules import Literal
 
 

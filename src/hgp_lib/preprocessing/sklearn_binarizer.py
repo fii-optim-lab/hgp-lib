@@ -21,7 +21,7 @@ class SklearnBinarizer(Binarizer):
     are generated positionally.
 
     Args:
-        transformer:
+        transformer (Any):
             An unfitted scikit-learn transformer producing a binary array.
 
     Examples:

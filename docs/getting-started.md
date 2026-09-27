@@ -4,7 +4,9 @@
 
 ```bash
 pip install hgp-lib
-# or
+# with the PyTorch evaluation backend, for GPUs
+pip install "hgp-lib[torch]"
+# with the development tools
 pip install "hgp-lib[dev]"
 ```
 
@@ -31,7 +33,6 @@ from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 
 from hgp_lib import BooleanRuleClassifier
-from hgp_lib.configs import BooleanGPConfig, TrainerConfig
 
 X, y = load_breast_cancer(return_X_y=True, as_frame=True)
 X_train, X_test, y_train, y_test = train_test_split(
@@ -41,10 +42,7 @@ X_train, X_val, y_train, y_val = train_test_split(
     X_train, y_train, test_size=0.25, stratify=y_train, random_state=0
 )
 
-config = TrainerConfig(
-    gp_config=BooleanGPConfig(), num_epochs=1000, val_every=100
-)
-clf = BooleanRuleClassifier(config)  # StandardBinarizer by default; pass binarizer=... to customize
+clf = BooleanRuleClassifier()  # 1000 epochs, F1 score, StandardBinarizer by default
 clf.fit(X_train, y_train, X_val, y_val)  # validation data is binarized internally too
 
 predictions = clf.predict(X_test)  # raw data is binarized internally
@@ -60,18 +58,15 @@ which handles binarization, splitting, and aggregation for you:
 ```python
 import numpy as np
 from sklearn.datasets import load_breast_cancer
-from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
+from hgp_lib.configs import BenchmarkerConfig
 from hgp_lib.benchmarkers import GPBenchmarker
 
 X, y = load_breast_cancer(return_X_y=True, as_frame=True)
 
-gp_config = BooleanGPConfig()
-trainer_config = TrainerConfig(gp_config=gp_config, num_epochs=1000, val_every=100)
 config = BenchmarkerConfig(
     data=X,
     labels=y.to_numpy(),
-    trainer_config=trainer_config,
-    num_runs=30,
+    num_runs=30,  # the defaults, spelled out
     n_folds=5,
     n_jobs=-1,
 )
@@ -85,10 +80,11 @@ print(result.best_rule.to_str(result.best_run.feature_names))
 - [Theory](theory.md): how the GP search works and why it beats greedy trees
 - [Interpretability](interpretability.md): readable rules and explainable models
 - [Data Preparation](guide/data-preparation.md): binarization and avoiding leakage
-- [Training](guide/training.md): [`GPTrainer`](api/trainers.md#hgp_lib.trainers.gp_trainer.GPTrainer) and run configuration
+- [Binarization](guide/binarization.md): how the binarizers work and their parameters
+- [Training](guide/training.md): [`GPTrainer`](api/trainers.md#hgp_lib.trainers.gp_trainer.GPTrainer), run configuration and evaluation backends
 - [Benchmarking](guide/benchmarking.md): aggregated runs and scorer optimization
 - [Configuring HGP](guide/configuring.md): factories and hierarchical GP settings
-- [Extending HGP](guide/extending.md): custom strategies, mutations, and low-level use
-- [Rule Trees](guide/rule-trees.md): the rule data structure and its speed optimizations
+- [Extending HGP](guide/extending.md): custom strategies, backends, mutations, and low-level use
+- [Rule Trees](guide/rule-trees.md): the rule data structure, evaluating rules, and the NumPy backend
 - [Experiments](experiments/index.md): reproducing dataset experiments
 - [API Reference](api/index.md): full module documentation

@@ -304,12 +304,14 @@ class TestSerialization(unittest.TestCase):
         self.assertEqual(str(self.rule), original_rule)
         self.assertEqual(self.feature_mapping, original_mapping)
 
-    def test_low_memory_operator(self):
-        from hgp_lib.rules.low_memory_operators import And as LowMemoryAnd
+    def test_unsupported_operator(self):
+        from hgp_lib.rules import Rule
 
-        rule = LowMemoryAnd([Literal(value=0), Literal(value=1)])
-        restored, _ = deserialize(serialize(rule))
-        self.assertEqual(str(restored), "And(0, 1)")
+        class Xor(Rule):
+            pass
+
+        with self.assertRaises(TypeError):
+            serialize(Xor([Literal(value=0), Literal(value=1)]))
 
     def test_invalid_envelope(self):
         with self.assertRaises(ValueError):

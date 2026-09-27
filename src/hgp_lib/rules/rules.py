@@ -1,5 +1,5 @@
 # Reimplementation based on https://github.com/fidelity/boolxai/blob/main/boolxai/rules/rule.py
-from abc import ABC, abstractmethod
+from abc import ABC
 from collections.abc import Sequence
 
 import numpy as np
@@ -14,7 +14,8 @@ class Rule(ABC):
     - A `literal`: a literal condition (e.g., `Literal(value=5, negated=True)`).
 
     Rules can be nested to form complex logical expressions.
-    The tree can be traversed, copied, or evaluated against data.
+    The tree can be traversed, copied or serialized. Evaluating it against data is done by
+    an evaluation backend, see `hgp_lib.evaluation.predict`.
 
     Attributes:
         subrules (list[Rule] | None):
@@ -68,7 +69,7 @@ class Rule(ABC):
         self.value = value
         self.negated = negated
 
-    def flatten(self):
+    def flatten(self) -> list["Rule"]:
         """
         Iteratively flattens the rule subtree into a single list of all `Rule` nodes  using a queue.
 
@@ -225,10 +226,14 @@ class Rule(ABC):
         new.negated = self.negated
         return new
 
-    @abstractmethod
     def evaluate(self, data: np.ndarray) -> np.ndarray:
         """
-        Abstract method to evaluate this rule against the given data, in a vectorized manner.
+        Evaluate this rule on binarized data.
+
+        Deprecated:
+            Use `hgp_lib.evaluation.predict(rule, data)` instead. Rules only describe the
+            logical structure; evaluation backends evaluate them. ``Rule.evaluate`` will
+            be removed in a future 2.x release.
 
         Args:
             data (np.ndarray): The input data. Must be a 2D ndarray, with instances on rows and features on columns.
@@ -236,12 +241,20 @@ class Rule(ABC):
         Returns:
             np.ndarray:
                 The boolean result of evaluating this rule vectorized across all instances.
-
-        Notes:
-            Concrete subclasses (`And`, `Or`, `Literal`, etc.) must implement this.
         """
+        from ..evaluation.numpy.predict import evaluate
+        from ..utils.warnings import warn_once
 
-    def apply_feature_mapping(self, feature_mapping: dict[int, int]):
+        warn_once(
+            DeprecationWarning(
+                "Rule.evaluate is deprecated and will be removed in a future 2.x "
+                "release. Use hgp_lib.evaluation.predict(rule, data) instead."
+            ),
+            stacklevel=2,
+        )
+        return evaluate(self, data)
+
+    def apply_feature_mapping(self, feature_mapping: dict[int, int]) -> None:
         """
         Applies a feature mapping to this rule and all its subrules in-place.
 

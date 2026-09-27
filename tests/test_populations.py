@@ -3,6 +3,12 @@ import unittest
 
 import numpy as np
 
+from hgp_lib.evaluation import (
+    Dataset,
+    NumpyBackend,
+    fast_accuracy_score,
+    resolve_scorer,
+)
 from hgp_lib.mutations import MutationExecutorFactory
 from hgp_lib.populations import (
     BestLiteralStrategy,
@@ -11,7 +17,13 @@ from hgp_lib.populations import (
     RandomStrategy,
 )
 from hgp_lib.rules import And, Literal, Or
-from hgp_lib.utils.metrics import fast_accuracy_score, optimize_scorers_for_data
+
+
+def make_evaluator(data, labels, score_fn=fast_accuracy_score, optimize=None):
+    """Bind a scorer to training rows, as BooleanGP does."""
+    return NumpyBackend().bind(
+        Dataset(data, labels), resolve_scorer(score_fn, optimize)
+    )
 
 
 class TestPopulations(unittest.TestCase):
@@ -31,7 +43,7 @@ class TestPopulations(unittest.TestCase):
         )
         self.train_labels = np.array([1, 0, 1, 0])
         self.num_literals = 4
-        self.score_fn = fast_accuracy_score
+        self.evaluator = make_evaluator(self.train_data, self.train_labels)
 
     def test_random_strategy_init(self):
         strategy = RandomStrategy(num_literals=10, operator_types=(And, Or))
@@ -80,45 +92,31 @@ class TestPopulations(unittest.TestCase):
             self.assertEqual(len(rule.subrules), 2)
 
     def test_best_literal_strategy_init(self):
-        BestLiteralStrategy(
-            num_literals=self.train_data.shape[1],
-            score_fn=self.score_fn,
-            train_data=self.train_data,
-            train_labels=self.train_labels,
-        )
+        BestLiteralStrategy(num_literals=self.num_literals, evaluator=self.evaluator)
 
         with self.assertRaises(TypeError):
             BestLiteralStrategy(
-                num_literals=self.num_literals,
-                score_fn="not callable",
-                train_data=self.train_data,
-                train_labels=self.train_labels,
+                num_literals=self.num_literals, evaluator="not an evaluator"
             )
 
         with self.assertRaises(ValueError):
             BestLiteralStrategy(
                 num_literals=self.num_literals,
-                score_fn=self.score_fn,
-                train_data=self.train_data,
-                train_labels=self.train_labels,
+                evaluator=self.evaluator,
                 sample_size=1.5,
             )
 
         with self.assertRaises(ValueError):
             BestLiteralStrategy(
                 num_literals=self.num_literals,
-                score_fn=self.score_fn,
-                train_data=self.train_data,
-                train_labels=self.train_labels,
+                evaluator=self.evaluator,
                 feature_size=0,
             )
 
     def test_best_literal_strategy_generate(self):
         strategy = BestLiteralStrategy(
             num_literals=self.num_literals,
-            score_fn=self.score_fn,
-            train_data=self.train_data,
-            train_labels=self.train_labels,
+            evaluator=self.evaluator,
             sample_size=None,
             feature_size=None,
         )
@@ -132,9 +130,7 @@ class TestPopulations(unittest.TestCase):
 
         strategy_subset = BestLiteralStrategy(
             num_literals=self.num_literals,
-            score_fn=self.score_fn,
-            train_data=self.train_data,
-            train_labels=self.train_labels,
+            evaluator=self.evaluator,
             sample_size=2,
             feature_size=2,
         )
@@ -142,23 +138,26 @@ class TestPopulations(unittest.TestCase):
         rule_subset = rules_subset[0]
         self.assertIsInstance(rule_subset, Literal)
 
+    def test_best_literal_strategy_picks_first_best(self):
+        # Features 0 and 1 are equally good; the first one wins, as with a strict scan.
+        data = np.column_stack((self.train_labels == 1, self.train_labels == 1))
+        evaluator = make_evaluator(data, self.train_labels)
+        rule = BestLiteralStrategy(num_literals=2, evaluator=evaluator).generate(n=1)[0]
+        self.assertEqual((rule.value, rule.negated), (0, False))
+
     def test_best_literal_strategy_weighted_subset(self):
-        # Duplicated rows are collapsed into sample weights, as BooleanGP does.
+        # Duplicated rows are merged into sample weights, as BooleanGP does.
         repeats = [3, 1, 2, 1]
-        score_fn, data, labels = optimize_scorers_for_data(
-            self.score_fn,
-            data=np.repeat(self.train_data, repeats, axis=0),
-            labels=np.repeat(self.train_labels, repeats),
+        evaluator = make_evaluator(
+            np.repeat(self.train_data, repeats, axis=0),
+            np.repeat(self.train_labels, repeats),
         )
-        self.assertEqual(len(data), 4)
+        self.assertEqual(len(evaluator.dataset.labels), 4)
+        self.assertEqual(evaluator.dataset.n_rows, 7)
 
         # Row subsets must be scored with their own weights, not all 4 weights.
         strategy = BestLiteralStrategy(
-            num_literals=self.num_literals,
-            score_fn=score_fn,
-            train_data=data,
-            train_labels=labels,
-            sample_size=3,
+            num_literals=self.num_literals, evaluator=evaluator, sample_size=3
         )
 
         # Feature 0 matches the labels, so it is the best literal on every subset.
@@ -167,63 +166,30 @@ class TestPopulations(unittest.TestCase):
             self.assertEqual(rule.value, 0)
             self.assertFalse(rule.negated)
 
-    def test_best_literal_strategy_no_labels(self):
+    def test_best_literal_strategy_sample_size_counts_original_rows(self):
+        repeats = [3, 1, 2, 1]
+        evaluator = make_evaluator(
+            np.repeat(self.train_data, repeats, axis=0),
+            np.repeat(self.train_labels, repeats),
+        )
+        # 7 original rows, even though only 4 rows are stored.
+        BestLiteralStrategy(
+            num_literals=self.num_literals, evaluator=evaluator, sample_size=7
+        )
         with self.assertRaises(ValueError):
             BestLiteralStrategy(
-                num_literals=self.num_literals,
-                score_fn=self.score_fn,
-                train_data=self.train_data,
-                train_labels=None,
+                num_literals=self.num_literals, evaluator=evaluator, sample_size=8
             )
 
     def test_best_literal_strategy_validation(self):
         with self.assertRaises(ValueError):
-            BestLiteralStrategy(
-                num_literals=10,
-                score_fn=self.score_fn,
-                train_data=self.train_data,
-                train_labels=self.train_labels[:-1],
-            )
+            BestLiteralStrategy(num_literals=10, evaluator=self.evaluator)
 
         with self.assertRaises(ValueError):
-            BestLiteralStrategy(
-                num_literals=10,
-                score_fn=self.score_fn,
-                train_data=np.array([]),
-                train_labels=np.array([]),
-            )
-
-        with self.assertRaises(ValueError):
-            BestLiteralStrategy(
-                num_literals=10,
-                score_fn=self.score_fn,
-                train_data=self.train_data,
-                train_labels=self.train_labels,
-            )
-
-        with self.assertRaises(ValueError):
-            BestLiteralStrategy(
-                num_literals=self.num_literals,
-                score_fn=self.score_fn,
-                train_data=None,
-                train_labels=self.train_labels,
-            )
+            BestLiteralStrategy(num_literals=1, evaluator=self.evaluator)
 
         with self.assertRaises(TypeError):
-            BestLiteralStrategy(
-                num_literals=self.num_literals,
-                score_fn=self.score_fn,
-                train_data=[[1, 0]],
-                train_labels=self.train_labels,
-            )
-
-        with self.assertRaises(TypeError):
-            BestLiteralStrategy(
-                num_literals=self.num_literals,
-                score_fn=self.score_fn,
-                train_data=self.train_data,
-                train_labels=[1, 0],
-            )
+            BestLiteralStrategy(num_literals=4.0, evaluator=self.evaluator)
 
     def test_population_generator_init(self):
         s1 = RandomStrategy(self.num_literals)
@@ -254,10 +220,7 @@ class TestPopulations(unittest.TestCase):
     def test_population_generator_generate(self):
         s1 = RandomStrategy(self.num_literals)
         s2 = BestLiteralStrategy(
-            num_literals=self.num_literals,
-            score_fn=self.score_fn,
-            train_data=self.train_data,
-            train_labels=self.train_labels,
+            num_literals=self.num_literals, evaluator=self.evaluator
         )
 
         gen = PopulationGenerator(
@@ -276,10 +239,7 @@ class TestPopulations(unittest.TestCase):
     def test_population_generator_weighted(self):
         s1 = RandomStrategy(self.num_literals)
         s2 = BestLiteralStrategy(
-            num_literals=self.num_literals,
-            score_fn=self.score_fn,
-            train_data=self.train_data,
-            train_labels=self.train_labels,
+            num_literals=self.num_literals, evaluator=self.evaluator
         )
 
         gen_random = PopulationGenerator(
@@ -329,9 +289,7 @@ class TestPopulations(unittest.TestCase):
         with self.assertRaises(TypeError):
             BestLiteralStrategy(
                 num_literals=self.num_literals,
-                score_fn=self.score_fn,
-                train_data=self.train_data,
-                train_labels=self.train_labels,
+                evaluator=self.evaluator,
                 sample_size={"invalid": "type"},
             )
 
@@ -341,7 +299,7 @@ class TestPopulationGeneratorFactory(unittest.TestCase):
         random.seed(42)
         np.random.seed(42)
 
-        self.train_data = np.array(
+        train_data = np.array(
             [
                 [True, False, True, False],
                 [False, True, False, True],
@@ -349,10 +307,9 @@ class TestPopulationGeneratorFactory(unittest.TestCase):
                 [False, False, True, True],
             ]
         )
-        self.train_labels = np.array([1, 0, 1, 0])
+        train_labels = np.array([1, 0, 1, 0])
         self.num_literals = 4
-
-        self.score_fn = fast_accuracy_score
+        self.evaluator = make_evaluator(train_data, train_labels)
 
     def test_default_factory(self):
         factory = PopulationGeneratorFactory()
@@ -374,58 +331,31 @@ class TestPopulationGeneratorFactory(unittest.TestCase):
 
     def test_create_returns_generator(self):
         factory = PopulationGeneratorFactory(population_size=10)
-        gen = factory.create(
-            self.num_literals,
-            self.score_fn,
-            self.train_data,
-            self.train_labels,
-        )
+        gen = factory.create(self.num_literals, self.evaluator)
         self.assertIsInstance(gen, PopulationGenerator)
 
     def test_create_generates_correct_count(self):
         factory = PopulationGeneratorFactory(population_size=15)
-        gen = factory.create(
-            self.num_literals,
-            self.score_fn,
-            self.train_data,
-            self.train_labels,
-        )
+        gen = factory.create(self.num_literals, self.evaluator)
         population = gen.generate()
         self.assertEqual(len(population), 15)
 
     def test_default_strategy_is_random(self):
         factory = PopulationGeneratorFactory(population_size=5)
-        gen = factory.create(
-            self.num_literals,
-            self.score_fn,
-            self.train_data,
-            self.train_labels,
-        )
+        gen = factory.create(self.num_literals, self.evaluator)
         population = gen.generate()
         for rule in population:
             self.assertIsInstance(rule, (And, Or))
 
     def test_subclass_override(self):
         class BestLiteralFactory(PopulationGeneratorFactory):
-            def create_strategies(
-                self, num_literals, score_fn, train_data, train_labels
-            ):
+            def create_strategies(self, num_literals, evaluator):
                 return [
-                    BestLiteralStrategy(
-                        num_literals=num_literals,
-                        score_fn=score_fn,
-                        train_data=train_data,
-                        train_labels=train_labels,
-                    )
+                    BestLiteralStrategy(num_literals=num_literals, evaluator=evaluator)
                 ]
 
         factory = BestLiteralFactory(population_size=5)
-        gen = factory.create(
-            self.num_literals,
-            self.score_fn,
-            self.train_data,
-            self.train_labels,
-        )
+        gen = factory.create(self.num_literals, self.evaluator)
         population = gen.generate()
         self.assertEqual(len(population), 5)
         for rule in population:

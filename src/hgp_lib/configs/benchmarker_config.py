@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from numpy import ndarray
 from pandas import DataFrame
@@ -30,7 +30,7 @@ class BenchmarkerConfig:
         labels (ndarray): Labels for the full dataset (1-D numpy array).
         trainer_config (TrainerConfig): Template configuration for training. The nested
             `gp_config` does not need `train_data`/`train_labels` (they will be set
-            per fold by the benchmarker).
+            per fold by the benchmarker). Default: `TrainerConfig()`.
         binarizer (Binarizer | None): Binarizer to transform features into boolean
             columns. A fresh `deepcopy` is fitted per fold so the original stays
             unfitted. When `None` (default), a `StandardBinarizer()` with default
@@ -73,7 +73,7 @@ class BenchmarkerConfig:
 
     data: DataFrame
     labels: ndarray
-    trainer_config: TrainerConfig
+    trainer_config: TrainerConfig = field(default_factory=TrainerConfig)
     binarizer: Binarizer | None = None
     num_runs: int = 30
     test_size: float = 0.2

@@ -6,7 +6,7 @@ import pytest
 from hgp_lib.algorithms import BooleanGP
 from hgp_lib.configs import BooleanGPConfig
 from hgp_lib.populations import PopulationGeneratorFactory
-from hgp_lib.utils.metrics import fast_f1_score
+from hgp_lib.evaluation import fast_f1_score
 
 from .data import DATASET_NAMES, N_SPLITS
 from .rule_artifacts import POPULATION_SIZE, load_evaluation_artifact

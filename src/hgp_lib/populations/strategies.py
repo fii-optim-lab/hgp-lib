@@ -1,13 +1,12 @@
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from math import ceil
 
 import numpy as np
 
+from ..evaluation import Evaluator
 from ..rules import And, Literal, Or, Rule
-from ..utils.metrics import SampleWeightScorer, select_weighted_rows
 from ..utils.validation import (
-    check_X_y,
-    validate_callable,
+    check_isinstance,
     validate_num_literals,
     validate_operator_types,
 )
@@ -89,16 +88,14 @@ class BestLiteralStrategy(PopulationStrategy):
     All possible literals in the feature subset (both positive and negated) are evaluated against the data subset,
     and the one with the highest score is returned.
 
-    When `score_fn` is a `SampleWeightScorer`, `train_data` holds deduplicated rows with those weights. Row subsets
-    are then drawn from the original rows the weights stand for, and scored with the weights of the subset.
+    The rows and the scorer come from the population's evaluator. When the rows were merged into sample weights,
+    row subsets are drawn from the original rows the weights stand for, and scored with the weights of the subset.
 
     Attributes:
         num_literals (int): The total number of available literals.
-        score_fn (Callable): Function to evaluate a rule. Signature: `score_fn(y_true, y_pred) -> float`.
-        train_data (np.ndarray): The training data array.
-        train_labels (np.ndarray): The training labels.
-        sample_size (int | float | None): Size of the sample subset (rows) to use for evaluation. With weighted
-            data, it counts original rows.
+        evaluator (Evaluator): The population's training rows with its scorer bound to them.
+        sample_size (int | float | None): Size of the sample subset (rows) to use for evaluation. It counts
+            original rows, also when they were merged into sample weights.
             - If `int`: Number of samples.
             - If `float`: Fraction of samples in (0.0, 1.0].
             - If `None`: Use all samples.
@@ -111,63 +108,47 @@ class BestLiteralStrategy(PopulationStrategy):
 
     Examples:
         >>> import numpy as np
+        >>> from hgp_lib.evaluation import Dataset, NumpyBackend, fast_accuracy_score, resolve_scorer
         >>> from hgp_lib.populations import BestLiteralStrategy
         >>> from hgp_lib.rules import Literal
         >>> data = np.array([[True, False], [False, True], [True, True]])
         >>> labels = np.array([1, 0, 1])
-        >>> def simple_score(preds, y):
-        ...     return np.mean(preds == y)
-        >>> strategy = BestLiteralStrategy(
-        ...     num_literals=2,
-        ...     score_fn=simple_score,
-        ...     train_data=data,
-        ...     train_labels=labels,
-        ...     sample_size=2,
-        ...     feature_size=None
+        >>> evaluator = NumpyBackend().bind(
+        ...     Dataset(data, labels), resolve_scorer(fast_accuracy_score)
         ... )
+        >>> strategy = BestLiteralStrategy(num_literals=2, evaluator=evaluator, sample_size=2)
         >>> rules = strategy.generate(n=1)
-        >>> rule = rules[0]
-        >>> isinstance(rule, Literal)
+        >>> isinstance(rules[0], Literal)
         True
+        >>> BestLiteralStrategy(num_literals=2, evaluator=evaluator).generate(n=1)
+        [0]
     """
 
     def __init__(
         self,
         num_literals: int,
-        score_fn: Callable[[np.ndarray, np.ndarray], float],
-        train_data: np.ndarray,
-        train_labels: np.ndarray,
-        sample_size: float | None = None,
-        feature_size: float | None = None,
+        evaluator: Evaluator,
+        sample_size: int | float | None = None,
+        feature_size: int | float | None = None,
     ):
         validate_num_literals(num_literals)
-        validate_callable(score_fn)
-        check_X_y(train_data, train_labels)
+        check_isinstance(evaluator, Evaluator)
 
-        if len(train_data[0]) != num_literals:
+        num_features = evaluator.dataset.data.shape[1]
+        if num_features != num_literals:
             raise ValueError(
-                f"Number of features in train_data must be equal to num_literals, "
-                f"got {len(train_data[0])} != {num_literals}"
+                f"Number of features in the evaluator's data must be equal to num_literals, "
+                f"got {num_features} != {num_literals}"
             )
 
         self.num_literals = num_literals
-        self.score_fn = score_fn
-        self.train_data = train_data
-        self.train_labels = train_labels
+        self.evaluator = evaluator
 
-        # A weight-bound scorer means the rows of train_data are deduplicated.
-        self._sample_weight = (
-            score_fn.sample_weight if isinstance(score_fn, SampleWeightScorer) else None
-        )
-        self._total_samples = (
-            len(train_data)
-            if self._sample_weight is None
-            else int(self._sample_weight.sum())
-        )
+        self._total_samples = evaluator.dataset.n_rows
         self._sample_count = self._resolve_size(sample_size, self._total_samples)
         self._feature_count = self._resolve_size(feature_size, num_literals)
 
-    def _resolve_size(self, size: float | None, total: int) -> int:
+    def _resolve_size(self, size: int | float | None, total: int) -> int:
         if size is None:
             return total
         if isinstance(size, float):
@@ -182,6 +163,29 @@ class BestLiteralStrategy(PopulationStrategy):
             return size
         raise TypeError(f"size must be int, float or None, got {type(size)}")
 
+    def _score_literals(self, subset, feature_indices) -> list[float] | np.ndarray:
+        """Scores of the literals ``i`` and ``~i``, interleaved, for each feature ``i``."""
+        if subset is None:
+            # All rows: the evaluator's kernels are bound to exactly these rows.
+            literals = [
+                Literal(value=int(i), negated=negated)
+                for i in feature_indices
+                for negated in (False, True)
+            ]
+            return self.evaluator.score(literals)
+
+        # TODO: For the built-in scorers, score all literals at once from ``w @ X`` and
+        #  ``(w * y) @ X``, and derive the negated literals from those counts.
+        #  Not planned for 2.0.0.
+        data, labels, sample_weight = subset
+        scorer = self.evaluator.scorer
+        scores = []
+        for i in feature_indices:
+            column = data[:, i]
+            scores.append(scorer(labels, column, sample_weight))
+            scores.append(scorer(labels, ~column, sample_weight))
+        return scores
+
     def generate(self, n: int) -> list[Rule]:
         """
         Generates n literal rules that perform best on random data/feature subsets.
@@ -193,21 +197,13 @@ class BestLiteralStrategy(PopulationStrategy):
             list[Rule]: A list of Literal instances.
         """
         rules = []
-        total_samples = self._total_samples
-
         for _ in range(n):
-            score_fn = self.score_fn
-            if self._sample_count == total_samples:
-                row_indices = slice(None)
-            else:
-                row_indices = np.random.choice(
-                    total_samples, self._sample_count, replace=False
+            subset = None
+            if self._sample_count != self._total_samples:
+                rows = np.random.choice(
+                    self._total_samples, self._sample_count, replace=False
                 )
-                if self._sample_weight is not None:
-                    row_indices, weights = select_weighted_rows(
-                        self._sample_weight, row_indices
-                    )
-                    score_fn = SampleWeightScorer(self.score_fn.scorer, weights)
+                subset = self.evaluator.dataset.take(rows)
 
             if self._feature_count == self.num_literals:
                 feature_indices = range(self.num_literals)
@@ -216,27 +212,9 @@ class BestLiteralStrategy(PopulationStrategy):
                     self.num_literals, self._feature_count, replace=False
                 )
 
-            subset_data = self.train_data[row_indices]
-            subset_labels = self.train_labels[row_indices]
-
-            best_rule = None
-            best_score = -float("inf")
-
-            for i in feature_indices:
-                preds_pos = subset_data[:, i]
-                score_pos = score_fn(subset_labels, preds_pos)
-
-                if score_pos > best_score:
-                    best_score = score_pos
-                    best_rule = Literal(value=i, negated=False)
-
-                preds_neg = ~preds_pos
-                score_neg = score_fn(subset_labels, preds_neg)
-
-                if score_neg > best_score:
-                    best_score = score_neg
-                    best_rule = Literal(value=i, negated=True)
-
-            rules.append(best_rule)
-
+            scores = self._score_literals(subset, feature_indices)
+            best = int(np.argmax(scores))  # the first best, like a strict ``>`` scan
+            rules.append(
+                Literal(value=int(feature_indices[best // 2]), negated=bool(best % 2))
+            )
         return rules

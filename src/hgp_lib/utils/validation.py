@@ -6,52 +6,19 @@ import numpy as np
 import pandas as pd
 
 from ..rules import Rule
+from .warnings import warn_moved
 
 
-class ComplexityCheck:
-    """
-    Create a validity predicate that rejects rules exceeding ``max_complexity`` nodes.
+def __getattr__(name: str):
+    # ComplexityCheck moved to hgp_lib.rules in 2.0.0.
+    if name == "ComplexityCheck":
+        from ..rules import ComplexityCheck
 
-    Intended for use as the ``check_valid`` argument of ``BooleanGPConfig``.
-
-    Args:
-        max_complexity (int):
-            Maximum allowed node count. Default: `100`.
-
-    Examples:
-    >>> from hgp_lib.rules import Literal, And
-    >>> from hgp_lib.utils.validation import ComplexityCheck
-    >>> check = ComplexityCheck(3)
-    >>> check(Literal(value=0))
-    True
-    >>> check(And([Literal(value=0), Literal(value=1)]))
-    True
-    >>> check(And([Literal(value=0), And([Literal(value=1), Literal(value=2)])]))
-    False
-    """
-
-    def __init__(self, max_complexity: int = 100):
-        self.max_complexity = max_complexity
-
-    def __call__(self, rule: Rule) -> bool:
-        """
-        Check if rule complexity (node count) is within a limit.
-
-        Args:
-            rule (Rule): The rule to check.
-
-        Returns:
-            bool: ``True`` if ``len(rule) <= self.max_complexity``.
-
-        Examples:
-            >>> from hgp_lib.rules import Literal, And
-            >>> from hgp_lib.utils.validation import ComplexityCheck
-            >>> ComplexityCheck(5)(Literal(value=0))
-            True
-            >>> ComplexityCheck(2)(And([Literal(value=0), Literal(value=1)]))
-            False
-        """
-        return len(rule) <= self.max_complexity
+        warn_moved(
+            "hgp_lib.utils.validation.ComplexityCheck", "hgp_lib.rules.ComplexityCheck"
+        )
+        return ComplexityCheck
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def validate_callable(maybe_callable: Callable, error_message: str | None = None):
@@ -107,6 +74,38 @@ def check_isinstance(value: Any, expected_type: type | tuple[type, ...]):
         raise TypeError(
             f"{name} should be of type {expected_type}, but is {type(value)}"
         )
+
+
+def validate_batching(batched: bool, batch_size: int | None):
+    """
+    Validate the ``batched`` and ``batch_size`` options of an evaluation backend.
+
+    Args:
+        batched (bool): Whether rules are scored in batches.
+        batch_size (int | None): Rules per batch, or ``None`` for one batch.
+
+    Raises:
+        TypeError: If ``batched`` is not a bool, or ``batch_size`` is not an int or None.
+        ValueError: If ``batch_size`` is below 1, or set while ``batched`` is ``False``.
+
+    Examples:
+        >>> from hgp_lib.utils.validation import validate_batching
+        >>> validate_batching(True, 64)  # no error
+        >>> validate_batching(False, 64)
+        Traceback (most recent call last):
+        ...
+        ValueError: batch_size requires batched=True
+    """
+    if not isinstance(batched, bool):
+        raise TypeError(f"batched must be a bool, is {type(batched)}")
+    if batch_size is None:
+        return
+    if isinstance(batch_size, bool) or not isinstance(batch_size, int):
+        raise TypeError(f"batch_size must be an int or None, is {type(batch_size)}")
+    if batch_size < 1:
+        raise ValueError(f"batch_size must be at least 1, is {batch_size}")
+    if not batched:
+        raise ValueError("batch_size requires batched=True")
 
 
 def validate_num_literals(num_literals: int):

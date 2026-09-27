@@ -62,7 +62,7 @@ from hgp_lib.crossover import CrossoverExecutorFactory
 from hgp_lib.mutations import MutationExecutorFactory
 from hgp_lib.populations import PopulationGeneratorFactory
 from hgp_lib.selections import TournamentSelection
-from hgp_lib.evaluation.scorer import fast_f1_score
+from hgp_lib.evaluation import fast_f1_score
 
 population_factory = PopulationGeneratorFactory(population_size=100)
 mutation_factory = MutationExecutorFactory(mutation_p=0.1, operator_p=0.5)
@@ -108,6 +108,7 @@ from sklearn.model_selection import train_test_split
 
 from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.configs import BooleanGPConfig, TrainerConfig
+from hgp_lib.evaluation import predict, score
 from hgp_lib.trainers import GPTrainer
 
 X, y = load_breast_cancer(return_X_y=True, as_frame=True)
@@ -120,15 +121,20 @@ train_bin = binarizer.fit_transform(X_train, y_train.to_numpy())
 test_bin = binarizer.transform(X_test)
 
 gp = BooleanGPConfig(
-    train_data=train_bin.to_numpy(),
+    train_data=train_bin.to_numpy(dtype=bool),
     train_labels=y_train.to_numpy(),
 )
 history = GPTrainer(TrainerConfig(gp_config=gp, num_epochs=1000)).fit()
 
 rule = history.global_best_rule
-predictions = rule.evaluate(test_bin.to_numpy())
+predictions = predict(rule, test_bin.to_numpy(dtype=bool))
+test_f1 = score(rule, test_bin.to_numpy(dtype=bool), y_test.to_numpy())
 print(rule.to_str(binarizer.get_feature_names_out()))
 ```
+
+[`predict`](../api/evaluation.md#hgp_lib.evaluation.api.predict) and [`score`](../api/evaluation.md#hgp_lib.evaluation.api.score) need the binarized boolean matrix, with the same columns the rule was trained on.
+They raise a `TypeError` for a DataFrame or a non-boolean array.
+For raw data, use [`BooleanRuleClassifier`](../api/trainers.md#hgp_lib.trainers.boolean_rule_classifier.BooleanRuleClassifier) or [`GPBenchmarker`](../api/benchmarkers.md#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker), which binarize it with their fitted binarizer.
 
 `binarizer.get_feature_names_out()` returns the binarized column names in order, so the printed rule reads as plain logic (each literal index is replaced by its column name).
 To skip the manual binarization, [`BooleanRuleClassifier`](../api/trainers.md#hgp_lib.trainers.boolean_rule_classifier.BooleanRuleClassifier) does the same end-to-end path in a few lines (see [Getting Started](../getting-started.md)).
@@ -147,6 +153,24 @@ trainer.fit()
 predictions = trainer.predict(test_bin.to_numpy())  # 1-D boolean array
 ```
 
-This is equivalent to calling `history.global_best_rule.evaluate(test_bin.to_numpy())`, but keeps the estimator-style API.
+This is equivalent to calling `predict(history.global_best_rule, test_bin.to_numpy(dtype=bool))`, with the configured backend, but keeps the estimator-style API.
+
+## Choosing an evaluation backend
+
+Rules are evaluated by the backend set in `BooleanGPConfig.backend`, which is used for training, validation and every `predict` method.
+The default is [`NumpyBackend()`](../api/evaluation.md#hgp_lib.evaluation.numpy.backend.NumpyBackend); its options only change speed and memory use.
+[`TorchBackend`](../api/evaluation.md#hgp_lib.evaluation.torch.backend.TorchBackend) evaluates rules with PyTorch, for example on a GPU, and gives the same scores.
+
+```python
+from hgp_lib.evaluation import NumpyBackend, TorchBackend
+
+# Score 50 rules per call instead of one, which can be faster on small datasets.
+gp = BooleanGPConfig(backend=NumpyBackend(batched=True, batch_size=50))
+
+# Evaluate on a CUDA GPU, which pays off on large data (needs hgp-lib[torch]).
+gp = BooleanGPConfig(backend=TorchBackend(device="cuda"))
+```
+
+See [The NumPy backend](rule-trees.md#the-numpy-backend) and [The PyTorch backend](rule-trees.md#the-pytorch-backend) for what each option does.
 
 For end-to-end examples on real datasets, see the [Experiments](../experiments/index.md) section.

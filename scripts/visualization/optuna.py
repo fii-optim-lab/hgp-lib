@@ -9,7 +9,7 @@ import numpy as np
 import optuna
 from optuna.artifacts import upload_artifact
 
-from hgp_lib.metrics.results import ExperimentResult
+from hgp_lib.results import ExperimentResult
 
 from .plots import (
     plot_all_folds_val_scores,

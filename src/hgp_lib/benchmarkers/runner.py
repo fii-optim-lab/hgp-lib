@@ -7,13 +7,9 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from tqdm import tqdm
 
 from ..configs import BenchmarkerConfig
-from ..metrics import PopulationHistory, RunResult
+from ..evaluation import confusion_matrix, fast_f1_score
+from ..results import PopulationHistory, RunResult
 from ..trainers import GPTrainer
-from hgp_lib.evaluation.scorer import (
-    confusion_matrix,
-    fast_f1_score,
-    optimize_scorers_for_data,
-)
 from .progress import ProgressReporter
 
 
@@ -138,21 +134,11 @@ def execute_single_run(
     feature_names = feature_names_per_binarizer[best_fold_idx]
     test_data = best_binarizer.transform(test_data).to_numpy(dtype=bool)
 
-    if gp_template.score_fn is None:
-        gp_template.score_fn = fast_f1_score
-    if gp_template.optimize_scorer:
-        test_score_fn, test_cm, test_data, test_labels = optimize_scorers_for_data(
-            gp_template.score_fn, confusion_matrix, data=test_data, labels=test_labels
-        )
-    else:
-        test_score_fn = gp_template.score_fn
-        test_cm = confusion_matrix
-
-    test_pred = best_rule.evaluate(test_data)
-
-    test_score = float(test_score_fn(test_labels, test_pred))
-
-    tp, fp, fn, tn = test_cm(test_labels, test_pred)
+    # The test set is scored once, so its rows are used as they are: no merging, no copy.
+    score_fn = fast_f1_score if gp_template.score_fn is None else gp_template.score_fn
+    test_pred = gp_template.backend.predict(best_rule, test_data)
+    test_score = float(score_fn(test_labels, test_pred))
+    tp, fp, fn, tn = confusion_matrix(test_labels, test_pred)
 
     reporter.run()
 

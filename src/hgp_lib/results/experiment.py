@@ -7,7 +7,7 @@ import numpy as np
 
 from ..preprocessing.base import Binarizer
 from ..rules import Rule
-from . import PopulationHistory
+from .history import PopulationHistory
 
 
 @dataclass
@@ -36,7 +36,7 @@ class RunResult:
             ``GPBenchmarker.predict``). Default: `None`.
 
     Examples:
-        >>> from hgp_lib.metrics import RunResult, PopulationHistory
+        >>> from hgp_lib.results import RunResult, PopulationHistory
         >>> from hgp_lib.rules import Literal
         >>> fold = PopulationHistory(
         ...     global_best_rule=Literal(value=0), tp=3, fp=1, fn=0, tn=6,
@@ -70,7 +70,7 @@ class RunResult:
         The ``PopulationHistory`` of the fold with the highest validation score.
 
         Examples:
-            >>> from hgp_lib.metrics import RunResult, PopulationHistory
+            >>> from hgp_lib.results import RunResult, PopulationHistory
             >>> from hgp_lib.rules import Literal
             >>> f0 = PopulationHistory(
             ...     global_best_rule=Literal(value=0), tp=1, fp=0, fn=0, tn=1,
@@ -94,7 +94,7 @@ class RunResult:
         The global best rule from the best fold.
 
         Examples:
-            >>> from hgp_lib.metrics import RunResult, PopulationHistory
+            >>> from hgp_lib.results import RunResult, PopulationHistory
             >>> from hgp_lib.rules import Literal
             >>> fold = PopulationHistory(
             ...     global_best_rule=Literal(value=5), tp=0, fp=0, fn=0, tn=0,
@@ -116,7 +116,7 @@ class RunResult:
 
         Examples:
             >>> from dataclasses import replace
-            >>> from hgp_lib.metrics import RunResult, PopulationHistory, GenerationMetrics
+            >>> from hgp_lib.results import RunResult, PopulationHistory, GenerationMetrics
             >>> from hgp_lib.rules import Literal
             >>> g = GenerationMetrics.from_population(
             ...     best_idx=0, best_rule=Literal(value=0),
@@ -152,7 +152,7 @@ class RunResult:
         Best training score from each fold (folds without generations are excluded).
 
         Examples:
-            >>> from hgp_lib.metrics import RunResult, PopulationHistory, GenerationMetrics
+            >>> from hgp_lib.results import RunResult, PopulationHistory, GenerationMetrics
             >>> from hgp_lib.rules import Literal
             >>> g = GenerationMetrics.from_population(
             ...     best_idx=0, best_rule=Literal(value=0),
@@ -184,7 +184,7 @@ class RunResult:
         fold has a validation score.
 
         Examples:
-            >>> from hgp_lib.metrics import RunResult, PopulationHistory
+            >>> from hgp_lib.results import RunResult, PopulationHistory
             >>> from hgp_lib.rules import Literal
             >>> fold = PopulationHistory(
             ...     global_best_rule=Literal(value=0), tp=0, fp=0, fn=0, tn=0,
@@ -209,7 +209,7 @@ class RunResult:
         fold has training generations.
 
         Examples:
-            >>> from hgp_lib.metrics import RunResult, PopulationHistory, GenerationMetrics
+            >>> from hgp_lib.results import RunResult, PopulationHistory, GenerationMetrics
             >>> from hgp_lib.rules import Literal
             >>> g = GenerationMetrics.from_population(
             ...     best_idx=0, best_rule=Literal(value=0),
@@ -239,7 +239,7 @@ class RunResult:
         Formatted confusion matrix string for the best fold's training data.
 
         Examples:
-            >>> from hgp_lib.metrics import RunResult, PopulationHistory
+            >>> from hgp_lib.results import RunResult, PopulationHistory
             >>> from hgp_lib.rules import Literal
             >>> fold = PopulationHistory(
             ...     global_best_rule=Literal(value=0), tp=3, fp=1, fn=2, tn=4,
@@ -262,7 +262,7 @@ class RunResult:
         Returns ``"[]"`` if no validation data was used.
 
         Examples:
-            >>> from hgp_lib.metrics import RunResult, PopulationHistory
+            >>> from hgp_lib.results import RunResult, PopulationHistory
             >>> from hgp_lib.rules import Literal
             >>> fold = PopulationHistory(
             ...     global_best_rule=Literal(value=0), tp=0, fp=0, fn=0, tn=0,
@@ -286,7 +286,7 @@ class RunResult:
         Formatted confusion matrix string for the held-out test set.
 
         Examples:
-            >>> from hgp_lib.metrics import RunResult, PopulationHistory
+            >>> from hgp_lib.results import RunResult, PopulationHistory
             >>> from hgp_lib.rules import Literal
             >>> fold = PopulationHistory(
             ...     global_best_rule=Literal(value=0), tp=0, fp=0, fn=0, tn=0,
@@ -312,7 +312,7 @@ class ExperimentResult:
 
     Examples:
         >>> from dataclasses import replace
-        >>> from hgp_lib.metrics import ExperimentResult, RunResult, PopulationHistory, GenerationMetrics
+        >>> from hgp_lib.results import ExperimentResult, RunResult, PopulationHistory, GenerationMetrics
         >>> from hgp_lib.rules import Literal
         >>> g = GenerationMetrics.from_population(
         ...     best_idx=0, best_rule=Literal(value=0),
@@ -358,7 +358,7 @@ class ExperimentResult:
             RunResult: The best-performing run.
 
         Examples:
-            >>> from hgp_lib.metrics import ExperimentResult, RunResult, PopulationHistory, GenerationMetrics
+            >>> from hgp_lib.results import ExperimentResult, RunResult, PopulationHistory, GenerationMetrics
             >>> from hgp_lib.rules import Literal
             >>> g_low = GenerationMetrics.from_population(
             ...     best_idx=0, best_rule=Literal(value=0),
@@ -414,7 +414,7 @@ class ExperimentResult:
             Rule: The overall best rule across the entire experiment.
 
         Examples:
-            >>> from hgp_lib.metrics import ExperimentResult, RunResult, PopulationHistory
+            >>> from hgp_lib.results import ExperimentResult, RunResult, PopulationHistory
             >>> from hgp_lib.rules import Literal
             >>> fold = PopulationHistory(
             ...     global_best_rule=Literal(value=7), tp=0, fp=0, fn=0, tn=0,
@@ -436,7 +436,7 @@ class ExperimentResult:
         Test scores from all runs.
 
         Examples:
-            >>> from hgp_lib.metrics import ExperimentResult, RunResult, PopulationHistory
+            >>> from hgp_lib.results import ExperimentResult, RunResult, PopulationHistory
             >>> from hgp_lib.rules import Literal
             >>> fold = PopulationHistory(
             ...     global_best_rule=Literal(value=0), tp=0, fp=0, fn=0, tn=0,

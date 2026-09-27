@@ -35,6 +35,7 @@ plugins:
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
+  - Migrating from 1.x: migration.md
   - Background:
     - Theory: theory.md
     - Interpretability: interpretability.md
@@ -57,11 +58,11 @@ nav:
     - Configs: api/configs.md
     - Trainers: api/trainers.md
     - Benchmarkers: api/benchmarkers.md
+    - Evaluation: api/evaluation.md
     - Rules: api/rules.md
     - Mutations: api/mutations.md
     - Crossover: api/crossover.md
     - Selections: api/selections.md
     - Populations: api/populations.md
     - Preprocessing: api/preprocessing.md
-    - Metrics: api/metrics.md
-    - Utils: api/utils.md
+    - Results: api/results.md

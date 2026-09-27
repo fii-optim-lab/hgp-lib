@@ -137,3 +137,50 @@ All selected machines share the same table, with Time and vs previous subcolumns
 A Result subcolumn is shown for the first machine when scores are available; another machine receives one only when its result differs or has no matching first-machine result.
 Versions are compared only within the same machine, scenario, and result name, and each timing change is relative to that machine's previous available version.
 Generated labels and placeholders use ASCII characters for reliable display across platforms.
+
+## Backend benchmarks
+
+`benchmark_backends.py` compares the option combinations of the evaluation backends on one version, to choose the most suitable one.
+It is separate from the default benchmark: `benchmark.py` ignores `benchmarks/backends`, and the backend scenarios are not part of the version comparison.
+
+```bash
+python benchmarks/benchmark_backends.py \
+  --machine macbook-m2 \
+  --version 2.1.0
+```
+
+`--machine` and `--version` are required; `--name` is optional, as for `benchmark.py`.
+Every scenario runs for every combination, and the results are saved under `benchmarks/results/backends` as:
+
+```text
+<machine>-<version>.json
+<machine>-<version>.md
+```
+
+The Markdown report ranks the combinations by the geometric mean of their time relative to the fastest combination in each scenario, then lists every scenario from fastest to slowest.
+Backend options only change speed and memory use, so each scenario's result must be the same for every combination; the report lists the scenarios where it is not.
+
+### Backend options
+
+The backends and the values of their options are hardcoded in `BACKEND_OPTIONS` in `benchmarks/backends/test_backends.py`.
+Every combination of the values is benchmarked:
+
+| Backend | Option | Values |
+| --- | --- | --- |
+| `NumpyBackend` | `order` | `"F"`, `"C"` |
+| `NumpyBackend` | `low_memory` | `True`, `False` |
+| `NumpyBackend` | `batched` | `False`, `True` |
+| `TorchBackend` | `device` | `"cpu"`, plus `"cuda"` and `"mps"` when available |
+| `TorchBackend` | `batched` | `False`, `True` |
+
+`TorchBackend` is only benchmarked when PyTorch is installed (`pip install "hgp-lib[torch]"`).
+`batch_size` keeps its default (`None`, one batch per population) for both backends.
+To benchmark a new backend or option value, add it to `BACKEND_OPTIONS`.
+
+### Backend scenarios
+
+- `population_scoring.<dataset>` scores the 100 evolved rules of each of the five folds on their training rows, merged into sample weights as during training.
+- `population_scoring.<dataset>.x10_rows` scores the same rules on the training rows repeated 10 times, without merging, as for a larger dataset without duplicate rows.
+- `random_rule_scoring.<literals>_literals.<rows>_rows` scores the 100 random rules of the default evaluation artifacts on random data.
+- `predict.100_literals.10_000_rows` evaluates the 100-literal random rules once on row-major data, as `hgp_lib.evaluation.predict` does. `order` and `batched` do not apply to it.
+- `training.<dataset>.100_generations` trains a flat population of 100 rules for 100 generations on the first fold of `breast_cancer` and `spambase`.

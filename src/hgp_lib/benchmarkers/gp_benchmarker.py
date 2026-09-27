@@ -8,8 +8,8 @@ from sklearn.exceptions import NotFittedError
 from tqdm import tqdm
 
 from ..configs import BenchmarkerConfig, validate_benchmarker_config
-from ..metrics import ExperimentResult, RunResult
 from ..preprocessing import StandardBinarizer
+from ..results import ExperimentResult, RunResult
 from .progress import ProgressConfig, ProgressListener, ProgressReporter
 from .runner import execute_single_run, single_run_wrapper
 
@@ -245,4 +245,5 @@ class GPBenchmarker:
 
         best_run = self._run_results.best_run
         binarized = best_run.binarizer.transform(data).to_numpy(dtype=bool)
-        return best_run.best_rule.evaluate(binarized)
+        backend = self.config.trainer_config.gp_config.backend
+        return backend.predict(best_run.best_rule, binarized)

@@ -2,7 +2,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
-from hgp_lib.metrics.results import ExperimentResult
+from hgp_lib.results import ExperimentResult
 
 matplotlib.use("Agg")
 

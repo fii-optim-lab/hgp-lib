@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from numpy import ndarray
 
 from ..crossover import CrossoverExecutorFactory
+from ..evaluation import EvaluationBackend, NumpyBackend
 from ..mutations.mutation_factory import MutationExecutorFactory
 from ..populations import SamplingStrategy
 from ..populations.populations_factory import PopulationGeneratorFactory
@@ -19,7 +20,7 @@ class BooleanGPConfig:
 
     Attributes:
         score_fn (Callable | None): Optional fitness function `(y_true, y_pred) -> float`.
-            A fast implementation of f1-score is used when `None`. Default: `None`.
+            `fast_f1_score` is used when `None`. Default: `None`.
         train_data (ndarray | None): Training data (2-D boolean array). Can be `None` when
             used as a template in `BenchmarkerConfig` (data provided at benchmarker level).
             Default: `None`.
@@ -39,8 +40,14 @@ class BooleanGPConfig:
             (`crossover_p=0.7`, `crossover_strategy="random"`, `num_tries=1`, `operator_p=0.9`).
         selection (BaseSelection | None): Optional; default `TournamentSelection()`.
             Default: `None`.
-        optimize_scorer (bool): Whether to optimize scorer via data deduplication and
-            sample weights. Default: `True`.
+        optimize_scorer (bool | None): Whether duplicate rows may be merged into sample
+            weights, so rules are scored on fewer rows with the same results. ``None``
+            merges rows for the built-in scorers (`fast_f1_score`,
+            `fast_accuracy_score`) and never for custom ones. ``True`` also merges rows
+            for a custom ``score_fn`` that accepts ``sample_weight`` (a ``FutureWarning``
+            is emitted if it does not). ``False`` never merges rows. Default: `None`.
+        backend (EvaluationBackend): Backend that evaluates rules during training,
+            validation and prediction. Default: `NumpyBackend()`.
         regeneration (bool): Whether to regenerate population on plateau. Default: `False`.
         regeneration_patience (int): Epochs without improvement before regeneration.
             Default: `100`.
@@ -69,8 +76,10 @@ class BooleanGPConfig:
         >>> config = BooleanGPConfig(train_data=data, train_labels=labels)
         >>> config.train_data.shape
         (4, 2)
-        >>> config.optimize_scorer
+        >>> config.optimize_scorer is None
         True
+        >>> config.backend
+        NumpyBackend(order='F', low_memory=True, batched=False, batch_size=None)
         >>> config.population_factory.population_size
         100
         >>> config.mutation_factory.mutation_p
@@ -91,7 +100,7 @@ class BooleanGPConfig:
         default_factory=CrossoverExecutorFactory
     )
     selection: BaseSelection | None = None
-    optimize_scorer: bool = True
+    optimize_scorer: bool | None = None
     regeneration: bool = False
     regeneration_patience: int = 100
     check_valid: Callable[[Rule], bool] | None = None
@@ -101,6 +110,7 @@ class BooleanGPConfig:
     top_k_transfer: int = 10
     feedback_type: str = "multiplicative"
     feedback_strength: float = 0.1
+    backend: EvaluationBackend = field(default_factory=NumpyBackend)
 
 
 def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> None:
@@ -147,6 +157,10 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
 
     if config.selection is not None:
         check_isinstance(config.selection, BaseSelection)
+
+    if config.optimize_scorer is not None:
+        check_isinstance(config.optimize_scorer, bool)
+    check_isinstance(config.backend, EvaluationBackend)
 
     if config.check_valid is not None:
         error_msg = f"check_valid must be a callable that accepts a Rule and returns bool, is {type(config.check_valid)}"

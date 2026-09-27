@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from hgp_lib.evaluation import NumpyBackend
+
 from .evaluation_artifacts import LITERAL_COUNTS, NUM_RULES, load_artifact
 
 NUM_SAMPLES = (1_000, 10_000)
@@ -23,8 +25,8 @@ pytestmark = [
 
 
 # Evaluates 100 fixed rules against one deterministic boolean matrix.
-def evaluate_default(rules, data):
-    [rule.evaluate(data) for rule in rules]
+def evaluate_default(backend, rules, data):
+    [backend.predict(rule, data) for rule in rules]
 
 
 @pytest.mark.parametrize(
@@ -45,7 +47,7 @@ def test_evaluation_default(benchmark, num_literals, num_samples):
         ).astype(bool)
     )
 
-    benchmark(evaluate_default, rules, data)
+    benchmark(evaluate_default, NumpyBackend(), rules, data)
 
     benchmark.extra_info.update(
         {

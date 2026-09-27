@@ -11,7 +11,8 @@ from hgp_lib.populations import (
     FeatureSamplingStrategy,
     InstanceSamplingStrategy,
 )
-from hgp_lib.evaluation.scorer import fast_accuracy_score as accuracy_score
+from hgp_lib.evaluation import Dataset
+from hgp_lib.evaluation import fast_accuracy_score as accuracy_score
 
 
 class TestSamplingStrategies(unittest.TestCase):
@@ -25,51 +26,51 @@ class TestSamplingStrategies(unittest.TestCase):
     def test_feature_sampling_basic(self):
         """Test that FeatureSamplingStrategy samples correct number of features."""
         strategy = FeatureSamplingStrategy(feature_fraction=0.25)
-        results = strategy.sample(self.data, self.labels, num_children=4)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=4)
 
         self.assertEqual(len(results), 4)
 
         # ceil(20 * 0.25) = 5 features per child
         result = results[0]
-        self.assertEqual(result.data.shape, (100, 5))
+        self.assertEqual(result.dataset.data.shape, (100, 5))
         self.assertEqual(len(result.feature_mapping), 5)
-        np.testing.assert_array_equal(result.labels, self.labels)
+        np.testing.assert_array_equal(result.dataset.labels, self.labels)
 
     def test_feature_sampling_with_fraction(self):
         """Test FeatureSamplingStrategy with different fractions."""
         strategy = FeatureSamplingStrategy(feature_fraction=0.5)
-        results = strategy.sample(self.data, self.labels, num_children=4)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=4)
 
         self.assertEqual(len(results), 4)
 
         # ceil(20 * 0.5) = 10 features per child
-        self.assertEqual(results[0].data.shape, (100, 10))
+        self.assertEqual(results[0].dataset.data.shape, (100, 10))
         self.assertEqual(len(results[0].feature_mapping), 10)
 
     def test_instance_sampling_basic(self):
         """Test that InstanceSamplingStrategy samples correct number of instances."""
         strategy = InstanceSamplingStrategy(sample_fraction=0.25)
-        results = strategy.sample(self.data, self.labels, num_children=4)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=4)
 
         self.assertEqual(len(results), 4)
 
         # ceil(100 * 0.25) = 25 instances per child
         result = results[0]
-        self.assertEqual(result.data.shape, (25, 20))
-        self.assertEqual(len(result.labels), 25)
+        self.assertEqual(result.dataset.data.shape, (25, 20))
+        self.assertEqual(len(result.dataset.labels), 25)
         self.assertIsNone(result.feature_mapping)
 
     def test_combined_sampling(self):
         """Test CombinedSamplingStrategy samples both dimensions."""
         strategy = CombinedSamplingStrategy(feature_fraction=0.25, sample_fraction=0.25)
-        results = strategy.sample(self.data, self.labels, num_children=4)
+        results = strategy.sample(Dataset(self.data, self.labels), num_children=4)
 
         self.assertEqual(len(results), 4)
 
         # Features: ceil(20 * 0.25) = 5, Instances: ceil(100 * 0.25) = 25
         result = results[0]
-        self.assertEqual(result.data.shape, (25, 5))
-        self.assertEqual(len(result.labels), 25)
+        self.assertEqual(result.dataset.data.shape, (25, 5))
+        self.assertEqual(len(result.dataset.labels), 25)
         self.assertEqual(len(result.feature_mapping), 5)
 
 
@@ -139,6 +140,24 @@ class TestChildPopulationCreation(unittest.TestCase):
             self.assertEqual(child.train_data.shape[1], self.data.shape[1])
             # Fewer instances
             self.assertLess(child.train_data.shape[0], self.data.shape[0])
+
+    def test_children_of_a_merged_parent_count_original_rows(self):
+        """Children sample original rows, even when the parent merged duplicates."""
+        base = np.random.rand(10, 20) > 0.5
+        pick = np.random.randint(0, 10, size=200)
+        config = BooleanGPConfig(
+            train_data=base[pick],
+            train_labels=np.random.randint(0, 2, 10)[pick],
+            max_depth=1,
+            num_child_populations=2,
+            sampling_strategy=InstanceSamplingStrategy(sample_fraction=0.5),
+            top_k_transfer=5,
+        )
+        gp = BooleanGP(config)
+        self.assertLessEqual(len(gp.train_data), 10)
+        self.assertEqual(gp.evaluator.dataset.n_rows, 200)
+        for child in gp.child_populations:
+            self.assertEqual(child.evaluator.dataset.n_rows, 100)
 
     def test_nested_children_with_depth_2(self):
         """Test that depth=2 creates grandchildren."""

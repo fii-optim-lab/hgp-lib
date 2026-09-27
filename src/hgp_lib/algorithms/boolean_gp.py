@@ -6,18 +6,11 @@ from numpy import ndarray
 from sklearn.exceptions import NotFittedError
 
 from ..configs import BooleanGPConfig, validate_gp_config
-from ..metrics import GenerationMetrics
+from ..evaluation import Dataset, resolve_scorer
+from ..results import GenerationMetrics
 from ..rules import Rule
 from ..selections import TournamentSelection
-from ..utils.metrics import (
-    SampleWeightScorer,
-    confusion_matrix,
-    fast_f1_score,
-    optimize_scorers_for_data,
-)
-from ..metrics import GenerationMetrics
-from ..rules import Rule
-from ..selections import TournamentSelection
+
 
 class BooleanGP:
     """
@@ -31,20 +24,26 @@ class BooleanGP:
     regeneration resets the population if no improvement is observed for a specified
     number of epochs.
 
-    Training data and labels are provided via `BooleanGPConfig`. The number of features
-    (`num_features`) is derived from the data shape and passed to the configured
-    `population_factory` and `mutation_factory` for runtime construction of the
-    `PopulationGenerator` and `MutationExecutor`.
+    Training data and labels are provided via `BooleanGPConfig`. The configured `backend`
+    binds the scorer to them once (`evaluator`), merging duplicate rows into sample
+    weights when `optimize_scorer` allows it. The number of features (`num_features`) is
+    derived from the data shape and passed to the configured `population_factory` and
+    `mutation_factory` for runtime construction of the `PopulationGenerator` and
+    `MutationExecutor`.
 
     Args:
         config (BooleanGPConfig): Configuration containing `train_data`,
             `train_labels`, `score_fn`, `population_factory`,
             `mutation_factory`, and optional components.
         current_depth (int): Depth of this population in the hierarchy. Default: `0`.
-        sample_weight (ndarray | None): Weights of the rows of `config.train_data`.
-            Child populations receive the weights of the rows sampled from their
-            parent's deduplicated data. Used only when `optimize_scorer` is enabled.
-            Default: `None`.
+        dataset (Dataset | None): Training rows sampled by the parent population,
+            possibly weighted. Only set for child populations; the root uses
+            `config.train_data` and `config.train_labels`. Default: `None`.
+
+    Attributes:
+        backend (EvaluationBackend): The configured evaluation backend.
+        scorer (Scorer): The resolved scoring function.
+        evaluator (Evaluator): The training rows with the scorer bound to them.
 
     Examples:
         >>> import numpy as np
@@ -67,44 +66,22 @@ class BooleanGP:
         self,
         config: BooleanGPConfig,
         current_depth: int = 0,
-        sample_weight: ndarray | None = None,
+        dataset: Dataset | None = None,
     ):
         validate_gp_config(config)
 
-        train_data = config.train_data
-        train_labels = config.train_labels
+        if dataset is None:
+            dataset = Dataset(config.train_data, config.train_labels)
+        self.backend = config.backend
+        self.scorer = resolve_scorer(config.score_fn, config.optimize_scorer)
+        self.evaluator = self.backend.bind(dataset, self.scorer)
 
-        if config.score_fn is None:
-            config.score_fn = fast_f1_score
-        score_fn = config.score_fn
-        self._original_score_fn = score_fn
-
-        if config.optimize_scorer:
-            score_fn, train_cm, train_data, train_labels = optimize_scorers_for_data(
-                config.score_fn,
-                confusion_matrix,
-                data=config.train_data,
-                labels=config.train_labels,
-                sample_weight=sample_weight,
-            )
-        else:
-            train_cm = confusion_matrix
-        # Weights of the deduplicated training rows, passed on to child populations.
-        self.train_sample_weight = (
-            train_cm.sample_weight if isinstance(train_cm, SampleWeightScorer) else None
-        )
-
-        self.score_fn = score_fn
-        self.train_cm = train_cm
         self.complexity_penalty = config.complexity_penalty
-        self.train_data = np.asfortranarray(train_data)
-        self.train_labels = train_labels
-
         self.current_depth = current_depth
-        num_features = train_data.shape[1]
+        num_features = self.evaluator.dataset.data.shape[1]
 
         self.population_generator = config.population_factory.create(
-            num_features, score_fn, train_data, train_labels
+            num_features, self.evaluator
         )
         self.mutation_executor = config.mutation_factory.create(
             num_features, config.check_valid
@@ -148,22 +125,19 @@ class BooleanGP:
         returned list is used to configure one child population.
         """
         results = self.config.sampling_strategy.sample(
-            self.train_data,
-            self.train_labels,
-            self.config.num_child_populations,
-            sample_weight=self.train_sample_weight,
+            self.evaluator.dataset, self.config.num_child_populations
         )
 
         for result in results:
             child_config = replace(
                 self.config,
-                train_data=result.data,
-                train_labels=result.labels,
+                train_data=result.dataset.data,
+                train_labels=result.dataset.labels,
             )
             child = BooleanGP(
                 child_config,
                 current_depth=self.current_depth + 1,
-                sample_weight=result.sample_weight,
+                dataset=result.dataset,
             )
             child.feature_mapping = result.feature_mapping
 
@@ -274,9 +248,7 @@ class BooleanGP:
             >>> isinstance(metrics.best_train_score, float)
             True
         """
-        scores = self.evaluate_population(
-            self.train_data, self.train_labels, self.score_fn
-        )
+        scores = self.evaluator.score(self.population)
         if parent_scores is not None:
             self._apply_feedback(scores, parent_scores)
 
@@ -508,6 +480,10 @@ class BooleanGP:
         """
         Evaluate all rules in the population against the given data.
 
+        The rows are scored as given, without merging duplicates. Training uses
+        ``self.evaluator.score(self.population)`` instead, which is bound to the
+        training rows.
+
         Args:
             data (ndarray):
                 Data to evaluate rules on (2D boolean array).
@@ -523,7 +499,7 @@ class BooleanGP:
             >>> import numpy as np
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
-            >>> from hgp_lib.evaluation.scorer import fast_accuracy_score
+            >>> from hgp_lib.evaluation import fast_accuracy_score
             >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
             >>> labels = np.array([1, 0, 1, 0])
             >>> config = BooleanGPConfig(
@@ -536,9 +512,10 @@ class BooleanGP:
             >>> all(0.0 <= s <= 1.0 for s in scores)
             True
         """
-        return np.array(
-            [score_fn(labels, rule.evaluate(data)) for rule in self.population]
+        evaluator = self.backend.bind(
+            Dataset(data, labels), resolve_scorer(score_fn, optimize=False)
         )
+        return evaluator.score(self.population)
 
     def _update_best(self, current_best: float, current_best_rule: Rule):
         """
@@ -558,7 +535,7 @@ class BooleanGP:
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
             >>> from hgp_lib.rules import Literal
-            >>> from hgp_lib.evaluation.scorer import fast_accuracy_score as accuracy_score
+            >>> from hgp_lib.evaluation import fast_accuracy_score as accuracy_score
             >>> data = np.array([[True, False], [False, True]])
             >>> labels = np.array([1, 0])
             >>> config = BooleanGPConfig(
@@ -600,9 +577,8 @@ class BooleanGP:
             labels (ndarray):
                 Validation/test labels (1D integer array).
             score_fn (Callable[[ndarray, ndarray], float] | None):
-                Optional scoring function. Uses the original (non-optimized) scorer when
-                ``None``, since the optimized scorer has ``sample_weight`` bound to training
-                data. Default: `None`.
+                Optional scoring function. Uses the configured scorer when ``None``.
+                Default: `None`.
 
         Returns:
             float: Score of the global best rule on the provided data.
@@ -614,7 +590,7 @@ class BooleanGP:
             >>> import numpy as np
             >>> from hgp_lib.configs import BooleanGPConfig
             >>> from hgp_lib.algorithms import BooleanGP
-            >>> from hgp_lib.evaluation.scorer import fast_accuracy_score as accuracy_score
+            >>> from hgp_lib.evaluation import fast_accuracy_score as accuracy_score
             >>> data = np.array([[True, False], [False, True], [True, True], [False, False]])
             >>> labels = np.array([1, 0, 1, 0])
             >>> config = BooleanGPConfig(
@@ -630,9 +606,15 @@ class BooleanGP:
         if self.global_best_rule is None:
             raise NotFittedError("No best rule available. Run at least one step first.")
 
-        fn = self._original_score_fn if score_fn is None else score_fn
-        return float(fn(labels, self.global_best_rule.evaluate(data)))
+        fn = self.scorer.fn if score_fn is None else score_fn
+        return float(fn(labels, self.backend.predict(self.global_best_rule, data)))
 
     @property
-    def original_score_fn(self):
-        return self._original_score_fn
+    def train_data(self) -> ndarray:
+        """The training rows as scored, possibly merged (``evaluator.dataset.data``)."""
+        return self.evaluator.dataset.data
+
+    @property
+    def train_labels(self) -> ndarray:
+        """The labels of `train_data` (``evaluator.dataset.labels``)."""
+        return self.evaluator.dataset.labels
