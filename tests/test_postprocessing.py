@@ -1,11 +1,22 @@
 from itertools import pairwise, product
+from types import SimpleNamespace
 
+import numpy as np
 import pytest
 import sympy as sp
 from sympy import sympify
 from sympy.core.relational import Rel
+from sympy.logic.boolalg import is_cnf, is_dnf
 
 from hgp_lib.postprocessing import ThresholdSimplifier, simplify_threshold_formula
+from hgp_lib.postprocessing.rule_to_sympy import (
+    _convert_rule,
+    _feature_base_name,
+    _number,
+    _safe_symbol_name,
+    feature_to_sympy,
+    rule_to_sympy,
+)
 
 
 def _collect_bounds(expr, bounds):
@@ -34,7 +45,7 @@ def _sample_points(bounds):
         samples.add(values[0] - 1)
 
         # one point between every pair of boundaries
-        for a, b in pairwise(values, values[1:]):
+        for a, b in pairwise(values):
             samples.add((a + b) / 2)
 
         # one point above the largest boundary
@@ -1047,6 +1058,548 @@ def test_cache_is_cleared_at_start_of_simplify(ts, x):
 
     assert ts._dnf_cache.get(x > 0) != "stale"
     assert ts._cnf_cache.get(x > 0) != "stale"
+
+
+def test_formula_properties(ts, x):
+    # Simplified formula should be:
+    # (x >= 3) & (x <= 17) & ((x > 12) | (x < 7))
+    complex_formula = (
+        ((x >= 3) & ((x < 7) | (x < 6)))
+        | ((x > 12) & (x <= 17)) & ((x > 12) & (x <= 17))
+        | ((x <= 2) & (x >= 3))
+    )
+
+    assert not is_cnf(complex_formula)
+    assert not is_dnf(complex_formula)
+
+    result = ts.simplify(complex_formula)
+
+    assert is_cnf(result["best_cnf"])
+    assert is_dnf(result["best_dnf"])
+
+    assert equivalent(complex_formula, result["best_cnf"])
+    assert equivalent(complex_formula, result["best_dnf"])
+
+
+# ---------------------------------------------------------------------------
+# rule_to_sympy.py
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def literal(index, negated=False):
+    return SimpleNamespace(
+        kind="Literal",
+        value=index,
+        negated=negated,
+    )
+
+
+def and_rule(*children, negated=False):
+    return SimpleNamespace(
+        kind="And",
+        subrules=list(children),
+        negated=negated,
+    )
+
+
+def or_rule(*children, negated=False):
+    return SimpleNamespace(
+        kind="Or",
+        subrules=list(children),
+        negated=negated,
+    )
+
+
+def make_clf(rule, features, **kwargs):
+    return SimpleNamespace(
+        rule=rule,
+        feature_names=features,
+        **kwargs,
+    )
+
+
+@pytest.fixture
+def symbols():
+    return {
+        "mean radius": sp.Symbol("mean_radius", real=True),
+        "area": sp.Symbol("area", real=True),
+        "texture": sp.Symbol("texture", real=True),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Numeric and symbol-name helpers
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("4", sp.Float("4")),
+        ("13.095", sp.Float("13.095")),
+        ("-2.5", sp.Float("-2.5")),
+        ("+3.2", sp.Float("+3.2")),
+        (".75", sp.Float(".75")),
+        ("5.", sp.Float("5.")),
+        ("1e3", sp.Float("1e3")),
+        ("-2.5E-2", sp.Float("-2.5E-2")),
+    ],
+)
+def test_number(value, expected):
+    assert _number(value) == expected
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("mean radius", "mean_radius"),
+        ("  mean radius  ", "mean_radius"),
+        ("feature-name", "feature_name"),
+        ("feature.name", "feature_name"),
+        ("a/b\\c", "a_b_c"),
+        ("123feature", "_123feature"),
+        ("___", None),
+        ("", None),
+        ("   ", None),
+    ],
+)
+def test_safe_symbol_name(name, expected):
+    if expected is None:
+        with pytest.raises(ValueError, match="Invalid feature name"):
+            _safe_symbol_name(name)
+    else:
+        assert _safe_symbol_name(name) == expected
+
+
+@pytest.mark.parametrize(
+    ("feature", "expected"),
+    [
+        ("mean radius", "mean radius"),
+        ("mean radius=4", "mean radius"),
+        ("mean radius < 5.2", "mean radius"),
+        ("3.1 <= mean radius", "mean radius"),
+        ("2.7 <= mean radius < 6", "mean radius"),
+        (" area = -1.5 ", "area"),
+        ("texture", "texture"),
+    ],
+)
+def test_feature_base_name(feature, expected):
+    assert _feature_base_name(feature) == expected
+
+
+# ---------------------------------------------------------------------------
+# Feature-to-SymPy conversion
+# ---------------------------------------------------------------------------
+
+
+def test_plain_feature_returns_symbol(symbols):
+    result = feature_to_sympy("mean radius", symbols)
+
+    assert result == symbols["mean radius"]
+
+
+@pytest.mark.parametrize(
+    ("feature", "expected"),
+    [
+        ("mean radius=4", sp.Eq(sp.Symbol("mean_radius", real=True), 4.0)),
+        ("mean radius=-2.5", sp.Eq(sp.Symbol("mean_radius", real=True), -2.5)),
+        ("mean radius=1e3", sp.Eq(sp.Symbol("mean_radius", real=True), 1000.0)),
+    ],
+)
+def test_exact_feature(feature, expected, symbols):
+    assert feature_to_sympy(feature, symbols) == expected
+
+
+def test_upper_bound_feature(symbols):
+    result = feature_to_sympy("mean radius < 5.2", symbols)
+
+    assert result == (symbols["mean radius"] < sp.Float("5.2"))
+
+
+def test_lower_bound_feature(symbols):
+    result = feature_to_sympy("3.1 <= mean radius", symbols)
+
+    assert result == (symbols["mean radius"] >= sp.Float("3.1"))
+
+
+def test_range_feature(symbols):
+    result = feature_to_sympy("2.7 <= mean radius < 6", symbols)
+
+    expected = sp.And(
+        symbols["mean radius"] >= sp.Float("2.7"),
+        symbols["mean radius"] < sp.Float("6"),
+    )
+
+    assert result == expected
+
+
+def test_feature_with_surrounding_whitespace(symbols):
+    result = feature_to_sympy("  mean radius  ", symbols)
+
+    assert result == symbols["mean radius"]
+
+
+def test_feature_name_with_spaces(symbols):
+    result = feature_to_sympy("mean radius < 10", symbols)
+
+    assert result == (symbols["mean radius"] < sp.Float("10"))
+
+
+def test_unknown_feature_raises_key_error(symbols):
+    with pytest.raises(KeyError):
+        feature_to_sympy("unknown feature", symbols)
+
+
+# ---------------------------------------------------------------------------
+# Recursive rule conversion
+# ---------------------------------------------------------------------------
+
+
+def test_convert_literal(symbols):
+    rule = literal(0)
+
+    result = _convert_rule(rule, ["mean radius"], symbols)
+
+    assert result == symbols["mean radius"]
+
+
+def test_convert_numpy_integer_literal(symbols):
+    rule = literal(np.int64(0))
+
+    result = _convert_rule(rule, ["mean radius"], symbols)
+
+    assert result == symbols["mean radius"]
+
+
+def test_convert_negated_literal(symbols):
+    rule = literal(0, negated=True)
+
+    result = _convert_rule(rule, ["mean radius"], symbols)
+
+    assert result == sp.Not(symbols["mean radius"])
+
+
+def test_convert_and_rule(symbols):
+    rule = and_rule(literal(0), literal(1))
+
+    result = _convert_rule(
+        rule,
+        ["mean radius < 5", "area"],
+        symbols,
+    )
+
+    expected = sp.And(
+        symbols["mean radius"] < sp.Float("5"),
+        symbols["area"],
+    )
+
+    assert result == expected
+
+
+def test_convert_or_rule(symbols):
+    rule = or_rule(literal(0), literal(1))
+
+    result = _convert_rule(
+        rule,
+        ["mean radius", "area"],
+        symbols,
+    )
+
+    assert result == sp.Or(
+        symbols["mean radius"],
+        symbols["area"],
+    )
+
+
+def test_convert_nested_rule(symbols):
+    rule = and_rule(
+        literal(0),
+        or_rule(literal(1), literal(2)),
+    )
+
+    result = _convert_rule(
+        rule,
+        ["mean radius", "area", "texture"],
+        symbols,
+    )
+
+    expected = sp.And(
+        symbols["mean radius"],
+        sp.Or(symbols["area"], symbols["texture"]),
+    )
+
+    assert result == expected
+
+
+def test_convert_empty_and_rule():
+    assert _convert_rule(and_rule(), [], {}) is sp.true
+
+
+def test_convert_empty_or_rule():
+    assert _convert_rule(or_rule(), [], {}) is sp.false
+
+
+def test_convert_negated_and_rule(symbols):
+    rule = and_rule(literal(0), literal(1), negated=True)
+
+    result = _convert_rule(
+        rule,
+        ["mean radius", "area"],
+        symbols,
+    )
+
+    expected = sp.Not(sp.And(symbols["mean radius"], symbols["area"]))
+
+    assert result == expected
+
+
+def test_literal_without_value_raises_value_error():
+    rule = SimpleNamespace(kind="Literal")
+    rule2 = literal(None)
+
+    with pytest.raises(ValueError, match="Literal has no value"):
+        _convert_rule(rule, ["mean radius"], {})
+
+    with pytest.raises(ValueError, match="Literal has no value"):
+        _convert_rule(rule2, ["mean radius"], {})
+
+
+@pytest.mark.parametrize("value", ["0", 1.5, np.int32(0)])
+def test_invalid_literal_value_raises_type_error(value):
+    rule = literal(value)
+
+    with pytest.raises(TypeError, match="Literal.value must be an int"):
+        _convert_rule(rule, ["mean radius", "area"], {})
+
+
+@pytest.mark.parametrize("index", [-1, 1])
+def test_out_of_range_literal_raises_index_error(index):
+    rule = literal(index)
+
+    with pytest.raises(IndexError, match="outside features"):
+        _convert_rule(rule, ["mean radius"], {})
+
+
+def test_unsupported_rule_kind_raises_type_error():
+    rule = SimpleNamespace(kind="Xor")
+
+    with pytest.raises(TypeError, match="Unsupported rule node type"):
+        _convert_rule(rule, [], {})
+
+
+# ---------------------------------------------------------------------------
+# Public rule_to_sympy API
+# ---------------------------------------------------------------------------
+
+
+def test_rule_to_sympy_returns_same_classifier():
+    clf = make_clf(
+        literal(0),
+        ["mean radius"],
+    )
+
+    result = rule_to_sympy(clf, simplify=False)
+
+    assert result is clf
+
+
+def test_rule_to_sympy_stores_intermediate_results():
+    rule = literal(0)
+    clf = make_clf(
+        rule,
+        ["mean radius"],
+        format_rule=lambda: "mean radius",
+    )
+
+    rule_to_sympy(clf, simplify=False)
+
+    assert clf.sympy.original_rule is rule
+    assert clf.sympy.rule_features == ["mean radius"]
+    assert clf.sympy.original_columns == ["mean radius"]
+    assert clf.sympy.formatted_rule == "mean radius"
+    assert clf.sympy.sympy_symbols["mean radius"] == sp.Symbol("mean_radius", real=True)
+    assert clf.sympy.sympy_rule == sp.Symbol("mean_radius", real=True)
+    assert clf.sympy.sympy_rule_string == "mean_radius"
+    assert not hasattr(clf.sympy, "simplified_rule")
+
+
+def test_rule_to_sympy_supports_features_names_attribute():
+    clf = SimpleNamespace(
+        rule=literal(0),
+        features_names=["mean radius"],
+    )
+
+    result = rule_to_sympy(clf, simplify=False)
+
+    assert result.sympy.rule_features == ["mean radius"]
+
+
+def test_features_names_takes_precedence_over_feature_names():
+    clf = SimpleNamespace(
+        rule=literal(0),
+        features_names=["area"],
+        feature_names=["mean radius"],
+    )
+
+    rule_to_sympy(clf, simplify=False)
+
+    assert clf.sympy.rule_features == ["area"]
+    assert clf.sympy.original_columns == ["area"]
+
+
+def test_missing_feature_names_raises_attribute_error():
+    clf = SimpleNamespace(rule=literal(0))
+
+    with pytest.raises(
+        AttributeError,
+        match="either 'features_names' or 'feature_names'",
+    ):
+        rule_to_sympy(clf, simplify=False)
+
+
+def test_original_columns_come_from_binarizer():
+    clf = make_clf(
+        literal(0),
+        ["mean radius < 5"],
+        binarizer=SimpleNamespace(
+            _original_columns=["mean radius", "area", "mean radius"]
+        ),
+    )
+
+    rule_to_sympy(clf, simplify=False)
+
+    assert clf.sympy.original_columns == ["mean radius", "area"]
+    assert list(clf.sympy.sympy_symbols) == ["mean radius", "area"]
+
+
+def test_original_columns_fall_back_to_feature_names():
+    clf = make_clf(
+        and_rule(literal(0), literal(1)),
+        ["mean radius < 5", "1<=mean radius < 3"],
+    )
+
+    rule_to_sympy(clf, simplify=False)
+
+    assert clf.sympy.original_columns == ["mean radius"]
+
+
+def test_missing_format_rule_sets_formatted_rule_to_none():
+    clf = make_clf(literal(0), ["mean radius"])
+
+    rule_to_sympy(clf, simplify=False)
+
+    assert clf.sympy.formatted_rule is None
+
+
+def test_prepare_rule_is_applied_and_stored():
+    clf = make_clf(literal(0), ["mean radius"])
+
+    result = rule_to_sympy(
+        clf,
+        prepare_rule=lambda expr: expr > 0,
+        simplify=False,
+    )
+
+    assert result.sympy.prepared_rule == (sp.Symbol("mean_radius", real=True) > 0)
+    assert result.sympy.prepared_rule_string == str(result.sympy.prepared_rule)
+    assert result.sympy.sympy_rule == sp.Symbol("mean_radius", real=True)
+
+
+def test_prepare_rule_is_called_before_simplification():
+    clf = make_clf(literal(0), ["mean radius"])
+    calls = []
+
+    def prepare(expr):
+        calls.append(("prepare", expr))
+        return expr
+
+    def simplify_rule(expr):
+        calls.append(("simplify", expr))
+        return {"result": expr}
+
+    rule_to_sympy(
+        clf,
+        prepare_rule=prepare,
+        simplify_rule=simplify_rule,
+        simplify=True,
+    )
+
+    assert [name for name, _ in calls] == ["prepare", "simplify"]
+    assert clf.sympy.simplified_rule.result == sp.Symbol("mean_radius", real=True)
+
+
+def test_custom_simplifier_is_called_when_simplify_is_true():
+    clf = make_clf(literal(0), ["mean radius"])
+    received = []
+
+    def simplify_rule(expr):
+        received.append(expr)
+        return {"expression": expr, "status": "simplified"}
+
+    result = rule_to_sympy(
+        clf,
+        simplify_rule=simplify_rule,
+        simplify=True,
+    )
+
+    assert received == [sp.Symbol("mean_radius", real=True)]
+    assert result.sympy.simplified_rule.expression == received[0]
+    assert result.sympy.simplified_rule.status == "simplified"
+
+
+def test_custom_simplifier_is_not_called_when_simplify_is_false():
+    clf = make_clf(literal(0), ["mean radius"])
+    called = False
+
+    def simplify_rule(expr):
+        nonlocal called
+        called = True
+        return {"expression": expr}
+
+    rule_to_sympy(
+        clf,
+        simplify_rule=simplify_rule,
+        simplify=False,
+    )
+
+    assert called is False
+    assert not hasattr(clf.sympy, "simplified_rule")
+
+
+def test_simplifier_receives_prepared_expression():
+    clf = make_clf(literal(0), ["mean radius"])
+    received = []
+
+    def prepare(expr):
+        return expr > 0
+
+    def simplify_rule(expr):
+        received.append(expr)
+        return {"expression": expr}
+
+    rule_to_sympy(
+        clf,
+        prepare_rule=prepare,
+        simplify_rule=simplify_rule,
+        simplify=True,
+    )
+
+    assert received == [sp.Symbol("mean_radius", real=True) > 0]
+    assert clf.sympy.simplified_rule.expression == received[0]
+
+
+def test_default_simplifier_is_not_invoked_when_disabled():
+    clf = make_clf(literal(0), ["mean radius"])
+
+    # With simplify=False, the default simplifier is configured but not called.
+    result = rule_to_sympy(clf, simplify=False)
+
+    assert result.sympy.sympy_rule == sp.Symbol("mean_radius", real=True)
+    assert not hasattr(result.sympy, "simplified_rule")
 
 
 if __name__ == "__main__":

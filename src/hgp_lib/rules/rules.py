@@ -67,7 +67,6 @@ class Rule(ABC):
         self.parent = parent
         self.value = value
         self.negated = negated
-        self.kind = self.__class__.__name__
 
     def flatten(self):
         """

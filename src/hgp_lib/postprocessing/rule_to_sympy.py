@@ -23,7 +23,7 @@ from .simplifier import ThresholdSimplifier
 # feature names themselves may contain spaces
 
 _RE_EXACT = re.compile(
-    r"^(?P<name>.+?)=(?P<value>[+-]?(?:\d+(?:\.\d*)?|\.\d+)"
+    r"^(?P<name>.+?)=\s*(?P<value>[+-]?(?:\d+(?:\.\d*)?|\.\d+)"
     r"(?:[eE][+-]?\d+)?)$"
 )
 
