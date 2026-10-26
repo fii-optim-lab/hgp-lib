@@ -149,13 +149,17 @@ class MutationExecutor:
             >>> str(rule)
             '0'
         """
+
         new_rule = rule.copy()
 
         last_mutation = n_mutations - 1
-        last_try = self.num_tries - 1
+        num_tries = self.num_tries
+        last_try = num_tries - 1
+        check_valid = self.check_valid
+        no_validator = check_valid is None
 
         for mutation_i in range(n_mutations):
-            for tries in range(self.num_tries):
+            for tries in range(num_tries):
                 selected = select_crossover_point(new_rule, operator_p=self.operator_p)
                 # selected = random.choice(new_rule.flatten())
 
@@ -166,11 +170,21 @@ class MutationExecutor:
                         else self.operator_mutations
                     ).apply(selected)
                 except MutationError:
+                    # TODO: Document the fact that MutationError triggers when mutations would leave the rules in
+                    #  illegal states. But a MutationError does not mean the rule has reached an illegal state
                     continue
 
-                if self.check_valid is None or self.check_valid(new_rule):
+                if no_validator:
                     rule = new_rule
                     break
-                elif mutation_i != last_mutation or tries != last_try:
-                    new_rule = rule.copy()
+                elif check_valid(new_rule):
+                    if mutation_i == last_mutation:
+                        return new_rule  # no need to copy anymore
+                    else:
+                        rule = new_rule.copy()
+                        # We copy so that future mutations that do not pass checks would not affect the rule
+                else:
+                    # Validation failed => we need to copy the rule
+                    if mutation_i != last_mutation or tries != last_try:
+                        new_rule = rule.copy()
         return rule
