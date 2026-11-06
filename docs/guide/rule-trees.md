@@ -55,7 +55,6 @@ Operators combine these vectors with NumPy boolean operations, so a whole rule r
 ## The NumPy backend
 
 [`NumpyBackend`](../api/evaluation.md#hgp_lib.evaluation.numpy.backend.NumpyBackend) is the default backend.
-Its options only change speed and memory use, never results.
 
 ```python
 from hgp_lib import BooleanGPConfig
@@ -82,7 +81,7 @@ See [`NumpyBackend`](../api/evaluation.md#hgp_lib.evaluation.numpy.backend.Numpy
 
 ## The PyTorch backend
 
-[`TorchBackend`](../api/evaluation.md#hgp_lib.evaluation.torch.backend.TorchBackend) evaluates rules with PyTorch, on the CPU or on a GPU.
+[`TorchBackend`](../api/evaluation.md#hgp_lib.evaluation.torch.backend.TorchBackend) evaluates rules with PyTorch.
 It needs PyTorch, which is an optional dependency:
 
 ```bash

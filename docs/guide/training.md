@@ -159,7 +159,7 @@ This is equivalent to calling `predict(history.global_best_rule, test_bin.to_num
 
 Rules are evaluated by the backend set in `BooleanGPConfig.backend`, which is used for training, validation and every `predict` method.
 The default is [`NumpyBackend()`](../api/evaluation.md#hgp_lib.evaluation.numpy.backend.NumpyBackend); its options only change speed and memory use.
-[`TorchBackend`](../api/evaluation.md#hgp_lib.evaluation.torch.backend.TorchBackend) evaluates rules with PyTorch, for example on a GPU, and gives the same scores.
+[`TorchBackend`](../api/evaluation.md#hgp_lib.evaluation.torch.backend.TorchBackend) evaluates rules with PyTorch.
 
 ```python
 from hgp_lib.evaluation import NumpyBackend, TorchBackend

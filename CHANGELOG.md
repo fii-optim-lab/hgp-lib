@@ -11,8 +11,8 @@ Deprecated APIs keep working with a warning and will be removed in a future 2.x 
 - New `hgp_lib.evaluation` package:
   - `predict(rule, data)` and `score(rule, data, labels, score_fn=None)` evaluate a rule on binarized data. They raise a `TypeError` for DataFrames and non-boolean arrays; use `BooleanRuleClassifier` or `GPBenchmarker` for raw data.
   - `fast_f1_score`, `fast_accuracy_score` and `confusion_matrix` score boolean predictions, with optional sample weights.
-  - `NumpyBackend(order="F", low_memory=None, batched=False, batch_size=None)`, the default backend. Its options change speed and memory use, never results.
-  - `TorchBackend(device=None, batched=False, batch_size=None)` evaluates rules with PyTorch on the CPU (the default) or a GPU, with the same scores as `NumpyBackend`. It needs the new `torch` extra: `pip install "hgp-lib[torch]"`.
+  - `NumpyBackend(order="F", low_memory=None, batched=False, batch_size=None)`, the default backend.
+  - `TorchBackend(device=None, batched=False, batch_size=None)` evaluates rules with PyTorch on the CPU (the default) or the provided device. It needs the new `torch` extra: `pip install "hgp-lib[torch]"`.
   - `EvaluationBackend`, `Evaluator`, `Dataset` and `Scorer` for custom backends and strategies.
 - `BooleanGPConfig.backend` selects the backend used for training, validation and prediction.
 - Configs have defaults, so only the data is needed: `TrainerConfig()`, `BenchmarkerConfig(data=X, labels=y)` and `BooleanRuleClassifier()`. `TrainerConfig.num_epochs` defaults to `1000`.
