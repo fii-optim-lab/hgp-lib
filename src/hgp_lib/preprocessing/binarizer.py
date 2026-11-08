@@ -60,10 +60,6 @@ def format_edge(edge: float) -> str:
 
 
 def _fewest_decimals_between(edge: float, low: float, high: float) -> float | None:
-    """
-    The number in ``(low, high]`` with the fewest decimals, and at least 2, closest to
-    ``edge`` among those. ``None`` if there is none up to the precision of a float.
-    """
     for decimals in range(MIN_EDGE_DECIMALS, MAX_EDGE_DECIMALS + 1):
         scale = 10**decimals
         candidate = round(edge, decimals)
