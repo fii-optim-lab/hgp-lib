@@ -5,7 +5,11 @@ Each experiment calls ``scripts/run_on_pmlb.py``, which benchmarks one method on
 dataset with one process per dataset. An experiment whose CSV already exists in the
 output folder is skipped, so running this script again only runs what is missing.
 At the end, the script prints the mean rank, the number of datasets where each method
-is best or tied for best, and the mean test F1, and saves them to ``summary.md``.
+is best or tied for best, the mean test F1, and the mean runtime per dataset, and saves
+them to ``summary.md``. The table of each HGP variant against the baselines also shows
+the HGP win rate: the share of datasets on which that variant scores strictly higher
+than each baseline. It also saves radar plots (``plot_radar.py``) of all methods and of
+each HGP variant against the baselines.
 
 BoolXAI pins numpy 1.26.4 and scikit-learn 1.5.2, so it runs in its own Python 3.10 or
 3.11 venv (``--boolxai_python``). Every other experiment runs with the interpreter that
@@ -17,6 +21,8 @@ Usage:
 """
 
 import argparse
+import contextlib
+import io
 import os
 import subprocess
 import sys
@@ -25,13 +31,16 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+import matplotlib
 import numpy as np
 import pandas as pd
+from plot_radar import is_tie, plot_radar_performance
+from prettytable import PrettyTable, TableStyle
+
+matplotlib.use("Agg")  # Save the plots without opening a window.
 
 ROOT = Path(__file__).resolve().parents[1]
 RUN_ON_PMLB = ROOT / "scripts" / "run_on_pmlb.py"
-TIE_RTOL = 1e-5
-TIE_ATOL = 1e-8
 # 50 stratified rows of breast_cancer, for --test_run.
 TEST_RUN_DATASET = "breast_cancer_50"
 
@@ -41,11 +50,12 @@ class Experiment:
     label: str
     csv_name: str
     args: tuple[str, ...]
+    color: str
     is_hgp: bool = False
     needs_boolxai_python: bool = False
 
 
-def _hgp(epochs: int, depth: int) -> Experiment:
+def _hgp(epochs: int, depth: int, color: str) -> Experiment:
     return Experiment(
         label=f"HGP ({epochs} epochs, depth {depth})",
         csv_name=f"pmlb_hgp_epochs{epochs}_depth{depth}.csv",
@@ -57,32 +67,36 @@ def _hgp(epochs: int, depth: int) -> Experiment:
             "--max_depth",
             str(depth),
         ),
+        color=color,
         is_hgp=True,
     )
 
 
 # Run in this order.
 EXPERIMENTS = (
-    # _hgp(1000, 0),
-    # _hgp(1000, 1),
-    # _hgp(10000, 0),
-    _hgp(10000, 1),
-    # Experiment("DT", "pmlb_dt.csv", ("--model", "dt")),
-    # Experiment(
-    #     "BoolXAI (sklearn bins)",
-    #     "pmlb_boolxai_sklearn.csv",
-    #     ("--model", "boolxai", "--binarizer", "sklearn"),
-    #     needs_boolxai_python=True,
-    # ),
-    # Experiment(
-    #     "RIPPER (raw)",
-    #     "pmlb_ripper_none.csv",
-    #     ("--model", "ripper", "--binarizer", "none"),
-    # ),
+    _hgp(1000, 0, "royalblue"),
+    _hgp(1000, 1, "dodgerblue"),
+    _hgp(10000, 0, "navy"),
+    _hgp(10000, 1, "teal"),
+    Experiment("DT", "pmlb_dt.csv", ("--model", "dt"), color="crimson"),
+    Experiment(
+        "BoolXAI (sklearn bins)",
+        "pmlb_boolxai_sklearn.csv",
+        ("--model", "boolxai", "--binarizer", "sklearn"),
+        color="darkorange",
+        needs_boolxai_python=True,
+    ),
+    Experiment(
+        "RIPPER (raw)",
+        "pmlb_ripper_none.csv",
+        ("--model", "ripper", "--binarizer", "none"),
+        color="forestgreen",
+    ),
     # Experiment(
     #     "RIPPER (hgp-lib bins)",
     #     "pmlb_ripper_standard.csv",
     #     ("--model", "ripper", "--binarizer", "standard"),
+    #     color="purple",
     # ),
 )
 
@@ -160,85 +174,148 @@ def run_experiment(
     return True
 
 
-def summarize(scores: pd.DataFrame) -> pd.DataFrame:
+HGP_WIN_RATE = "HGP win rate"
+
+
+def summarize(
+    scores: pd.DataFrame, runtimes: pd.DataFrame, hgp: str | None = None
+) -> pd.DataFrame:
     """
-    Mean rank, best-or-tied count, and mean F1 of every method (column) over the
-    datasets (rows). Rank 1 is the best score on a dataset; tied methods share the
-    average of their ranks. Two scores tie when they are equal within the tolerance
-    used by ``plot_radar.py``.
+    Mean rank, best-or-tied count, mean F1, and mean runtime per dataset of every
+    method (column) over the datasets (rows). Rank 1 is the best score on a dataset;
+    tied methods share the average of their ranks. Ties use ``plot_radar.is_tie``.
+
+    With ``hgp``, also the HGP win rate: the percentage of datasets on which that HGP
+    variant scores strictly higher than each other method. Ties are not wins.
     """
     values = scores.to_numpy()
     a, b = values[:, :, None], values[:, None, :]
-    close = np.isclose(a, b, rtol=TIE_RTOL, atol=TIE_ATOL) | np.isclose(
-        b, a, rtol=TIE_RTOL, atol=TIE_ATOL
-    )
+    close = is_tie(a, b)
     better = (b > a) & ~close  # [d, i, j]: method j beats method i on dataset d
     ranks = 1 + better.sum(axis=2) + (close.sum(axis=2) - 1) / 2
-    best = np.isclose(
-        values, values.max(axis=1, keepdims=True), rtol=TIE_RTOL, atol=TIE_ATOL
-    )
+    best = is_tie(values, values.max(axis=1, keepdims=True))
     table = pd.DataFrame(
         {
             "Mean rank": ranks.mean(axis=0),
             "Best or tied": best.sum(axis=0),
             "Mean F1": values.mean(axis=0),
+            "Mean runtime (s)": runtimes[scores.columns].mean(axis=0).to_numpy(),
         },
         index=pd.Index(scores.columns, name="Method"),
     )
+    if hgp is not None:
+        hgp_scores = scores[hgp].to_numpy()
+        win_rates = {
+            method: 100
+            * ((hgp_scores > values[:, i]) & ~is_tie(hgp_scores, values[:, i])).mean()
+            for i, method in enumerate(scores.columns)
+        }
+        table[HGP_WIN_RATE] = [
+            "-" if method == hgp else f"{win_rates[method]:.2f}%"
+            for method in scores.columns
+        ]
     return table.sort_values("Mean rank")
 
 
-def format_table(table: pd.DataFrame) -> list[str]:
-    header = f"| {table.index.name} | " + " | ".join(table.columns) + " |"
-    lines = [header, "|" + "---|" * (len(table.columns) + 1)]
+def make_table(table: pd.DataFrame, style: TableStyle) -> PrettyTable:
+    pretty = PrettyTable([table.index.name, *table.columns])
+    pretty.set_style(style)
     for method, row in table.iterrows():
-        lines.append(
-            f"| {method} | {row['Mean rank']:.2f} | {int(row['Best or tied'])} "
-            f"| {row['Mean F1']:.4f} |"
-        )
-    return lines
+        runtime = row["Mean runtime (s)"]
+        cells = [
+            method,
+            f"{row['Mean rank']:.2f}",
+            int(row["Best or tied"]),
+            f"{row['Mean F1']:.4f}",
+            "-" if pd.isna(runtime) else f"{runtime:.1f}",
+        ]
+        if HGP_WIN_RATE in table:
+            cells.append(row[HGP_WIN_RATE])
+        pretty.add_row(cells)
+    pretty.align = "r"
+    pretty.align[table.index.name] = "l"
+    return pretty
 
 
-def build_summary(csv_paths: dict[Experiment, Path]) -> list[str]:
-    """Build the comparison tables from the experiments whose CSVs exist."""
+def build_summary(csv_paths: dict[Experiment, Path]) -> tuple[str, str]:
+    """
+    Build the comparison tables from the experiments whose CSVs exist.
+
+    Returns:
+        tuple[str, str]: The tables for the console and as Markdown.
+    """
     available = {e: p for e, p in csv_paths.items() if p.is_file()}
     if not available:
-        return ["No result CSVs found; nothing to summarize."]
+        message = "No result CSVs found; nothing to summarize."
+        return message, message
 
-    scores = pd.DataFrame(
-        {
-            e.label: pd.read_csv(p).set_index("dataset")["mean_test_score"]
-            for e, p in available.items()
-        }
+    frames = {
+        e.label: pd.read_csv(p).set_index("dataset") for e, p in available.items()
+    }
+    scores = pd.DataFrame({m: f["mean_test_score"] for m, f in frames.items()})
+    runtimes = pd.DataFrame(
+        {m: f.get("runtime_s", pd.Series(np.nan, f.index)) for m, f in frames.items()}
     )
-    lines = []
+
+    notes = []
     incomplete = scores.index[scores.isna().any(axis=1)]
     if len(incomplete):
-        lines.append(
+        notes.append(
             f"Leaving out {len(incomplete)} datasets that some methods lack: "
             f"{', '.join(incomplete)}"
         )
-        lines.append("")
     scores = scores.dropna()
+    runtimes = runtimes.loc[scores.index]
     missing = [e.label for e in csv_paths if e not in available]
     if missing:
-        lines.append(f"No results yet for: {', '.join(missing)}")
-        lines.append("")
+        notes.append(f"No results yet for: {', '.join(missing)}")
 
-    groups = [("All methods", list(scores.columns))]
+    sections = [("All methods", summarize(scores, runtimes))]
     baselines = [e.label for e in available if not e.is_hgp]
     for experiment in available:
         if experiment.is_hgp and baselines:
-            groups.append(
-                (f"{experiment.label} vs baselines", [experiment.label, *baselines])
+            methods = [experiment.label, *baselines]
+            sections.append(
+                (
+                    f"{experiment.label} vs baselines",
+                    summarize(scores[methods], runtimes, hgp=experiment.label),
+                )
             )
 
-    for title, methods in groups:
-        lines.append(f"## {title} ({len(scores)} datasets)")
-        lines.append("")
-        lines.extend(format_table(summarize(scores[methods])))
-        lines.append("")
-    return lines
+    console, markdown = list(notes), list(notes)
+    for title, table in sections:
+        title = f"{title} ({len(scores)} datasets)"
+        pretty = make_table(table, TableStyle.SINGLE_BORDER)
+        pretty.title = title
+        console.append(pretty.get_string())
+        markdown.append(f"## {title}\n\n{make_table(table, TableStyle.MARKDOWN)}")
+    return "\n\n".join(console), "\n\n".join(markdown)
+
+
+def make_plots(csv_paths: dict[Experiment, Path], out_dir: Path) -> list[Path]:
+    """
+    Save radar plots of all methods and of each HGP variant against the baselines,
+    for the experiments whose CSVs exist.
+    """
+    available = [e for e, p in csv_paths.items() if p.is_file()]
+    baselines = [e for e in available if not e.is_hgp]
+    plots = [("radar_all_methods.png", available)]
+    for experiment in available:
+        if experiment.is_hgp and baselines:
+            name = experiment.csv_name.removeprefix("pmlb_").removesuffix(".csv")
+            plots.append((f"radar_{name}_vs_baselines.png", [experiment, *baselines]))
+
+    saved = []
+    for file_name, experiments in plots:
+        if not experiments:
+            continue
+        series = [(str(csv_paths[e]), e.color, e.label) for e in experiments]
+        path = out_dir / file_name
+        # plot_radar prints its own summary, which the tables already cover.
+        with contextlib.redirect_stdout(io.StringIO()):
+            plot_radar_performance(series, str(path))
+        saved.append(path)
+    return saved
 
 
 def main():
@@ -254,8 +331,8 @@ def main():
     parser.add_argument(
         "--out_dir",
         type=Path,
-        default=ROOT / "softwareX" / "new_results",
-        help="Folder for the result CSVs and summary.md.",
+        default=ROOT / "results" / "pmlb",
+        help="Folder for the result CSVs, summary.md, and the radar plots.",
     )
     parser.add_argument("--data_dir", type=Path, default=ROOT / "data")
     parser.add_argument(
@@ -298,13 +375,15 @@ def main():
             if not run_experiment(experiment, csv_path, datasets, python, args):
                 failed.append(experiment.label)
 
-        lines = build_summary(csv_paths)
+        console, markdown = build_summary(csv_paths)
+        plots = make_plots(csv_paths, out_dir)
 
-    print("\n" + "\n".join(lines))
+    print("\n" + console)
     if not args.test_run:
         summary_path = args.out_dir / "summary.md"
-        summary_path.write_text("# PMLB comparison\n\n" + "\n".join(lines))
+        summary_path.write_text(f"# PMLB comparison\n\n{markdown}\n")
         print(f"Saved the tables to {summary_path}")
+        print(f"Saved {len(plots)} plots: {', '.join(p.name for p in plots)}")
     if failed:
         sys.exit(f"Failed experiments: {', '.join(failed)}")
 
