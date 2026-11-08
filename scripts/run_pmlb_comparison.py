@@ -8,8 +8,9 @@ At the end, the script prints the mean rank, the number of datasets where each m
 is best or tied for best, the mean test F1, and the mean runtime per dataset, and saves
 them to ``summary.md``. The table of each HGP variant against the baselines also shows
 the HGP win rate: the share of datasets on which that variant scores strictly higher
-than each baseline. It also saves radar plots (``plot_radar.py``) of all methods and of
-each HGP variant against the baselines.
+than each baseline. A separate table compares the HGP variants with each other. It also
+saves radar plots (``plot_radar.py``) of all methods, of the HGP variants together, of
+each HGP variant alone, and of each HGP variant against the baselines.
 
 BoolXAI pins numpy 1.26.4 and scikit-learn 1.5.2, so it runs in its own Python 3.10 or
 3.11 venv (``--boolxai_python``). Every other experiment runs with the interpreter that
@@ -57,7 +58,9 @@ class Experiment:
 
 def _hgp(epochs: int, depth: int, color: str) -> Experiment:
     return Experiment(
-        label=f"HGP ({epochs} epochs, depth {depth})",
+        label=f"HGP ({epochs} epochs)"
+        if depth == 0
+        else f"HGP ({epochs} epochs, depth {depth})",
         csv_name=f"pmlb_hgp_epochs{epochs}_depth{depth}.csv",
         args=(
             "--model",
@@ -75,19 +78,19 @@ def _hgp(epochs: int, depth: int, color: str) -> Experiment:
 # Run in this order.
 EXPERIMENTS = (
     _hgp(1000, 0, "royalblue"),
-    _hgp(1000, 1, "dodgerblue"),
+    # _hgp(1000, 1, "dodgerblue"),
     _hgp(10000, 0, "navy"),
-    _hgp(10000, 1, "teal"),
+    # _hgp(10000, 1, "teal"),
     Experiment("DT", "pmlb_dt.csv", ("--model", "dt"), color="crimson"),
     Experiment(
-        "BoolXAI (sklearn bins)",
+        "BoolXAI",
         "pmlb_boolxai_sklearn.csv",
         ("--model", "boolxai", "--binarizer", "sklearn"),
         color="darkorange",
         needs_boolxai_python=True,
     ),
     Experiment(
-        "RIPPER (raw)",
+        "RIPPER",
         "pmlb_ripper_none.csv",
         ("--model", "ripper", "--binarizer", "none"),
         color="forestgreen",
@@ -271,6 +274,9 @@ def build_summary(csv_paths: dict[Experiment, Path]) -> tuple[str, str]:
         notes.append(f"No results yet for: {', '.join(missing)}")
 
     sections = [("All methods", summarize(scores, runtimes))]
+    hgp_versions = [e.label for e in available if e.is_hgp]
+    if len(hgp_versions) > 1:
+        sections.append(("HGP versions", summarize(scores[hgp_versions], runtimes)))
     baselines = [e.label for e in available if not e.is_hgp]
     for experiment in available:
         if experiment.is_hgp and baselines:
@@ -294,15 +300,20 @@ def build_summary(csv_paths: dict[Experiment, Path]) -> tuple[str, str]:
 
 def make_plots(csv_paths: dict[Experiment, Path], out_dir: Path) -> list[Path]:
     """
-    Save radar plots of all methods and of each HGP variant against the baselines,
-    for the experiments whose CSVs exist.
+    Save radar plots of all methods, of the HGP variants together, of each HGP variant
+    alone, and of each HGP variant against the baselines, for the experiments whose
+    CSVs exist.
     """
     available = [e for e, p in csv_paths.items() if p.is_file()]
+    hgp_versions = [e for e in available if e.is_hgp]
     baselines = [e for e in available if not e.is_hgp]
     plots = [("radar_all_methods.png", available)]
-    for experiment in available:
-        if experiment.is_hgp and baselines:
-            name = experiment.csv_name.removeprefix("pmlb_").removesuffix(".csv")
+    if len(hgp_versions) > 1:
+        plots.append(("radar_hgp_versions.png", hgp_versions))
+    for experiment in hgp_versions:
+        name = experiment.csv_name.removeprefix("pmlb_").removesuffix(".csv")
+        plots.append((f"radar_{name}.png", [experiment]))
+        if baselines:
             plots.append((f"radar_{name}_vs_baselines.png", [experiment, *baselines]))
 
     saved = []
