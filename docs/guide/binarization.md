@@ -58,7 +58,7 @@ The [`StandardBinarizer`](../api/preprocessing.md#hgp_lib.preprocessing.binarize
 
 - `num_bins`: the default number of bins for numeric columns. Must be at least 2. Default is 5.
 - `column_strategy`: a per-column override for the number of bins, as a dict of column name to bin count. Default is none.
-- `precision`: the number of decimals used when formatting numeric bin boundary names. Must be at least 0. Default is 3.
+- `round_edges`: whether to move each numeric edge to a shorter number that keeps every training value in the same bin, so the bin names are easier to read. See [Readable bin names](#readable-bin-names). Default is false.
 - `numeric_binning`: an explicit [`BinningStrategy`](../api/preprocessing.md#hgp_lib.preprocessing.binning.BinningStrategy) for numeric columns. When set, it is used regardless of whether labels are provided. Default is none.
 
 The `column_strategy` parameter is what sets this binarizer apart from the common scikit-learn discretizers.
@@ -86,6 +86,32 @@ Each numeric bin column is named after its boundaries, so a rule that uses it re
 - A bin open on the left is named `column < right`.
 - A bin open on the right is named `left <= column`.
 - A bin with both edges finite is named `left <= column < right`.
+
+Bins are closed on the left, so a value equal to an edge falls in the bin that starts at that edge.
+The edges are printed in full, with at least 2 decimals, so a name states its bin exactly.
+
+Strategy edges can be long.
+A decision tree computes its thresholds in 32-bit floats, so a split between 0.1602 and 0.1604 becomes `0.16030000150203705`.
+With `round_edges=True`, each edge moves to the number with the fewest decimals, and at least 2, that keeps every training value in the same bin.
+Among those numbers, the one closest to the original edge is used.
+
+```python
+import numpy as np
+import pandas as pd
+from hgp_lib.preprocessing import StandardBinarizer
+
+X = pd.DataFrame({"x": [0.1597, 0.1602, 0.1604, 0.1611]})
+y = np.array([0, 0, 1, 1])
+
+StandardBinarizer(num_bins=2).fit_transform(X, y).columns.tolist()
+# ['x < 0.16030000150203705', '0.16030000150203705 <= x']
+
+StandardBinarizer(num_bins=2, round_edges=True).fit_transform(X, y).columns.tolist()
+# ['x < 0.1603', '0.1603 <= x']
+```
+
+The training data is binned the same way with and without rounding.
+New data that falls between an original edge and its rounded edge can land in a different bin.
 
 These names flow into [`Rule.to_str(feature_names)`](../api/rules.md#hgp_lib.rules.rules.Rule), which is how a trained rule prints with feature names instead of indices.
 

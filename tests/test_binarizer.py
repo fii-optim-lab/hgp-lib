@@ -5,6 +5,7 @@ import pandas as pd
 from sklearn.exceptions import NotFittedError
 
 from hgp_lib.preprocessing import SchemaMismatchError, StandardBinarizer
+from hgp_lib.preprocessing.binarizer import format_edge, round_edges
 from hgp_lib.preprocessing.binning import (
     BinningStrategy,
     QuantileBinning,
@@ -48,14 +49,10 @@ class TestStandardBinarizer(unittest.TestCase):
         with self.assertRaises(ValueError):
             StandardBinarizer(column_strategy={"a": 1})
 
-    def test_precision_must_be_int(self):
+    def test_round_edges_must_be_bool(self):
         with self.assertRaises(TypeError):
-            StandardBinarizer(precision=1.0)
-
-    def test_precision_minimum(self):
-        with self.assertRaises(ValueError):
-            StandardBinarizer(precision=-1)
-        StandardBinarizer(precision=0)
+            StandardBinarizer(round_edges=1)
+        StandardBinarizer(round_edges=True)
 
     def test_numeric_binning_must_be_strategy(self):
         with self.assertRaises(TypeError):
@@ -154,9 +151,9 @@ class TestStandardBinarizer(unittest.TestCase):
     def test_numeric_exact_columns_and_values(self):
         df = pd.DataFrame({"x": [1.0, 2.0, 3.0, 4.0]})
         result = StandardBinarizer(num_bins=2).fit_transform(df)
-        self.assertEqual(list(result.columns), ["x < 2.500", "2.500 <= x"])
-        self.assertEqual(result["x < 2.500"].tolist(), [True, True, False, False])
-        self.assertEqual(result["2.500 <= x"].tolist(), [False, False, True, True])
+        self.assertEqual(list(result.columns), ["x < 2.50", "2.50 <= x"])
+        self.assertEqual(result["x < 2.50"].tolist(), [True, True, False, False])
+        self.assertEqual(result["2.50 <= x"].tolist(), [False, False, True, True])
 
     def test_numeric_column_strategy_override(self):
         df = pd.DataFrame({"a": range(20), "b": range(20)})
@@ -287,28 +284,176 @@ class TestStandardBinarizer(unittest.TestCase):
     #  _format_numeric_bin_name
     # ------------------------------------------------------------------ #
     def test_format_left_inf(self):
-        b = StandardBinarizer(precision=2)
+        b = StandardBinarizer()
         self.assertEqual(b._format_numeric_bin_name("v", -np.inf, 3.0), "v < 3.00")
 
     def test_format_right_inf(self):
-        b = StandardBinarizer(precision=2)
+        b = StandardBinarizer()
         self.assertEqual(b._format_numeric_bin_name("v", 1.0, np.inf), "1.00 <= v")
 
     def test_format_both_finite(self):
-        b = StandardBinarizer(precision=1)
-        self.assertEqual(b._format_numeric_bin_name("v", 1.0, 3.0), "1.0 <= v < 3.0")
+        b = StandardBinarizer()
+        self.assertEqual(b._format_numeric_bin_name("v", 1.5, 3.0), "1.50 <= v < 3.00")
 
-    def test_format_precision_zero(self):
-        b = StandardBinarizer(precision=0)
-        self.assertEqual(b._format_numeric_bin_name("x", 2.7, 5.3), "3 <= x < 5")
-
-    def test_format_column_precision_overrides_default(self):
-        b = StandardBinarizer(precision=5)
-        b.column_precision["x"] = 1
-        self.assertEqual(b._format_numeric_bin_name("x", 1.0, 2.0), "1.0 <= x < 2.0")
+    def test_format_prints_edges_in_full(self):
+        b = StandardBinarizer()
         self.assertEqual(
-            b._format_numeric_bin_name("y", 1.0, 2.0), "1.00000 <= y < 2.00000"
+            b._format_numeric_bin_name("x", 0.1597, 0.16029999405145645),
+            "0.1597 <= x < 0.16029999405145645",
         )
+
+    def test_format_edge_reads_back_as_the_same_float(self):
+        for edge in [0.1, 2.5, -3.0, 1e-7, 123456.789, 0.16029999405145645, 1 / 3]:
+            text = format_edge(edge)
+            self.assertEqual(float(text), edge, text)
+            self.assertGreaterEqual(len(text.split(".")[1]), 2, text)
+
+    # ------------------------------------------------------------------ #
+    #  Bins are closed on the left
+    # ------------------------------------------------------------------ #
+    def test_value_on_an_edge_falls_in_the_right_bin(self):
+        class EdgeAtTwo(BinningStrategy):
+            def compute_edges(self, values, y, n_bins):
+                return np.array([-np.inf, 2.0, np.inf])
+
+        b = StandardBinarizer(numeric_binning=EdgeAtTwo())
+        result = b.fit_transform(pd.DataFrame({"x": [1.0, 2.0, 3.0]}))
+        self.assertEqual(list(result.columns), ["x < 2.00", "2.00 <= x"])
+        self.assertEqual(result["x < 2.00"].tolist(), [True, False, False])
+        self.assertEqual(result["2.00 <= x"].tolist(), [False, True, True])
+        test = b.transform(pd.DataFrame({"x": [2.0, np.nextafter(2.0, 0)]}))
+        self.assertEqual(test["2.00 <= x"].tolist(), [True, False])
+
+    def test_default_keeps_the_strategy_edges(self):
+        X = pd.DataFrame({"x": [0.1597, 0.1602, 0.1604, 0.1611]})
+        y = np.array([0, 0, 1, 1])
+        b = StandardBinarizer(num_bins=2)
+        b.fit_transform(X, y)
+        expected = SupervisedTreeBinning().compute_edges(X["x"].to_numpy(), y, 2)
+        np.testing.assert_array_equal(b._numerical_bins["x"], expected)
+        self.assertEqual(
+            b.get_feature_names_out(),
+            [f"x < {format_edge(expected[1])}", f"{format_edge(expected[1])} <= x"],
+        )
+
+    # ------------------------------------------------------------------ #
+    #  round_edges
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def _fixed_edges(*edges):
+        class Fixed(BinningStrategy):
+            def compute_edges(self, values, y, n_bins):
+                return np.array([-np.inf, *edges, np.inf])
+
+        return Fixed()
+
+    def _rounded(self, values, *edges):
+        b = StandardBinarizer(
+            numeric_binning=self._fixed_edges(*edges), round_edges=True
+        )
+        b.fit_transform(pd.DataFrame({"x": values}))
+        return b._numerical_bins["x"][1:-1].tolist(), b.get_feature_names_out()
+
+    def test_round_edges_uses_fewest_decimals_in_the_gap(self):
+        edges, names = self._rounded([0.1597, 0.1602, 0.1604], 0.16029999405145645)
+        self.assertEqual(edges, [0.1603])
+        self.assertEqual(names, ["x < 0.1603", "0.1603 <= x"])
+
+    def test_round_edges_keeps_at_least_two_decimals(self):
+        # 0.5 would also split these values, but rounded edges keep two decimals.
+        self.assertEqual(self._rounded([0.4, 0.6], 0.51)[0], [0.51])
+        edges, names = self._rounded([0.4, 0.6], 0.5)
+        self.assertEqual(edges, [0.5])
+        self.assertEqual(names, ["x < 0.50", "0.50 <= x"])
+        self.assertEqual(self._rounded([1.0, 4.0], 2.5)[1], ["x < 2.50", "2.50 <= x"])
+
+    def test_round_edges_picks_the_closest_when_rounding_leaves_the_gap(self):
+        # Rounding 1.004 to 1.00 would move the value 1.0 to the right bin.
+        self.assertEqual(self._rounded([1.0, 1.01], 1.004)[0], [1.01])
+        # Rounding 1.9958 to 2.00 would move the value 1.996 to the left bin.
+        self.assertEqual(self._rounded([1.0, 1.996], 1.9958)[0], [1.99])
+        # Only three decimals fit between 1.99 and 1.999, and 1.996 is one of them.
+        self.assertEqual(self._rounded([1.99, 1.999], 1.996)[0], [1.996])
+
+    def test_round_edges_keeps_a_value_on_the_edge_in_the_right_bin(self):
+        # Quantile edges can sit on a value. The edge moves down to 2.12, and the
+        # value 2.123456 stays in the right bin.
+        values = [1.0, 2.123456, 3.0]
+        self.assertEqual(self._rounded(values, 2.123456)[0], [2.12])
+        b = StandardBinarizer(
+            numeric_binning=self._fixed_edges(2.123456), round_edges=True
+        )
+        result = b.fit_transform(pd.DataFrame({"x": values}))
+        self.assertEqual(result["2.12 <= x"].tolist(), [False, True, True])
+        self.assertEqual(self._rounded([1.0, 2.0, 3.0], 2.0)[0], [2.0])
+
+    def test_round_edges_outside_the_data(self):
+        self.assertEqual(self._rounded([0.0, 1.0], 5.1234)[0], [5.12])
+        self.assertEqual(self._rounded([10.0, 11.0], -3.456)[0], [-3.46])
+
+    def test_round_edges_keeps_edges_increasing_around_an_empty_bin(self):
+        # No value lies between 1.5 and 1.5000001, so both edges share one gap.
+        edges, names = self._rounded([0.0, 1.0, 2.0, 3.0], 1.5, 1.5000001)
+        self.assertEqual(edges, [1.5, 1.51])
+        self.assertEqual(len(set(names)), 3)
+
+    def test_round_edges_ignores_missing_values(self):
+        edges, _ = self._rounded([0.1602, np.nan, 0.1604], 0.16029999405145645)
+        self.assertEqual(edges, [0.1603])
+
+    def test_round_edges_function(self):
+        values = np.array([0.1602, 0.1604, 0.4, 0.6])
+        edges = np.array([-np.inf, 0.16029999405145645, 0.5, np.inf])
+        self.assertEqual(
+            round_edges(edges, values).tolist(), [-np.inf, 0.1603, 0.5, np.inf]
+        )
+        # Values that are a float apart leave no shorter number between them.
+        tight = np.array([1.0, np.nextafter(1.0, 2.0)])
+        edge = np.array([-np.inf, tight[1], np.inf])
+        np.testing.assert_array_equal(round_edges(edge, tight), edge)
+
+    def test_round_edges_never_moves_training_values(self):
+        rng = np.random.default_rng(0)
+        columns = {
+            "normal": rng.normal(size=400),
+            "ties": rng.integers(0, 6, size=400).astype(float),
+            "tiny": rng.normal(scale=1e-6, size=400),
+            "large": rng.normal(loc=1e6, scale=1e3, size=400),
+            "float32": rng.random(400).astype(np.float32).astype(float),
+        }
+        X = pd.DataFrame(columns)
+        y = (rng.random(400) < 0.4).astype(int)
+        for labels in (y, None):  # Tree binning, then quantile binning.
+            plain = StandardBinarizer(num_bins=6).fit_transform(X, labels)
+            b = StandardBinarizer(num_bins=6, round_edges=True)
+            rounded = b.fit_transform(X, labels)
+            np.testing.assert_array_equal(rounded.to_numpy(), plain.to_numpy())
+            np.testing.assert_array_equal(b.transform(X).to_numpy(), plain.to_numpy())
+            self._assert_readable_names(b, rounded.columns)
+
+    def test_round_edges_on_breast_cancer(self):
+        from sklearn.datasets import load_breast_cancer
+
+        X, y = load_breast_cancer(return_X_y=True, as_frame=True)
+        plain = StandardBinarizer().fit_transform(X, y.to_numpy())
+        b = StandardBinarizer(round_edges=True)
+        rounded = b.fit_transform(X, y.to_numpy())
+        np.testing.assert_array_equal(rounded.to_numpy(), plain.to_numpy())
+        self._assert_readable_names(b, rounded.columns)
+        # A rounded name is never longer than the name with the edges in full.
+        for short, full in zip(rounded.columns, plain.columns):
+            self.assertLessEqual(len(short), len(full), (short, full))
+        self.assertIn("0.1597 <= worst concave points < 0.16", list(rounded.columns))
+
+    def _assert_readable_names(self, binarizer, names):
+        """Distinct names, increasing edges, and every printed edge is the stored edge."""
+        self.assertEqual(len(set(names)), len(names))
+        for column, edges in binarizer._numerical_bins.items():
+            self.assertTrue(np.all(np.diff(edges) > 0), column)
+            for edge in edges[1:-1]:
+                text = format_edge(edge)
+                self.assertEqual(float(text), edge, column)
+                self.assertGreaterEqual(len(text.split(".")[1]), 2, column)
 
     # ------------------------------------------------------------------ #
     #  Mixed types

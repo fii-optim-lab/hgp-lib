@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### API Changes
+
+- `StandardBinarizer(round_edges=True)` moves each numeric edge to the number with the fewest decimals (at least 2) that keeps every training value in the same bin.
+- Removed the `precision` parameter and the `column_precision` attribute of `StandardBinarizer`.
+
 ---
 
 ## [1.2.3](https://github.com/fii-optim-lab/hgp-lib/releases/tag/1.2.3)

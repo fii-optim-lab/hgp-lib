@@ -1,3 +1,4 @@
+import math
 from enum import Enum
 
 import numpy as np
@@ -35,6 +36,97 @@ class ColumnKind(str, Enum):
     NUMERIC = "numeric"
 
 
+# Rounded edges keep at least this many decimals.
+MIN_EDGE_DECIMALS = 2
+# Beyond this, a float has no more decimals to round to.
+MAX_EDGE_DECIMALS = 17
+
+
+def format_edge(edge: float) -> str:
+    """
+    Print a bin edge as the shortest decimal that reads back as the same float, with at
+    least 2 decimals.
+
+    Examples:
+        >>> from hgp_lib.preprocessing.binarizer import format_edge
+        >>> format_edge(2.5)
+        '2.50'
+        >>> format_edge(0.1603)
+        '0.1603'
+        >>> format_edge(0.16029999405145645)
+        '0.16029999405145645'
+    """
+    return np.format_float_positional(edge, unique=True, min_digits=MIN_EDGE_DECIMALS)
+
+
+def _fewest_decimals_between(edge: float, low: float, high: float) -> float | None:
+    """
+    The number in ``(low, high]`` with the fewest decimals, and at least 2, closest to
+    ``edge`` among those. ``None`` if there is none up to the precision of a float.
+    """
+    for decimals in range(MIN_EDGE_DECIMALS, MAX_EDGE_DECIMALS + 1):
+        scale = 10**decimals
+        candidate = round(edge, decimals)
+        if candidate <= low:
+            # The smallest number with these decimals above low.
+            candidate = round((math.floor(low * scale) + 1) / scale, decimals)
+        elif candidate > high:
+            # The largest number with these decimals up to high.
+            candidate = round(math.floor(high * scale) / scale, decimals)
+        if low < candidate <= high:
+            return candidate + 0.0  # Turns -0.0 into 0.0.
+    return None
+
+
+def round_edges(edges: np.ndarray, values: np.ndarray) -> np.ndarray:
+    """
+    Move each finite edge to the number with the fewest decimals, and at least 2, that
+    leaves every value in the same bin.
+
+    Bins are closed on the left, so a value goes to the bin on the right of an edge
+    when it is at least the edge. An edge can therefore move anywhere above the
+    largest value below it and up to the smallest value at or above it. It also stays
+    above the previous edge, so the edges keep increasing. Among the numbers with the
+    fewest decimals in that range, the one closest to the original edge is used. An
+    edge with no such number is kept as it is, and if the edges would no longer
+    increase, the original edges are returned.
+
+    Args:
+        edges (np.ndarray): Sorted bin edges, starting with ``-inf`` and ending with ``inf``.
+        values (np.ndarray): The values the edges were fitted on, without missing values.
+
+    Returns:
+        np.ndarray: The moved edges.
+
+    Examples:
+        >>> import numpy as np
+        >>> from hgp_lib.preprocessing.binarizer import round_edges
+        >>> values = np.array([0.1602, 0.1604, 0.4, 0.6])
+        >>> round_edges(np.array([-np.inf, 0.16029999405145645, 0.5, np.inf]), values).tolist()
+        [-inf, 0.1603, 0.5, inf]
+    """
+    sorted_values = np.sort(values)
+    rounded = np.array(edges, dtype=float)
+    previous = -np.inf
+    for i, edge in enumerate(rounded):
+        if not np.isfinite(edge):
+            continue
+        n_below = np.searchsorted(sorted_values, edge, side="left")
+        low = sorted_values[n_below - 1] if n_below > 0 else -np.inf
+        high = sorted_values[n_below] if n_below < len(sorted_values) else np.inf
+        moved = _fewest_decimals_between(edge, max(low, previous), high)
+        rounded[i] = edge if moved is None else moved
+        previous = rounded[i]
+    if not np.all(np.diff(rounded) > 0):
+        return np.array(edges, dtype=float)
+    return rounded
+
+
+def _cut(values: np.ndarray, edges: np.ndarray) -> np.ndarray:
+    """The index of the bin ``edges[i] <= value < edges[i + 1]`` of each value."""
+    return pd.cut(values, bins=edges, labels=False, include_lowest=True, right=False)
+
+
 class StandardBinarizer(Binarizer):
     """
     Converts a mixed-type DataFrame into a purely boolean DataFrame.
@@ -53,7 +145,8 @@ class StandardBinarizer(Binarizer):
       generalization.
     - Numeric columns are split into bins by a :class:`BinningStrategy`. When ``y`` is
       provided and no strategy is set, :class:`SupervisedTreeBinning` is used, otherwise
-      :class:`QuantileBinning`.
+      :class:`QuantileBinning`. Bins are closed on the left, ``left <= x < right``, and
+      named after their edges, printed in full.
     - A column that contains missing values also gets a boolean ``<col>_is_NA``
       indicator column.
 
@@ -68,9 +161,11 @@ class StandardBinarizer(Binarizer):
         column_strategy (dict[str, int] | None):
             Per-column override for the number of bins. Keys are column names, values are
             the desired bin count (each >= 2). Default: `None`.
-        precision (int):
-            Number of decimal places used when formatting numeric bin boundary names.
-            Must be >= 0. Default: `3`.
+        round_edges (bool):
+            Whether to move each numeric edge to the number with the fewest decimals,
+            and at least 2, that keeps every training value in the same bin (see
+            :func:`round_edges`). The bin names then read like ``0.1603 <= x`` instead
+            of ``0.16029999405145645 <= x``. Default: `False`.
         numeric_binning (BinningStrategy | None):
             Strategy for computing numeric bin edges. When `None`, the binarizer uses
             :class:`SupervisedTreeBinning` if labels are provided to ``fit_transform``
@@ -92,27 +187,40 @@ class StandardBinarizer(Binarizer):
         >>> result["flag"].tolist()
         [True, False, True]
         >>> result
-            flag  val < 2.000  2.000 <= val
-        0   True         True         False
-        1  False         True         False
-        2   True        False          True
+            flag  val < 2.00  2.00 <= val
+        0   True        True        False
+        1  False       False         True
+        2   True       False         True
+
+        Rounded edges print shorter and leave every training value in its bin:
+
+        >>> import numpy as np
+        >>> X = pd.DataFrame({"x": [0.1597, 0.1602, 0.1604, 0.1611]})
+        >>> y = np.array([0, 0, 1, 1])
+        >>> b = StandardBinarizer(num_bins=2)
+        >>> _ = b.fit_transform(X, y)
+        >>> b.get_feature_names_out()
+        ['x < 0.16030000150203705', '0.16030000150203705 <= x']
+        >>> b = StandardBinarizer(num_bins=2, round_edges=True)
+        >>> _ = b.fit_transform(X, y)
+        >>> b.get_feature_names_out()
+        ['x < 0.1603', '0.1603 <= x']
     """
 
     def __init__(
         self,
         num_bins: int = 5,
         column_strategy: dict[str, int] | None = None,
-        precision: int = 3,
+        round_edges: bool = False,
         numeric_binning: BinningStrategy | None = None,
         progress_bar: bool = True,
         leave_progress_bar: bool = False,
     ):
-        self._validate_params(num_bins, column_strategy, precision, numeric_binning)
+        self._validate_params(num_bins, column_strategy, round_edges, numeric_binning)
         self.num_bins = num_bins
         self.column_strategy = column_strategy or {}
-        self.precision = precision
+        self.round_edges = round_edges
         self.numeric_binning = numeric_binning
-        self.column_precision: dict[str, int] = {}
         self.progress_bar = progress_bar
         self.leave_progress_bar = leave_progress_bar
 
@@ -130,7 +238,7 @@ class StandardBinarizer(Binarizer):
         self,
         num_bins: int,
         column_strategy: dict[str, int] | None,
-        precision: int,
+        round_edges: bool,
         numeric_binning: BinningStrategy | None,
     ) -> None:
         check_isinstance(num_bins, int)
@@ -146,9 +254,7 @@ class StandardBinarizer(Binarizer):
                         f"Number of bins for column {col} must be an integer >= 2, is {bins}"
                     )
 
-        check_isinstance(precision, int)
-        if precision < 0:
-            raise ValueError(f"precision must be an integer >= 0, is {precision}")
+        check_isinstance(round_edges, bool)
 
         if numeric_binning is not None:
             check_isinstance(numeric_binning, BinningStrategy)
@@ -240,7 +346,7 @@ class StandardBinarizer(Binarizer):
             >>> b = StandardBinarizer(num_bins=2)
             >>> _ = b.fit_transform(pd.DataFrame({"x": [1.0, 2.0, 3.0, 4.0]}))
             >>> b.get_feature_names_out()
-            ['x < 2.500', '2.500 <= x']
+            ['x < 2.50', '2.50 <= x']
         """
         if not self._is_fitted:
             raise NotFittedError(
@@ -379,9 +485,11 @@ class StandardBinarizer(Binarizer):
 
         strategy = self._resolve_numeric_binning(y)
         edges = strategy.compute_edges(fit_values, fit_y, n_bins)
+        if self.round_edges:
+            edges = round_edges(edges, fit_values)
         self._numerical_bins[column] = edges
 
-        binned = pd.cut(values, bins=edges, labels=False, include_lowest=True)
+        binned = _cut(values, edges)
         return [
             (
                 self._format_numeric_bin_name(column, edges[i], edges[i + 1]),
@@ -417,9 +525,7 @@ class StandardBinarizer(Binarizer):
 
     def _transform_numeric(self, column: str, series: pd.Series) -> list[np.ndarray]:
         edges = self._numerical_bins[column]
-        binned = pd.cut(
-            series.to_numpy(), bins=edges, labels=False, include_lowest=True
-        )
+        binned = _cut(series.to_numpy(), edges)
         return [binned == i for i in range(len(edges) - 1)]
 
     def _resolve_numeric_binning(self, y: np.ndarray | None) -> BinningStrategy:
@@ -497,6 +603,9 @@ class StandardBinarizer(Binarizer):
         - Right is ``inf``: ``"left <= column"``
         - Both finite: ``"left <= column < right"``
 
+        The edges are printed in full (see :func:`format_edge`), so the name states the
+        bin exactly.
+
         Args:
             column (str):
                 Name of the original numeric column.
@@ -511,20 +620,19 @@ class StandardBinarizer(Binarizer):
         Examples:
             >>> import numpy as np
             >>> from hgp_lib.preprocessing import StandardBinarizer
-            >>> b = StandardBinarizer(precision=2)
+            >>> b = StandardBinarizer()
             >>> b._format_numeric_bin_name("x", -np.inf, 3.0)
             'x < 3.00'
             >>> b._format_numeric_bin_name("x", 1.0, np.inf)
             '1.00 <= x'
-            >>> b._format_numeric_bin_name("x", 1.0, 3.0)
-            '1.00 <= x < 3.00'
+            >>> b._format_numeric_bin_name("x", 0.1597, 0.16029999405145645)
+            '0.1597 <= x < 0.16029999405145645'
         """
-        precision = self.column_precision.get(column, self.precision)
         if np.isneginf(left):
-            return f"{column} < {right:.{precision}f}"
+            return f"{column} < {format_edge(right)}"
         if np.isposinf(right):
-            return f"{left:.{precision}f} <= {column}"
-        return f"{left:.{precision}f} <= {column} < {right:.{precision}f}"
+            return f"{format_edge(left)} <= {column}"
+        return f"{format_edge(left)} <= {column} < {format_edge(right)}"
 
 
 if __name__ == "__main__":
