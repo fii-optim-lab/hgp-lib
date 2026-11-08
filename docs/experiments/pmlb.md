@@ -122,28 +122,28 @@ The decision tree grows without a depth limit, so its rules are by far the large
 
 | Method | Mean rank | Best or tied | Mean F1 | Mean literals | Mean nodes | Mean runtime (s) |
 |:---|---:|---:|---:|---:|---:|---:|
-| HGP (10000 epochs) | 2.29 | 26 | 0.7382 | 12.0 | 16.5 | 1549.1 |
-| HGP (1000 epochs) | 2.64 | 15 | 0.7361 | 10.7 | 14.8 | 118.8 |
-| DT | 2.69 | 24 | 0.7337 | 1097.4 | 1173.7 | 0.2 |
+| HGP (10000 epochs) | 2.31 | 26 | 0.7382 | 12.0 | 16.5 | 1549.1 |
+| HGP (1000 epochs) | 2.63 | 15 | 0.7369 | 10.7 | 14.8 | 106.2 |
+| DT | 2.67 | 24 | 0.7337 | 1097.4 | 1173.7 | 0.2 |
 | BoolXAI | 3.56 | 10 | 0.6847 | 3.1 | 4.3 | 252.1 |
-| RIPPER | 3.82 | 10 | 0.6441 | 21.2 | 29.0 | 17.4 |
+| RIPPER | 3.84 | 10 | 0.6441 | 21.2 | 29.0 | 17.4 |
 
 ### HGP against the baselines
 
 
 | Method | Mean rank | Best or tied | Mean F1 | Mean literals | Mean nodes | Mean runtime (s) | HGP win rate |
 |:---|---:|---:|---:|---:|---:|---:|---:|
-| HGP (1000 epochs) | 1.99 | 30 | 0.7361 | 10.7 | 14.8 | 118.8 | - |
-| DT | 2.12 | 27 | 0.7337 | 1097.4 | 1173.7 | 0.2 | 51.43% |
+| HGP (1000 epochs) | 1.99 | 30 | 0.7369 | 10.7 | 14.8 | 106.2 | - |
+| DT | 2.11 | 27 | 0.7337 | 1097.4 | 1173.7 | 0.2 | 50.00% |
 | BoolXAI | 2.80 | 12 | 0.6847 | 3.1 | 4.3 | 252.1 | 77.14% |
-| RIPPER | 3.09 | 10 | 0.6441 | 21.2 | 29.0 | 17.4 | 67.14% |
+| RIPPER | 3.10 | 10 | 0.6441 | 21.2 | 29.0 | 17.4 | 68.57% |
 
 ![HGP with the library defaults vs DT, BoolXAI, and RIPPER](images/pmlb/hgp_default_vs_baselines.png)
 
 
 | HGP variant | Mean rank | Best or tied | Win rate vs DT | Win rate vs BoolXAI | Win rate vs RIPPER |
 |:---|---:|---:|---:|---:|---:|
-| HGP (1000 epochs) | 1.99 | 30 | 51.43% | 77.14% | 67.14% |
+| HGP (1000 epochs) | 1.99 | 30 | 50.00% | 77.14% | 68.57% |
 | HGP (10000 epochs) | 1.94 | 33 | 52.86% | 75.71% | 71.43% |
 
 ### HGP versions
@@ -151,8 +151,8 @@ The decision tree grows without a depth limit, so its rules are by far the large
 
 | Method | Mean rank | Best or tied | Mean F1 | Mean literals | Mean nodes | Mean runtime (s) |
 |:---|---:|---:|---:|---:|---:|---:|
-| HGP (10000 epochs) | 1.35 | 48 | 0.7382 | 12.0 | 16.5 | 1549.1 |
-| HGP (1000 epochs) | 1.65 | 27 | 0.7361 | 10.7 | 14.8 | 118.8 |
+| HGP (10000 epochs) | 1.36 | 47 | 0.7382 | 12.0 | 16.5 | 1549.1 |
+| HGP (1000 epochs) | 1.64 | 28 | 0.7369 | 10.7 | 14.8 | 106.2 |
 
 ![HGP with 1000 and 10000 epochs](images/pmlb/hgp_versions.png)
 
