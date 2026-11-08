@@ -12,10 +12,6 @@ from time import sleep
 
 import numpy as np
 import pandas as pd
-
-from hgp_lib.populations import FeatureSamplingStrategy
-from tqdm import tqdm
-
 from preprocess.pmlb_preprocess import save_pmlb_data
 from rule_conversion import boolxai_to_rule, dt_to_rule, ripper_to_rule, rule_stats
 from sklearn.compose import make_column_selector, make_column_transformer
@@ -27,7 +23,8 @@ from tqdm.contrib.concurrent import process_map
 
 from hgp_lib.benchmarkers import GPBenchmarker
 from hgp_lib.configs import BenchmarkerConfig, BooleanGPConfig, TrainerConfig
-from hgp_lib.preprocessing import StandardBinarizer, load_data
+from hgp_lib.populations import FeatureSamplingStrategy
+from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.utils.metrics import fast_f1_score
 
 # Run i of every method uses seed BASE_SEED + i for its stratified train/test split and
@@ -264,7 +261,8 @@ def run_gp_default_benchmark(
         }
     gp_config = BooleanGPConfig(score_fn=fast_f1_score, **hierarchy)
     trainer_config = TrainerConfig(
-        gp_config=gp_config, num_epochs=num_epochs,
+        gp_config=gp_config,
+        num_epochs=num_epochs,
     )
     config = BenchmarkerConfig(
         data=data,
