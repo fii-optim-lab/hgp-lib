@@ -89,7 +89,7 @@ Each numeric bin column is named after its boundaries, so a rule that uses it re
 
 Numeric edge names can be long.
 A decision tree computes its thresholds in 32-bit floats, so a split between 0.1602 and 0.1604 becomes `0.16030000150203705`.
-With `round_edges=True`, each edge moves to the number with the fewest decimals (at least 2) that keeps every training value in the same bin.
+With `round_edges=True`, each edge is rounded to the fewest decimals (at least 2) that keep every training value in the same bin.
 
 ```python
 import numpy as np
