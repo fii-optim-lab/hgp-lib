@@ -107,30 +107,36 @@ The tables report, for each method:
 - **Mean rank**: the rank on each dataset, averaged over datasets. Rank 1 is the best score, and tied methods share their ranks.
 - **Best or tied**: the number of datasets on which the method has the best score or ties for it.
 - **Mean F1**: the test F1, averaged over datasets.
+- **Mean literals**: the number of literals in the rule learned in each fold, averaged over folds, runs, and datasets.
+- **Mean nodes**: the number of nodes in the same rule, literals and operators together.
 - **Mean runtime (s)**: the time to run all runs and folds on one dataset, averaged over datasets.
 - **HGP win rate**: the share of datasets on which the HGP variant scores strictly higher than the method.
+
+The baseline models are counted as hgp-lib rules.
+A decision tree becomes the disjunction of its paths to positive leaves, and a RIPPER rule set the disjunction of its rules.
 
 ### All methods
 
 Every HGP variant ranks ahead of the baselines.
+The decision tree grows without a depth limit, so its rules are by far the largest: 1173.7 nodes on average, and 92.8 on the median dataset.
 
-| Method | Mean rank | Best or tied | Mean F1 | Mean runtime (s) |
-|:---|---:|---:|---:|---:|
-| HGP (10000 epochs) | 2.29 | 26 | 0.7382 | 1549.1 |
-| HGP (1000 epochs) | 2.64 | 15 | 0.7361 | 118.8 |
-| DT | 2.69 | 24 | 0.7337 | 0.2 |
-| BoolXAI | 3.56 | 10 | 0.6847 | 252.1 |
-| RIPPER | 3.82 | 10 | 0.6441 | 17.4 |
+| Method | Mean rank | Best or tied | Mean F1 | Mean literals | Mean nodes | Mean runtime (s) |
+|:---|---:|---:|---:|---:|---:|---:|
+| HGP (10000 epochs) | 2.29 | 26 | 0.7382 | 12.0 | 16.5 | 1549.1 |
+| HGP (1000 epochs) | 2.64 | 15 | 0.7361 | 10.7 | 14.8 | 118.8 |
+| DT | 2.69 | 24 | 0.7337 | 1097.4 | 1173.7 | 0.2 |
+| BoolXAI | 3.56 | 10 | 0.6847 | 3.1 | 4.3 | 252.1 |
+| RIPPER | 3.82 | 10 | 0.6441 | 21.2 | 29.0 | 17.4 |
 
 ### HGP against the baselines
 
 
-| Method | Mean rank | Best or tied | Mean F1 | Mean runtime (s) | HGP win rate |
-|:---|---:|---:|---:|---:|---:|
-| HGP (1000 epochs) | 1.99 | 30 | 0.7361 | 118.8 | - |
-| DT | 2.12 | 27 | 0.7337 | 0.2 | 51.43% |
-| BoolXAI | 2.80 | 12 | 0.6847 | 252.1 | 77.14% |
-| RIPPER | 3.09 | 10 | 0.6441 | 17.4 | 67.14% |
+| Method | Mean rank | Best or tied | Mean F1 | Mean literals | Mean nodes | Mean runtime (s) | HGP win rate |
+|:---|---:|---:|---:|---:|---:|---:|---:|
+| HGP (1000 epochs) | 1.99 | 30 | 0.7361 | 10.7 | 14.8 | 118.8 | - |
+| DT | 2.12 | 27 | 0.7337 | 1097.4 | 1173.7 | 0.2 | 51.43% |
+| BoolXAI | 2.80 | 12 | 0.6847 | 3.1 | 4.3 | 252.1 | 77.14% |
+| RIPPER | 3.09 | 10 | 0.6441 | 21.2 | 29.0 | 17.4 | 67.14% |
 
 ![HGP with the library defaults vs DT, BoolXAI, and RIPPER](images/pmlb/hgp_default_vs_baselines.png)
 
@@ -143,10 +149,10 @@ Every HGP variant ranks ahead of the baselines.
 ### HGP versions
 
 
-| Method | Mean rank | Best or tied | Mean F1 | Mean runtime (s) |
-|:---|---:|---:|---:|---:|
-| HGP (10000 epochs) | 1.35 | 48 | 0.7382 | 1549.1 |
-| HGP (1000 epochs) | 1.65 | 27 | 0.7361 | 118.8 |
+| Method | Mean rank | Best or tied | Mean F1 | Mean literals | Mean nodes | Mean runtime (s) |
+|:---|---:|---:|---:|---:|---:|---:|
+| HGP (10000 epochs) | 1.35 | 48 | 0.7382 | 12.0 | 16.5 | 1549.1 |
+| HGP (1000 epochs) | 1.65 | 27 | 0.7361 | 10.7 | 14.8 | 118.8 |
 
 ![HGP with 1000 and 10000 epochs](images/pmlb/hgp_versions.png)
 

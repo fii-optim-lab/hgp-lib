@@ -5,8 +5,8 @@ Each experiment calls ``scripts/run_on_pmlb.py``, which benchmarks one method on
 dataset with one process per dataset. An experiment whose CSV already exists in the
 output folder is skipped, so running this script again only runs what is missing.
 At the end, the script prints the mean rank, the number of datasets where each method
-is best or tied for best, the mean test F1, and the mean runtime per dataset, and saves
-them to ``summary.md``. The table of each HGP variant against the baselines also shows
+is best or tied for best, the mean test F1, the mean number of literals and nodes of the
+learned rules, and the mean runtime per dataset, and saves them to ``summary.md``. The table of each HGP variant against the baselines also shows
 the HGP win rate: the share of datasets on which that variant scores strictly higher
 than each baseline. A separate table compares the HGP variants with each other. It also
 saves radar plots (``plot_radar.py``) of all methods, of the HGP variants together, of
@@ -178,15 +178,24 @@ def run_experiment(
 
 
 HGP_WIN_RATE = "HGP win rate"
+# Table columns that average a per-dataset CSV column over the datasets. The rule
+# columns count the literals and the nodes (literals and operators) of the rule learned
+# in each fold, already averaged over folds and runs in the CSV.
+AVERAGED_COLUMNS = {
+    "Mean literals": "mean_n_literals",
+    "Mean nodes": "mean_rule_size",
+    "Mean runtime (s)": "runtime_s",
+}
 
 
 def summarize(
-    scores: pd.DataFrame, runtimes: pd.DataFrame, hgp: str | None = None
+    scores: pd.DataFrame, averaged: dict[str, pd.DataFrame], hgp: str | None = None
 ) -> pd.DataFrame:
     """
-    Mean rank, best-or-tied count, mean F1, and mean runtime per dataset of every
-    method (column) over the datasets (rows). Rank 1 is the best score on a dataset;
-    tied methods share the average of their ranks. Ties use ``plot_radar.is_tie``.
+    Mean rank, best-or-tied count, and mean F1 of every method (column) over the
+    datasets (rows), and the mean of every frame in ``averaged`` over the same datasets.
+    Rank 1 is the best score on a dataset; tied methods share the average of their
+    ranks. Ties use ``plot_radar.is_tie``.
 
     With ``hgp``, also the HGP win rate: the percentage of datasets on which that HGP
     variant scores strictly higher than each other method. Ties are not wins.
@@ -202,7 +211,10 @@ def summarize(
             "Mean rank": ranks.mean(axis=0),
             "Best or tied": best.sum(axis=0),
             "Mean F1": values.mean(axis=0),
-            "Mean runtime (s)": runtimes[scores.columns].mean(axis=0).to_numpy(),
+            **{
+                name: frame.loc[scores.index, scores.columns].mean(axis=0).to_numpy()
+                for name, frame in averaged.items()
+            },
         },
         index=pd.Index(scores.columns, name="Method"),
     )
@@ -224,13 +236,12 @@ def make_table(table: pd.DataFrame, style: TableStyle) -> PrettyTable:
     pretty = PrettyTable([table.index.name, *table.columns])
     pretty.set_style(style)
     for method, row in table.iterrows():
-        runtime = row["Mean runtime (s)"]
         cells = [
             method,
             f"{row['Mean rank']:.2f}",
             int(row["Best or tied"]),
             f"{row['Mean F1']:.4f}",
-            "-" if pd.isna(runtime) else f"{runtime:.1f}",
+            *("-" if pd.isna(row[c]) else f"{row[c]:.1f}" for c in AVERAGED_COLUMNS),
         ]
         if HGP_WIN_RATE in table:
             cells.append(row[HGP_WIN_RATE])
@@ -256,9 +267,13 @@ def build_summary(csv_paths: dict[Experiment, Path]) -> tuple[str, str]:
         e.label: pd.read_csv(p).set_index("dataset") for e, p in available.items()
     }
     scores = pd.DataFrame({m: f["mean_test_score"] for m, f in frames.items()})
-    runtimes = pd.DataFrame(
-        {m: f.get("runtime_s", pd.Series(np.nan, f.index)) for m, f in frames.items()}
-    )
+    # Older CSVs may lack a column; the table shows "-" for it.
+    averaged = {
+        name: pd.DataFrame(
+            {m: f.get(column, pd.Series(np.nan, f.index)) for m, f in frames.items()}
+        )
+        for name, column in AVERAGED_COLUMNS.items()
+    }
 
     notes = []
     incomplete = scores.index[scores.isna().any(axis=1)]
@@ -268,15 +283,14 @@ def build_summary(csv_paths: dict[Experiment, Path]) -> tuple[str, str]:
             f"{', '.join(incomplete)}"
         )
     scores = scores.dropna()
-    runtimes = runtimes.loc[scores.index]
     missing = [e.label for e in csv_paths if e not in available]
     if missing:
         notes.append(f"No results yet for: {', '.join(missing)}")
 
-    sections = [("All methods", summarize(scores, runtimes))]
+    sections = [("All methods", summarize(scores, averaged))]
     hgp_versions = [e.label for e in available if e.is_hgp]
     if len(hgp_versions) > 1:
-        sections.append(("HGP versions", summarize(scores[hgp_versions], runtimes)))
+        sections.append(("HGP versions", summarize(scores[hgp_versions], averaged)))
     baselines = [e.label for e in available if not e.is_hgp]
     for experiment in available:
         if experiment.is_hgp and baselines:
@@ -284,7 +298,7 @@ def build_summary(csv_paths: dict[Experiment, Path]) -> tuple[str, str]:
             sections.append(
                 (
                     f"{experiment.label} vs baselines",
-                    summarize(scores[methods], runtimes, hgp=experiment.label),
+                    summarize(scores[methods], averaged, hgp=experiment.label),
                 )
             )
 
