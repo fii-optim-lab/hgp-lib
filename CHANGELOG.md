@@ -4,7 +4,7 @@
 
 ### API Changes
 
-- Added new parameter to `StandardBinarizer`: `round_edges`, (default `True`), which moves each numeric edge to the number with the fewest decimals (at least 2) that keeps every training value in the same bin.
+- Added new parameter to `StandardBinarizer`: `round_edges`, (default `True`), which rounds each numeric edge to the fewest decimals (at least 2) that keep every training value in the same bin.
 - Deprecated the `precision` parameter and the `column_precision` attribute of `StandardBinarizer`.
 
 ---
