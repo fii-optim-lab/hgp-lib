@@ -183,6 +183,7 @@ class MutationExecutor:
                     else:
                         rule = new_rule.copy()
                         # We copy so that future mutations that do not pass checks would not affect the rule
+                        break
                 else:
                     # Validation failed => we need to copy the rule
                     if mutation_i != last_mutation or tries != last_try:
