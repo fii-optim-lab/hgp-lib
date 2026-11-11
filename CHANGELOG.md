@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+---
+
+## [1.2.4](https://github.com/fii-optim-lab/hgp-lib/releases/tag/1.2.4)
+
+
 ### API Changes
 
 - Added new parameter to `StandardBinarizer`: `round_edges`, (default `True`), which rounds each numeric edge to the fewest decimals (at least 2) that keep every training value in the same bin.
