@@ -5,6 +5,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+TIE_RTOL = 1e-5
+TIE_ATOL = 1e-8
+
+
+def is_tie(a, b):
+    """Whether two scores are equal within the tolerance used to count ties."""
+    return np.isclose(a, b, rtol=TIE_RTOL, atol=TIE_ATOL) | np.isclose(
+        b, a, rtol=TIE_RTOL, atol=TIE_ATOL
+    )
+
 
 def plot_radar_performance(series, output_path):
     if not series:
@@ -70,12 +80,7 @@ def plot_radar_performance(series, output_path):
 
     print("\n--- Performance Summary ---")
     for clf_name, score_col in zip(clf_names, score_cols):
-        is_best = np.isclose(
-            merged_df[score_col],
-            max_scores,
-            rtol=1e-5,
-            atol=1e-8,
-        )
+        is_best = is_tie(merged_df[score_col], max_scores)
         best_count = is_best.sum()
 
         print(
@@ -169,6 +174,7 @@ def plot_radar_performance(series, output_path):
 
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    plt.close()
     print(f"Plot saved to {output_path}")
 
 

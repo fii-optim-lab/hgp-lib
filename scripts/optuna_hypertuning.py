@@ -24,6 +24,7 @@ from numpy import ndarray
 from optuna.artifacts import FileSystemArtifactStore
 from optuna.trial import TrialState
 from preprocess.pmlb_preprocess import save_pmlb_data
+from run_on_pmlb import load_dataset
 from visualization.optuna import store_trial_attributes, upload_trial_artifacts
 
 from hgp_lib.benchmarkers import GPBenchmarker
@@ -36,7 +37,7 @@ from hgp_lib.populations import (
     InstanceSamplingStrategy,
     PopulationGeneratorFactory,
 )
-from hgp_lib.preprocessing import StandardBinarizer, load_data
+from hgp_lib.preprocessing import StandardBinarizer
 from hgp_lib.selections import RouletteSelection, TournamentSelection
 from hgp_lib.utils.metrics import fast_f1_score
 from hgp_lib.utils.validation import ComplexityCheck
@@ -349,7 +350,9 @@ def main(args: argparse.Namespace) -> None:
             logger.error(f"Dataset {data_path.stem} not found in PMLB")
             traceback.print_exc()
             return
-    data, labels = load_data(args.data_path)
+    data, labels = load_dataset(
+        Path(args.data_path).stem, str(Path(args.data_path).parent)
+    )
 
     # Initialize artifact store
     artifact_dir = Path(args.artifact_dir)
