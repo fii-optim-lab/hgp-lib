@@ -140,14 +140,21 @@ def ripper_to_rule(model) -> Rule | None:
     return _combine(Or, terms)
 
 
+class GenericOperator(Rule):
+    """An operator node with no hgp-lib counterpart. It counts but cannot evaluate."""
+
+    def evaluate(self, data: np.ndarray) -> np.ndarray:
+        raise NotImplementedError(f"{type(self).__name__} cannot be evaluated")
+
+
 def boolxai_to_rule(boolxai_rule) -> Rule | None:
     """
     A BoolXAI rule as an hgp-lib rule with the same tree.
 
     Literal indices are the column indices of the data BoolXAI was fitted on. ``And``
     and ``Or`` map to their hgp-lib operators. ``AtLeast``, ``AtMost``, and ``Choose``
-    have no hgp-lib counterpart and become generic operator nodes, which count the same
-    way but cannot be evaluated by hgp-lib. Trivial rules (``Zero``, ``One``) are
+    have no hgp-lib counterpart and become ``GenericOperator`` nodes, which count the
+    same way but cannot be evaluated by hgp-lib. Trivial rules (``Zero``, ``One``) are
     constants: they give ``None`` and count as 0, as in BoolXAI's ``complexity()``.
     """
     name = type(boolxai_rule).__name__
@@ -159,7 +166,7 @@ def boolxai_to_rule(boolxai_rule) -> Rule | None:
     subrules = [subrule for subrule in subrules if subrule is not None]
     if not subrules:
         return None
-    operator = {"And": And, "Or": Or}.get(name, Rule)
+    operator = {"And": And, "Or": Or}.get(name, GenericOperator)
     return operator(
         subrules=subrules, negated=boolxai_rule.negated, copy_subrules=False
     )
@@ -183,11 +190,9 @@ def _require(module: str) -> None:
 
 def _predict(rule: Rule | None, matrix: np.ndarray) -> np.ndarray:
     """hgp-lib's prediction of a rule; ``None`` predicts the negative class."""
-    from hgp_lib.evaluation import predict
-
     if rule is None:
         return np.zeros(len(matrix), dtype=bool)
-    return np.asarray(predict(rule, np.ascontiguousarray(matrix, dtype=bool)))
+    return np.asarray(rule.evaluate(np.ascontiguousarray(matrix, dtype=bool)))
 
 
 def _dnf_stats(term_lengths: list[int]) -> tuple[int, int]:
@@ -505,7 +510,7 @@ def _assert_same_tree(boolxai_rule, rule: Rule) -> None:
         assert isinstance(rule, Literal), f"{boolxai_rule} -> {rule!r}"
         assert (rule.value, rule.negated) == (boolxai_rule.index, boolxai_rule.negated)
         return
-    expected = {"And": And, "Or": Or}.get(name, Rule)
+    expected = {"And": And, "Or": Or}.get(name, GenericOperator)
     assert type(rule) is expected, f"{boolxai_rule} -> {rule!r}"
     assert rule.negated == boolxai_rule.negated, f"{boolxai_rule} -> {rule!r}"
     children = [s for s in boolxai_rule.subrules if s.complexity() > 0]
@@ -577,7 +582,7 @@ def test_boolxai_parametrized_operators():
             negated=True,
         )
         rule = _assert_boolxai_matches(boolxai_rule, X)
-        assert type(rule) is Rule and rule.negated
+        assert type(rule) is GenericOperator and rule.negated
         assert rule_stats(rule) == (6, 4)
 
 

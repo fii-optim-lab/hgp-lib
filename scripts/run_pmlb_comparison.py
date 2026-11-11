@@ -7,8 +7,8 @@ output folder is skipped, so running this script again only runs what is missing
 At the end, the script prints the mean rank, the number of datasets where each method
 is best or tied for best, the mean test F1, the mean number of literals and nodes of the
 learned rules, and the mean runtime per dataset, and saves them to ``summary.md``. The table of each HGP variant against the baselines also shows
-the HGP win rate: the share of datasets on which that variant scores strictly higher
-than each baseline. A separate table compares the HGP variants with each other. It also
+on how many datasets that variant scores higher than each baseline, ties, or scores
+lower. A separate table compares the HGP variants with each other. It also
 saves radar plots (``plot_radar.py``) of all methods, of the HGP variants together, of
 each HGP variant alone, and of each HGP variant against the baselines.
 
@@ -95,12 +95,6 @@ EXPERIMENTS = (
         ("--model", "ripper", "--binarizer", "none"),
         color="forestgreen",
     ),
-    # Experiment(
-    #     "RIPPER (hgp-lib bins)",
-    #     "pmlb_ripper_standard.csv",
-    #     ("--model", "ripper", "--binarizer", "standard"),
-    #     color="purple",
-    # ),
 )
 
 
@@ -177,7 +171,7 @@ def run_experiment(
     return True
 
 
-HGP_WIN_RATE = "HGP win rate"
+HGP_WINS_TIES_LOSSES = "HGP wins / ties / losses"
 # Table columns that average a per-dataset CSV column over the datasets. The rule
 # columns count the literals and the nodes (literals and operators) of the rule learned
 # in each fold, already averaged over folds and runs in the CSV.
@@ -197,8 +191,8 @@ def summarize(
     Rank 1 is the best score on a dataset; tied methods share the average of their
     ranks. Ties use ``plot_radar.is_tie``.
 
-    With ``hgp``, also the HGP win rate: the percentage of datasets on which that HGP
-    variant scores strictly higher than each other method. Ties are not wins.
+    With ``hgp``, also the number of datasets on which that HGP variant scores higher
+    than each other method, ties with it, or scores lower.
     """
     values = scores.to_numpy()
     a, b = values[:, :, None], values[:, None, :]
@@ -220,15 +214,16 @@ def summarize(
     )
     if hgp is not None:
         hgp_scores = scores[hgp].to_numpy()
-        win_rates = {
-            method: 100
-            * ((hgp_scores > values[:, i]) & ~is_tie(hgp_scores, values[:, i])).mean()
-            for i, method in enumerate(scores.columns)
-        }
-        table[HGP_WIN_RATE] = [
-            "-" if method == hgp else f"{win_rates[method]:.2f}%"
-            for method in scores.columns
-        ]
+        results = []
+        for method in scores.columns:
+            other = scores[method].to_numpy()
+            ties = is_tie(hgp_scores, other)
+            wins = ((hgp_scores > other) & ~ties).sum()
+            losses = ((hgp_scores < other) & ~ties).sum()
+            results.append(
+                "-" if method == hgp else f"{wins} / {ties.sum()} / {losses}"
+            )
+        table[HGP_WINS_TIES_LOSSES] = results
     return table.sort_values("Mean rank")
 
 
@@ -243,8 +238,8 @@ def make_table(table: pd.DataFrame, style: TableStyle) -> PrettyTable:
             f"{row['Mean F1']:.4f}",
             *("-" if pd.isna(row[c]) else f"{row[c]:.1f}" for c in AVERAGED_COLUMNS),
         ]
-        if HGP_WIN_RATE in table:
-            cells.append(row[HGP_WIN_RATE])
+        if HGP_WINS_TIES_LOSSES in table:
+            cells.append(row[HGP_WINS_TIES_LOSSES])
         pretty.add_row(cells)
     pretty.align = "r"
     pretty.align[table.index.name] = "l"

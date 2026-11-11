@@ -99,7 +99,7 @@ The HGP variants keep the library defaults, except for the number of epochs:
 The baselines run with their default parameters:
 
 - DT: the scikit-learn decision tree.[^sklearn]
-- BoolXAI[^boolxai]: a local-search method that also evolves expressive Boolean formulas.[@boolxai2023][@boolxai2025]
+- BoolXAI[^boolxai]: refines one expressive Boolean rule by simulated annealing.[@boolxai2023][@boolxai2025]
 - RIPPER: a greedy rule-set learner[@cohen1995fast], from the wittgenstein package.[^wittgenstein]
 
 The tables report, for each method:
@@ -110,7 +110,7 @@ The tables report, for each method:
 - **Mean literals**: the number of literals in the rule learned in each fold, averaged over folds, runs, and datasets.
 - **Mean nodes**: the number of nodes in the same rule, literals and operators together.
 - **Mean runtime (s)**: the time to run all runs and folds on one dataset, averaged over datasets.
-- **HGP win rate**: the share of datasets on which the HGP variant scores strictly higher than the method.
+- **HGP wins / ties / losses**: the number of datasets on which the HGP variant scores higher than the method, ties with it, or scores lower.
 
 The baseline models are counted as hgp-lib rules.
 A decision tree becomes the disjunction of its paths to positive leaves, and a RIPPER rule set the disjunction of its rules.
@@ -122,37 +122,42 @@ The decision tree grows without a depth limit, so its rules are by far the large
 
 | Method | Mean rank | Best or tied | Mean F1 | Mean literals | Mean nodes | Mean runtime (s) |
 |:---|---:|---:|---:|---:|---:|---:|
-| HGP (10000 epochs) | 2.31 | 26 | 0.7382 | 12.0 | 16.5 | 1549.1 |
-| HGP (1000 epochs) | 2.63 | 15 | 0.7369 | 10.7 | 14.8 | 106.2 |
-| DT | 2.67 | 24 | 0.7337 | 1097.4 | 1173.7 | 0.2 |
-| BoolXAI | 3.56 | 10 | 0.6847 | 3.1 | 4.3 | 252.1 |
+| HGP (10000 epochs) | 2.38 | 23 | 0.7356 | 12.0 | 16.5 | 1404.9 |
+| HGP (1000 epochs) | 2.60 | 17 | 0.7369 | 10.7 | 14.8 | 106.2 |
+| DT | 2.64 | 24 | 0.7337 | 1097.4 | 1173.7 | 0.2 |
+| BoolXAI | 3.54 | 11 | 0.6847 | 3.1 | 4.3 | 252.1 |
 | RIPPER | 3.84 | 10 | 0.6441 | 21.2 | 29.0 | 17.4 |
 
 ### HGP against the baselines
 
 
-| Method | Mean rank | Best or tied | Mean F1 | Mean literals | Mean nodes | Mean runtime (s) | HGP win rate |
+| Method | Mean rank | Best or tied | Mean F1 | Mean literals | Mean nodes | Mean runtime (s) | HGP wins / ties / losses |
 |:---|---:|---:|---:|---:|---:|---:|---:|
 | HGP (1000 epochs) | 1.99 | 30 | 0.7369 | 10.7 | 14.8 | 106.2 | - |
-| DT | 2.11 | 27 | 0.7337 | 1097.4 | 1173.7 | 0.2 | 50.00% |
-| BoolXAI | 2.80 | 12 | 0.6847 | 3.1 | 4.3 | 252.1 | 77.14% |
-| RIPPER | 3.10 | 10 | 0.6441 | 21.2 | 29.0 | 17.4 | 68.57% |
+| DT | 2.11 | 27 | 0.7337 | 1097.4 | 1173.7 | 0.2 | 35 / 5 / 30 |
+| BoolXAI | 2.80 | 12 | 0.6847 | 3.1 | 4.3 | 252.1 | 54 / 0 / 16 |
+| RIPPER | 3.10 | 10 | 0.6441 | 21.2 | 29.0 | 17.4 | 48 / 2 / 20 |
 
 ![HGP with the library defaults vs DT, BoolXAI, and RIPPER](images/pmlb/hgp_default_vs_baselines.png)
 
+The same comparison with the HGP variant that trains 10 times as long:
 
-| HGP variant | Mean rank | Best or tied | Win rate vs DT | Win rate vs BoolXAI | Win rate vs RIPPER |
-|:---|---:|---:|---:|---:|---:|
-| HGP (1000 epochs) | 1.99 | 30 | 50.00% | 77.14% | 68.57% |
-| HGP (10000 epochs) | 1.94 | 33 | 52.86% | 75.71% | 71.43% |
+| Method | Mean rank | Best or tied | Mean F1 | Mean literals | Mean nodes | Mean runtime (s) | HGP wins / ties / losses |
+|:---|---:|---:|---:|---:|---:|---:|---:|
+| HGP (10000 epochs) | 1.99 | 31 | 0.7356 | 12.0 | 16.5 | 1404.9 | - |
+| DT | 2.11 | 27 | 0.7337 | 1097.4 | 1173.7 | 0.2 | 35 / 5 / 30 |
+| BoolXAI | 2.77 | 12 | 0.6847 | 3.1 | 4.3 | 252.1 | 52 / 0 / 18 |
+| RIPPER | 3.14 | 10 | 0.6441 | 21.2 | 29.0 | 17.4 | 50 / 3 / 17 |
+
+![HGP with 10000 epochs vs DT, BoolXAI, and RIPPER](images/pmlb/hgp_10000_vs_baselines.png)
 
 ### HGP versions
 
 
 | Method | Mean rank | Best or tied | Mean F1 | Mean literals | Mean nodes | Mean runtime (s) |
 |:---|---:|---:|---:|---:|---:|---:|
-| HGP (10000 epochs) | 1.36 | 47 | 0.7382 | 12.0 | 16.5 | 1549.1 |
-| HGP (1000 epochs) | 1.64 | 28 | 0.7369 | 10.7 | 14.8 | 106.2 |
+| HGP (10000 epochs) | 1.39 | 45 | 0.7356 | 12.0 | 16.5 | 1404.9 |
+| HGP (1000 epochs) | 1.61 | 30 | 0.7369 | 10.7 | 14.8 | 106.2 |
 
 ![HGP with 1000 and 10000 epochs](images/pmlb/hgp_versions.png)
 

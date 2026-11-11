@@ -49,6 +49,7 @@ nav:
   - Experiments:
     - experiments/index.md
     - PMLB: experiments/pmlb.md
+    - Breast Cancer Wisconsin: experiments/breast-cancer.md
     - PaySim: experiments/paysim.md
     - AEAC: experiments/aeac.md
   - API Reference:
