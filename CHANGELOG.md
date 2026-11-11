@@ -6,16 +6,24 @@
 
 ## [1.2.4](https://github.com/fii-optim-lab/hgp-lib/releases/tag/1.2.4)
 
+---
 
 ### API Changes
 
 - Added new parameter to `StandardBinarizer`: `round_edges`, (default `True`), which rounds each numeric edge to the fewest decimals (at least 2) that keep every training value in the same bin.
+- Numeric bin names no longer use a fixed number of decimals. For example, `x < 2.500` is now `x < 2.5`.
 - Deprecated the `precision` parameter and the `column_precision` attribute of `StandardBinarizer`.
+
+
+### Bug Fixes
+- `StandardBinarizer` numeric bins are now closed on the left (`left <= x < right`). Previously, a value equal to an edge fell in the bin below it.
+- `MutationExecutor` no longer returns a rule that fails `check_valid` when a rule receives several mutations and a later one is invalid.
 
 ---
 
 ## [1.2.3](https://github.com/fii-optim-lab/hgp-lib/releases/tag/1.2.3)
 
+---
 
 ### Performance Improvements
 
