@@ -66,7 +66,7 @@ X, y = load_breast_cancer(return_X_y=True, as_frame=True)
 config = BenchmarkerConfig(
     data=X,
     labels=y.to_numpy(),
-    num_runs=30,  # the defaults, spelled out
+    num_runs=30,
     n_folds=5,
     n_jobs=-1,
 )

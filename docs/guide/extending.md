@@ -34,7 +34,6 @@ factory = MyFactory(population_size=100)
 ```
 
 The [`Evaluator`](../api/evaluation.md#hgp_lib.evaluation.backend.Evaluator) holds the population's training rows together with its scorer.
-When the rows were merged into sample weights, both stay consistent:
 
 - `evaluator.score(rules)` scores rules on all training rows, with the fast kernels bound to them.
 - `evaluator.dataset` is the [`Dataset`](../api/evaluation.md#hgp_lib.evaluation.dataset.Dataset) of the training rows: `data`, `labels` and `sample_weight` (`None` when every row counts once).
