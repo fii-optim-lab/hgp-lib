@@ -11,6 +11,7 @@ Each page covers, where applicable:
 ## Datasets
 
 - [PMLB](pmlb.md): a suite of binary classification benchmarks, used to evaluate HGP across many small to medium datasets.
+- [Breast Cancer Wisconsin](breast-cancer.md): the rules that HGP, DT, RIPPER, and BoolXAI learn on one dataset, side by side.
 - [PaySim](paysim.md): synthetic mobile-money transactions for fraud detection, large and strongly imbalanced.
 - [AEAC](aeac.md): Amazon employee access requests, where readable rules double as access-control policies.
 

@@ -169,6 +169,41 @@ class TestMutationExecutor(unittest.TestCase):
             executor.apply(rules)
         self.assertEqual(rules[0].value, 1)
 
+    def test_apply_keeps_first_mutation_when_second_is_invalid(self):
+        increment = _IncrementLiteral()
+        negate = NegateMutation()
+
+        def valid_incremented_non_negated_rule(rule: Rule):
+            return rule.value == 1 and not rule.negated
+
+        executor = MutationExecutor(
+            literal_mutations=[increment, negate],
+            operator_mutations=[_ToggleOperator()],
+            mutation_p=1.0,
+            check_valid=valid_incremented_non_negated_rule,
+            num_tries=1,
+        )
+
+        rules = [Literal(value=0)]
+
+        def apply_twice(self, rules: list[Rule]):
+            rules[0] = self._mutate(rules[0], 2)
+
+        with (
+            patch.object(MutationExecutor, "apply", new=apply_twice),
+            patch(
+                "hgp_lib.mutations.mutation_executor.random.choice",
+                side_effect=[increment, negate],
+            ),
+        ):
+            executor.apply(rules)
+
+        # The increment is valid and is therefore preserved.
+        self.assertEqual(rules[0].value, 1)
+
+        # The subsequent negation is invalid and is therefore discarded.
+        self.assertFalse(rules[0].negated)
+
     # ------------------------------------------------------------------ #
     #  _mutate — direct tests
     # ------------------------------------------------------------------ #

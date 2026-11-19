@@ -35,6 +35,44 @@ class ColumnKind(str, Enum):
     NUMERIC = "numeric"
 
 
+def round_edges(edges: np.ndarray, values: np.ndarray) -> np.ndarray:
+    """
+    Round each finite edge to the fewest decimals, at least 2, that keep every value in
+    the same bin. The edges are returned unchanged if they would no longer increase.
+
+    Args:
+        edges (np.ndarray): Sorted bin edges, starting with ``-inf`` and ending with ``inf``.
+        values (np.ndarray): The values the edges were fitted on, without missing values.
+
+    Returns:
+        np.ndarray: The rounded edges.
+
+    Examples:
+        >>> import numpy as np
+        >>> from hgp_lib.preprocessing.binarizer import round_edges
+        >>> values = np.array([0.1602, 0.1604, 0.4, 0.6])
+        >>> round_edges(np.array([-np.inf, 0.16029999405145645, 0.51, np.inf]), values).tolist()
+        [-inf, 0.1603, 0.51, inf]
+    """
+    values = np.sort(values)
+    rounded = edges.copy()
+    for i in range(1, len(edges) - 1):
+        edge = float(edges[i])
+        below = np.searchsorted(values, edge)  # Values below the edge.
+        low = values[below - 1] if below > 0 else -np.inf
+        high = values[below] if below < len(values) else np.inf
+        decimals = 2
+        while not low < round(edge, decimals) <= high:
+            decimals += 1
+        rounded[i] = round(edge, decimals) + 0.0  # + 0.0 turns -0.0 into 0.0.
+    return rounded if np.all(np.diff(rounded) > 0) else edges
+
+
+def _cut(values: np.ndarray, edges: np.ndarray) -> np.ndarray:
+    """The index of the bin ``edges[i] <= value < edges[i + 1]`` of each value."""
+    return pd.cut(values, bins=edges, labels=False, include_lowest=True, right=False)
+
+
 class StandardBinarizer(Binarizer):
     """
     Converts a mixed-type DataFrame into a purely boolean DataFrame.
@@ -53,7 +91,7 @@ class StandardBinarizer(Binarizer):
       generalization.
     - Numeric columns are split into bins by a :class:`BinningStrategy`. When ``y`` is
       provided and no strategy is set, :class:`SupervisedTreeBinning` is used, otherwise
-      :class:`QuantileBinning`.
+      :class:`QuantileBinning`. Bins are closed on the left: ``left <= x < right``.
     - A column that contains missing values also gets a boolean ``<col>_is_NA``
       indicator column.
 
@@ -69,8 +107,7 @@ class StandardBinarizer(Binarizer):
             Per-column override for the number of bins. Keys are column names, values are
             the desired bin count (each >= 2). Default: `None`.
         precision (int):
-            Number of decimal places used when formatting numeric bin boundary names.
-            Must be >= 0. Default: `3`.
+            Deprecated and unused. Default: `3`.
         numeric_binning (BinningStrategy | None):
             Strategy for computing numeric bin edges. When `None`, the binarizer uses
             :class:`SupervisedTreeBinning` if labels are provided to ``fit_transform``
@@ -79,6 +116,10 @@ class StandardBinarizer(Binarizer):
             Whether to show progress bar. Default: `True`.
         leave_progress_bar (bool):
             Whether to leave progress bar. Default: `False`.
+        round_edges (bool):
+            Whether to round each numeric edge to the fewest decimals, at least 2, that
+            keep every training value in the same bin (see :func:`round_edges`).
+            Default: `True`.
 
 
     Examples:
@@ -92,10 +133,10 @@ class StandardBinarizer(Binarizer):
         >>> result["flag"].tolist()
         [True, False, True]
         >>> result
-            flag  val < 2.000  2.000 <= val
-        0   True         True         False
-        1  False         True         False
-        2   True        False          True
+            flag  val < 2.0  2.0 <= val
+        0   True       True       False
+        1  False      False        True
+        2   True      False        True
     """
 
     def __init__(
@@ -106,13 +147,15 @@ class StandardBinarizer(Binarizer):
         numeric_binning: BinningStrategy | None = None,
         progress_bar: bool = True,
         leave_progress_bar: bool = False,
+        round_edges: bool = True,
     ):
-        self._validate_params(num_bins, column_strategy, precision, numeric_binning)
+        self._validate_params(num_bins, column_strategy, round_edges, numeric_binning)
         self.num_bins = num_bins
         self.column_strategy = column_strategy or {}
-        self.precision = precision
+        self.precision = precision  # Deprecated: unused.
+        self.column_precision: dict[str, int] = {}  # Deprecated: unused.
+        self.round_edges = round_edges
         self.numeric_binning = numeric_binning
-        self.column_precision: dict[str, int] = {}
         self.progress_bar = progress_bar
         self.leave_progress_bar = leave_progress_bar
 
@@ -130,7 +173,7 @@ class StandardBinarizer(Binarizer):
         self,
         num_bins: int,
         column_strategy: dict[str, int] | None,
-        precision: int,
+        round_edges: bool,
         numeric_binning: BinningStrategy | None,
     ) -> None:
         check_isinstance(num_bins, int)
@@ -146,9 +189,7 @@ class StandardBinarizer(Binarizer):
                         f"Number of bins for column {col} must be an integer >= 2, is {bins}"
                     )
 
-        check_isinstance(precision, int)
-        if precision < 0:
-            raise ValueError(f"precision must be an integer >= 0, is {precision}")
+        check_isinstance(round_edges, bool)
 
         if numeric_binning is not None:
             check_isinstance(numeric_binning, BinningStrategy)
@@ -240,7 +281,7 @@ class StandardBinarizer(Binarizer):
             >>> b = StandardBinarizer(num_bins=2)
             >>> _ = b.fit_transform(pd.DataFrame({"x": [1.0, 2.0, 3.0, 4.0]}))
             >>> b.get_feature_names_out()
-            ['x < 2.500', '2.500 <= x']
+            ['x < 2.5', '2.5 <= x']
         """
         if not self._is_fitted:
             raise NotFittedError(
@@ -379,9 +420,11 @@ class StandardBinarizer(Binarizer):
 
         strategy = self._resolve_numeric_binning(y)
         edges = strategy.compute_edges(fit_values, fit_y, n_bins)
+        if self.round_edges:
+            edges = round_edges(edges, fit_values)
         self._numerical_bins[column] = edges
 
-        binned = pd.cut(values, bins=edges, labels=False, include_lowest=True)
+        binned = _cut(values, edges)
         return [
             (
                 self._format_numeric_bin_name(column, edges[i], edges[i + 1]),
@@ -417,9 +460,7 @@ class StandardBinarizer(Binarizer):
 
     def _transform_numeric(self, column: str, series: pd.Series) -> list[np.ndarray]:
         edges = self._numerical_bins[column]
-        binned = pd.cut(
-            series.to_numpy(), bins=edges, labels=False, include_lowest=True
-        )
+        binned = _cut(series.to_numpy(), edges)
         return [binned == i for i in range(len(edges) - 1)]
 
     def _resolve_numeric_binning(self, y: np.ndarray | None) -> BinningStrategy:
@@ -511,20 +552,19 @@ class StandardBinarizer(Binarizer):
         Examples:
             >>> import numpy as np
             >>> from hgp_lib.preprocessing import StandardBinarizer
-            >>> b = StandardBinarizer(precision=2)
+            >>> b = StandardBinarizer()
             >>> b._format_numeric_bin_name("x", -np.inf, 3.0)
-            'x < 3.00'
+            'x < 3.0'
             >>> b._format_numeric_bin_name("x", 1.0, np.inf)
-            '1.00 <= x'
-            >>> b._format_numeric_bin_name("x", 1.0, 3.0)
-            '1.00 <= x < 3.00'
+            '1.0 <= x'
+            >>> b._format_numeric_bin_name("x", 0.1597, 0.16029999405145645)
+            '0.1597 <= x < 0.16029999405145645'
         """
-        precision = self.column_precision.get(column, self.precision)
         if np.isneginf(left):
-            return f"{column} < {right:.{precision}f}"
+            return f"{column} < {right}"
         if np.isposinf(right):
-            return f"{left:.{precision}f} <= {column}"
-        return f"{left:.{precision}f} <= {column} < {right:.{precision}f}"
+            return f"{left} <= {column}"
+        return f"{left} <= {column} < {right}"
 
 
 if __name__ == "__main__":
