@@ -2,6 +2,8 @@
 
 import os
 import pickle
+import subprocess
+import sys
 import unittest
 import warnings
 from unittest.mock import patch
@@ -11,18 +13,26 @@ import numpy as np
 from hgp_lib.evaluation import (
     Dataset,
     NumpyBackend,
-    Scorer,
     accepts_sample_weight,
     confusion_matrix,
     fast_accuracy_score,
     fast_f1_score,
     predict,
-    resolve_scorer,
     score,
 )
-from hgp_lib.evaluation.numpy.predict import evaluate, evaluate_low_memory
+from hgp_lib.evaluation.dataset import take_weighted
+from hgp_lib.evaluation.numpy.kernels import count_dtype
+from hgp_lib.evaluation.numpy.predict import (
+    EVALUATIONS,
+    evaluate_block,
+    evaluate_fused,
+    evaluate_inplace,
+)
+from hgp_lib.evaluation.scorers import merges_rows
 from hgp_lib.rules import And, Literal, Or, Rule
 from hgp_lib.utils import warnings as hgp_warnings
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def reference_evaluate(rule: Rule, data: np.ndarray) -> np.ndarray:
@@ -53,17 +63,44 @@ def duplicated_data(
 ):
     """Rows drawn from a few unique rows, so merging has something to merge."""
     base = rng.integers(0, 2, size=(num_unique, num_features)).astype(bool)
-    base_labels = rng.integers(0, 2, size=num_unique)
+    base_labels = rng.integers(0, 2, size=num_unique).astype(bool)
     pick = rng.integers(0, num_unique, size=num_rows)
     return base[pick], base_labels[pick]
 
 
 def custom_weighted_f1(y_true, y_pred, sample_weight=None):
-    return fast_f1_score(y_true.astype(bool), y_pred, sample_weight=sample_weight)
+    """A custom scorer written only with operations NumPy arrays and tensors share."""
+    if sample_weight is None:
+        tp = float((y_true & y_pred).sum())
+        predicted = float(y_pred.sum())
+        positives = float(y_true.sum())
+    else:
+        tp = float((sample_weight * (y_true & y_pred)).sum())
+        predicted = float((sample_weight * y_pred).sum())
+        positives = float((sample_weight * y_true).sum())
+    if positives == 0:
+        return 1.0 if predicted == 0 else 0.0
+    return 2 * tp / (predicted + positives)
 
 
 def custom_plain_accuracy(y_true, y_pred):
     return fast_accuracy_score(y_true, y_pred)
+
+
+class BatchedF1:
+    """A custom scorer with a ``batched`` method, counting how it is called."""
+
+    def __init__(self):
+        self.calls = 0
+        self.batched_calls = 0
+
+    def __call__(self, y_true, y_pred, sample_weight=None):
+        self.calls += 1
+        return custom_weighted_f1(y_true, y_pred, sample_weight)
+
+    def batched(self, y_true, y_preds, sample_weight=None):
+        self.batched_calls += 1
+        return [custom_weighted_f1(y_true, y_pred, sample_weight) for y_pred in y_preds]
 
 
 class TestPredictAlgorithms(unittest.TestCase):
@@ -74,19 +111,18 @@ class TestPredictAlgorithms(unittest.TestCase):
         for _ in range(300):
             rule = random_rule(rng, 12, depth=4)
             expected = reference_evaluate(rule, data_c)
-            for algorithm in (evaluate, evaluate_low_memory):
+            for algorithm in (evaluate_block, evaluate_inplace, evaluate_fused):
                 for data in (data_c, data_f):
                     np.testing.assert_array_equal(algorithm(rule, data), expected)
 
     def test_does_not_modify_data(self):
         rng = np.random.default_rng(1)
         data = rng.integers(0, 2, size=(50, 6)).astype(bool)
-        original = data.copy()
+        data.setflags(write=False)
         for _ in range(100):
             rule = random_rule(rng, 6, depth=3)
-            evaluate(rule, data)
-            evaluate_low_memory(rule, data)
-        np.testing.assert_array_equal(data, original)
+            for algorithm in EVALUATIONS.values():
+                algorithm(rule, data)
 
     def test_unsupported_rule_type(self):
         class Xor(Rule):
@@ -94,9 +130,18 @@ class TestPredictAlgorithms(unittest.TestCase):
 
         rule = Xor([Literal(value=0), Literal(value=1)])
         data = np.ones((2, 2), dtype=bool)
-        for algorithm in (evaluate, evaluate_low_memory):
+        for algorithm in EVALUATIONS.values():
             with self.assertRaises(TypeError):
                 algorithm(rule, data)
+
+    def test_subclasses_of_and_and_or_are_evaluated(self):
+        class MyAnd(And):
+            pass
+
+        rule = MyAnd([Literal(value=0), Literal(value=1, negated=True)])
+        data = np.array([[True, False], [True, True]])
+        for algorithm in EVALUATIONS.values():
+            np.testing.assert_array_equal(algorithm(rule, data), [True, False])
 
 
 class TestPublicApi(unittest.TestCase):
@@ -108,13 +153,13 @@ class TestPublicApi(unittest.TestCase):
 
     def test_predict_matches_reference(self):
         rule = Or([Literal(value=0), Literal(value=1, negated=True)])
-        np.testing.assert_array_equal(
-            predict(rule, self.data), reference_evaluate(rule, self.data)
-        )
-        np.testing.assert_array_equal(
-            predict(rule, self.data, backend=NumpyBackend(low_memory=True)),
-            reference_evaluate(rule, self.data),
-        )
+        expected = reference_evaluate(rule, self.data)
+        np.testing.assert_array_equal(predict(rule, self.data), expected)
+        for name in EVALUATIONS:
+            backend = NumpyBackend(evaluation=name)
+            np.testing.assert_array_equal(
+                predict(rule, self.data, backend=backend), expected
+            )
 
     def test_predict_rejects_non_binarized_data(self):
         rule = Literal(value=0)
@@ -132,6 +177,34 @@ class TestPublicApi(unittest.TestCase):
         self.assertEqual(
             score(Literal(value=1), self.data, self.labels, fast_accuracy_score), 0.5
         )
+        self.assertIsInstance(score(rule, self.data, self.labels), float)
+
+    def test_score_has_the_backend_precision(self):
+        rule = Literal(value=0)
+        labels = np.array([1, 0, 0, 0])
+        self.assertEqual(
+            score(rule, self.data, labels),
+            float(np.float32(fast_f1_score(labels, predict(rule, self.data)))),
+        )
+        backend = NumpyBackend(dtype=np.float64)
+        self.assertEqual(score(rule, self.data, labels, backend=backend), 2 / 3)
+
+    def test_score_with_custom_scorer(self):
+        rule = Literal(value=1)
+        self.assertEqual(
+            score(rule, self.data, self.labels, custom_plain_accuracy), 0.5
+        )
+
+    def test_score_rejects_bad_input(self):
+        rule = Literal(value=0)
+        with self.assertRaises(TypeError):
+            score(rule, self.data.astype(int), self.labels)
+        with self.assertRaises(TypeError):
+            score(rule, self.data, self.labels.astype(float))
+        with self.assertRaises(ValueError):
+            score(rule, self.data, np.array([0, 1, 2, 0]))
+        with self.assertRaises(TypeError):
+            score(rule, self.data, self.labels, None)
 
     def test_rule_evaluate_is_deprecated(self):
         hgp_warnings._emitted_messages.clear()
@@ -190,61 +263,66 @@ class TestScoringFunctions(unittest.TestCase):
         def with_kwargs(y_true, y_pred, **kwargs):
             return 0.0
 
+        def fails_on_numpy(y_true, y_pred, **kwargs):
+            raise RuntimeError("only works with tensors")
+
         self.assertTrue(accepts_sample_weight(with_weights))
         self.assertTrue(accepts_sample_weight(with_kwargs))
         self.assertFalse(accepts_sample_weight(custom_plain_accuracy))
+        self.assertFalse(accepts_sample_weight(fails_on_numpy))
         self.assertFalse(accepts_sample_weight(len))
         with patch("inspect.signature", side_effect=TypeError("no signature")):
             self.assertTrue(accepts_sample_weight(with_weights))
 
 
-class TestResolveScorer(unittest.TestCase):
+class TestMergeRows(unittest.TestCase):
     def setUp(self):
-        hgp_warnings._emitted_messages.clear()
+        rng = np.random.default_rng(6)
+        self.data, self.labels = duplicated_data(rng, 5, 40, 3)
 
-    def test_defaults(self):
-        self.assertEqual(resolve_scorer(), Scorer(fast_f1_score, merge_rows=True))
-        self.assertTrue(resolve_scorer(fast_accuracy_score).merge_rows)
-        self.assertFalse(resolve_scorer(fast_f1_score, optimize=False).merge_rows)
+    def test_merges_rows_follows_optimize_scorer(self):
+        self.assertTrue(merges_rows(fast_f1_score, None))
+        self.assertTrue(merges_rows(fast_accuracy_score, None))
+        self.assertFalse(merges_rows(fast_f1_score, False))
+        self.assertFalse(merges_rows(custom_weighted_f1, None))
+        self.assertTrue(merges_rows(custom_weighted_f1, True))
+        self.assertFalse(merges_rows(custom_weighted_f1, False))
 
-    def test_custom_scorers_are_not_merged_by_default(self):
-        with warnings.catch_warnings():
-            warnings.simplefilter("error")
-            self.assertFalse(resolve_scorer(custom_weighted_f1).merge_rows)
-            self.assertFalse(resolve_scorer(custom_plain_accuracy).merge_rows)
-            self.assertFalse(
-                resolve_scorer(custom_plain_accuracy, optimize=False).merge_rows
-            )
+    def test_bind_merges_rows_only_when_asked(self):
+        dataset = Dataset(self.data, self.labels)
+        merged = NumpyBackend().bind(dataset, merge_rows=True)
+        self.assertIsNotNone(merged.dataset.sample_weight)
+        self.assertEqual(merged.dataset.n_rows, 40)
+        self.assertIsNone(NumpyBackend().bind(dataset).dataset.sample_weight)
 
-    def test_custom_scorer_opt_in(self):
-        self.assertTrue(resolve_scorer(custom_weighted_f1, optimize=True).merge_rows)
+    def test_bind_raises_for_a_scorer_without_sample_weight(self):
+        dataset = Dataset(self.data, self.labels)
+        with self.assertRaises(ValueError) as context:
+            NumpyBackend().bind(dataset, custom_plain_accuracy, merge_rows=True)
+        message = str(context.exception)
+        self.assertIn("custom_plain_accuracy", message)
+        self.assertIn("merge_rows=False", message)
 
-    def test_opt_in_without_sample_weight_warns_once(self):
-        with warnings.catch_warnings(record=True) as caught:
-            warnings.simplefilter("always")
-            first = resolve_scorer(custom_plain_accuracy, optimize=True)
-            second = resolve_scorer(custom_plain_accuracy, optimize=True)
-        self.assertFalse(first.merge_rows or second.merge_rows)
-        future = [w for w in caught if w.category is FutureWarning]
-        self.assertEqual(len(future), 1)
-        self.assertIn("custom_plain_accuracy", str(future[0].message))
+    def test_bind_checks_the_batched_method(self):
+        class BatchedWithoutWeights:
+            def __call__(self, y_true, y_pred, sample_weight=None):
+                return 0.0
 
-    def test_not_callable(self):
+            def batched(self, y_true, y_preds):
+                return [0.0] * len(y_preds)
+
+        dataset = Dataset(self.data, self.labels)
+        with self.assertRaises(ValueError):
+            NumpyBackend().bind(dataset, BatchedWithoutWeights(), merge_rows=True)
+
+    def test_bind_rejects_weights_without_merging(self):
+        merged = Dataset(self.data, self.labels).deduplicate()
+        with self.assertRaises(ValueError):
+            NumpyBackend().bind(merged, fast_f1_score)
+
+    def test_bind_rejects_a_score_fn_that_is_not_callable(self):
         with self.assertRaises(TypeError):
-            resolve_scorer(42)
-
-    def test_scorer_passes_weights_only_when_given(self):
-        seen = []
-
-        def spy(y_true, y_pred, **kwargs):
-            seen.append(kwargs)
-            return 0.0
-
-        scorer = Scorer(spy, merge_rows=True)
-        scorer(np.array([True]), np.array([True]))
-        scorer(np.array([True]), np.array([True]), np.array([2]))
-        self.assertEqual(seen[0], {})
-        self.assertEqual(list(seen[1]), ["sample_weight"])
+            NumpyBackend().bind(Dataset(self.data, self.labels), None)
 
 
 class TestDataset(unittest.TestCase):
@@ -254,26 +332,28 @@ class TestDataset(unittest.TestCase):
         merged = Dataset(data, labels).deduplicate()
         self.assertLess(len(merged.labels), 200)
         self.assertEqual(merged.n_rows, 200)
+        self.assertEqual(merged.n_features, 5)
         self.assertEqual(merged.sample_weight.dtype, np.int64)
         self.assertIs(merged.deduplicate(), merged)
 
     def test_deduplicate_adds_existing_weights(self):
         data = np.array([[True], [True], [False]])
-        merged = Dataset(data, np.array([1, 1, 0]), np.array([2, 3, 1])).deduplicate()
+        labels = np.array([True, True, False])
+        merged = Dataset(data, labels, np.array([2, 3, 1])).deduplicate()
         self.assertEqual(merged.sample_weight.tolist(), [1, 5])
         self.assertEqual(merged.n_rows, 6)
 
     def test_deduplicate_keeps_rows_with_different_labels(self):
         data = np.array([[True], [True]])
-        dataset = Dataset(data, np.array([1, 0]))
+        dataset = Dataset(data, np.array([True, False]))
         self.assertIs(dataset.deduplicate(), dataset)
 
     def test_take_unweighted_is_indexing(self):
         data = np.arange(12).reshape(6, 2) % 3 == 0
-        labels = np.arange(6)
+        labels = np.arange(6) % 2 == 0
         subset = Dataset(data, labels).take(np.array([4, 1]))
         np.testing.assert_array_equal(subset.data, data[[4, 1]])
-        np.testing.assert_array_equal(subset.labels, [4, 1])
+        np.testing.assert_array_equal(subset.labels, labels[[4, 1]])
         self.assertIsNone(subset.sample_weight)
 
     def test_take_weighted_counts_original_rows(self):
@@ -294,14 +374,17 @@ class TestDataset(unittest.TestCase):
 
     def test_take_drops_unit_weights(self):
         dataset = Dataset(
-            np.eye(3, dtype=bool), np.array([1, 0, 1]), np.array([3, 1, 2])
+            np.eye(3, dtype=bool), np.array([True, False, True]), np.array([3, 1, 2])
         )
         self.assertIsNone(dataset.take(np.array([0, 3])).sample_weight)
+        selected, counts = take_weighted(np.array([3, 1, 2]), np.array([0, 3]))
+        self.assertEqual(selected.tolist(), [0, 1])
+        self.assertIsNone(counts)
 
     def test_select_features_keeps_weights(self):
         weights = np.array([2, 1])
         dataset = Dataset(
-            np.array([[True, False], [False, True]]), np.array([1, 0]), weights
+            np.array([[True, False], [False, True]]), np.array([True, False]), weights
         )
         selected = dataset.select_features(np.array([1]))
         np.testing.assert_array_equal(selected.data, [[False], [True]])
@@ -310,48 +393,50 @@ class TestDataset(unittest.TestCase):
 
 class TestNumpyBackend(unittest.TestCase):
     def setUp(self):
-        hgp_warnings._emitted_messages.clear()
         rng = np.random.default_rng(5)
         self.data, self.labels = duplicated_data(rng, 25, 400, 8)
         self.rules = [random_rule(rng, 8, depth=3) for _ in range(60)]
         self.rules += [Literal(value=0), Literal(value=3, negated=True)]
 
-    def expected_scores(self, fn):
-        return np.array(
-            [
-                fn(self.labels, reference_evaluate(rule, self.data))
-                for rule in self.rules
-            ]
-        )
+    def expected_scores(self, fn, dtype=np.float32):
+        scores = [
+            fn(self.labels, reference_evaluate(rule, self.data)) for rule in self.rules
+        ]
+        return np.array(scores).astype(dtype)
+
+    def backends(self, **options):
+        for order in ("F", "C"):
+            for evaluation in EVALUATIONS:
+                yield NumpyBackend(order=order, evaluation=evaluation, **options)
+                yield NumpyBackend(
+                    order=order, evaluation=evaluation, batched=True, **options
+                )
 
     def test_scores_on_merged_rows_equal_raw_scores(self):
+        dataset = Dataset(self.data, self.labels)
         for fn in (fast_f1_score, fast_accuracy_score):
-            expected = self.expected_scores(fn)
-            for backend in (
-                NumpyBackend(),
-                NumpyBackend(order="C"),
-                NumpyBackend(low_memory=True),
-                NumpyBackend(batched=True),
-            ):
-                for merge_rows in (True, False):
-                    evaluator = backend.bind(
-                        Dataset(self.data, self.labels), Scorer(fn, merge_rows)
-                    )
-                    self.assertEqual(
-                        evaluator.dataset.sample_weight is not None, merge_rows
-                    )
-                    np.testing.assert_array_equal(evaluator.score(self.rules), expected)
+            for dtype in (np.float32, np.float64):
+                expected = self.expected_scores(fn, dtype)
+                for backend in self.backends(dtype=dtype):
+                    for merge_rows in (True, False):
+                        evaluator = backend.bind(dataset, fn, merge_rows=merge_rows)
+                        self.assertEqual(
+                            evaluator.dataset.sample_weight is not None, merge_rows
+                        )
+                        scores = evaluator.score(self.rules)
+                        self.assertEqual(scores.dtype, dtype)
+                        np.testing.assert_array_equal(scores, expected)
 
     def test_no_positive_labels(self):
-        labels = np.zeros(len(self.labels), dtype=int)
+        labels = np.zeros(len(self.labels), dtype=bool)
         rules = [
             Literal(value=0),
             And([Literal(value=0), Literal(value=0, negated=True)]),
         ]
-        for batched in (False, True):
+        for backend in self.backends():
             for merge_rows in (True, False):
-                evaluator = NumpyBackend(batched=batched).bind(
-                    Dataset(self.data, labels), Scorer(fast_f1_score, merge_rows)
+                evaluator = backend.bind(
+                    Dataset(self.data, labels), merge_rows=merge_rows
                 )
                 self.assertEqual(evaluator.score(rules).tolist(), [0.0, 1.0])
 
@@ -362,13 +447,13 @@ class TestNumpyBackend(unittest.TestCase):
             for batch_size in (None, 1, 7, len(self.rules), 10 * len(self.rules)):
                 for merge_rows in (True, False):
                     evaluator = NumpyBackend(batched=True, batch_size=batch_size).bind(
-                        Dataset(self.data, self.labels), Scorer(fn, merge_rows)
+                        Dataset(self.data, self.labels), fn, merge_rows=merge_rows
                     )
                     np.testing.assert_array_equal(evaluator.score(self.rules), expected)
                     self.assertEqual(evaluator.score([]).shape, (0,))
 
     def test_confusion_matrix_on_merged_rows(self):
-        merged = NumpyBackend().bind(Dataset(self.data, self.labels), resolve_scorer())
+        merged = NumpyBackend().bind(Dataset(self.data, self.labels), merge_rows=True)
         for rule in self.rules:
             self.assertEqual(
                 merged.confusion_matrix(rule),
@@ -383,39 +468,71 @@ class TestNumpyBackend(unittest.TestCase):
             return custom_weighted_f1(y_true, y_pred, sample_weight)
 
         expected = self.expected_scores(fast_f1_score)
+        for backend in self.backends():
+            for merge_rows in (True, False):
+                seen.clear()
+                evaluator = backend.bind(
+                    Dataset(self.data, self.labels), spy, merge_rows=merge_rows
+                )
+                np.testing.assert_allclose(
+                    evaluator.score(self.rules), expected, rtol=1e-6
+                )
+                self.assertEqual(all(w is not None for w in seen), merge_rows)
+
+    def test_custom_scorer_with_a_batched_method(self):
+        expected = self.expected_scores(fast_f1_score)
         for merge_rows in (True, False):
-            seen.clear()
-            evaluator = NumpyBackend(batched=True).bind(
-                Dataset(self.data, self.labels), Scorer(spy, merge_rows)
+            for batched in (True, False):
+                scorer = BatchedF1()
+                backend = NumpyBackend(
+                    batched=batched, batch_size=7 if batched else None
+                )
+                evaluator = backend.bind(
+                    Dataset(self.data, self.labels), scorer, merge_rows=merge_rows
+                )
+                np.testing.assert_allclose(
+                    evaluator.score(self.rules), expected, rtol=1e-6
+                )
+                if batched:
+                    self.assertEqual((scorer.calls, scorer.batched_calls), (0, 9))
+                else:
+                    self.assertEqual(scorer.batched_calls, 0)
+
+    def test_subset(self):
+        rng = np.random.default_rng(7)
+        for merge_rows in (True, False):
+            evaluator = NumpyBackend().bind(
+                Dataset(self.data, self.labels), merge_rows=merge_rows
             )
-            np.testing.assert_array_equal(evaluator.score(self.rules), expected)
-            self.assertEqual(all(w is not None for w in seen), merge_rows)
-            # Custom scorers receive the user's labels, not a converted copy.
-            self.assertEqual(evaluator.dataset.labels.dtype, self.labels.dtype)
+            rows = rng.choice(evaluator.dataset.n_rows, 100, replace=False)
+            subset = evaluator.subset(rows)
+            self.assertEqual(subset.dataset.n_rows, 100)
+            self.assertIs(subset.score_fn, evaluator.score_fn)
+            taken = evaluator.dataset.take(rows)
+            expected = NumpyBackend()._bind(taken, fast_f1_score, merge_rows)
+            np.testing.assert_array_equal(
+                subset.score(self.rules), expected.score(self.rules)
+            )
 
     def test_evaluator_data_layout(self):
         dataset = Dataset(self.data, self.labels)
+        self.assertTrue(NumpyBackend().bind(dataset).dataset.data.flags.f_contiguous)
         self.assertTrue(
-            NumpyBackend()
-            .bind(dataset, resolve_scorer())
-            .dataset.data.flags.f_contiguous
-        )
-        self.assertTrue(
-            NumpyBackend(order="C")
-            .bind(dataset, resolve_scorer())
-            .dataset.data.flags.c_contiguous
+            NumpyBackend(order="C").bind(dataset).dataset.data.flags.c_contiguous
         )
 
-    def test_bind_rejects_weights_for_scorer_without_merging(self):
-        merged = Dataset(self.data, self.labels).deduplicate()
-        with self.assertRaises(ValueError):
-            NumpyBackend().bind(merged, Scorer(fast_f1_score, merge_rows=False))
+    def test_backend_conversions(self):
+        backend = NumpyBackend()
+        self.assertIs(backend.from_numpy(self.data), self.data)
+        scores = np.array([0.5], dtype=np.float32)
+        self.assertIs(backend.to_numpy(scores), scores)
 
     def test_options_are_validated(self):
         with self.assertRaises(ValueError):
             NumpyBackend(order="K")
-        with self.assertRaises(TypeError):
-            NumpyBackend(low_memory=1)
+        with self.assertRaises(ValueError) as context:
+            NumpyBackend(evaluation="fast")
+        self.assertIn("'block'", str(context.exception))
         with self.assertRaises(TypeError):
             NumpyBackend(batched="yes")
         for batch_size in (2.0, True, "8"):
@@ -425,9 +542,37 @@ class TestNumpyBackend(unittest.TestCase):
             NumpyBackend(batched=True, batch_size=0)
         with self.assertRaises(ValueError):
             NumpyBackend(batch_size=8)
+        with self.assertRaises(ValueError):
+            NumpyBackend(dtype=np.int32)
+        with self.assertRaises(TypeError):
+            NumpyBackend(dtype="not a dtype")
+        self.assertEqual(NumpyBackend(batched=np.bool_(True)).batched, True)
+
+    def test_dtype(self):
+        self.assertEqual(NumpyBackend().dtype, np.dtype(np.float32))
+        self.assertEqual(NumpyBackend(dtype="float64").dtype, np.dtype(np.float64))
+        self.assertEqual(NumpyBackend(dtype=np.float64), NumpyBackend(dtype="float64"))
+
+    def test_counts_switch_to_float64_when_float32_is_not_exact(self):
+        float32 = np.dtype(np.float32)
+        self.assertEqual(count_dtype(float32, 2**23), float32)
+        self.assertEqual(count_dtype(float32, 2**23 + 1), np.dtype(np.float64))
+        # 2**24 + 1 original rows: float32 counts would round to 2**24.
+        data = np.array([[True], [True], [False]])
+        labels = np.array([True, True, False])
+        weights = np.array([2**24, 1, 1])
+        evaluator = NumpyBackend()._bind(
+            Dataset(data, labels, weights), fast_f1_score, True
+        )
+        self.assertEqual(
+            evaluator.confusion_matrix(Literal(value=0)), (2**24 + 1, 0, 0, 1)
+        )
+        self.assertEqual(evaluator.score([Literal(value=0)]).tolist(), [1.0])
 
     def test_pickle_and_equality(self):
-        backend = NumpyBackend(order="C", low_memory=True, batched=True, batch_size=8)
+        backend = NumpyBackend(
+            order="C", evaluation="block", batched=True, batch_size=8
+        )
         self.assertEqual(pickle.loads(pickle.dumps(backend)), backend)
         self.assertEqual(NumpyBackend(), NumpyBackend())
 
@@ -436,30 +581,39 @@ class TestNumpyBackend(unittest.TestCase):
         for backend in (NumpyBackend(), NumpyBackend(batched=True, batch_size=7)):
             for merge_rows in (True, False):
                 evaluator = backend.bind(
-                    Dataset(self.data, self.labels), Scorer(fast_f1_score, merge_rows)
+                    Dataset(self.data, self.labels), merge_rows=merge_rows
                 )
                 restored = pickle.loads(pickle.dumps(evaluator))
                 np.testing.assert_array_equal(restored.score(self.rules), expected)
 
-    def test_low_memory_default(self):
-        with patch.dict(os.environ, clear=False) as environment:
-            environment.pop("HGP_LOW_MEMORY", None)
-            with warnings.catch_warnings():
-                warnings.simplefilter("error")
-                self.assertTrue(NumpyBackend().low_memory)
 
-    def test_low_memory_environment_variable_is_deprecated(self):
-        for value, expected in (("1", True), ("0", False)):
-            hgp_warnings._emitted_messages.clear()
-            with patch.dict(os.environ, {"HGP_LOW_MEMORY": value}):
-                with warnings.catch_warnings(record=True) as caught:
-                    warnings.simplefilter("always")
-                    backend = NumpyBackend()
-            self.assertEqual(backend.low_memory, expected)
-            self.assertTrue(any(w.category is FutureWarning for w in caught))
-        # An explicit option wins over the environment variable.
-        with patch.dict(os.environ, {"HGP_LOW_MEMORY": "0"}):
-            self.assertTrue(NumpyBackend(low_memory=True).low_memory)
+class TestLowMemoryEnvironmentVariable(unittest.TestCase):
+    def run_python(self, code: str, **environment):
+        env = {**os.environ, "PYTHONPATH": os.path.join(ROOT, "src"), **environment}
+        return subprocess.run(
+            [sys.executable, "-c", code],
+            env=env,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+    def test_is_ignored_with_a_future_warning(self):
+        code = (
+            "from hgp_lib.evaluation import NumpyBackend; "
+            "print(NumpyBackend().evaluation)"
+        )
+        for value in ("1", "0"):
+            result = self.run_python(code, HGP_LOW_MEMORY=value)
+            self.assertEqual(result.stdout.strip(), "fused")
+            self.assertEqual(result.stderr.count("FutureWarning"), 1)
+            self.assertIn("HGP_LOW_MEMORY", result.stderr)
+
+    def test_no_warning_without_the_variable(self):
+        environment = {k: v for k, v in os.environ.items() if k != "HGP_LOW_MEMORY"}
+        with patch.dict(os.environ, environment, clear=True):
+            result = self.run_python("import hgp_lib")
+        self.assertNotIn("HGP_LOW_MEMORY", result.stderr)
 
 
 if __name__ == "__main__":

@@ -24,17 +24,17 @@ class PopulationGeneratorFactory:
         50
 
         Subclass to use custom strategies. The evaluator holds the population's training
-        rows and its scorer:
+        rows and its scoring function:
 
         >>> import numpy as np
-        >>> from hgp_lib.evaluation import Dataset, NumpyBackend, resolve_scorer
+        >>> from hgp_lib.evaluation import Dataset, NumpyBackend
         >>> from hgp_lib.populations import PopulationGeneratorFactory, BestLiteralStrategy
         >>> class MyFactory(PopulationGeneratorFactory):
         ...     def create_strategies(self, num_literals, evaluator):
         ...         return [BestLiteralStrategy(num_literals=num_literals, evaluator=evaluator)]
         >>> factory = MyFactory(population_size=20)
         >>> data = np.array([[True, False], [False, True]])
-        >>> evaluator = NumpyBackend().bind(Dataset(data, np.array([1, 0])), resolve_scorer())
+        >>> evaluator = NumpyBackend().bind(Dataset(data, np.array([True, False])))
         >>> gen = factory.create(2, evaluator)
         >>> len(gen.generate())
         20
@@ -60,9 +60,10 @@ class PopulationGeneratorFactory:
         Args:
             num_literals (int): Number of boolean features (columns of the training data).
             evaluator (Evaluator): The population's training rows (``evaluator.dataset``,
-                possibly merged into sample weights) with its scorer bound to them. Use
-                ``evaluator.score`` to score rules on all rows, and ``evaluator.scorer``
-                on subsets from ``evaluator.dataset.take``.
+                in the backend's dataset type and possibly merged into sample weights)
+                with the scoring function bound to them. Use ``evaluator.score`` to score
+                rules on all rows, and ``evaluator.subset(rows).score`` on a subset of
+                the original rows.
 
         Returns:
             list[PopulationStrategy]: Strategies to pass to `PopulationGenerator`.
@@ -75,7 +76,8 @@ class PopulationGeneratorFactory:
 
         Args:
             num_literals (int): Number of boolean features (columns of the training data).
-            evaluator (Evaluator): The population's training rows with its scorer.
+            evaluator (Evaluator): The population's training rows with the scoring
+                function bound to them.
 
         Returns:
             PopulationGenerator: A generator ready to produce the initial population.

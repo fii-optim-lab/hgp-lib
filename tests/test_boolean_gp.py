@@ -111,14 +111,41 @@ class TestBooleanGP(unittest.TestCase):
         self.assertIsInstance(gp.crossover_executor, CrossoverExecutor)
         self.assertIsInstance(gp.selection, TournamentSelection)
 
-    def test_scorer_is_resolved_without_changing_the_config(self):
+    def test_score_fn_defaults_to_fast_f1_score(self):
         gp = BooleanGP(self._make_config())
-        self.assertIs(gp.scorer.fn, self.score_fn)
+        self.assertIs(gp.evaluator.score_fn, self.score_fn)
 
-        config = self._make_config(score_fn=None)
-        gp = BooleanGP(config)
-        self.assertIs(gp.scorer.fn, fast_f1_score)
-        self.assertIsNone(config.score_fn)
+        config = BooleanGPConfig(
+            train_data=self.train_data, train_labels=self.train_labels
+        )
+        self.assertIs(config.score_fn, fast_f1_score)
+        self.assertIs(BooleanGP(config).evaluator.score_fn, fast_f1_score)
+
+    def test_explicit_none_score_fn_is_rejected(self):
+        with self.assertRaises(TypeError) as context:
+            BooleanGP(self._make_config(score_fn=None))
+        self.assertIn("fast_f1_score", str(context.exception))
+
+    def test_int_data_is_rejected(self):
+        with self.assertRaises(TypeError):
+            BooleanGP(self._make_config(train_data=self.train_data.astype(int)))
+
+    def test_float_labels_are_rejected(self):
+        with self.assertRaises(TypeError):
+            BooleanGP(self._make_config(train_labels=self.train_labels.astype(float)))
+
+    def test_int_labels_are_converted_once(self):
+        gp = BooleanGP(self._make_config(train_labels=self.train_labels.astype(int)))
+        self.assertEqual(gp.train_labels.dtype, bool)
+
+    def test_evaluate_rejects_int_data(self):
+        gp = BooleanGP(self._make_config())
+        gp.step()
+        int_data = self.train_data.astype(int)
+        with self.assertRaises(TypeError):
+            gp.evaluate_best(int_data, self.train_labels)
+        with self.assertRaises(TypeError):
+            gp.evaluate_population(int_data, self.train_labels, fast_f1_score)
 
     def test_merging_follows_optimize_scorer(self):
         data = np.repeat(self.train_data, [3, 1, 2, 1], axis=0)
@@ -615,7 +642,7 @@ class TestScoreFnArgumentOrder(unittest.TestCase):
         gp, train_data, train_labels = self._make_gp(seen)
         gp.step()
         seen.clear()
-        gp.evaluate_best(train_data, train_labels, gp.scorer.fn)
+        gp.evaluate_best(train_data, train_labels, gp.evaluator.score_fn)
         y_true, y_pred = seen[-1]
         np.testing.assert_array_equal(y_true, train_labels)
         np.testing.assert_array_equal(y_pred, predict(gp.global_best_rule, train_data))

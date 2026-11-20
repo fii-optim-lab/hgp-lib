@@ -24,6 +24,16 @@ from hgp_lib.evaluation import fast_accuracy_score as accuracy_score
 from hgp_lib.evaluation import predict
 
 
+class _IntBinarizer(StandardBinarizer):
+    """Breaks the binarizer contract: returns 0/1 integer columns."""
+
+    def fit_transform(self, X, y=None):
+        return super().fit_transform(X, y).astype(int)
+
+    def transform(self, X):
+        return super().transform(X).astype(int)
+
+
 class TestGPBenchmarker(unittest.TestCase):
     def setUp(self):
         random.seed(42)
@@ -117,6 +127,15 @@ class TestGPBenchmarker(unittest.TestCase):
         ):
             GPBenchmarker(self._make_config(labels=np.array([1, 0])))
 
+        with self.subTest("float labels rejected"), self.assertRaises(TypeError):
+            GPBenchmarker(self._make_config(labels=self.labels.astype(float)))
+
+        with (
+            self.subTest("labels other than 0 and 1 rejected"),
+            self.assertRaises(ValueError),
+        ):
+            GPBenchmarker(self._make_config(labels=self.labels * 2))
+
         with self.subTest("num_runs must be positive"), self.assertRaises(ValueError):
             GPBenchmarker(self._make_config(num_runs=0))
 
@@ -202,6 +221,13 @@ class TestGPBenchmarker(unittest.TestCase):
     def test_data_must_be_dataframe(self):
         with self.assertRaises(TypeError):
             GPBenchmarker(self._make_config(data=self.data.to_numpy()))
+
+    def test_binarizer_returning_ints_rejected_at_fit(self):
+        benchmarker = GPBenchmarker(
+            self._make_config(binarizer=_IntBinarizer(), num_runs=1)
+        )
+        with self.assertRaisesRegex(TypeError, "binarized boolean"):
+            benchmarker.fit()
 
     # ------------------------------------------------------------------ #
     #  _effective_n_jobs

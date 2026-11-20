@@ -3,7 +3,12 @@ from dataclasses import dataclass, field
 
 from numpy import ndarray
 
-from ..utils.validation import check_isinstance, check_X_y, validate_callable
+from ..utils.validation import (
+    BOOL_TYPES,
+    check_isinstance,
+    check_X_y,
+    validate_callable,
+)
 from .boolean_gp_config import BooleanGPConfig, validate_gp_config
 
 
@@ -16,8 +21,9 @@ class TrainerConfig:
         gp_config (BooleanGPConfig): Configuration for the underlying BooleanGP.
             Default: `BooleanGPConfig()`.
         num_epochs (int): Number of training epochs. Default: `1000`.
-        val_data (ndarray | None): Validation data; optional.
-        val_labels (ndarray | None): Validation labels; optional.
+        val_data (ndarray | None): Validation data (2-D boolean array); optional.
+        val_labels (ndarray | None): Validation labels (booleans, or integers 0 and 1);
+            optional.
         val_every (int): Validate every N epochs.
         progress_bar (bool): Whether to show progress bar.
         leave_progress_bar (bool): Whether to leave progress bar.
@@ -98,8 +104,8 @@ def validate_trainer_config(config: TrainerConfig, require_data: bool = True) ->
         )
     if config.val_data is not None:
         check_X_y(config.val_data, config.val_labels)
-    check_isinstance(config.progress_bar, bool)
-    check_isinstance(config.leave_progress_bar, bool)
+    check_isinstance(config.progress_bar, BOOL_TYPES, "progress_bar")
+    check_isinstance(config.leave_progress_bar, BOOL_TYPES, "leave_progress_bar")
     if config.progress_callback is not None:
         validate_callable(
             config.progress_callback, "progress_callback must be callable"

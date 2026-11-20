@@ -14,7 +14,7 @@ Internally it combines genetic programming with hierarchical population structur
 - Built-in benchmarking with stratified k-fold CV and parallel execution
 - Automatic binarization of numeric and categorical features
 - Scorer optimization via data deduplication and sample weights
-- Pluggable evaluation backends: a tuned NumPy backend by default, and a PyTorch backend for GPUs
+- Pluggable evaluation backends: NumPy by default, and PyTorch on the CPU or a GPU
 - Configurable mutations, crossover, and selection strategies
 - Dataclass-based configuration for reproducibility
 
@@ -88,4 +88,5 @@ See [Interpretability](interpretability.md) for why this matters.
 - [Extending HGP](guide/extending.md): custom strategies, backends, mutations, and low-level use
 - [Rule Trees](guide/rule-trees.md): the rule data structure, evaluating rules, and the NumPy backend
 - [Experiments](experiments/index.md): reproducing dataset experiments (PMLB, PaySim, AEAC)
+- [Performance](performance.md): benchmark reports of the backends and versions
 - [API Reference](api/index.md): full module documentation

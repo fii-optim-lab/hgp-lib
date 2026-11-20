@@ -55,33 +55,36 @@ Operators combine these vectors with NumPy boolean operations, so a whole rule r
 ## The NumPy backend
 
 [`NumpyBackend`](../api/evaluation.md#hgp_lib.evaluation.numpy.backend.NumpyBackend) is the default backend.
+Its default values were chosen based on benchmarking; see [Performance](../performance.md).
 
 ```python
 from hgp_lib import BooleanGPConfig
 from hgp_lib.evaluation import NumpyBackend
 
-BooleanGPConfig(backend=NumpyBackend(order="F", low_memory=True, batched=False))  # the defaults
+BooleanGPConfig(backend=NumpyBackend(evaluation="block"))
 BooleanGPConfig(backend=NumpyBackend(batched=True, batch_size=50))  # 50 rules per batch
+BooleanGPConfig(backend=NumpyBackend(dtype="float64"))  # float64 scores
 ```
 
 - `order` is the memory layout of the training data.
   Rules read feature columns, which are contiguous in `"F"` (column-major) order.
-- `low_memory` chooses between two algorithms with the same results.
-  With `True`, each operator updates one result buffer in place, and literal children are folded in by ufuncs that write into that buffer, so they allocate nothing.
-  With `False`, the literal children of an operator are gathered with one fancy index into a block, then reduced with `all` or `any`.
-  That needs fewer NumPy calls but a temporary block per operator.
+- `evaluation` chooses between three implementations:
+  - `"block"` gathers the literal children of an operator into one block with a single fancy index, applies their negations with one XOR, and reduces the block with `all` or `any`.
+    It needs few NumPy calls, and a temporary block per operator.
+  - `"inplace"` keeps one result buffer per operator and updates it in place with each child.
+    A negated literal child is negated into a temporary first.
+  - `"fused"` is `"inplace"` with the negation fused into the update.
+    For booleans, `a & ~b` is `a > b` and `a | ~b` is `a >= b`, so a negated literal child takes one comparison ufunc that writes into the buffer.
 - `batched` stacks the predictions of several rules into one boolean block, one row per rule, and scores the block with one call instead of one call per rule.
   `batch_size` is the number of rules per batch; `None` (the default) scores the whole population in one batch.
   A batch holds `batch_size` times the number of training rows booleans, so a smaller `batch_size` bounds the memory on large data.
-  Only the built-in scorers are batched; a custom scorer is still called once per rule.
-
-In the repository's backend benchmarks, `order="F"` with `low_memory=True` was the fastest in every scenario.
-`batched` was faster on a few hundred to a few thousand training rows and slower on larger data, so it is off by default.
-See [`NumpyBackend`](../api/evaluation.md#hgp_lib.evaluation.numpy.backend.NumpyBackend) for the measured speedups.
+  The built-in scorers are batched, and so are scoring functions with a `batched` method (see [Custom scorers](#custom-scorers)).
+- `dtype` is the float type of the scores, `float32` by default.
+  Counts stay exact: when the training rows stand for more original rows than `dtype` counts exactly (16,777,216 for `float32`), weighted counts switch to `float64`.
 
 ## The PyTorch backend
 
-[`TorchBackend`](../api/evaluation.md#hgp_lib.evaluation.torch.backend.TorchBackend) evaluates rules with PyTorch.
+[`TorchBackend`](../api/evaluation.md#hgp_lib.evaluation.torch.backend.TorchBackend) evaluates rules with PyTorch, on the CPU or on a GPU.
 It needs PyTorch, which is an optional dependency:
 
 ```bash
@@ -98,25 +101,52 @@ BooleanGPConfig(backend=TorchBackend(device="mps", batched=True, batch_size=50))
 ```
 
 - `device` is where the training rows are stored and rules are evaluated. `None` (the default) means `"cpu"`.
-- `batched` and `batch_size` work as for the NumPy backend: the predictions of `batch_size` rules are stacked on the device and counted together, and `None` counts the whole population at once.
+- `evaluation`, `batched`, `batch_size` and `dtype` work as for the NumPy backend, with tensors on `device`.
+  MPS has no `float64`.
 
-It gives the same scores, and so the same rules, as the NumPy backend.
-For the built-in scorers, true positives and predicted positives are counted as exact integers on the device, and only these counts are copied back, once per population.
-A custom scorer receives each prediction as a NumPy array, so every prediction is copied from the device.
-
-Each literal of a rule is one tensor operation, and every operation has a fixed launch cost.
-A GPU therefore only pays off on large data.
-On an Apple M3 GPU, scoring 100 random rules was 1.6x faster than the NumPy backend on 1 million rows, and 4.6x slower on 100 thousand rows.
-On the repository's benchmark datasets the NumPy backend was faster, so on the CPU use the NumPy backend.
+The training rows are stored once, on `device`, as a [`TorchDataset`](../api/evaluation.md#hgp_lib.evaluation.torch.dataset.TorchDataset).
+Predictions and scores stay tensors on `device` until they reach NumPy code: once per generation for the scores, and at the end of the public `predict` and `score` functions.
+A custom scoring function receives tensors, so it must work with tensors.
 
 With a GPU, [`GPBenchmarker`](../api/benchmarkers.md#hgp_lib.benchmarkers.gp_benchmarker.GPBenchmarker) runs each of its `n_jobs` worker processes on the same device, and each one holds its own copy of the training rows.
 Keep `n_jobs` small enough for the data to fit in GPU memory.
+On Linux, worker processes are forked by default before Python 3.14, and a forked process cannot use CUDA when its parent already did.
 
 ## Scoring during training
 
-During training, the backend binds the scorer to the training rows once, and scores every rule of every generation with it.
+During training, the backend binds the scoring function to the training rows once, and scores every rule of every generation with it.
 Binding computes constants such as the number of positive labels once, and picks the kernel for the dataset (for example the case without positive labels) once, not per rule.
 The built-in scorers, [`fast_f1_score`](../api/evaluation.md#hgp_lib.evaluation.scorers.fast_f1_score) and [`fast_accuracy_score`](../api/evaluation.md#hgp_lib.evaluation.scorers.fast_accuracy_score), get dedicated kernels in both backends.
 
 When `optimize_scorer` allows it, duplicate rows are merged into integer sample weights before binding.
-The rules are then evaluated on fewer rows, and the counts are exact, so the scores are the same as on the original rows.
+The rules are then evaluated on fewer rows, and the counts are exact, so the scores are those of the original rows.
+
+### Custom scorers
+
+A scoring function takes `(y_true, y_pred)`, and `sample_weight` when rows are merged, and returns a finite float.
+It never returns NaN: selection and best-rule tracking compare scores, and every comparison with NaN is false.
+With [`TorchBackend`](../api/evaluation.md#hgp_lib.evaluation.torch.backend.TorchBackend), the arguments are tensors.
+
+A scoring function can also have a `batched` method, which scores a 2-D stack of predictions, one row per rule.
+Backends with `batched=True` call it once per batch instead of calling the function once per rule:
+
+```python
+import numpy as np
+
+
+class Recall:
+    def __call__(self, y_true, y_pred, sample_weight=None):
+        return self.batched(y_true, y_pred[None], sample_weight)[0]
+
+    def batched(self, y_true, y_preds, sample_weight=None):
+        weights = np.ones(len(y_true)) if sample_weight is None else sample_weight
+        positives = weights @ y_true
+        if positives == 0:
+            return np.ones(len(y_preds))
+        return (y_preds & y_true) @ weights / positives
+
+
+BooleanGPConfig(score_fn=Recall(), backend=NumpyBackend(batched=True))
+```
+
+With `optimize_scorer=True`, both the function and its `batched` method must accept `sample_weight`; otherwise binding raises a `ValueError`.

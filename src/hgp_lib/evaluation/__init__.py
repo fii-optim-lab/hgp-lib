@@ -4,8 +4,8 @@ Rule evaluation: predictions, scores and confusion matrices.
 - `predict` and `score` evaluate one rule on binarized data, as given.
 - `fast_f1_score`, `fast_accuracy_score` and `confusion_matrix` score boolean predictions.
 - Backends (`NumpyBackend`, and `TorchBackend` with PyTorch installed) evaluate many
-  rules on the same data during training. `EvaluationBackend.bind` binds a `Scorer` to
-  a `Dataset` and returns an `Evaluator`.
+  rules on the same data during training. `EvaluationBackend.bind` binds a scoring
+  function to a `Dataset` and returns an `Evaluator`.
 """
 
 from .api import predict, score
@@ -13,12 +13,11 @@ from .backend import EvaluationBackend, Evaluator
 from .dataset import Dataset
 from .numpy import NumpyBackend
 from .scorers import (
-    Scorer,
+    ScoreFn,
     accepts_sample_weight,
     confusion_matrix,
     fast_accuracy_score,
     fast_f1_score,
-    resolve_scorer,
 )
 
 __all__ = [
@@ -26,13 +25,12 @@ __all__ = [
     "EvaluationBackend",
     "Evaluator",
     "NumpyBackend",
-    "Scorer",
+    "ScoreFn",
     "accepts_sample_weight",
     "confusion_matrix",
     "fast_accuracy_score",
     "fast_f1_score",
     "predict",
-    "resolve_scorer",
     "score",
 ]
 

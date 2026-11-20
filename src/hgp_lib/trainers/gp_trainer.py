@@ -6,6 +6,7 @@ from ..algorithms import BooleanGP
 from ..configs import TrainerConfig, validate_trainer_config
 from ..evaluation import Dataset
 from ..results import GenerationMetrics, PopulationHistory
+from ..utils.validation import check_X, to_bool_labels
 
 
 class GPTrainer:
@@ -56,11 +57,15 @@ class GPTrainer:
         self.leave_progress_bar = config.leave_progress_bar
         self.progress_callback = config.progress_callback
 
-        # Validation rows are scored repeatedly, so the scorer is bound to them once.
+        # Validation rows are scored repeatedly, so the scoring function is bound to them
+        # once, with the training population's settings.
         self.val_evaluator = None
         if config.val_data is not None:
+            evaluator = self.gp_algo.evaluator
             self.val_evaluator = self.gp_algo.backend.bind(
-                Dataset(config.val_data, config.val_labels), self.gp_algo.scorer
+                Dataset(config.val_data, to_bool_labels(config.val_labels)),
+                evaluator.score_fn,
+                merge_rows=evaluator.merge_rows,
             )
 
     def fit(self) -> PopulationHistory:
@@ -85,9 +90,8 @@ class GPTrainer:
                 if self.val_evaluator is not None and (
                     (epoch + 1) % self.val_every == 0 or epoch == self.num_epochs - 1
                 ):
-                    val_score = float(
-                        self.val_evaluator.score([self.gp_algo.global_best_rule])[0]
-                    )
+                    scores = self.val_evaluator.score([self.gp_algo.global_best_rule])
+                    val_score = float(self.gp_algo.backend.to_numpy(scores)[0])
 
                     gen_metrics.val_score = val_score
 
@@ -149,6 +153,7 @@ class GPTrainer:
             np.ndarray: 1-D boolean array with one prediction per input row.
 
         Raises:
+            TypeError: If ``data`` is not a boolean NumPy array.
             NotFittedError: If called before ``fit`` (no best rule is available yet).
 
         Examples:
@@ -169,6 +174,11 @@ class GPTrainer:
             >>> predictions.shape
             (2,)
         """
+        check_X(data)
         if self.gp_algo.global_best_rule is None:
             raise NotFittedError("GPTrainer must be fit before calling predict")
-        return self.gp_algo.backend.predict(self.gp_algo.global_best_rule, data)
+        backend = self.gp_algo.backend
+        prediction = backend.predict(
+            self.gp_algo.global_best_rule, backend.from_numpy(data)
+        )
+        return backend.to_numpy(prediction)

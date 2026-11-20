@@ -42,4 +42,4 @@ class ComplexityCheck:
             >>> ComplexityCheck(2)(And([Literal(value=0), Literal(value=1)]))
             False
         """
-        return len(rule) <= self.max_complexity
+        return rule.__len__() <= self.max_complexity

@@ -17,6 +17,7 @@ import warnings
 
 import numpy as np
 
+from hgp_lib.evaluation import predict
 from hgp_lib.rules import And, Literal, Or, Rule
 
 
@@ -192,7 +193,7 @@ def _predict(rule: Rule | None, matrix: np.ndarray) -> np.ndarray:
     """hgp-lib's prediction of a rule; ``None`` predicts the negative class."""
     if rule is None:
         return np.zeros(len(matrix), dtype=bool)
-    return np.asarray(rule.evaluate(np.ascontiguousarray(matrix, dtype=bool)))
+    return predict(rule, np.asarray(matrix, dtype=bool))
 
 
 def _dnf_stats(term_lengths: list[int]) -> tuple[int, int]:

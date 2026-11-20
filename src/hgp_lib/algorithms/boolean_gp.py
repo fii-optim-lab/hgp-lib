@@ -6,10 +6,12 @@ from numpy import ndarray
 from sklearn.exceptions import NotFittedError
 
 from ..configs import BooleanGPConfig, validate_gp_config
-from ..evaluation import Dataset, resolve_scorer
+from ..evaluation import Dataset
+from ..evaluation.scorers import merges_rows
 from ..results import GenerationMetrics
 from ..rules import Rule
 from ..selections import TournamentSelection
+from ..utils.validation import check_X_y, to_bool_labels
 
 
 class BooleanGP:
@@ -25,25 +27,27 @@ class BooleanGP:
     number of epochs.
 
     Training data and labels are provided via `BooleanGPConfig`. The configured `backend`
-    binds the scorer to them once (`evaluator`), merging duplicate rows into sample
-    weights when `optimize_scorer` allows it. The number of features (`num_features`) is
-    derived from the data shape and passed to the configured `population_factory` and
-    `mutation_factory` for runtime construction of the `PopulationGenerator` and
-    `MutationExecutor`.
+    binds the scoring function to them once (`evaluator`), merging duplicate rows into
+    sample weights when `optimize_scorer` allows it. The evaluator's dataset is the only
+    copy of the training rows the population keeps. The number of features
+    (`num_features`) is derived from the data shape and passed to the configured
+    `population_factory` and `mutation_factory` for runtime construction of the
+    `PopulationGenerator` and `MutationExecutor`.
 
     Args:
         config (BooleanGPConfig): Configuration containing `train_data`,
             `train_labels`, `score_fn`, `population_factory`,
             `mutation_factory`, and optional components.
         current_depth (int): Depth of this population in the hierarchy. Default: `0`.
-        dataset (Dataset | None): Training rows sampled by the parent population,
-            possibly weighted. Only set for child populations; the root uses
-            `config.train_data` and `config.train_labels`. Default: `None`.
+        dataset (Dataset | None): Training rows sampled by the parent population, in the
+            backend's dataset type and possibly weighted. Only set for child populations;
+            the root uses `config.train_data` and `config.train_labels`, and children
+            ignore them. Default: `None`.
 
     Attributes:
         backend (EvaluationBackend): The configured evaluation backend.
-        scorer (Scorer): The resolved scoring function.
-        evaluator (Evaluator): The training rows with the scorer bound to them.
+        evaluator (Evaluator): The training rows with the scoring function bound to them.
+            ``evaluator.score_fn`` is the scoring function.
 
     Examples:
         >>> import numpy as np
@@ -68,17 +72,20 @@ class BooleanGP:
         current_depth: int = 0,
         dataset: Dataset | None = None,
     ):
-        validate_gp_config(config)
+        validate_gp_config(config, require_data=dataset is None)
 
         if dataset is None:
-            dataset = Dataset(config.train_data, config.train_labels)
+            dataset = Dataset(config.train_data, to_bool_labels(config.train_labels))
         self.backend = config.backend
-        self.scorer = resolve_scorer(config.score_fn, config.optimize_scorer)
-        self.evaluator = self.backend.bind(dataset, self.scorer)
+        self.evaluator = self.backend.bind(
+            dataset,
+            config.score_fn,
+            merge_rows=merges_rows(config.score_fn, config.optimize_scorer),
+        )
 
         self.complexity_penalty = config.complexity_penalty
         self.current_depth = current_depth
-        num_features = self.evaluator.dataset.data.shape[1]
+        num_features = self.evaluator.dataset.n_features
 
         self.population_generator = config.population_factory.create(
             num_features, self.evaluator
@@ -128,12 +135,9 @@ class BooleanGP:
             self.evaluator.dataset, self.config.num_child_populations
         )
 
+        # The child's rows live only in its evaluator, not in its config.
+        child_config = replace(self.config, train_data=None, train_labels=None)
         for result in results:
-            child_config = replace(
-                self.config,
-                train_data=result.dataset.data,
-                train_labels=result.dataset.labels,
-            )
             child = BooleanGP(
                 child_config,
                 current_depth=self.current_depth + 1,
@@ -248,7 +252,8 @@ class BooleanGP:
             >>> isinstance(metrics.best_train_score, float)
             True
         """
-        scores = self.evaluator.score(self.population)
+        # The scores reach NumPy once per generation; selection and feedback use NumPy.
+        scores = self.backend.to_numpy(self.evaluator.score(self.population))
         if parent_scores is not None:
             self._apply_feedback(scores, parent_scores)
 
@@ -443,7 +448,7 @@ class BooleanGP:
         self._epoch += 1
 
         # Create GenerationMetrics
-        complexities = [len(rule) for rule in self.population]
+        complexities = [rule.__len__() for rule in self.population]
 
         metrics = GenerationMetrics.from_population(
             best_idx=best_idx,
@@ -480,20 +485,21 @@ class BooleanGP:
         """
         Evaluate all rules in the population against the given data.
 
-        The rows are scored as given, without merging duplicates. Training uses
-        ``self.evaluator.score(self.population)`` instead, which is bound to the
-        training rows.
+        The rows are scored as given, without merging duplicates, by the configured
+        backend. Training uses ``self.evaluator.score(self.population)`` instead, which
+        is bound to the training rows.
 
         Args:
             data (ndarray):
                 Data to evaluate rules on (2D boolean array).
             labels (ndarray):
-                True labels (1D integer array).
+                True labels (1D array of booleans, or of integers 0 and 1).
             score_fn (Callable[[ndarray, ndarray], float]):
-                Function to compute fitness scores.
+                Function to compute fitness scores. With `TorchBackend`, a custom
+                function receives tensors.
 
         Returns:
-            ndarray: Array of fitness scores, one for each rule in the population.
+            ndarray: NumPy array of fitness scores, one for each rule in the population.
 
         Examples:
             >>> import numpy as np
@@ -512,10 +518,9 @@ class BooleanGP:
             >>> all(0.0 <= s <= 1.0 for s in scores)
             True
         """
-        evaluator = self.backend.bind(
-            Dataset(data, labels), resolve_scorer(score_fn, optimize=False)
-        )
-        return evaluator.score(self.population)
+        labels = check_X_y(data, labels)
+        evaluator = self.backend.bind(Dataset(data, labels), score_fn)
+        return self.backend.to_numpy(evaluator.score(self.population))
 
     def _update_best(self, current_best: float, current_best_rule: Rule):
         """
@@ -575,10 +580,10 @@ class BooleanGP:
             data (ndarray):
                 Validation/test data (2D boolean array).
             labels (ndarray):
-                Validation/test labels (1D integer array).
+                Validation/test labels (1D array of booleans, or of integers 0 and 1).
             score_fn (Callable[[ndarray, ndarray], float] | None):
-                Optional scoring function. Uses the configured scorer when ``None``.
-                Default: `None`.
+                Optional scoring function. Uses the configured ``score_fn`` when
+                ``None``. Default: `None`.
 
         Returns:
             float: Score of the global best rule on the provided data.
@@ -606,15 +611,20 @@ class BooleanGP:
         if self.global_best_rule is None:
             raise NotFittedError("No best rule available. Run at least one step first.")
 
-        fn = self.scorer.fn if score_fn is None else score_fn
-        return float(fn(labels, self.backend.predict(self.global_best_rule, data)))
+        labels = check_X_y(data, labels)
+        fn = self.evaluator.score_fn if score_fn is None else score_fn
+        evaluator = self.backend.bind(Dataset(data, labels), fn)
+        return float(self.backend.to_numpy(evaluator.score([self.global_best_rule]))[0])
 
     @property
-    def train_data(self) -> ndarray:
-        """The training rows as scored, possibly merged (``evaluator.dataset.data``)."""
+    def train_data(self):
+        """
+        The training rows as scored, possibly merged (``evaluator.dataset.data``), as an
+        array of the backend.
+        """
         return self.evaluator.dataset.data
 
     @property
-    def train_labels(self) -> ndarray:
+    def train_labels(self):
         """The labels of `train_data` (``evaluator.dataset.labels``)."""
         return self.evaluator.dataset.labels

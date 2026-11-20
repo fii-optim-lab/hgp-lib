@@ -8,7 +8,7 @@ from ..configs import TrainerConfig, validate_trainer_config
 from ..preprocessing import Binarizer, StandardBinarizer
 from ..results import PopulationHistory
 from ..rules import Rule
-from ..utils.validation import check_isinstance
+from ..utils.validation import check_isinstance, to_bool_labels
 from .gp_trainer import GPTrainer
 
 
@@ -127,23 +127,29 @@ class BooleanRuleClassifier:
                 ``history.best_val_score`` reports the best validation score.
 
         Raises:
-            TypeError: If ``X`` (or ``X_val``, when given) is not a ``pandas.DataFrame``.
-            ValueError: If exactly one of ``X_val`` / ``y_val`` is provided.
+            TypeError: If ``X`` (or ``X_val``, when given) is not a ``pandas.DataFrame``,
+                if the labels are neither boolean nor integer, or if the binarizer does
+                not return boolean columns.
+            ValueError: If exactly one of ``X_val`` / ``y_val`` is provided, or if
+                integer labels contain values other than 0 and 1.
         """
         check_isinstance(X, pd.DataFrame)
         if (X_val is None) != (y_val is None):
             raise ValueError("X_val and y_val must both be provided or both be None")
-        y = np.asarray(y)
+        y = to_bool_labels(np.asarray(y))
 
-        train_bin = self.binarizer.fit_transform(X, y).to_numpy(dtype=bool)
+        train_bin = self.binarizer.fit_transform(X, y).to_numpy()
         gp_config = replace(
             self.trainer_config.gp_config, train_data=train_bin, train_labels=y
         )
 
         if X_val is not None:
             check_isinstance(X_val, pd.DataFrame)
-            val_bin = self.binarizer.transform(X_val).to_numpy(dtype=bool)
-            val_kwargs = {"val_data": val_bin, "val_labels": np.asarray(y_val)}
+            val_bin = self.binarizer.transform(X_val).to_numpy()
+            val_kwargs = {
+                "val_data": val_bin,
+                "val_labels": to_bool_labels(np.asarray(y_val)),
+            }
         else:
             # No validation set here: clear any val_data from the config so a stale,
             # un-binarized validation set can't leak into training.
@@ -174,9 +180,12 @@ class BooleanRuleClassifier:
         """
         check_isinstance(X, pd.DataFrame)
         self._check_fitted("predict")
-        data = self.binarizer.transform(X).to_numpy(dtype=bool)
+        data = self.binarizer.transform(X).to_numpy()
         backend = self.trainer_config.gp_config.backend
-        return backend.predict(self._history.global_best_rule, data)
+        prediction = backend.predict(
+            self._history.global_best_rule, backend.from_numpy(data)
+        )
+        return backend.to_numpy(prediction)
 
     @property
     def rule(self) -> Rule:

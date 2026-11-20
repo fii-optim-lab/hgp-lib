@@ -59,14 +59,14 @@ The best rule of the whole experiment is the best rule from the best fold of tha
 ## Scorer optimization
 
 Training and validation rows with the same features and label can be merged into one row with an integer sample weight.
-Rules are then evaluated on fewer rows, with exactly the same scores.
+Rules are then evaluated on fewer rows, and the counts are exact, so the scores are those of the original rows.
 This happens separately for every fold, and for every child population in hierarchical GP.
 The held-out test set is scored once, on its rows as they are.
 
 `optimize_scorer` in [`BooleanGPConfig`](../api/configs.md#hgp_lib.configs.boolean_gp_config.BooleanGPConfig) decides when rows may be merged:
 
 - `None` (default): for the built-in scorers ([`fast_f1_score`](../api/evaluation.md#hgp_lib.evaluation.scorers.fast_f1_score), [`fast_accuracy_score`](../api/evaluation.md#hgp_lib.evaluation.scorers.fast_accuracy_score)), never for a custom `score_fn`.
-- `True`: also for a custom `score_fn` that accepts `sample_weight`. If it does not, a `FutureWarning` is emitted and rows are not merged.
+- `True`: also for a custom `score_fn`, which must then accept `sample_weight`. If it does not, a `ValueError` explains how to fix it.
 - `False`: never.
 
 A custom scorer that supports sample weights must give the same score for a row with weight `k` as for `k` copies of that row, like most scikit-learn metrics:

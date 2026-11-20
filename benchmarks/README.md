@@ -158,7 +158,7 @@ Every scenario runs for every combination, and the results are saved under `benc
 ```
 
 The Markdown report ranks the combinations by the geometric mean of their time relative to the fastest combination in each scenario, then lists every scenario from fastest to slowest.
-Backend options only change speed and memory use, so each scenario's result must be the same for every combination; the report lists the scenarios where it is not.
+Every combination uses `float32` scores, so each scenario's result must be the same for every combination; the report lists the scenarios where it is not.
 
 ### Backend options
 
@@ -168,13 +168,14 @@ Every combination of the values is benchmarked:
 | Backend | Option | Values |
 | --- | --- | --- |
 | `NumpyBackend` | `order` | `"F"`, `"C"` |
-| `NumpyBackend` | `low_memory` | `True`, `False` |
+| `NumpyBackend` | `evaluation` | `"block"`, `"inplace"`, `"fused"` |
 | `NumpyBackend` | `batched` | `False`, `True` |
 | `TorchBackend` | `device` | `"cpu"`, plus `"cuda"` and `"mps"` when available |
+| `TorchBackend` | `evaluation` | `"block"`, `"inplace"`, `"fused"` |
 | `TorchBackend` | `batched` | `False`, `True` |
 
 `TorchBackend` is only benchmarked when PyTorch is installed (`pip install "hgp-lib[torch]"`).
-`batch_size` keeps its default (`None`, one batch per population) for both backends.
+`batch_size` and `dtype` keep their defaults (`None`, one batch per population, and `float32`) for both backends.
 To benchmark a new backend or option value, add it to `BACKEND_OPTIONS`.
 
 ### Backend scenarios

@@ -4,8 +4,8 @@ Backend benchmarks: the same scenarios for every option combination of every bac
 Run them with ``python benchmarks/benchmark_backends.py --machine <machine> --version
 <version>``. They are not part of the default benchmark, which ignores this directory.
 
-Every scenario records its result (a mean score) as ``test_score``. Backend options only
-change speed and memory use, so the result must be the same for every combination; the
+Every scenario records its result (a mean score) as ``test_score``. Every combination
+uses ``float32`` scores, so the result must be the same for every combination; the
 report flags scenarios where it is not.
 """
 
@@ -19,7 +19,7 @@ import pytest
 
 from hgp_lib.algorithms import BooleanGP
 from hgp_lib.configs import BooleanGPConfig
-from hgp_lib.evaluation import Dataset, NumpyBackend, Scorer, fast_f1_score
+from hgp_lib.evaluation import Dataset, NumpyBackend
 from hgp_lib.populations import PopulationGeneratorFactory
 from hgp_lib.rules import ComplexityCheck
 
@@ -29,10 +29,12 @@ from ..rule_artifacts import load_artifact, prepare_fold
 
 # Every backend with the values of each of its options. The suite benchmarks every
 # combination of the values; add a backend or an option value here to benchmark it.
+# ``dtype`` is not varied: every combination uses the default ``float32`` scores.
+EVALUATIONS = ("block", "inplace", "fused")
 BACKEND_OPTIONS = {
     NumpyBackend: {
         "order": ("F", "C"),
-        "low_memory": (True, False),
+        "evaluation": EVALUATIONS,
         "batched": (False, True),
     },
 }
@@ -53,6 +55,7 @@ else:
     }
     BACKEND_OPTIONS[TorchBackend] = {
         "device": tuple(device for device in TORCH_DEVICES if available[device]),
+        "evaluation": EVALUATIONS,
         "batched": (False, True),
     }
 
@@ -157,10 +160,9 @@ def mean_score(scores) -> float:
 @pytest.mark.parametrize("backend", BACKENDS)
 @pytest.mark.parametrize("dataset", DATASET_NAMES)
 def test_population_scoring(benchmark, dataset, backend):
-    scorer = Scorer(fast_f1_score, merge_rows=True)
     folds = [
         (
-            backend.bind(Dataset(*training_fold(dataset, fold)), scorer),
+            backend.bind(Dataset(*training_fold(dataset, fold)), merge_rows=True),
             evolved_rules(dataset, fold),
         )
         for fold in range(N_SPLITS)
@@ -168,6 +170,7 @@ def test_population_scoring(benchmark, dataset, backend):
     benchmark.group = f"population_scoring.{dataset}"
 
     scores = benchmark(lambda: [evaluator.score(rules) for evaluator, rules in folds])
+    scores = [backend.to_numpy(fold_scores) for fold_scores in scores]
     record(benchmark, benchmark.group, backend, mean_score(scores), dataset=dataset)
 
 
@@ -176,12 +179,11 @@ def test_population_scoring(benchmark, dataset, backend):
 @pytest.mark.parametrize("backend", BACKENDS)
 @pytest.mark.parametrize("dataset", DATASET_NAMES)
 def test_population_scoring_tiled(benchmark, dataset, backend):
-    scorer = Scorer(fast_f1_score, merge_rows=False)
     folds = []
     for fold in range(N_SPLITS):
         data, labels = training_fold(dataset, fold)
         dataset_rows = Dataset(np.tile(data, (TILES, 1)), np.tile(labels, TILES))
-        folds.append((backend.bind(dataset_rows, scorer), evolved_rules(dataset, fold)))
+        folds.append((backend.bind(dataset_rows), evolved_rules(dataset, fold)))
     benchmark.group = f"population_scoring.{dataset}.x{TILES}_rows"
 
     scores = benchmark.pedantic(
@@ -189,6 +191,7 @@ def test_population_scoring_tiled(benchmark, dataset, backend):
         rounds=3,
         iterations=1,
     )
+    scores = [backend.to_numpy(fold_scores) for fold_scores in scores]
     record(benchmark, benchmark.group, backend, mean_score(scores), dataset=dataset)
 
 
@@ -205,12 +208,10 @@ def test_population_scoring_tiled(benchmark, dataset, backend):
 def test_random_rule_scoring(benchmark, num_literals, num_rows, backend):
     rules = random_rules(num_literals)
     data, labels = random_data(num_rows, num_literals, SEED + num_literals + num_rows)
-    evaluator = backend.bind(
-        Dataset(data, labels), Scorer(fast_f1_score, merge_rows=False)
-    )
+    evaluator = backend.bind(Dataset(data, labels))
     benchmark.group = f"random_rule_scoring.{num_literals:_}_literals.{num_rows:_}_rows"
 
-    scores = benchmark(evaluator.score, rules)
+    scores = backend.to_numpy(benchmark(evaluator.score, rules))
     record(
         benchmark,
         benchmark.group,
@@ -221,8 +222,9 @@ def test_random_rule_scoring(benchmark, num_literals, num_rows, backend):
     )
 
 
-# One-shot predictions on user data, as `predict` does: the data is used as given, in
-# row-major order, so ``order`` and ``batched`` do not apply.
+# One-shot predictions on user data, as `predict` does: the data is converted with
+# ``from_numpy`` (NumPy and the torch CPU device use it as given, in row-major order), so
+# ``order`` and ``batched`` do not apply.
 @pytest.mark.parametrize("backend", BACKENDS)
 def test_predict(benchmark, backend):
     num_literals = evaluation_artifacts.LITERAL_COUNTS[0]
@@ -230,7 +232,11 @@ def test_predict(benchmark, backend):
     data, _ = random_data(PREDICT_ROWS, num_literals, SEED)
     benchmark.group = f"predict.{num_literals:_}_literals.{PREDICT_ROWS:_}_rows"
 
-    predictions = benchmark(lambda: [backend.predict(rule, data) for rule in rules])
+    def predict_all():
+        native = backend.from_numpy(data)
+        return [backend.to_numpy(backend.predict(rule, native)) for rule in rules]
+
+    predictions = benchmark(predict_all)
     result = float(np.mean([np.count_nonzero(p) for p in predictions]) / PREDICT_ROWS)
     record(benchmark, benchmark.group, backend, result, num_rows=PREDICT_ROWS)
 

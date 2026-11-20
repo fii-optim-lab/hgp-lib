@@ -5,13 +5,53 @@ import warnings
 _emitted_messages: set[str] = set()
 
 
+def _was_shown(message: str, category: type[Warning]) -> bool:
+    """
+    Whether ``warnings.warn`` just showed a warning with this message and category.
+
+    The ``"default"``, ``"module"`` and ``"once"`` actions record a shown warning in the
+    ``__warningregistry__`` of the module it is attributed to. ``"ignore"`` and
+    ``"always"`` record nothing there; see `_ignored`.
+    """
+    frame = sys._getframe(2)
+    while frame is not None:
+        registry = frame.f_globals.get("__warningregistry__")
+        if registry:
+            for key in registry:
+                if isinstance(key, tuple) and key[:2] == (message, category):
+                    return True
+        frame = frame.f_back
+    return False
+
+
+def _ignored(message: str, category: type[Warning]) -> bool:
+    """
+    Whether the warning filters ignore this message and category.
+
+    Only filters that apply to every module and line are considered, such as those of
+    ``warnings.simplefilter``. Filters for one module (for example the default filter
+    that shows ``DeprecationWarning`` in ``__main__``) are detected by `_was_shown`.
+    """
+    for action, text, filter_category, module, lineno in warnings.filters:
+        if (
+            module is None
+            and lineno == 0
+            and issubclass(category, filter_category)
+            and (text is None or text.match(message))
+        ):
+            return action == "ignore"
+    return warnings.defaultaction == "ignore"
+
+
 def warn_once(warning: Warning, stacklevel: int = 1) -> None:
     """
     Emit a warning at most once per process, keyed by its message.
 
     The warning is passed in already constructed, so its message (including any
-    dynamic values) lives on the warning class itself. Repeated warnings with the
-    same message are suppressed, independent of the active warning filters.
+    dynamic values) lives on the warning class itself. Once a warning has been shown,
+    repeated warnings with the same message are suppressed, also when the warning
+    filters change. A warning that the filters hid (for example ``"ignore"``) is not
+    recorded, so it is shown the first time the filters allow it.
 
     Args:
         warning (Warning):
@@ -34,8 +74,9 @@ def warn_once(warning: Warning, stacklevel: int = 1) -> None:
     message = str(warning)
     if message in _emitted_messages:
         return
-    _emitted_messages.add(message)
     warnings.warn(warning, stacklevel=stacklevel + 1)
+    if _was_shown(message, type(warning)) or not _ignored(message, type(warning)):
+        _emitted_messages.add(message)
 
 
 def warn_moved(old: str, new: str) -> None:

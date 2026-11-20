@@ -244,6 +244,7 @@ class GPBenchmarker:
             raise NotFittedError("GPBenchmarker must be fit before calling predict")
 
         best_run = self._run_results.best_run
-        binarized = best_run.binarizer.transform(data).to_numpy(dtype=bool)
+        binarized = best_run.binarizer.transform(data).to_numpy()
         backend = self.config.trainer_config.gp_config.backend
-        return backend.predict(best_run.best_rule, binarized)
+        prediction = backend.predict(best_run.best_rule, backend.from_numpy(binarized))
+        return backend.to_numpy(prediction)

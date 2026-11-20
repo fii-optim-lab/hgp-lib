@@ -7,9 +7,10 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from tqdm import tqdm
 
 from ..configs import BenchmarkerConfig
-from ..evaluation import confusion_matrix, fast_f1_score
+from ..evaluation import Dataset
 from ..results import PopulationHistory, RunResult
 from ..trainers import GPTrainer
+from ..utils.validation import to_bool_labels
 from .progress import ProgressReporter
 
 
@@ -59,11 +60,13 @@ def execute_single_run(
     np.random.seed(seed)
     random.seed(seed)
 
+    # Labels are converted to bool once, so every fold and the test set reuse them.
+    labels = to_bool_labels(config.labels)
     train_data, test_data, train_labels, test_labels = train_test_split(
         config.data,
-        config.labels,
+        labels,
         test_size=config.test_size,
-        stratify=config.labels,
+        stratify=labels,
         random_state=seed,
     )
 
@@ -89,9 +92,9 @@ def execute_single_run(
         fold_train = binarizer.fit_transform(fold_train, fold_train_labels)
         binarizers.append(binarizer)
         feature_names_per_binarizer.append(binarizer.get_feature_names_out())
-        fold_train = fold_train.to_numpy(dtype=bool)
+        fold_train = fold_train.to_numpy()
 
-        fold_val = binarizer.transform(train_data.iloc[val_idx]).to_numpy(dtype=bool)
+        fold_val = binarizer.transform(train_data.iloc[val_idx]).to_numpy()
         fold_val_labels = train_labels[val_idx]
 
         fold_gp_config = replace(
@@ -132,13 +135,13 @@ def execute_single_run(
     # Transform test data using best fold's binarizer
     best_binarizer = binarizers[best_fold_idx]
     feature_names = feature_names_per_binarizer[best_fold_idx]
-    test_data = best_binarizer.transform(test_data).to_numpy(dtype=bool)
+    test_data = best_binarizer.transform(test_data).to_numpy()
 
-    # The test set is scored once, so its rows are used as they are: no merging, no copy.
-    score_fn = fast_f1_score if gp_template.score_fn is None else gp_template.score_fn
-    test_pred = gp_template.backend.predict(best_rule, test_data)
-    test_score = float(score_fn(test_labels, test_pred))
-    tp, fp, fn, tn = confusion_matrix(test_labels, test_pred)
+    # The test set is scored once, so its rows are not merged.
+    backend = gp_template.backend
+    evaluator = backend.bind(Dataset(test_data, test_labels), gp_template.score_fn)
+    test_score = float(backend.to_numpy(evaluator.score([best_rule]))[0])
+    tp, fp, fn, tn = evaluator.confusion_matrix(best_rule)
 
     reporter.run()
 

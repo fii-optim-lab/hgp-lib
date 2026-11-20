@@ -27,7 +27,8 @@ class BenchmarkerConfig:
             binarize it per-fold using the configured `binarizer`, then convert to a
             boolean numpy array for the GP algorithm. Columns can be boolean, categorical,
             or numeric.
-        labels (ndarray): Labels for the full dataset (1-D numpy array).
+        labels (ndarray): Labels for the full dataset (1-D numpy array of booleans, or of
+            integers 0 and 1).
         trainer_config (TrainerConfig): Template configuration for training. The nested
             `gp_config` does not need `train_data`/`train_labels` (they will be set
             per fold by the benchmarker). Default: `TrainerConfig()`.

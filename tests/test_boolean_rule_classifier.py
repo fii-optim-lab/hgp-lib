@@ -14,6 +14,16 @@ from hgp_lib.rules import Rule
 from hgp_lib.evaluation import fast_f1_score
 
 
+class _IntBinarizer(StandardBinarizer):
+    """Breaks the binarizer contract: returns 0/1 integer columns."""
+
+    def fit_transform(self, X, y=None):
+        return super().fit_transform(X, y).astype(int)
+
+    def transform(self, X):
+        return super().transform(X).astype(int)
+
+
 class TestBooleanRuleClassifier(unittest.TestCase):
     def setUp(self):
         rng = np.random.default_rng(0)
@@ -106,6 +116,42 @@ class TestBooleanRuleClassifier(unittest.TestCase):
         clf.fit(self.data, self.labels)
         with self.assertRaises(TypeError):
             clf.predict(self.data.to_numpy())
+
+    # ------------------------------------------------------------------ #
+    #  Labels and binarizer output
+    # ------------------------------------------------------------------ #
+    def test_fit_rejects_float_labels_before_binarizing(self):
+        clf = BooleanRuleClassifier(self._make_config())
+        with self.assertRaises(TypeError):
+            clf.fit(self.data, self.labels.astype(float))
+        self.assertFalse(clf.binarizer.is_fitted)
+
+    def test_fit_rejects_labels_other_than_0_and_1(self):
+        clf = BooleanRuleClassifier(self._make_config())
+        with self.assertRaises(ValueError):
+            clf.fit(self.data, self.labels * 2)
+
+    def test_fit_rejects_float_validation_labels(self):
+        clf = BooleanRuleClassifier(self._make_config())
+        with self.assertRaises(TypeError):
+            clf.fit(
+                self.data,
+                self.labels,
+                X_val=self.data,
+                y_val=self.labels.astype(float),
+            )
+
+    def test_fit_accepts_bool_and_series_labels(self):
+        for labels in (self.labels.astype(bool), pd.Series(self.labels)):
+            with self.subTest(labels=type(labels).__name__):
+                clf = BooleanRuleClassifier(self._make_config(num_epochs=2))
+                clf.fit(self.data, labels)
+                self.assertEqual(clf.predict(self.data).dtype, bool)
+
+    def test_binarizer_returning_ints_rejected_at_fit(self):
+        clf = BooleanRuleClassifier(self._make_config(), binarizer=_IntBinarizer())
+        with self.assertRaisesRegex(TypeError, "binarized boolean"):
+            clf.fit(self.data, self.labels)
 
     # ------------------------------------------------------------------ #
     #  Introspection

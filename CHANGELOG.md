@@ -9,11 +9,13 @@ Deprecated APIs keep working with a warning and will be removed in a future 2.x 
 ### New Features
 
 - New `hgp_lib.evaluation` package:
-  - `predict(rule, data)` and `score(rule, data, labels, score_fn=None)` evaluate a rule on binarized data. They raise a `TypeError` for DataFrames and non-boolean arrays; use `BooleanRuleClassifier` or `GPBenchmarker` for raw data.
+  - `predict(rule, data)` and `score(rule, data, labels, score_fn=fast_f1_score)` evaluate a rule on binarized data. They raise a `TypeError` for DataFrames and non-boolean arrays; use `BooleanRuleClassifier` or `GPBenchmarker` for raw data.
   - `fast_f1_score`, `fast_accuracy_score` and `confusion_matrix` score boolean predictions, with optional sample weights.
-  - `NumpyBackend(order="F", low_memory=None, batched=False, batch_size=None)`, the default backend.
-  - `TorchBackend(device=None, batched=False, batch_size=None)` evaluates rules with PyTorch on the CPU (the default) or the provided device. It needs the new `torch` extra: `pip install "hgp-lib[torch]"`.
-  - `EvaluationBackend`, `Evaluator`, `Dataset` and `Scorer` for custom backends and strategies.
+  - `NumpyBackend(order="F", evaluation="fused", batched=False, batch_size=None, dtype=float32)`, the default backend. `evaluation` selects one of three implementations (`"block"`, `"inplace"`, `"fused"`).
+  - `TorchBackend(device=None, evaluation="fused", batched=False, batch_size=None, dtype=float32)` evaluates rules with PyTorch on the CPU (the default) or the given device. The rows, predictions and scores stay on the device. It needs the new `torch` extra: `pip install "hgp-lib[torch]"`.
+  - `EvaluationBackend`, `Evaluator` and `Dataset` (`TorchDataset` for PyTorch) for custom backends and strategies. `Evaluator.subset` scores a subset of the original rows.
+  - Scoring functions with a `batched` method are batched like the built-in scorers.
+- `hgp_lib.testing.check_backend` checks that a backend gives the same results as the NumPy backend.
 - `BooleanGPConfig.backend` selects the backend used for training, validation and prediction.
 - Configs have defaults, so only the data is needed: `TrainerConfig()`, `BenchmarkerConfig(data=X, labels=y)` and `BooleanRuleClassifier()`. `TrainerConfig.num_epochs` defaults to `1000`.
 - `hgp_lib.results` holds what training and benchmarking return (`GenerationMetrics`, `PopulationHistory`, `RunResult`, `ExperimentResult`).
@@ -22,14 +24,18 @@ Deprecated APIs keep working with a warning and will be removed in a future 2.x 
 
 ### API Changes
 
-- `BooleanGPConfig.optimize_scorer` defaults to `None`: duplicate rows are merged for the built-in scorers only. Pass `optimize_scorer=True` to merge them for a custom scorer that accepts `sample_weight`.
+- Scores are `float32` by default (backend option `dtype`). Weighted counts switch to `float64` when `float32` cannot count them exactly.
+- Binarized data must be a boolean NumPy array; integer data raises a `TypeError`. Labels can be booleans or integers 0 and 1; float labels raise a `TypeError`, other integer values a `ValueError`.
+- `BooleanGPConfig.score_fn` defaults to `fast_f1_score`; `score_fn=None` raises a `TypeError`.
+- `BooleanGPConfig.optimize_scorer` defaults to `None`: duplicate rows are merged for the built-in scorers only. `optimize_scorer=True` merges them for a custom scorer too, which must then accept `sample_weight` (a `ValueError` otherwise).
 - `PopulationGeneratorFactory.create` and `create_strategies` take `(num_literals, evaluator)`.
 - `BestLiteralStrategy` takes `(num_literals, evaluator, sample_size=None, feature_size=None)`.
 - `SamplingStrategy.sample` takes `(dataset, num_children)` and returns `SamplingResult(dataset, feature_mapping)`.
-- `BooleanGP` has `backend`, `scorer` and `evaluator` attributes; `train_data` and `train_labels` are read-only views of the scored rows. Child populations receive their rows through the `dataset` argument.
+- `BooleanGP` has `backend` and `evaluator` attributes (`evaluator.score_fn` is the scoring function); `train_data` and `train_labels` are read-only views of the scored rows, in the backend's array type. Child populations receive their rows through the `dataset` argument.
 - `GPTrainer` has a `val_evaluator` attribute.
+- `Rule` is no longer an abstract base class.
 - Evaluation backends support `Literal`, `And` and `Or`; other `Rule` subclasses raise a `TypeError`.
-- Removed `hgp_lib.rules.low_memory_operators`; use `NumpyBackend(low_memory=True)`.
+- Removed `hgp_lib.rules.low_memory_operators`; use `NumpyBackend(evaluation="inplace")`.
 - Removed `SampleWeightScorer`, `optimize_scorers_for_data` and `transform_duplicates_to_sample_weight`; rows are merged by `EvaluationBackend.bind` (see `Dataset.deduplicate` and `Dataset.take`).
 - Removed `BooleanGP.score_fn`, `BooleanGP.train_cm`, `BooleanGP.original_score_fn`, `GPTrainer.score_fn`, `GPTrainer.val_score_fn`, `GPTrainer.val_cm`, `GPTrainer.val_data` and `GPTrainer.val_labels`.
 
@@ -39,21 +45,21 @@ Deprecated APIs keep working with a warning and will be removed in a future 2.x 
 - `hgp_lib.metrics`: renamed to `hgp_lib.results`.
 - `hgp_lib.utils.metrics`: use `hgp_lib.evaluation`.
 - `hgp_lib.utils.ComplexityCheck` and `hgp_lib.utils.validation.ComplexityCheck`: use `hgp_lib.rules.ComplexityCheck`.
-- The `HGP_LOW_MEMORY` environment variable (`FutureWarning`): use `NumpyBackend(low_memory=...)`.
-- `optimize_scorer=True` with a scorer that does not accept `sample_weight` emits a `FutureWarning`; it will raise a `ValueError` in a future release.
+- The `HGP_LOW_MEMORY` environment variable is ignored and emits a `FutureWarning`: use `NumpyBackend(evaluation=...)`.
 
 ### Bug Fixes
 
 - Child populations now keep the sample weights of their parent.
 - `BestLiteralStrategy` no longer fails when `sample_size` is set and the data has duplicate rows.
-- `BooleanGP` and the benchmarker no longer write `fast_f1_score` into the user's config when `score_fn` is `None`.
+- `BooleanGP` and the benchmarker no longer write `fast_f1_score` into the user's config.
+- Float labels are rejected when the configuration is validated, instead of failing after training.
+- A warning shown once with `warn_once` is no longer lost when it was first raised while the warning filters ignored it.
 
 ### Performance Improvements
 
-- Training data is stored in column-major order, which speeds up rule evaluation.
-- The scorer is bound to the training and validation rows once: the built-in scorers use dedicated kernels with the per-dataset constants computed at bind time, and the confusion matrix is computed from the same counts.
-- The low-memory evaluation algorithm folds literal children into the result without temporary arrays, and is now the default. Scoring a population was 1.3x to 2.2x faster than with the previous default algorithm in the repository's backend benchmarks.
-- `BestLiteralStrategy` scores literals on all rows through the bound kernels, on column-major data.
+- The scoring function is bound to the training and validation rows once: the built-in scorers use dedicated kernels with the per-dataset constants computed at bind time, and the confusion matrix is computed from the same counts.
+- Population and sampling strategies work on the evaluator's dataset, so the training rows are stored once per population, in the backend's format.
+- `BestLiteralStrategy` scores literals through the bound kernels.
 - The held-out test set is no longer deduplicated to score one rule once.
 
 ---

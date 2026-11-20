@@ -7,8 +7,11 @@ import pandas as pd
 
 from hgp_lib.rules import And, ComplexityCheck, Literal, Or
 from hgp_lib.utils.validation import (
+    BOOL_TYPES,
     check_isinstance,
+    check_X,
     check_X_y,
+    to_bool_labels,
     validate_callable,
     validate_num_literals,
     validate_operator_types,
@@ -122,14 +125,32 @@ class TestValidateOperatorTypes(unittest.TestCase):
 
 class TestCheckXy(unittest.TestCase):
     def test_valid_numpy(self):
-        X = np.array([[1, 2], [3, 4]])
-        y = np.array([0, 1])
-        check_X_y(X, y)  # no error
+        X = np.array([[True, False], [False, True]])
+        labels = check_X_y(X, np.array([0, 1]))
+        self.assertEqual(labels.dtype, bool)
+        self.assertEqual(labels.tolist(), [False, True])
 
     def test_valid_dataframe(self):
+        # A DataFrame holds raw features, so its dtypes are not checked.
         X = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
-        y = np.array([0, 1])
-        check_X_y(X, y, x_type=pd.DataFrame)  # no error
+        check_X_y(X, np.array([0, 1]), x_type=pd.DataFrame)  # no error
+
+    def test_int_data_is_rejected(self):
+        with self.assertRaises(TypeError) as context:
+            check_X_y(np.array([[1, 0], [0, 1]]), np.array([0, 1]))
+        self.assertIn("BooleanRuleClassifier", str(context.exception))
+
+    def test_float_labels_are_rejected(self):
+        with self.assertRaises(TypeError):
+            check_X_y(np.array([[True], [False]]), np.array([0.0, 1.0]))
+
+    def test_labels_other_than_0_and_1_are_rejected(self):
+        with self.assertRaises(ValueError):
+            check_X_y(np.array([[True], [False]]), np.array([0, 2]))
+
+    def test_bool_labels_are_returned_as_they_are(self):
+        labels = np.array([True, False])
+        self.assertIs(check_X_y(np.array([[True], [False]]), labels), labels)
 
     def test_x_none(self):
         with self.assertRaises(ValueError):
@@ -137,23 +158,23 @@ class TestCheckXy(unittest.TestCase):
 
     def test_y_none(self):
         with self.assertRaises(ValueError):
-            check_X_y(np.array([[1]]), None)
+            check_X_y(np.array([[True]]), None)
 
     def test_length_mismatch(self):
         with self.assertRaises(ValueError):
-            check_X_y(np.array([[1, 2]]), np.array([0, 1]))
+            check_X_y(np.array([[True, False]]), np.array([0, 1]))
 
     def test_empty(self):
         with self.assertRaises(ValueError):
-            check_X_y(np.empty((0, 2)), np.array([]))
+            check_X_y(np.empty((0, 2), dtype=bool), np.array([], dtype=bool))
 
     def test_x_not_2d(self):
         with self.assertRaises(ValueError):
-            check_X_y(np.array([1, 2, 3]), np.array([0, 1, 0]))
+            check_X_y(np.array([True, False, True]), np.array([0, 1, 0]))
 
     def test_y_not_1d(self):
         with self.assertRaises(ValueError):
-            check_X_y(np.array([[1, 2], [3, 4]]), np.array([[0, 1]]))
+            check_X_y(np.array([[True, False], [False, True]]), np.array([[0, 1]]))
 
     def test_wrong_x_type(self):
         with self.assertRaises(TypeError):
@@ -161,7 +182,50 @@ class TestCheckXy(unittest.TestCase):
 
     def test_wrong_y_type(self):
         with self.assertRaises(TypeError):
-            check_X_y(np.array([[1, 2]]), [0])
+            check_X_y(np.array([[True, False]]), [0])
+
+
+class TestCheckX(unittest.TestCase):
+    def test_bool_data(self):
+        check_X(np.array([[True, False]]))  # no error
+
+    def test_rejects_int_float_and_dataframes(self):
+        for data in (
+            np.array([[1, 0]]),
+            np.array([[1.0, 0.0]]),
+            pd.DataFrame({"a": [True]}),
+        ):
+            with self.assertRaises(TypeError):
+                check_X(data)
+
+    def test_rejects_other_shapes(self):
+        with self.assertRaises(ValueError):
+            check_X(np.array([True, False]))
+
+
+class TestToBoolLabels(unittest.TestCase):
+    def test_int_labels_are_converted(self):
+        labels = to_bool_labels(np.array([1, 0, 1], dtype=np.int8))
+        self.assertEqual(labels.dtype, bool)
+        self.assertEqual(labels.tolist(), [True, False, True])
+
+    def test_rejects_floats_strings_and_other_values(self):
+        with self.assertRaises(TypeError):
+            to_bool_labels(np.array([1.0, 0.0]))
+        with self.assertRaises(TypeError):
+            to_bool_labels(np.array(["a", "b"]))
+        with self.assertRaises(ValueError):
+            to_bool_labels(np.array([-1, 1]))
+
+
+class TestCheckIsinstanceName(unittest.TestCase):
+    def test_name_in_message(self):
+        with self.assertRaises(TypeError) as context:
+            check_isinstance("yes", BOOL_TYPES, "batched")
+        self.assertIn("batched", str(context.exception))
+
+    def test_numpy_bools_are_bools(self):
+        check_isinstance(np.bool_(True), BOOL_TYPES, "flag")  # no error
 
 
 if __name__ == "__main__":

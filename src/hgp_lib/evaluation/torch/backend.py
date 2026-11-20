@@ -1,6 +1,7 @@
 import warnings
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Any, Literal
 
 import numpy as np
 import torch
@@ -11,87 +12,67 @@ from ...rules import Rule
 from ...utils.validation import validate_batching
 from ..backend import EvaluationBackend, Evaluator
 from ..dataset import Dataset
-from ..scorers import Scorer, fast_accuracy_score, fast_f1_score
-from .predict import evaluate
-
-
-def _f1_from_counts(
-    tp: ndarray, predicted: ndarray, positives: int, total: int
-) -> ndarray:
-    if not positives:
-        # 1.0 if nothing is predicted positive, else 0.0, as fast_f1_score.
-        return np.where(predicted > 0, 0.0, 1.0)
-    return 2 * tp / (predicted + positives)
-
-
-def _accuracy_from_counts(
-    tp: ndarray, predicted: ndarray, positives: int, total: int
-) -> ndarray:
-    # Correct rows are the true positives plus the true negatives.
-    return (total - positives - predicted + 2 * tp) / total
-
-
-def _from_counts(scorer: Scorer):
-    """The function turning counts into scores, or ``None`` for a custom scorer."""
-    if scorer.fn is fast_f1_score:
-        return _f1_from_counts
-    if scorer.fn is fast_accuracy_score:
-        return _accuracy_from_counts
-    return None
+from ..numpy.backend import check_evaluation
+from ..scorers import ScoreFn
+from .dataset import TorchDataset, column_major
+from .kernels import bind_kernels
+from .predict import EVALUATIONS
 
 
 @dataclass(frozen=True, kw_only=True)
 class TorchBackend(EvaluationBackend):
     """
-    Evaluate rules with PyTorch, on the CPU or on an accelerator.
+    Evaluate rules with PyTorch, on the CPU or on a GPU.
 
-    Needs PyTorch (``pip install "hgp-lib[torch]"``). Gives the same scores as
-    `NumpyBackend`: the built-in scorers count true positives and predicted positives as
-    exact integers on the device, and only the counts are copied back. Custom scorers
-    receive each prediction as a NumPy array, which copies it from the device.
+    Needs PyTorch (``pip install "hgp-lib[torch]"``). The rows, predictions and scores
+    stay on ``device``: the evaluator's dataset is a `TorchDataset`, and custom scoring
+    functions receive tensors (labels, predictions and ``sample_weight``), so they must
+    work with tensors. Values reach NumPy through `to_numpy`, once per population.
 
-    A rule costs one tensor operation per literal, and every operation has a fixed launch
-    cost, so an accelerator only pays off on large data. On an Apple M3 GPU (``"mps"``),
-    scoring 100 random rules was 1.6x faster than `NumpyBackend` on 1 million rows, and
-    4.6x slower on 100 thousand rows. In the repository's backend benchmarks (up to 37
-    thousand rows), `NumpyBackend` was faster in every scenario, so on the CPU use
-    `NumpyBackend`.
+    The default values were chosen based on benchmarking.
 
     Attributes:
-        device (torch.device | str | None): Where the bound data is stored and rules are
+        device (torch.device | str | None): Where the bound rows are stored and rules are
             evaluated, for example ``"cuda"``, ``"cuda:1"`` or ``"mps"``. ``None`` means
             ``"cpu"``. Stored as a ``torch.device``. Default: `None`.
-        batched (bool): Stack the predictions of ``batch_size`` rules and count them
-            with a few operations per batch, instead of two per rule. Only applies to
-            the built-in scorers; custom scorers take one prediction per call. In the
-            backend benchmarks it was up to 17% faster on MPS, and between 12% faster
-            and 22% slower on the CPU. Default: `False`.
+        evaluation (str): How rules are evaluated, as for `NumpyBackend`: ``"block"``,
+            ``"inplace"`` or ``"fused"``. Default: `"fused"`.
+        batched (bool): Stack the predictions of ``batch_size`` rules and score them
+            with one call, instead of one rule at a time. Applies to the built-in
+            scorers and to scoring functions with a ``batched`` method; other functions
+            take one prediction per call. Default: `False`.
         batch_size (int | None): Number of rules per batch when ``batched`` is
             ``True``. ``None`` scores all rules in one batch. A batch needs a boolean
-            block of ``batch_size`` times the number of bound rows on the device, plus
-            an ``int64`` block of the same shape for weighted data. Setting it requires
+            block of ``batch_size`` times the number of bound rows on ``device``, plus a
+            copy of it in the count dtype for weighted data. Setting it requires
             ``batched=True``. Default: `None`.
+        dtype (torch.dtype | str): Float dtype of the scores, for example
+            ``torch.float32`` or ``"float64"``. Counts stay exact: weighted counts switch
+            to ``float64`` when ``dtype`` cannot represent them exactly. MPS has no
+            ``float64``. Stored as a ``torch.dtype``. Default: `torch.float32`.
 
     Examples:
         >>> import numpy as np
         >>> from hgp_lib.evaluation import Dataset
-        >>> from hgp_lib.evaluation.scorers import resolve_scorer
         >>> from hgp_lib.evaluation.torch import TorchBackend
         >>> from hgp_lib.rules import Literal, Or
         >>> backend = TorchBackend()
         >>> backend.device
         device(type='cpu')
         >>> data = np.array([[True, False], [False, True], [False, False]])
-        >>> evaluator = backend.bind(Dataset(data, np.array([1, 1, 0])), resolve_scorer())
-        >>> evaluator.score([Literal(value=0), Or([Literal(value=0), Literal(value=1)])]).tolist()
-        [0.6666666666666666, 1.0]
+        >>> evaluator = backend.bind(Dataset(data, np.array([True, True, False])))
+        >>> scores = evaluator.score([Literal(value=0), Or([Literal(value=0), Literal(value=1)])])
+        >>> backend.to_numpy(scores).tolist()
+        [0.6666666865348816, 1.0]
         >>> evaluator.confusion_matrix(Literal(value=1))
         (1, 0, 1, 1)
     """
 
     device: torch.device | str | None = None
+    evaluation: Literal["block", "inplace", "fused"] = "fused"
     batched: bool = False
     batch_size: int | None = None
+    dtype: torch.dtype | str = torch.float32
 
     def __post_init__(self):
         if self.device is not None and not isinstance(self.device, (str, torch.device)):
@@ -100,123 +81,116 @@ class TorchBackend(EvaluationBackend):
             )
         device = torch.device("cpu" if self.device is None else self.device)
         object.__setattr__(self, "device", device)
+        check_evaluation(self.evaluation)
         validate_batching(self.batched, self.batch_size)
+        dtype = (
+            getattr(torch, self.dtype, None)
+            if isinstance(self.dtype, str)
+            else self.dtype
+        )
+        if not isinstance(dtype, torch.dtype) or not dtype.is_floating_point:
+            raise ValueError(f"dtype must be a float torch.dtype, is {self.dtype!r}")
+        if device.type == "mps" and dtype == torch.float64:
+            raise ValueError("MPS has no float64; use dtype=torch.float32")
+        object.__setattr__(self, "dtype", dtype)
 
-    def _bind(self, dataset: Dataset, scorer: Scorer) -> "TorchEvaluator":
-        return TorchEvaluator(
-            dataset, scorer, self.device, self.batched, self.batch_size
+    def _bind(
+        self, dataset: Dataset | TorchDataset, score_fn: ScoreFn, merge_rows: bool
+    ) -> "TorchEvaluator":
+        if isinstance(dataset, TorchDataset):
+            dataset = self._on_device(dataset)
+        else:
+            dataset = TorchDataset.from_numpy(dataset, self.device)
+        return TorchEvaluator(self, dataset, score_fn, merge_rows)
+
+    def _on_device(self, dataset: TorchDataset) -> TorchDataset:
+        """The dataset on this backend's device, with column-major data."""
+        data, labels, weights = dataset
+        if data.device != self.device or data.stride(0) != 1:
+            data = data.to(self.device).T.contiguous().T
+        return TorchDataset(
+            data,
+            labels.to(self.device),
+            None if weights is None else weights.to(self.device),
         )
 
-    def predict(self, rule: Rule, data: ndarray) -> ndarray:
+    def predict(self, rule: Rule, data: Tensor) -> Tensor:
+        return EVALUATIONS[self.evaluation](rule, data)
+
+    def from_numpy(self, data: ndarray) -> Tensor:
         if self.device.type == "cpu":
             # Shares memory with ``data``, which is only read.
             with warnings.catch_warnings():
                 warnings.filterwarnings(
                     "ignore", "The given NumPy array is not writable"
                 )
-                columns = torch.from_numpy(data).T
-        else:
-            columns = torch.tensor(np.ascontiguousarray(data.T), device=self.device)
-        return evaluate(rule, columns).cpu().numpy()
+                return torch.from_numpy(data)
+        return column_major(data, self.device)
+
+    def to_numpy(self, values: Any) -> ndarray:
+        if isinstance(values, Tensor):
+            return values.cpu().numpy()
+        return np.asarray(values)
+
+
+def _as_scores(values: list, dtype: torch.dtype, device: torch.device) -> Tensor:
+    """One tensor from the scores of the rules: tensors, or Python floats."""
+    if not values:
+        return torch.empty(0, dtype=dtype, device=device)
+    if isinstance(values[0], Tensor):
+        return torch.stack(values).to(device=device, dtype=dtype)
+    return torch.tensor(values, dtype=dtype, device=device)
 
 
 class TorchEvaluator(Evaluator):
-    """
-    `Evaluator` of the `TorchBackend`. Created by `TorchBackend.bind`.
-
-    ``dataset`` stays a NumPy `Dataset`, for strategies that read or sample it. The
-    evaluator keeps a copy of the features, labels and weights on the device.
-    """
+    """`Evaluator` of the `TorchBackend`. Created by `TorchBackend.bind`."""
 
     def __init__(
         self,
-        dataset: Dataset,
-        scorer: Scorer,
-        device: torch.device,
-        batched: bool,
-        batch_size: int | None,
+        backend: TorchBackend,
+        dataset: TorchDataset,
+        score_fn: ScoreFn,
+        merge_rows: bool,
     ):
-        super().__init__(dataset, scorer)
-        labels = dataset.labels.astype(bool, copy=False)
-        weights = dataset.sample_weight
-        # One contiguous row per feature, so each literal reads contiguous memory.
-        self._columns = torch.tensor(
-            np.ascontiguousarray(dataset.data.T), device=device
-        )
-        # ``(count_rows * prediction).sum(-1)`` is ``[true positives, predicted
-        # positives]``: two tensor operations per rule.
-        if weights is None:
-            count_rows = np.stack((labels, np.ones_like(labels)))
-            self._positives = int(np.count_nonzero(labels))
-            self._total = len(labels)
-        else:
-            count_rows = np.stack((weights * labels, weights))
-            self._positives = int(count_rows[0].sum())
-            self._total = int(weights.sum())
-        self._count_rows = torch.tensor(count_rows, device=device)
-        self._from_counts = _from_counts(scorer)
-        self._batched = batched and self._from_counts is not None
-        self._batch_size = batch_size
+        super().__init__(backend, dataset, score_fn, merge_rows)
+        self._evaluate = EVALUATIONS[backend.evaluation]
+        self._dtype = backend.dtype
+        self._device = backend.device
+        self._kernel, self._confusion = bind_kernels(dataset, score_fn, backend.dtype)
+        # Kernels without a batched method take one prediction per call.
+        self._batched = backend.batched and hasattr(self._kernel, "batched")
+        self._batch_size = backend.batch_size
 
-    def _counts(self, prediction: Tensor) -> Tensor:
-        """``[true positives, predicted positives]`` of one prediction, on the device."""
-        return (self._count_rows * prediction).sum(-1)
+    def score(self, rules: Sequence[Rule]) -> Tensor:
+        if self._batched and rules:
+            return self._score_batched(rules)
+        data = self.dataset.data
+        evaluate_rule = self._evaluate
+        kernel = self._kernel
+        values = [kernel(evaluate_rule(rule, data)) for rule in rules]
+        return _as_scores(values, self._dtype, self._device)
 
-    def score(self, rules: Sequence[Rule]) -> ndarray:
-        if not rules:
-            return np.empty(0)
-        if self._from_counts is None:
-            return self._score_custom(rules)
-        if self._batched:
-            counts = self._counts_batched(rules)
-        else:
-            columns = self._columns
-            counts = torch.stack(
-                [self._counts(evaluate(rule, columns)) for rule in rules]
-            )
-        # One copy from the device for the whole population.
-        tp, predicted = counts.cpu().numpy().T
-        return self._from_counts(tp, predicted, self._positives, self._total)
-
-    def _counts_batched(self, rules: Sequence[Rule]) -> Tensor:
-        columns = self._columns
-        positive_row, predicted_row = self._count_rows
+    def _score_batched(self, rules: Sequence[Rule]) -> Tensor:
+        data = self.dataset.data
+        evaluate_rule = self._evaluate
+        score_batch = self._kernel.batched
         size = self._batch_size or len(rules)
         # One row per rule, reused by every batch.
         block = torch.empty(
-            (min(size, len(rules)), columns.shape[1]),
-            dtype=torch.bool,
-            device=columns.device,
+            (min(size, len(rules)), data.shape[0]), dtype=torch.bool, device=data.device
         )
-        counts = []
+        scores = []
         for start in range(0, len(rules), size):
             batch = rules[start : start + size]
             predictions = block[: len(batch)]
             for row, rule in zip(predictions, batch):
-                row.copy_(evaluate(rule, columns))
-            tp = (predictions * positive_row).sum(-1)
-            predicted = (predictions * predicted_row).sum(-1)
-            counts.append(torch.stack((tp, predicted), dim=1))
-        return torch.cat(counts)
-
-    def _score_custom(self, rules: Sequence[Rule]) -> ndarray:
-        labels, weights = self.dataset.labels, self.dataset.sample_weight
-        scorer, columns = self.scorer, self._columns
-        return np.fromiter(
-            (
-                scorer(labels, evaluate(rule, columns).cpu().numpy(), weights)
-                for rule in rules
-            ),
-            dtype=np.float64,
-            count=len(rules),
-        )
+                row.copy_(evaluate_rule(rule, data))
+            scores.append(
+                torch.as_tensor(
+                    score_batch(predictions), dtype=self._dtype, device=self._device
+                )
+            )
+        return torch.cat(scores)
 
     def confusion_matrix(self, rule: Rule) -> tuple[int, int, int, int]:
-        tp, predicted = self._counts(evaluate(rule, self._columns)).tolist()
-        positives, total = self._positives, self._total
-        return (
-            tp,
-            predicted - tp,
-            positives - tp,
-            total - positives - predicted + tp,
-        )
+        return self._confusion(self._evaluate(rule, self.dataset.data))

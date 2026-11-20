@@ -246,7 +246,24 @@ class TestGPTrainer(unittest.TestCase):
         )
         trainer = GPTrainer(config)
 
-        self.assertIs(trainer.val_evaluator.scorer, trainer.gp_algo.scorer)
+        evaluator = trainer.gp_algo.evaluator
+        self.assertIs(trainer.val_evaluator.score_fn, evaluator.score_fn)
+        self.assertEqual(trainer.val_evaluator.merge_rows, evaluator.merge_rows)
+
+    def test_predict_rejects_int_data(self):
+        trainer = GPTrainer(self._make_trainer_config(num_epochs=2))
+        trainer.fit()
+        with self.assertRaises(TypeError):
+            trainer.predict(self.train_data.astype(int))
+
+    def test_float_validation_labels_are_rejected(self):
+        config = self._make_trainer_config(
+            num_epochs=2,
+            val_data=self.val_data,
+            val_labels=self.val_labels.astype(float),
+        )
+        with self.assertRaises(TypeError):
+            GPTrainer(config)
 
     def test_confusion_matrices_count_original_rows(self):
         repeats = [3, 1, 2, 1]

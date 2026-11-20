@@ -4,7 +4,7 @@
 
 ```bash
 pip install hgp-lib
-# with the PyTorch evaluation backend, for GPUs
+# with the PyTorch evaluation backend
 pip install "hgp-lib[torch]"
 # with the development tools
 pip install "hgp-lib[dev]"
@@ -87,4 +87,5 @@ print(result.best_rule.to_str(result.best_run.feature_names))
 - [Extending HGP](guide/extending.md): custom strategies, backends, mutations, and low-level use
 - [Rule Trees](guide/rule-trees.md): the rule data structure, evaluating rules, and the NumPy backend
 - [Experiments](experiments/index.md): reproducing dataset experiments
+- [Performance](performance.md): benchmark reports of the backends and versions
 - [API Reference](api/index.md): full module documentation

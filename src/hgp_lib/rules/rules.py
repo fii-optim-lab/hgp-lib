@@ -1,13 +1,12 @@
 # Reimplementation based on https://github.com/fidelity/boolxai/blob/main/boolxai/rules/rule.py
-from abc import ABC
 from collections.abc import Sequence
 
 import numpy as np
 
 
-class Rule(ABC):
+class Rule:
     """
-    Abstract base class for logical rule nodes used in rule trees.
+    Base class for logical rule nodes used in rule trees.
 
     Each `Rule` represents either:
     - An `operator`: a logical operation combining subrules (e.g., `And`, `Or`), or
@@ -242,7 +241,7 @@ class Rule(ABC):
             np.ndarray:
                 The boolean result of evaluating this rule vectorized across all instances.
         """
-        from ..evaluation.numpy.predict import evaluate
+        from ..evaluation.numpy.predict import evaluate_fused
         from ..utils.warnings import warn_once
 
         warn_once(
@@ -252,7 +251,7 @@ class Rule(ABC):
             ),
             stacklevel=2,
         )
-        return evaluate(self, data)
+        return evaluate_fused(self, data)
 
     def apply_feature_mapping(self, feature_mapping: dict[int, int]) -> None:
         """

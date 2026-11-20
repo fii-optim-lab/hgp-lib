@@ -33,7 +33,7 @@ from hgp_lib.configs import BooleanGPConfig
 from hgp_lib.rules import ComplexityCheck
 
 gp_config = BooleanGPConfig(
-    train_data=train_data.to_numpy(dtype=bool),
+    train_data=train_data.to_numpy(),
     train_labels=train_labels,
     population_factory=population_factory,
     mutation_factory=mutation_factory,

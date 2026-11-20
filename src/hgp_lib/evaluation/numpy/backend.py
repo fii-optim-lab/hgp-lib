@@ -1,111 +1,129 @@
 import os
+import warnings
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 from numpy import ndarray
+from numpy.typing import DTypeLike
 
 from ...rules import Rule
 from ...utils.validation import validate_batching
-from ...utils.warnings import warn_once
 from ..backend import EvaluationBackend, Evaluator
 from ..dataset import Dataset
-from ..scorers import Scorer
-from .kernels import ConfusionCounts, bind_kernel
-from .predict import evaluate, evaluate_low_memory
+from ..scorers import ScoreFn
+from .kernels import bind_kernels
+from .predict import EVALUATIONS
 
-
-def _low_memory_from_environment() -> bool:
-    value = os.getenv("HGP_LOW_MEMORY")
-    if value is None:
-        return True
-    # FutureWarning, because a DeprecationWarning raised inside library code is hidden.
-    warn_once(
-        FutureWarning(
-            "HGP_LOW_MEMORY is deprecated and will be removed in a future 2.x release. "
-            "Use BooleanGPConfig(backend=NumpyBackend(low_memory=...)) instead. "
-            "low_memory=True is the default."
-        ),
-        stacklevel=4,
+if os.getenv("HGP_LOW_MEMORY") is not None:
+    warnings.warn(
+        "HGP_LOW_MEMORY is deprecated and ignored; it will be removed in a future 2.x "
+        "release. Choose the evaluation with BooleanGPConfig(backend=NumpyBackend("
+        "evaluation=...)) instead: HGP_LOW_MEMORY=1 corresponds to "
+        'evaluation="inplace".',
+        FutureWarning,
+        stacklevel=2,
     )
-    return value == "1"
 
 
+def check_evaluation(evaluation: str) -> None:
+    """
+    Validate the ``evaluation`` option of a backend.
+
+    Args:
+        evaluation (str): ``"block"``, ``"inplace"`` or ``"fused"``.
+
+    Raises:
+        ValueError: If ``evaluation`` is not one of the three values.
+    """
+    if evaluation not in EVALUATIONS:
+        valid = ", ".join(repr(name) for name in EVALUATIONS)
+        raise ValueError(f"evaluation must be one of {valid}, is {evaluation!r}")
+
+
+# TODO: Bit-packing. Store each feature column as packed uint64 words (64 rows per
+#  word), evaluate rules with bitwise operations on the words and count with
+#  np.bitwise_count (NumPy >= 2.0). This could be an option here or a separate backend.
+#  Weighted counts (merge_rows=True) need the result unpacked first. Benchmark it on
+#  small and large datasets before choosing a default.
 @dataclass(frozen=True, kw_only=True)
 class NumpyBackend(EvaluationBackend):
     """
     Evaluate rules with NumPy. The default backend.
 
-    Options only change speed and memory use, never results. In the repository's
-    backend benchmarks, ``order="F"`` with ``low_memory=True`` was the fastest in every
-    scenario. ``batched`` is off by default because it only helped on small data.
+    The default values were chosen based on benchmarking.
 
     Attributes:
         order (str): Memory layout of bound data, ``"F"`` (column-major) or ``"C"``
             (row-major). Rules read feature columns, which are contiguous in ``"F"``
-            order (1.1x to 14x faster in the benchmarks). Data is converted once when
-            binding, after merging. `predict` never copies the data. Default: `"F"`.
-        low_memory (bool | None): ``True`` evaluates each operator in one buffer updated
-            in place, folding literal children in without temporary arrays. ``False``
-            gathers the literal children into one block and reduces it, which needs fewer
-            NumPy calls but a temporary block per operator. With ``"F"`` order, ``True``
-            was 1.3x to 2.2x faster. ``None`` means ``True``, unless the deprecated
-            ``HGP_LOW_MEMORY`` environment variable is set (``"1"`` means ``True``).
-            Default: `None`.
+            order. Data is converted once when binding, after merging. `predict` never
+            copies the data. Default: `"F"`.
+        evaluation (str): How rules are evaluated, see `hgp_lib.evaluation.numpy.predict`:
+            ``"block"`` gathers the literal children of an operator into one block and
+            reduces it; ``"inplace"`` updates one result buffer per operator in place;
+            ``"fused"`` does the same, with negated literals fused into the update.
+            Default: `"fused"`.
         batched (bool): Stack the predictions of ``batch_size`` rules and score them
-            with one call, instead of one rule at a time. Only applies to the built-in
-            scorers; custom scorers take one prediction per call. With the other
-            defaults and one batch, it was 4% to 23% faster on the merged training rows
-            of the benchmark datasets (a few hundred to a few thousand rows), and up to
-            44% slower on the same rows repeated 10 times. Default: `False`.
+            with one call, instead of one rule at a time. Applies to the built-in
+            scorers and to scoring functions with a ``batched`` method; other functions
+            take one prediction per call. Default: `False`.
         batch_size (int | None): Number of rules per batch when ``batched`` is
             ``True``. ``None`` scores all rules in one batch. A batch needs a boolean
-            block of ``batch_size`` times the number of bound rows, plus a ``float64``
-            copy of it for weighted data. Setting it requires ``batched=True``.
+            block of ``batch_size`` times the number of bound rows, plus a copy of it in
+            the count dtype for weighted data. Setting it requires ``batched=True``.
             Default: `None`.
+        dtype (DTypeLike): Float dtype of the scores. Counts stay exact: weighted
+            counts switch to ``float64`` when ``dtype`` cannot represent them exactly.
+            Stored as a ``numpy.dtype``. Default: `numpy.float32`.
 
     Examples:
         >>> import numpy as np
         >>> from hgp_lib.evaluation import Dataset, NumpyBackend
-        >>> from hgp_lib.evaluation.scorers import resolve_scorer
         >>> from hgp_lib.rules import Literal, Or
         >>> data = np.array([[True, False], [False, True], [False, False]])
-        >>> evaluator = NumpyBackend().bind(Dataset(data, np.array([1, 1, 0])), resolve_scorer())
+        >>> evaluator = NumpyBackend().bind(Dataset(data, np.array([True, True, False])))
         >>> evaluator.score([Literal(value=0), Or([Literal(value=0), Literal(value=1)])]).tolist()
-        [0.6666666666666666, 1.0]
+        [0.6666666865348816, 1.0]
         >>> evaluator.confusion_matrix(Literal(value=1))
         (1, 0, 1, 1)
     """
 
     order: Literal["F", "C"] = "F"
-    low_memory: bool | None = None
+    evaluation: Literal["block", "inplace", "fused"] = "fused"
     batched: bool = False
     batch_size: int | None = None
+    dtype: DTypeLike = np.float32
 
     def __post_init__(self):
         if self.order not in ("F", "C"):
             raise ValueError(f"order must be 'F' or 'C', is {self.order!r}")
-        if self.low_memory is None:
-            object.__setattr__(self, "low_memory", _low_memory_from_environment())
-        if not isinstance(self.low_memory, bool):
-            raise TypeError(f"low_memory must be a bool, is {type(self.low_memory)}")
+        check_evaluation(self.evaluation)
         validate_batching(self.batched, self.batch_size)
+        try:
+            dtype = np.dtype(self.dtype)
+        except TypeError as error:
+            raise TypeError(
+                f"dtype must be a float dtype, is {self.dtype!r}"
+            ) from error
+        if not np.issubdtype(dtype, np.floating):
+            raise ValueError(f"dtype must be a float dtype, is {dtype}")
+        object.__setattr__(self, "dtype", dtype)
 
-    def _bind(self, dataset: Dataset, scorer: Scorer) -> "NumpyEvaluator":
-        data = np.asarray(dataset.data, dtype=bool, order=self.order)
-        return NumpyEvaluator(
-            dataset._replace(data=data),
-            scorer,
-            self.low_memory,
-            self.batched,
-            self.batch_size,
-        )
+    def _bind(
+        self, dataset: Dataset, score_fn: ScoreFn, merge_rows: bool
+    ) -> "NumpyEvaluator":
+        data = np.asarray(dataset.data, order=self.order)
+        return NumpyEvaluator(self, dataset._replace(data=data), score_fn, merge_rows)
 
     def predict(self, rule: Rule, data: ndarray) -> ndarray:
-        if self.low_memory:
-            return evaluate_low_memory(rule, data)
-        return evaluate(rule, data)
+        return EVALUATIONS[self.evaluation](rule, data)
+
+    def from_numpy(self, data: ndarray) -> ndarray:
+        return data
+
+    def to_numpy(self, values: Any) -> ndarray:
+        return np.asarray(values)
 
 
 class NumpyEvaluator(Evaluator):
@@ -117,19 +135,18 @@ class NumpyEvaluator(Evaluator):
 
     def __init__(
         self,
+        backend: NumpyBackend,
         dataset: Dataset,
-        scorer: Scorer,
-        low_memory: bool,
-        batched: bool,
-        batch_size: int | None,
+        score_fn: ScoreFn,
+        merge_rows: bool,
     ):
-        super().__init__(dataset, scorer)
-        self._evaluate = evaluate_low_memory if low_memory else evaluate
-        self._kernel = bind_kernel(dataset, scorer)
-        self._confusion = ConfusionCounts(dataset)
-        # Only the built-in kernels score a batch; custom scorers take one prediction.
-        self._batched = batched and hasattr(self._kernel, "batched")
-        self._batch_size = batch_size
+        super().__init__(backend, dataset, score_fn, merge_rows)
+        self._evaluate = EVALUATIONS[backend.evaluation]
+        self._dtype = backend.dtype
+        self._kernel, self._confusion = bind_kernels(dataset, score_fn, backend.dtype)
+        # Kernels without a batched method take one prediction per call.
+        self._batched = backend.batched and hasattr(self._kernel, "batched")
+        self._batch_size = backend.batch_size
 
     def score(self, rules: Sequence[Rule]) -> ndarray:
         if self._batched:
@@ -139,7 +156,7 @@ class NumpyEvaluator(Evaluator):
         kernel = self._kernel
         return np.fromiter(
             (kernel(evaluate_rule(rule, data)) for rule in rules),
-            dtype=np.float64,
+            dtype=self._dtype,
             count=len(rules),
         )
 
@@ -150,7 +167,7 @@ class NumpyEvaluator(Evaluator):
         size = self._batch_size or max(1, len(rules))
         # One row per rule, reused by every batch.
         block = np.empty((min(size, len(rules)), len(data)), dtype=bool)
-        scores = np.empty(len(rules))
+        scores = np.empty(len(rules), dtype=self._dtype)
         for start in range(0, len(rules), size):
             batch = rules[start : start + size]
             predictions = block[: len(batch)]

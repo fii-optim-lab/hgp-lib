@@ -39,8 +39,8 @@ def artifact_seed(dataset: str, fold: int) -> int:
 def prepare_fold(dataset: str, fold: int):
     X_train, X_test, y_train, y_test = load_fold(dataset, fold)
     binarizer = StandardBinarizer(progress_bar=False)
-    train_data = binarizer.fit_transform(X_train, y_train).to_numpy(dtype=bool)
-    test_data = binarizer.transform(X_test).to_numpy(dtype=bool)
+    train_data = binarizer.fit_transform(X_train, y_train).to_numpy()
+    test_data = binarizer.transform(X_test).to_numpy()
     feature_mapping = {
         index: str(name) for index, name in enumerate(binarizer.get_feature_names_out())
     }

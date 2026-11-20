@@ -34,13 +34,13 @@ train_labels = y_train.to_numpy()
 val_labels = y_val.to_numpy()
 
 gp_config = BooleanGPConfig(
-    train_data=train_data.to_numpy(dtype=bool),
+    train_data=train_data.to_numpy(),
     train_labels=train_labels,
 )
 config = TrainerConfig(
     gp_config=gp_config,
     num_epochs=1000,
-    val_data=val_data.to_numpy(dtype=bool),
+    val_data=val_data.to_numpy(),
     val_labels=val_labels,
 )
 trainer = GPTrainer(config)
@@ -75,7 +75,7 @@ def check_valid(rule):  # keep rules compact
 
 
 gp_config = BooleanGPConfig(
-    train_data=train_data.to_numpy(dtype=bool),
+    train_data=train_data.to_numpy(),
     train_labels=train_labels,
     score_fn=fast_f1_score,
     population_factory=population_factory,
@@ -89,7 +89,7 @@ gp_config = BooleanGPConfig(
 config = TrainerConfig(
     gp_config=gp_config,
     num_epochs=1000,
-    val_data=val_data.to_numpy(dtype=bool),
+    val_data=val_data.to_numpy(),
     val_labels=val_labels,
     val_every=100,
 )
@@ -121,14 +121,14 @@ train_bin = binarizer.fit_transform(X_train, y_train.to_numpy())
 test_bin = binarizer.transform(X_test)
 
 gp = BooleanGPConfig(
-    train_data=train_bin.to_numpy(dtype=bool),
+    train_data=train_bin.to_numpy(),
     train_labels=y_train.to_numpy(),
 )
 history = GPTrainer(TrainerConfig(gp_config=gp, num_epochs=1000)).fit()
 
 rule = history.global_best_rule
-predictions = predict(rule, test_bin.to_numpy(dtype=bool))
-test_f1 = score(rule, test_bin.to_numpy(dtype=bool), y_test.to_numpy())
+predictions = predict(rule, test_bin.to_numpy())
+test_f1 = score(rule, test_bin.to_numpy(), y_test.to_numpy())
 print(rule.to_str(binarizer.get_feature_names_out()))
 ```
 
@@ -143,7 +143,7 @@ To skip the manual binarization, [`BooleanRuleClassifier`](../api/trainers.md#hg
 
 After `fit`, the trainer exposes a scikit-learn style [`predict`](../api/trainers.md#hgp_lib.trainers.gp_trainer.GPTrainer.predict).
 It evaluates the best rule found during training, so a fitted [`GPTrainer`](../api/trainers.md#hgp_lib.trainers.gp_trainer.GPTrainer) can be used where an estimator is expected.
-The input must already be binarized (a boolean array) with the same feature layout as the training data.
+The input must already be binarized (a boolean NumPy array) with the same feature layout as the training data.
 Continuing from the previous example (reusing `gp` and `test_bin`):
 
 ```python
@@ -153,21 +153,21 @@ trainer.fit()
 predictions = trainer.predict(test_bin.to_numpy())  # 1-D boolean array
 ```
 
-This is equivalent to calling `predict(history.global_best_rule, test_bin.to_numpy(dtype=bool))`, with the configured backend, but keeps the estimator-style API.
+This is equivalent to calling `predict(history.global_best_rule, test_bin.to_numpy())`, with the configured backend, but keeps the estimator-style API.
 
 ## Choosing an evaluation backend
 
 Rules are evaluated by the backend set in `BooleanGPConfig.backend`, which is used for training, validation and every `predict` method.
-The default is [`NumpyBackend()`](../api/evaluation.md#hgp_lib.evaluation.numpy.backend.NumpyBackend); its options only change speed and memory use.
+The default is [`NumpyBackend()`](../api/evaluation.md#hgp_lib.evaluation.numpy.backend.NumpyBackend).
 [`TorchBackend`](../api/evaluation.md#hgp_lib.evaluation.torch.backend.TorchBackend) evaluates rules with PyTorch.
 
 ```python
 from hgp_lib.evaluation import NumpyBackend, TorchBackend
 
-# Score 50 rules per call instead of one, which can be faster on small datasets.
+# Score 50 rules per call instead of one.
 gp = BooleanGPConfig(backend=NumpyBackend(batched=True, batch_size=50))
 
-# Evaluate on a CUDA GPU, which pays off on large data (needs hgp-lib[torch]).
+# Evaluate on a CUDA GPU (needs hgp-lib[torch]).
 gp = BooleanGPConfig(backend=TorchBackend(device="cuda"))
 ```
 

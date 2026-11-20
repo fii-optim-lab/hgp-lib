@@ -4,13 +4,19 @@ from dataclasses import dataclass, field
 from numpy import ndarray
 
 from ..crossover import CrossoverExecutorFactory
-from ..evaluation import EvaluationBackend, NumpyBackend
+from ..evaluation import EvaluationBackend, NumpyBackend, fast_f1_score
+from ..evaluation.scorers import ScoreFn
 from ..mutations.mutation_factory import MutationExecutorFactory
 from ..populations import SamplingStrategy
 from ..populations.populations_factory import PopulationGeneratorFactory
 from ..rules import Literal, Rule
 from ..selections import BaseSelection
-from ..utils.validation import check_isinstance, check_X_y, validate_callable
+from ..utils.validation import (
+    BOOL_TYPES,
+    check_isinstance,
+    check_X_y,
+    validate_callable,
+)
 
 
 @dataclass
@@ -19,13 +25,16 @@ class BooleanGPConfig:
     Configuration for BooleanGP.
 
     Attributes:
-        score_fn (Callable | None): Optional fitness function `(y_true, y_pred) -> float`.
-            `fast_f1_score` is used when `None`. Default: `None`.
+        score_fn (ScoreFn): Fitness function `(y_true, y_pred) -> float`. It must return a
+            finite float for every prediction. Backends replace `fast_f1_score` and
+            `fast_accuracy_score` with their own kernels; any other function receives
+            the backend's arrays (tensors with `TorchBackend`). Default: `fast_f1_score`.
         train_data (ndarray | None): Training data (2-D boolean array). Can be `None` when
             used as a template in `BenchmarkerConfig` (data provided at benchmarker level).
             Default: `None`.
-        train_labels (ndarray | None): Training labels (1-D integer array). Can be `None`
-            when used as a template in `BenchmarkerConfig`. Default: `None`.
+        train_labels (ndarray | None): Training labels (1-D array of booleans, or of
+            integers 0 and 1). Can be `None` when used as a template in
+            `BenchmarkerConfig`. Default: `None`.
         population_factory (PopulationGeneratorFactory): Factory that creates the
             `PopulationGenerator` at runtime. Override `create_strategies` on the
             factory to use custom strategies (e.g., `BestLiteralStrategy`).
@@ -44,8 +53,9 @@ class BooleanGPConfig:
             weights, so rules are scored on fewer rows with the same results. ``None``
             merges rows for the built-in scorers (`fast_f1_score`,
             `fast_accuracy_score`) and never for custom ones. ``True`` also merges rows
-            for a custom ``score_fn`` that accepts ``sample_weight`` (a ``FutureWarning``
-            is emitted if it does not). ``False`` never merges rows. Default: `None`.
+            for a custom ``score_fn``, which must then accept ``sample_weight`` (a
+            ``ValueError`` is raised if it does not). ``False`` never merges rows.
+            Default: `None`.
         backend (EvaluationBackend): Backend that evaluates rules during training,
             validation and prediction. Default: `NumpyBackend()`.
         regeneration (bool): Whether to regenerate population on plateau. Default: `False`.
@@ -79,14 +89,14 @@ class BooleanGPConfig:
         >>> config.optimize_scorer is None
         True
         >>> config.backend
-        NumpyBackend(order='F', low_memory=True, batched=False, batch_size=None)
+        NumpyBackend(order='F', evaluation='fused', batched=False, batch_size=None, dtype=dtype('float32'))
         >>> config.population_factory.population_size
         100
         >>> config.mutation_factory.mutation_p
         0.1
     """
 
-    score_fn: Callable[[ndarray, ndarray], float] | None = None
+    score_fn: ScoreFn = fast_f1_score
     complexity_penalty: float = 0.0
     train_data: ndarray | None = None
     train_labels: ndarray | None = None
@@ -148,8 +158,12 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
     if hasattr(config, "_validated_without_data"):
         return
 
-    if config.score_fn is not None:
-        validate_callable(config.score_fn)
+    if config.score_fn is None:
+        raise TypeError(
+            "score_fn must be callable, is None. Leave score_fn unset to use the "
+            "default, fast_f1_score."
+        )
+    validate_callable(config.score_fn)
 
     check_isinstance(config.population_factory, PopulationGeneratorFactory)
     check_isinstance(config.mutation_factory, MutationExecutorFactory)
@@ -159,7 +173,7 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
         check_isinstance(config.selection, BaseSelection)
 
     if config.optimize_scorer is not None:
-        check_isinstance(config.optimize_scorer, bool)
+        check_isinstance(config.optimize_scorer, BOOL_TYPES, "optimize_scorer")
     check_isinstance(config.backend, EvaluationBackend)
 
     if config.check_valid is not None:
@@ -167,12 +181,12 @@ def validate_gp_config(config: BooleanGPConfig, require_data: bool = True) -> No
         validate_callable(config.check_valid, error_msg)
         try:
             boolean = config.check_valid(Literal(value=0))
-            if not isinstance(boolean, bool):
+            if not isinstance(boolean, BOOL_TYPES):
                 raise TypeError(error_msg)
         except Exception as e:
             raise TypeError(error_msg) from e
 
-    check_isinstance(config.regeneration, bool)
+    check_isinstance(config.regeneration, BOOL_TYPES, "regeneration")
     check_isinstance(config.regeneration_patience, int)
     if config.regeneration and config.regeneration_patience < 1:
         raise ValueError(

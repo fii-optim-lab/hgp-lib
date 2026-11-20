@@ -33,10 +33,10 @@ or [`GPBenchmarker.predict`](benchmarkers.md#hgp_lib.benchmarkers.gp_benchmarker
 
 ::: hgp_lib.evaluation.backend.Evaluator
 
-## Data and scorers bound during training
+## Data bound during training
 
 ::: hgp_lib.evaluation.dataset.Dataset
 
-::: hgp_lib.evaluation.scorers.Scorer
+::: hgp_lib.evaluation.torch.dataset.TorchDataset
 
-::: hgp_lib.evaluation.scorers.resolve_scorer
+::: hgp_lib.evaluation.scorers.ScoreFn

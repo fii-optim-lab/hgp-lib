@@ -1,27 +1,11 @@
-import numpy as np
 from numpy import ndarray
 
 from ..rules import Rule
+from ..utils.validation import check_X, check_X_y
 from .backend import EvaluationBackend
+from .dataset import Dataset
 from .numpy import NumpyBackend
 from .scorers import ScoreFn, fast_f1_score
-
-
-def _check_binarized(data: ndarray) -> None:
-    if not isinstance(data, np.ndarray):
-        raise TypeError(
-            f"data must be a binarized boolean NumPy array, is {type(data).__name__}. "
-            "For raw data, use BooleanRuleClassifier or GPBenchmarker, which binarize "
-            "it with their fitted binarizer."
-        )
-    if data.dtype != np.bool_:
-        raise TypeError(
-            f"data must be a binarized boolean array, has dtype {data.dtype}. "
-            "For raw data, use BooleanRuleClassifier or GPBenchmarker, which binarize "
-            "it with their fitted binarizer."
-        )
-    if data.ndim != 2:
-        raise ValueError(f"data must be a 2-D array, has shape {data.shape}")
 
 
 def predict(
@@ -32,8 +16,8 @@ def predict(
 
     ``data`` must be the binarized boolean matrix, with the same feature columns the rule
     was trained on (for example the output of a fitted binarizer). For raw data, use
-    `BooleanRuleClassifier.predict` or `GPBenchmarker.predict` instead. The data is
-    neither copied nor merged.
+    `BooleanRuleClassifier.predict` or `GPBenchmarker.predict` instead. The rows are not
+    merged.
 
     Args:
         rule (Rule): The rule to evaluate.
@@ -42,7 +26,7 @@ def predict(
             ``NumpyBackend()``. Default: `None`.
 
     Returns:
-        ndarray: 1-D boolean array, one prediction per row.
+        ndarray: 1-D boolean NumPy array, one prediction per row.
 
     Raises:
         TypeError: If ``data`` is not a boolean NumPy array.
@@ -56,31 +40,33 @@ def predict(
         >>> predict(And([Literal(value=0), Literal(value=1, negated=True)]), data)
         array([ True, False, False])
     """
-    _check_binarized(data)
+    check_X(data)
     if backend is None:
         backend = NumpyBackend()
-    return backend.predict(rule, data)
+    return backend.to_numpy(backend.predict(rule, backend.from_numpy(data)))
 
 
 def score(
     rule: Rule,
     data: ndarray,
     labels: ndarray,
-    score_fn: ScoreFn | None = None,
+    score_fn: ScoreFn = fast_f1_score,
     *,
     backend: EvaluationBackend | None = None,
 ) -> float:
     """
     Score a rule on binarized data.
 
-    Same data requirements as `predict`. The rows are scored as given, without merging.
+    Same data requirements as `predict`. The rows are scored as given, without merging,
+    by the backend, so the score has the backend's ``dtype`` precision. With
+    `TorchBackend`, a custom ``score_fn`` receives tensors.
 
     Args:
         rule (Rule): The rule to score.
         data (ndarray): 2-D boolean array, rows are instances and columns are features.
-        labels (ndarray): 1-D binary labels, one per row.
-        score_fn (ScoreFn | None): Scoring function ``score_fn(y_true, y_pred)``.
-            ``None`` uses `fast_f1_score`. Default: `None`.
+        labels (ndarray): 1-D binary labels, one per row: booleans, or integers 0 and 1.
+        score_fn (ScoreFn): Scoring function ``score_fn(y_true, y_pred)``.
+            Default: `fast_f1_score`.
         backend (EvaluationBackend | None): The backend to evaluate with. ``None`` uses
             ``NumpyBackend()``. Default: `None`.
 
@@ -94,9 +80,12 @@ def score(
         >>> data = np.array([[True], [True], [False], [False]])
         >>> labels = np.array([1, 0, 0, 0])
         >>> score(Literal(value=0), data, labels)
-        0.6666666666666666
+        0.6666666865348816
         >>> score(Literal(value=0), data, labels, fast_accuracy_score)
         0.75
     """
-    fn = fast_f1_score if score_fn is None else score_fn
-    return float(fn(labels, predict(rule, data, backend=backend)))
+    labels = check_X_y(data, labels)
+    if backend is None:
+        backend = NumpyBackend()
+    evaluator = backend.bind(Dataset(data, labels), score_fn)
+    return float(backend.to_numpy(evaluator.score([rule]))[0])

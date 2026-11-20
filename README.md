@@ -34,7 +34,7 @@ See [Theory](https://fii-optim-lab.github.io/hgp-lib/theory/) for how the search
 
 ```bash
 pip install hgp-lib
-# with the PyTorch evaluation backend, for GPUs
+# with the PyTorch evaluation backend
 pip install "hgp-lib[torch]"
 # with the development tools
 pip install "hgp-lib[dev]"
@@ -151,6 +151,7 @@ The [Extending HGP](https://fii-optim-lab.github.io/hgp-lib/guide/extending/) gu
 - [Extending HGP](https://fii-optim-lab.github.io/hgp-lib/guide/extending/)
 - [Rule Trees](https://fii-optim-lab.github.io/hgp-lib/guide/rule-trees/)
 - [Experiments](https://fii-optim-lab.github.io/hgp-lib/experiments/)
+- [Performance](https://fii-optim-lab.github.io/hgp-lib/performance/)
 - [API Reference](https://fii-optim-lab.github.io/hgp-lib/api/)
 
 ## Contributing

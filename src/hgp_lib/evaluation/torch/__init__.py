@@ -10,5 +10,6 @@ except ImportError as error:
     ) from error
 
 from .backend import TorchBackend, TorchEvaluator
+from .dataset import TorchDataset
 
-__all__ = ["TorchBackend", "TorchEvaluator"]
+__all__ = ["TorchBackend", "TorchDataset", "TorchEvaluator"]

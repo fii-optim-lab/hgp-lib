@@ -8,7 +8,9 @@ from hgp_lib.rules import Literal
 from hgp_lib.rules.operators import And, Or
 
 # Both NumPy evaluation algorithms must give the same results.
-BACKENDS = (NumpyBackend(), NumpyBackend(low_memory=True))
+BACKENDS = tuple(
+    NumpyBackend(evaluation=name) for name in ("block", "inplace", "fused")
+)
 
 
 class TestRules(unittest.TestCase):
@@ -17,7 +19,7 @@ class TestRules(unittest.TestCase):
 
     def assert_evaluates_to(self, rule, expected):
         for backend in BACKENDS:
-            with self.subTest(low_memory=backend.low_memory):
+            with self.subTest(evaluation=backend.evaluation):
                 np.testing.assert_array_equal(
                     backend.predict(rule, self.data), expected
                 )

@@ -3,12 +3,8 @@ import unittest
 
 import numpy as np
 
-from hgp_lib.evaluation import (
-    Dataset,
-    NumpyBackend,
-    fast_accuracy_score,
-    resolve_scorer,
-)
+from hgp_lib.evaluation import Dataset, NumpyBackend, fast_accuracy_score
+from hgp_lib.evaluation.scorers import merges_rows
 from hgp_lib.mutations import MutationExecutorFactory
 from hgp_lib.populations import (
     BestLiteralStrategy,
@@ -20,9 +16,11 @@ from hgp_lib.rules import And, Literal, Or
 
 
 def make_evaluator(data, labels, score_fn=fast_accuracy_score, optimize=None):
-    """Bind a scorer to training rows, as BooleanGP does."""
+    """Bind a scoring function to training rows, as BooleanGP does."""
     return NumpyBackend().bind(
-        Dataset(data, labels), resolve_scorer(score_fn, optimize)
+        Dataset(data, labels.astype(bool)),
+        score_fn,
+        merge_rows=merges_rows(score_fn, optimize),
     )
 
 

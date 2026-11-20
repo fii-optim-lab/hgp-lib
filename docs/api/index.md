@@ -15,4 +15,5 @@ Full reference for all public modules in the HGP library.
 | [Selections](selections.md) | Tournament, roulette selection strategies |
 | [Populations](populations.md) | Population generation and sampling strategies |
 | [Preprocessing](preprocessing.md) | [`StandardBinarizer`](preprocessing.md#hgp_lib.preprocessing.binarizer.StandardBinarizer), [`load_data`](preprocessing.md#hgp_lib.preprocessing.utils.load_data) |
+| [Testing](testing.md) | [`check_backend`](testing.md#hgp_lib.testing.check_backend), checks a custom evaluation backend against the NumPy backend |
 | [Results](results.md) | [`GenerationMetrics`](results.md#hgp_lib.results.generation.GenerationMetrics), [`PopulationHistory`](results.md#hgp_lib.results.history.PopulationHistory), [`RunResult`](results.md#hgp_lib.results.experiment.RunResult), [`ExperimentResult`](results.md#hgp_lib.results.experiment.ExperimentResult) |

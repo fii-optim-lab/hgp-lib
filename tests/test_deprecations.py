@@ -79,6 +79,50 @@ class TestMovedNames(unittest.TestCase):
             exec("from hgp_lib.utils import Nothing", {})
 
 
+class TestWarnOnce(unittest.TestCase):
+    """warn_once shows each message once per process, counting only shown warnings."""
+
+    def setUp(self):
+        hgp_warnings._emitted_messages.clear()
+
+    def tearDown(self):
+        hgp_warnings._emitted_messages.clear()
+
+    def emit(self, *filters):
+        """Call warn_once under ``filters`` and return how many warnings were shown."""
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.resetwarnings()
+            for action, kwargs in filters:
+                warnings.filterwarnings(action, **kwargs)
+            hgp_warnings.warn_once(DeprecationWarning(self.id()))
+        return len(caught)
+
+    def test_ignored_warning_is_shown_later(self):
+        self.assertEqual(self.emit(("ignore", {})), 0)
+        self.assertEqual(self.emit(("default", {})), 1)
+        self.assertEqual(self.emit(("default", {})), 0)
+
+    def test_hidden_by_python_default_filters_is_shown_later(self):
+        # Python's default filters show DeprecationWarning only in __main__.
+        python_defaults = (
+            ("ignore", {"category": DeprecationWarning}),
+            ("default", {"category": DeprecationWarning, "module": "__main__"}),
+        )
+        self.assertEqual(self.emit(*python_defaults), 0)
+        self.assertEqual(self.emit(("default", {})), 1)
+
+    def test_always_shows_once(self):
+        self.assertEqual(self.emit(("always", {})), 1)
+        self.assertEqual(self.emit(("always", {})), 0)
+
+    def test_once_and_module_actions_show_once(self):
+        for action in ("once", "module"):
+            with self.subTest(action=action):
+                hgp_warnings._emitted_messages.clear()
+                self.assertEqual(self.emit((action, {})), 1)
+                self.assertEqual(self.emit(("always", {})), 0)
+
+
 class TestDefaults(unittest.TestCase):
     def test_trainer_config_defaults(self):
         config = TrainerConfig()

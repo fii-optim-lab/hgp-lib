@@ -53,6 +53,7 @@ nav:
     - Breast Cancer Wisconsin: experiments/breast-cancer.md
     - PaySim: experiments/paysim.md
     - AEAC: experiments/aeac.md
+  - Performance: performance.md
   - API Reference:
     - api/index.md
     - Algorithms: api/algorithms.md
@@ -67,3 +68,4 @@ nav:
     - Populations: api/populations.md
     - Preprocessing: api/preprocessing.md
     - Results: api/results.md
+    - Testing: api/testing.md

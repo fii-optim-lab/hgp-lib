@@ -7,12 +7,12 @@ data and features when creating child populations in hierarchical GP.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from math import ceil
+from typing import Any
 
 import numpy as np
 from numpy import ndarray
 
-from ..evaluation import Dataset
-from ..utils.validation import check_isinstance
+from ..utils.validation import BOOL_TYPES, check_isinstance
 
 
 @dataclass
@@ -20,8 +20,9 @@ class SamplingResult:
     """Result of a sampling operation: the sampled rows and the feature mapping.
 
     Attributes:
-        dataset: The sampled rows, labels and sample weights. Weights are ``None`` unless
-            the child's rows stand for several original rows.
+        dataset: The sampled rows, labels and sample weights, in the backend's dataset
+            type (the type of the parent's dataset). Weights are ``None`` unless the
+            child's rows stand for several original rows.
         feature_mapping: Dictionary mapping child feature indices to parent feature indices.
             Direction: child_index -> parent_index.
 
@@ -36,7 +37,7 @@ class SamplingResult:
             Set to None for instance-only sampling where all features are preserved.
     """
 
-    dataset: Dataset
+    dataset: Any
     feature_mapping: dict[int, int] | None
 
 
@@ -44,9 +45,11 @@ class SamplingStrategy(ABC):
     """Abstract base class for data sampling strategies.
 
     Sampling strategies define how to select subsets of data and/or features
-    for child populations in hierarchical GP. The parent's rows may be merged into
-    sample weights; instance counts and fractions always refer to original rows, and
-    `Dataset.take` selects original rows without expanding the data.
+    for child populations in hierarchical GP. The parent's rows are in the backend's
+    dataset type (`Dataset` for `NumpyBackend`) and may be merged into sample weights.
+    Instance counts and fractions always refer to original rows. Strategies only use
+    ``dataset.n_rows``, ``dataset.n_features``, ``dataset.take`` and
+    ``dataset.select_features``, so they work with every backend without a copy.
 
     Attributes:
         feature_fraction (float): Fraction of features to sample per child.
@@ -70,7 +73,7 @@ class SamplingStrategy(ABC):
     ):
         check_isinstance(feature_fraction, float)
         check_isinstance(sample_fraction, float)
-        check_isinstance(replace, bool)
+        check_isinstance(replace, BOOL_TYPES, "replace")
 
         if feature_fraction <= 0 or feature_fraction > 1:
             raise ValueError(
@@ -110,14 +113,14 @@ class SamplingStrategy(ABC):
 
     @staticmethod
     def create_sampling_result(
-        dataset: Dataset,
+        dataset: Any,
         feature_indices: ndarray | None,
         instance_indices: ndarray | None,
     ) -> SamplingResult:
         """Select the given original rows and feature columns, and build the result.
 
         Args:
-            dataset: The parent's rows.
+            dataset: The parent's rows, in the backend's dataset type.
             feature_indices: Feature columns to keep, or None to keep all features.
             instance_indices: Original rows to keep, in ``range(dataset.n_rows)``, or None
                 to keep all rows.
@@ -130,7 +133,7 @@ class SamplingStrategy(ABC):
             >>> import numpy as np
             >>> from hgp_lib.evaluation import Dataset
             >>> from hgp_lib.populations import SamplingStrategy
-            >>> dataset = Dataset(np.eye(3, dtype=bool), np.array([1, 0, 1]), np.array([3, 1, 2]))
+            >>> dataset = Dataset(np.eye(3, dtype=bool), np.array([True, False, True]), np.array([3, 1, 2]))
             >>> result = SamplingStrategy.create_sampling_result(
             ...     dataset, np.array([2, 0]), np.array([0, 1, 5])
             ... )
@@ -146,7 +149,7 @@ class SamplingStrategy(ABC):
         return SamplingResult(dataset=dataset, feature_mapping=feature_mapping)
 
     @abstractmethod
-    def sample(self, dataset: Dataset, num_children: int) -> list[SamplingResult]:
+    def sample(self, dataset: Any, num_children: int) -> list[SamplingResult]:
         """Sample data and/or features for child populations.
 
         Args:
@@ -184,7 +187,7 @@ class FeatureSamplingStrategy(SamplingStrategy):
         >>> np.random.seed(42)
         >>> strategy = FeatureSamplingStrategy(feature_fraction=0.5)
         >>> data = np.random.rand(100, 10) > 0.5
-        >>> labels = np.random.randint(0, 2, 100)
+        >>> labels = np.random.randint(0, 2, 100).astype(bool)
         >>> results = strategy.sample(Dataset(data, labels), num_children=3)
         >>> len(results)
         3
@@ -197,7 +200,7 @@ class FeatureSamplingStrategy(SamplingStrategy):
     def __init__(self, feature_fraction: float = 1.0, replace: bool = False):
         super().__init__(feature_fraction=feature_fraction, replace=replace)
 
-    def sample(self, dataset: Dataset, num_children: int) -> list[SamplingResult]:
+    def sample(self, dataset: Any, num_children: int) -> list[SamplingResult]:
         """Sample features for child populations.
 
         Args:
@@ -208,7 +211,7 @@ class FeatureSamplingStrategy(SamplingStrategy):
             List of SamplingResult, one per child, with sampled feature columns,
             all rows and their weights preserved, and feature_mapping set.
         """
-        num_features = dataset.data.shape[1]
+        num_features = dataset.n_features
         features_per_child = ceil(num_features * self.feature_fraction)
         if features_per_child < self.MIN_FEATURES:
             raise ValueError(
@@ -245,7 +248,7 @@ class InstanceSamplingStrategy(SamplingStrategy):
         >>> np.random.seed(42)
         >>> strategy = InstanceSamplingStrategy(sample_fraction=0.8)
         >>> data = np.random.rand(100, 10) > 0.5
-        >>> labels = np.random.randint(0, 2, 100)
+        >>> labels = np.random.randint(0, 2, 100).astype(bool)
         >>> results = strategy.sample(Dataset(data, labels), num_children=3)
         >>> len(results)
         3
@@ -258,7 +261,7 @@ class InstanceSamplingStrategy(SamplingStrategy):
     def __init__(self, sample_fraction: float = 1.0, replace: bool = False):
         super().__init__(sample_fraction=sample_fraction, replace=replace)
 
-    def sample(self, dataset: Dataset, num_children: int) -> list[SamplingResult]:
+    def sample(self, dataset: Any, num_children: int) -> list[SamplingResult]:
         """Sample instances for child populations.
 
         Args:
@@ -309,7 +312,7 @@ class CombinedSamplingStrategy(SamplingStrategy):
         ...     replace=False
         ... )
         >>> data = np.random.rand(100, 10) > 0.5
-        >>> labels = np.random.randint(0, 2, 100)
+        >>> labels = np.random.randint(0, 2, 100).astype(bool)
         >>> results = strategy.sample(Dataset(data, labels), num_children=3)
         >>> len(results)
         3
@@ -329,7 +332,7 @@ class CombinedSamplingStrategy(SamplingStrategy):
             replace=replace,
         )
 
-    def sample(self, dataset: Dataset, num_children: int) -> list[SamplingResult]:
+    def sample(self, dataset: Any, num_children: int) -> list[SamplingResult]:
         """Sample both features and instances for all children at once.
 
         Args:
@@ -342,7 +345,7 @@ class CombinedSamplingStrategy(SamplingStrategy):
             subsets applied, the weights of the sampled rows, and feature_mapping set.
         """
         num_instances = dataset.n_rows
-        num_features = dataset.data.shape[1]
+        num_features = dataset.n_features
         samples_per_child = ceil(num_instances * self.sample_fraction)
         features_per_child = ceil(num_features * self.feature_fraction)
         if samples_per_child < self.MIN_INSTANCES:
