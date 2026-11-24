@@ -134,14 +134,16 @@ class TestPackageAttributes(unittest.TestCase):
             hide_torch=True,
         )
         self.assertEqual(result["unreachable"], [])
-        # Decided behavior: both forms raise ImportError with the install hint, so
-        # hasattr does not return False.
+        # Decided behavior: both forms raise the ImportError of
+        # hgp_lib.evaluation.torch, so hasattr does not return False.
         for form in ("from_import", "hasattr"):
             with self.subTest(form=form):
                 self.assertIsNotNone(result[form])
                 name, message = result[form]
                 self.assertEqual(name, "ImportError")
-                self.assertIn('pip install "hgp-lib[torch]"', message)
+                self.assertEqual(
+                    message, "Using the PyTorch backend requires PyTorch 2.0 or later."
+                )
 
 
 if __name__ == "__main__":

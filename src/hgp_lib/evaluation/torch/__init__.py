@@ -1,12 +1,12 @@
 """
-The PyTorch evaluation backend. Needs PyTorch: ``pip install "hgp-lib[torch]"``.
+The PyTorch evaluation backend.
 """
 
 try:
     import torch  # noqa: F401
 except ImportError as error:
     raise ImportError(
-        'TorchBackend needs PyTorch. Install it with pip install "hgp-lib[torch]".'
+        "Using the PyTorch backend requires PyTorch 2.0 or later."
     ) from error
 
 from .backend import TorchBackend, TorchEvaluator

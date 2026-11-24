@@ -85,11 +85,6 @@ BooleanGPConfig(backend=NumpyBackend(dtype="float64"))  # float64 scores
 ## The PyTorch backend
 
 [`TorchBackend`](../api/evaluation.md#hgp_lib.evaluation.torch.backend.TorchBackend) evaluates rules with PyTorch, on the CPU or on a GPU.
-It needs PyTorch, which is an optional dependency:
-
-```bash
-pip install "hgp-lib[torch]"
-```
 
 ```python
 from hgp_lib import BooleanGPConfig

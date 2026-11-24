@@ -58,9 +58,6 @@ Issues = "https://github.com/fii-optim-lab/hgp-lib/issues"
 
 
 [project.optional-dependencies]
-torch = [
-    "torch>=2.0",
-]
 dev = [
     "mkdocs",
     "mkdocstrings-python",

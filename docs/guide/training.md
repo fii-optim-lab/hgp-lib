@@ -167,7 +167,7 @@ from hgp_lib.evaluation import NumpyBackend, TorchBackend
 # Score 50 rules per call instead of one.
 gp = BooleanGPConfig(backend=NumpyBackend(batched=True, batch_size=50))
 
-# Evaluate on a CUDA GPU (needs hgp-lib[torch]).
+# Evaluate on a CUDA GPU (needs PyTorch).
 gp = BooleanGPConfig(backend=TorchBackend(device="cuda"))
 ```
 

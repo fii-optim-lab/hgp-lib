@@ -174,7 +174,7 @@ Every combination of the values is benchmarked:
 | `TorchBackend` | `evaluation` | `"block"`, `"inplace"`, `"fused"` |
 | `TorchBackend` | `batched` | `False`, `True` |
 
-`TorchBackend` is only benchmarked when PyTorch is installed (`pip install "hgp-lib[torch]"`).
+`TorchBackend` is only benchmarked when PyTorch is installed.
 `batch_size` and `dtype` keep their defaults (`None`, one batch per population, and `float32`) for both backends.
 To benchmark a new backend or option value, add it to `BACKEND_OPTIONS`.
 

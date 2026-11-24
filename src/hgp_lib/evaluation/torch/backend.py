@@ -24,10 +24,9 @@ class TorchBackend(EvaluationBackend):
     """
     Evaluate rules with PyTorch, on the CPU or on a GPU.
 
-    Needs PyTorch (``pip install "hgp-lib[torch]"``). The rows, predictions and scores
-    stay on ``device``: the evaluator's dataset is a `TorchDataset`, and custom scoring
-    functions receive tensors (labels, predictions and ``sample_weight``), so they must
-    work with tensors. Values reach NumPy through `to_numpy`, once per population.
+    The rows, predictions and scores stay on ``device``: the evaluator's dataset is a
+    `TorchDataset`, and custom scoring functions receive tensors (labels, predictions
+    and ``sample_weight``), so they must work with tensors. Values reach NumPy through `to_numpy`, once per population.
 
     The default values were chosen based on benchmarking.
 

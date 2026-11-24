@@ -4,8 +4,6 @@
 
 ```bash
 pip install hgp-lib
-# with the PyTorch evaluation backend
-pip install "hgp-lib[torch]"
 # with the development tools
 pip install "hgp-lib[dev]"
 ```
@@ -19,6 +17,8 @@ pip install -e ".[dev]"
 # Now you are able to change the code and run the tests
 python -m pytest
 ```
+
+Using the PyTorch backend requires PyTorch 2.0 or later.
 
 ## A first run
 

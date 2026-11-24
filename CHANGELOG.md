@@ -12,10 +12,10 @@ Deprecated APIs keep working with a warning and will be removed in a future 2.x 
   - `predict(rule, data)` and `score(rule, data, labels, score_fn=fast_f1_score)` evaluate a rule on binarized data. They raise a `TypeError` for DataFrames and non-boolean arrays; use `BooleanRuleClassifier` or `GPBenchmarker` for raw data.
   - `fast_f1_score`, `fast_accuracy_score` and `confusion_matrix` score boolean predictions, with optional sample weights.
   - `NumpyBackend(order="F", evaluation="fused", batched=False, batch_size=None, dtype=float32)`, the default backend. `evaluation` selects one of three implementations (`"block"`, `"inplace"`, `"fused"`).
-  - `TorchBackend(device=None, evaluation="fused", batched=False, batch_size=None, dtype=float32)` evaluates rules with PyTorch on the CPU (the default) or the given device. The rows, predictions and scores stay on the device. It needs the new `torch` extra: `pip install "hgp-lib[torch]"`.
+  - `TorchBackend(device=None, evaluation="fused", batched=False, batch_size=None, dtype=float32)` evaluates rules with PyTorch on the CPU (the default) or the given device. The rows, predictions and scores stay on the device. It needs PyTorch 2.0 or later.
   - `EvaluationBackend`, `Evaluator` and `Dataset` (`TorchDataset` for PyTorch) for custom backends and strategies. `Evaluator.subset` scores a subset of the original rows.
   - Scoring functions with a `batched` method are batched like the built-in scorers.
-- `hgp_lib.testing.check_backend` checks that a backend gives the same results as the NumPy backend.
+- `hgp_lib.testing.check_backend` checks that a backend gives the same results as the NumPy backend. `import hgp_lib` imports `hgp_lib.testing`, so it is reachable as an attribute.
 - `BooleanGPConfig.backend` selects the backend used for training, validation and prediction.
 - Configs have defaults, so only the data is needed: `TrainerConfig()`, `BenchmarkerConfig(data=X, labels=y)` and `BooleanRuleClassifier()`. `TrainerConfig.num_epochs` defaults to `1000`.
 - `hgp_lib.results` holds what training and benchmarking return (`GenerationMetrics`, `PopulationHistory`, `RunResult`, `ExperimentResult`).
@@ -27,6 +27,7 @@ Deprecated APIs keep working with a warning and will be removed in a future 2.x 
 - Scores are `float32` by default (backend option `dtype`). Weighted counts switch to `float64` when `float32` cannot count them exactly.
 - Binarized data must be a boolean NumPy array; integer data raises a `TypeError`. Labels can be booleans or integers 0 and 1; float labels raise a `TypeError`, other integer values a `ValueError`.
 - `BooleanGPConfig.score_fn` defaults to `fast_f1_score`; `score_fn=None` raises a `TypeError`.
+- Scoring functions must return a finite float, never NaN. This is not checked.
 - `BooleanGPConfig.optimize_scorer` defaults to `None`: duplicate rows are merged for the built-in scorers only. `optimize_scorer=True` merges them for a custom scorer too, which must then accept `sample_weight` (a `ValueError` otherwise).
 - `PopulationGeneratorFactory.create` and `create_strategies` take `(num_literals, evaluator)`.
 - `BestLiteralStrategy` takes `(num_literals, evaluator, sample_size=None, feature_size=None)`.
@@ -52,8 +53,9 @@ Deprecated APIs keep working with a warning and will be removed in a future 2.x 
 - Child populations now keep the sample weights of their parent.
 - `BestLiteralStrategy` no longer fails when `sample_size` is set and the data has duplicate rows.
 - `BooleanGP` and the benchmarker no longer write `fast_f1_score` into the user's config.
-- Float labels are rejected when the configuration is validated, instead of failing after training.
-- A warning shown once with `warn_once` is no longer lost when it was first raised while the warning filters ignored it.
+- Float labels are rejected when the configuration is validated, instead of failing after training. `BooleanRuleClassifier.fit` checks the labels before it fits the binarizer, and a binarizer that returns non-boolean columns fails at `fit`.
+- A library warning, such as a deprecation, is no longer lost when it was first raised while the warning filters ignored it. Each message is still shown once per process, also under the `"always"` filter.
+- The rule-evaluation benchmark artifacts (`benchmarks/artifacts/rule_evaluation`) are regenerated.
 
 ### Performance Improvements
 
