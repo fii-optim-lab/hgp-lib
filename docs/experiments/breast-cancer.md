@@ -58,8 +58,9 @@ And(
 ```
 
 A tumor is benign if its worst perimeter, worst radius, and worst concave points are below a threshold, its mean compactness, texture error, and worst area lie outside a bin, and one operand of the first `Or` holds.
-hgp-lib does not simplify rules: three literals appear more than once, and the last `Or` always holds, because the rule already requires `~1.807 <= texture error < 1.9`.
-Without them, the rule has 10 literals and 13 nodes and makes the same predictions.
+The evolved rule repeats itself: three literals appear more than once, and the last `Or` always holds, because the rule already requires `~1.807 <= texture error < 1.9`.
+[Postprocessing](../guide/postprocessing.md#example) removes them, and returns a rule with 10 literals and 13 nodes that makes the same predictions.
+The rule sizes on this page are those of the rules as evolved.
 
 ### DT
 

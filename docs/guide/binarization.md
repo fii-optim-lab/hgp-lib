@@ -20,7 +20,7 @@ Every binarizer follows the same contract, so implementations are interchangeabl
 The [`StandardBinarizer`](../api/preprocessing.md#hgp_lib.preprocessing.binarizer.StandardBinarizer) handles three kinds of columns.
 
 - Boolean columns pass through unchanged.
-- Categorical, string, and object columns are one-hot encoded into one boolean column per unique value.
+- Categorical, string, and object columns are one-hot encoded into one boolean column per unique value. At transform time, a category that was not seen during fit matches no column, so the row is all-false for that column, which raises an [`UnseenCategoryWarning`](../api/preprocessing.md#hgp_lib.preprocessing.warnings.UnseenCategoryWarning).
 - Numeric columns are split into bins, and each bin becomes one boolean column.
 
 A numeric column with `k` bins produces up to `k` boolean columns.
@@ -111,6 +111,30 @@ New data that falls between an original edge and its rounded edge can land in a 
 
 These names flow into [`Rule.to_str(feature_names)`](../api/rules.md#hgp_lib.rules.rules.Rule), which is how a trained rule prints with feature names instead of indices.
 
+## Feature specs
+
+Names are made for reading, and they are not always unique or easy to read back: a boolean column named `age < 18` looks like a numeric bin, and when two features get the same name, the second one gets a numeric suffix.
+[`get_feature_specs`](../api/preprocessing.md#hgp_lib.preprocessing.binarizer.StandardBinarizer.get_feature_specs) describes what each output column tests, in the same order as the names:
+
+- [`BooleanFeature(column)`](../api/preprocessing.md#hgp_lib.preprocessing.features.BooleanFeature) for a boolean column;
+- [`CategoryFeature(column, value)`](../api/preprocessing.md#hgp_lib.preprocessing.features.CategoryFeature) for each category;
+- [`BinFeature(column, left, right)`](../api/preprocessing.md#hgp_lib.preprocessing.features.BinFeature) for each numeric bin, true where `left <= value < right`;
+- [`MissingFeature(column)`](../api/preprocessing.md#hgp_lib.preprocessing.features.MissingFeature) for each `<col>_is_NA` indicator.
+
+```python
+import pandas as pd
+from hgp_lib.preprocessing import StandardBinarizer
+
+binarizer = StandardBinarizer(num_bins=2)
+binarizer.fit_transform(pd.DataFrame({"x": [1.0, 2.0, 3.0, 4.0]}))
+binarizer.get_feature_specs()
+# [BinFeature(column='x', left=-inf, right=2.5), BinFeature(column='x', left=2.5, right=inf)]
+```
+
+The name of a feature is `str(spec)`, before any suffix.
+[Postprocessing](postprocessing.md) uses the specs to merge the features of one column, for example several adjacent bins into one interval.
+A binarizer that does not override `get_feature_specs` describes each output column as an independent `BooleanFeature`.
+
 ## Fit once, transform many
 
 Call `fit_transform` on the training data to learn the bin edges and categorical mappings.
@@ -145,7 +169,7 @@ binarizer = StandardBinarizer(numeric_binning=MedianSplit())
 ```
 
 To change how a whole column type is handled, subclass [`StandardBinarizer`](../api/preprocessing.md#hgp_lib.preprocessing.binarizer.StandardBinarizer) and override the matching hooks: `_fit_boolean` / `_transform_boolean`, `_fit_categorical` / `_transform_categorical`, or `_fit_numeric` / `_transform_numeric`.
-The `_fit_*` hooks return `(name, values)` pairs, and the `_transform_*` hooks return the values in the same order.
+The `_fit_*` hooks return `(FeatureSpec, values)` pairs, one per output column, and the `_transform_*` hooks return the values in the same order.
 
 ## Using a scikit-learn discretizer
 

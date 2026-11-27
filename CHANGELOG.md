@@ -3,6 +3,7 @@
 ## 2.0.0 (unreleased)
 
 Rules are now evaluated by evaluation backends instead of by the rule classes, so rules only describe the logical structure.
+Evolved rules can be simplified, and converted to a canonical DNF or CNF, with the new `hgp_lib.postprocessing` package.
 This release has breaking changes; see the [migration guide](docs/migration.md).
 Deprecated APIs keep working with a warning and will be removed in a future 2.x release.
 
@@ -15,6 +16,15 @@ Deprecated APIs keep working with a warning and will be removed in a future 2.x 
   - `TorchBackend(device=None, evaluation="fused", batched=False, batch_size=None, dtype=float32)` evaluates rules with PyTorch on the CPU (the default) or the given device. The rows, predictions and scores stay on the device. It needs PyTorch 2.0 or later.
   - `EvaluationBackend`, `Evaluator` and `Dataset` (`TorchDataset` for PyTorch) for custom backends and strategies. `Evaluator.subset` scores a subset of the original rows.
   - Scoring functions with a `batched` method are batched like the built-in scorers.
+- New `hgp_lib.postprocessing` package, which simplifies evolved rules without changing a prediction:
+  - `postprocess(rule, features=None, *, optimize=True, canonical=None)` returns a new rule over the same features. With `optimize=True`, it removes repeated, absorbed and constant parts, and the literals that the rest of the rule already decides, and merges the literals of one original column. The result never has more nodes than the rule.
+  - `canonical="dnf"` or `"cnf"` returns a normal form. With `optimize=True`, it is the canonical form, made of the prime terms or clauses that are needed, so equivalent rules give the same result. With `optimize=False`, the rule is converted mechanically. `CanonicalForm.DNF` and `CanonicalForm.CNF` are accepted too.
+  - `postprocess_to_str` writes the result over the original columns: adjacent bins as one interval (`1.5 <= x < 4.0`), several categories as a set (`color in {red, blue}`), and a constant rule as `True` or `False`.
+  - `features` is a fitted binarizer or its feature specs, so that the features of one column can be merged. Without it, every feature is an independent boolean.
+  - `BooleanRuleClassifier.postprocess` and `BooleanRuleClassifier.postprocess_to_str` postprocess the evolved rule with the classifier's binarizer.
+  - `benchmarks/benchmark_postprocessing.py` times it on the evolved rules of the benchmark artifacts and on random rules.
+- Binarizers describe their output columns: `Binarizer.get_feature_specs()` returns one `FeatureSpec` per column, index-aligned with `get_feature_names_out()`. `StandardBinarizer` returns a `BooleanFeature`, `CategoryFeature`, `BinFeature` or `MissingFeature` for each column, and names each column `str(spec)`, as before. Other binarizers default to one `BooleanFeature` per column.
+- `StandardBinarizer.transform` warns with `UnseenCategoryWarning` when a categorical column has a category not seen during fit.
 - `hgp_lib.testing.check_backend` checks that a backend gives the same results as the NumPy backend. `import hgp_lib` imports `hgp_lib.testing`, so it is reachable as an attribute.
 - `BooleanGPConfig.backend` selects the backend used for training, validation and prediction.
 - Configs have defaults, so only the data is needed: `TrainerConfig()`, `BenchmarkerConfig(data=X, labels=y)` and `BooleanRuleClassifier()`. `TrainerConfig.num_epochs` defaults to `1000`.
@@ -35,6 +45,7 @@ Deprecated APIs keep working with a warning and will be removed in a future 2.x 
 - `BooleanGP` has `backend` and `evaluator` attributes (`evaluator.score_fn` is the scoring function); `train_data` and `train_labels` are read-only views of the scored rows, in the backend's array type. Child populations receive their rows through the `dataset` argument.
 - `GPTrainer` has a `val_evaluator` attribute.
 - `Rule` is no longer an abstract base class.
+- The `_fit_boolean`, `_fit_categorical` and `_fit_numeric` hooks of `StandardBinarizer` return `(FeatureSpec, values)` pairs instead of `(name, values)` pairs. The private `StandardBinarizer._format_numeric_bin_name` is removed; `str(BinFeature(column, left, right))` gives the same name.
 - Evaluation backends support `Literal`, `And` and `Or`; other `Rule` subclasses raise a `TypeError`.
 - Removed `hgp_lib.rules.low_memory_operators`; use `NumpyBackend(evaluation="inplace")`.
 - Removed `SampleWeightScorer`, `optimize_scorers_for_data` and `transform_duplicates_to_sample_weight`; rows are merged by `EvaluationBackend.bind` (see `Dataset.deduplicate` and `Dataset.take`).

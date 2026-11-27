@@ -87,6 +87,7 @@ See [Interpretability](interpretability.md) for why this matters.
 - [Configuring HGP](guide/configuring.md): factories and hierarchical GP settings
 - [Extending HGP](guide/extending.md): custom strategies, backends, mutations, and low-level use
 - [Rule Trees](guide/rule-trees.md): the rule data structure, evaluating rules, and the NumPy backend
+- [Postprocessing](guide/postprocessing.md): simplifying a rule, reading it over the original columns, and canonical DNF and CNF
 - [Experiments](experiments/index.md): reproducing dataset experiments (PMLB, PaySim, AEAC)
 - [Performance](performance.md): benchmark reports of the backends and versions
 - [API Reference](api/index.md): full module documentation

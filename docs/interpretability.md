@@ -20,6 +20,7 @@ You can read it, check it against domain knowledge, and reason about every predi
 A trained rule supports several things that opaque models do not.
 
 - Read the decision logic directly, with feature names through `rule.to_str(feature_names)`.
+- Simplify it without changing a prediction, and read it over the original columns, with [postprocessing](guide/postprocessing.md).
 - Audit which features the model relies on, since unused features simply do not appear.
 - Trace any single prediction to the literals that fired for that instance.
 - Turn the rule into a policy or a specification, because it is already a logical statement.

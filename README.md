@@ -76,10 +76,12 @@ clf.fit(X_train, y_train, X_val, y_val)  # validation data is binarized internal
 
 predictions = clf.predict(X_test)  # raw data is binarized internally
 print(clf.format_rule())           # the evolved rule as plain logic
+print(clf.postprocess_to_str())    # simplified, over the original columns
 ```
 
 Validation data is optional; when given, it is binarized with the same fitted binarizer and used to track a validation score during training.
 `clf.format_rule()` prints the rule with the binarized column names, so the model reads as plain logic.
+`clf.postprocess_to_str()` prints a simplified rule that makes the same predictions, with adjacent bins merged into one interval; `clf.postprocess()` returns it as a rule (see [Postprocessing](https://fii-optim-lab.github.io/hgp-lib/guide/postprocessing/)).
 To change the settings, pass a `TrainerConfig` (for example `BooleanRuleClassifier(TrainerConfig(num_epochs=500))`) or a custom binarizer.
 To binarize and train manually with `GPTrainer`, see [Training](https://fii-optim-lab.github.io/hgp-lib/guide/training/); the [Data Preparation](https://fii-optim-lab.github.io/hgp-lib/guide/data-preparation/) guide shows how to avoid leaking data between splits.
 
@@ -150,6 +152,7 @@ The [Extending HGP](https://fii-optim-lab.github.io/hgp-lib/guide/extending/) gu
 - [Configuring HGP](https://fii-optim-lab.github.io/hgp-lib/guide/configuring/)
 - [Extending HGP](https://fii-optim-lab.github.io/hgp-lib/guide/extending/)
 - [Rule Trees](https://fii-optim-lab.github.io/hgp-lib/guide/rule-trees/)
+- [Postprocessing](https://fii-optim-lab.github.io/hgp-lib/guide/postprocessing/)
 - [Experiments](https://fii-optim-lab.github.io/hgp-lib/experiments/)
 - [Performance](https://fii-optim-lab.github.io/hgp-lib/performance/)
 - [API Reference](https://fii-optim-lab.github.io/hgp-lib/api/)

@@ -8,6 +8,18 @@
 
 ::: hgp_lib.preprocessing.sklearn_binarizer.SklearnBinarizer
 
+## Feature Specs
+
+::: hgp_lib.preprocessing.features.FeatureSpec
+
+::: hgp_lib.preprocessing.features.BooleanFeature
+
+::: hgp_lib.preprocessing.features.CategoryFeature
+
+::: hgp_lib.preprocessing.features.BinFeature
+
+::: hgp_lib.preprocessing.features.MissingFeature
+
 ## Binning Strategies
 
 ::: hgp_lib.preprocessing.binning.BinningStrategy
@@ -29,6 +41,8 @@
 ::: hgp_lib.preprocessing.warnings.HighCardinalityWarning
 
 ::: hgp_lib.preprocessing.warnings.UnseenNaNWarning
+
+::: hgp_lib.preprocessing.warnings.UnseenCategoryWarning
 
 ::: hgp_lib.preprocessing.warnings.EmptyBinarizationWarning
 

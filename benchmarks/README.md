@@ -185,3 +185,19 @@ To benchmark a new backend or option value, add it to `BACKEND_OPTIONS`.
 - `random_rule_scoring.<literals>_literals.<rows>_rows` scores the 100 random rules of the default evaluation artifacts on random data.
 - `predict.100_literals.10_000_rows` evaluates the 100-literal random rules once on row-major data, as `hgp_lib.evaluation.predict` does. `order` and `batched` do not apply to it.
 - `training.<dataset>.100_generations` trains a flat population of 100 rules for 100 generations on the first fold of `breast_cancer` and `spambase`.
+
+## Postprocessing benchmark
+
+`benchmark_postprocessing.py` times `hgp_lib.postprocessing.postprocess` with `optimize=True` and with `canonical="dnf"` and `"cnf"`.
+It runs on the 2,500 evolved rules of `benchmarks/artifacts/rule_evaluation`, and on 50 random rules of each of several sizes over the features of the first `breast_cancer` fold.
+Every result is checked to predict the same as its rule on the fold's test rows.
+
+```bash
+python benchmarks/benchmark_postprocessing.py \
+  --time-limit 10 \
+  --output benchmarks/results/postprocessing/macbook-m3-2.0.0.md
+```
+
+A call that runs longer than `--time-limit` seconds (default 10) is stopped and reported as longer than the limit; this needs a Unix system.
+The report gives, per rule size, the median size of the optimized rules and the median, 90th percentile and maximum time of each mode.
+The [Postprocessing guide](../docs/guide/postprocessing.md#cost) shows the results.

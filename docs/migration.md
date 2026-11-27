@@ -168,6 +168,25 @@ Count features with `dataset.n_features`.
 `SamplingResult` has a `dataset` instead of `data` and `labels`.
 See [Custom sampling strategies](guide/extending.md#custom-sampling-strategies).
 
+## Custom binarizer hooks
+
+The `_fit_boolean`, `_fit_categorical` and `_fit_numeric` hooks of a `StandardBinarizer` subclass return `(FeatureSpec, values)` pairs instead of `(name, values)` pairs.
+The column name is `str(spec)`.
+
+```python
+# 1.x
+return [(f"{column} is even", values % 2 == 0)]
+
+# 2.0
+from hgp_lib.preprocessing import BooleanFeature
+
+return [(BooleanFeature(f"{column} is even"), values % 2 == 0)]
+```
+
+Use the spec that says what the column tests (`BooleanFeature`, `CategoryFeature`, `BinFeature` or `MissingFeature`), so that [postprocessing](guide/postprocessing.md#features) can merge the columns of one original column.
+A `BooleanFeature` named after the output column is always correct; its columns are then treated as independent.
+The private `_format_numeric_bin_name` is removed: `str(BinFeature(column, left, right))` gives the same name.
+
 ## Removed helpers and attributes
 
 | Removed | Use instead |
