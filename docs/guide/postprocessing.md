@@ -155,26 +155,10 @@ Nothing is removed, so repeated literals and contradictory terms stay.
 
 ### Cost
 
-A normal form can be much larger than the rule.
-An `And` of `k` `Or` operators, each with `m` literals on different columns, has `m**k` DNF terms: 26 nodes (`k=5`, `m=4`) give 1,024 terms, and 41 nodes (`k=10`, `m=3`) give 59,049.
-There is no size limit, so computing such a form takes long.
-Rules that are already close to the requested form, an `Or` of `And` terms for a DNF and an `And` of `Or` clauses for a CNF, stay small.
-
-`benchmarks/benchmark_postprocessing.py` times `postprocess` on the 2,500 evolved rules of the benchmark artifacts (5 datasets, 5 folds, populations of 100 rules evolved with complexity limits from 50 to 500), and on 50 random rules of each size over the breast cancer features.
-On an Apple M3 Max, with Python 3.13 ([full report](https://github.com/fii-optim-lab/hgp-lib/blob/master/benchmarks/results/postprocessing/macbook-m3-2.0.0.md)):
-
-- Optimizing took at most 2 ms for every rule, evolved or random, up to 500 nodes.
-- The canonical DNF and CNF of every evolved rule took at most 45 ms. Evolved rules repeat themselves, so the median optimized rule has 6 to 9 nodes, whatever the size of the input.
-- Random rules do not shrink as much, so they show the cost of the normal form itself:
-
-| Random rule size | Median size after optimize | DNF: 90% under | DNF: slowest | CNF: 90% under | CNF: slowest |
-|---:|---:|---:|---:|---:|---:|
-| 25 | 16 | 0.003 s | 0.008 s | 0.002 s | 0.018 s |
-| 50 | 24 | 0.021 s | 0.29 s | 0.17 s | 0.74 s |
-| 100 | 34.5 | over 10 s | over 10 s | over 10 s | over 10 s |
-
-Canonical forms of rules up to 50 nodes took less than a second.
-At 100 nodes, the median random rule still took under 10 ms, but more than one in ten took over 10 s.
+Use `canonical` with caution on rules of more than 100 nodes.
+A normal form can be exponentially larger than the rule, so computing it can take very long.
+Evolved rules usually shrink a lot when they are optimized, which happens first, and rules that are already close to the requested form stay small.
+Optimizing without a canonical form is fast at any size.
 
 ## Assumptions
 

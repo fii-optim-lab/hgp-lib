@@ -36,7 +36,6 @@ class CanonicalForm(str, Enum):
 def postprocess(
     rule: Rule,
     features: Features = None,
-    *,
     optimize: bool = True,
     canonical: CanonicalForm | str | None = None,
 ) -> Rule:
@@ -80,9 +79,8 @@ def postprocess(
       down, operators flattened, and ``And`` distributed over ``Or`` (DNF) or ``Or`` over
       ``And`` (CNF). Nothing is removed.
 
-    A normal form can be much larger than the rule, and computing it can take long: an
-    ``And`` of ``k`` ``Or`` nodes with ``m`` literals each has ``m**k`` DNF terms. See
-    the postprocessing guide for the sizes that are fast.
+    Use ``canonical`` with caution on rules of more than 100 nodes: a normal form can be
+    exponentially larger than the rule, and computing it can then take very long.
 
     The results are exact under the assumptions of the binarizer: a column has missing
     values only if it had some at fit (``UnseenNaNWarning``), and only the categories
@@ -168,7 +166,6 @@ def postprocess(
 def postprocess_to_str(
     rule: Rule,
     features: Features = None,
-    *,
     optimize: bool = True,
     canonical: CanonicalForm | str | None = None,
     indent: int = -1,

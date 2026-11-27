@@ -200,4 +200,3 @@ python benchmarks/benchmark_postprocessing.py \
 
 A call that runs longer than `--time-limit` seconds (default 10) is stopped and reported as longer than the limit; this needs a Unix system.
 The report gives, per rule size, the median size of the optimized rules and the median, 90th percentile and maximum time of each mode.
-The [Postprocessing guide](../docs/guide/postprocessing.md#cost) shows the results.

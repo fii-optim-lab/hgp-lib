@@ -762,6 +762,19 @@ class TestCanonical(unittest.TestCase):
             "And(Or(~a, ~b), Or(~a, ~a))",
         )
 
+    def test_flags_can_be_positional(self):
+        rule = And([Or([Literal(value=3), Literal(value=4)]), Literal(value=3)])
+        self.assertEqual(
+            str(postprocess(rule, self.features, True, "dnf")),
+            str(postprocess(rule, self.features, optimize=True, canonical="dnf")),
+        )
+        self.assertEqual(
+            postprocess_to_str(rule, self.features, False, "cnf", 0),
+            postprocess_to_str(
+                rule, self.features, optimize=False, canonical="cnf", indent=0
+            ),
+        )
+
     def test_without_optimize_and_canonical_the_rule_is_copied(self):
         rule = And([Literal(value=3), Literal(value=3)])
         result = postprocess(rule, self.features, optimize=False)
