@@ -75,13 +75,12 @@ clf = BooleanRuleClassifier()  # 1000 epochs, F1 score, StandardBinarizer by def
 clf.fit(X_train, y_train, X_val, y_val)  # validation data is binarized internally too
 
 predictions = clf.predict(X_test)  # raw data is binarized internally
-print(clf.format_rule())           # the evolved rule as plain logic
-print(clf.postprocess_to_str())    # simplified, over the original columns
+print(clf.postprocess_to_str())    # the rule, simplified, as plain logic
 ```
 
 Validation data is optional; when given, it is binarized with the same fitted binarizer and used to track a validation score during training.
-`clf.format_rule()` prints the rule with the binarized column names, so the model reads as plain logic.
-`clf.postprocess_to_str()` prints a simplified rule that makes the same predictions, with adjacent bins merged into one interval; `clf.postprocess()` returns it as a rule (see [Postprocessing](https://fii-optim-lab.github.io/hgp-lib/guide/postprocessing/)).
+`clf.postprocess_to_str()` prints a simplified rule that makes the same predictions, over the original columns, so the model reads as plain logic: adjacent bins are merged into one interval, such as `1.5 <= x < 4.0`.
+`clf.postprocess()` returns it as a rule, and `clf.postprocess_to_str(optimize=False)` prints the rule as evolved, with the binarized column names (see [Postprocessing](https://fii-optim-lab.github.io/hgp-lib/guide/postprocessing/)).
 To change the settings, pass a `TrainerConfig` (for example `BooleanRuleClassifier(TrainerConfig(num_epochs=500))`) or a custom binarizer.
 To binarize and train manually with `GPTrainer`, see [Training](https://fii-optim-lab.github.io/hgp-lib/guide/training/); the [Data Preparation](https://fii-optim-lab.github.io/hgp-lib/guide/data-preparation/) guide shows how to avoid leaking data between splits.
 

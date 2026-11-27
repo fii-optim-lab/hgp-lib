@@ -197,6 +197,7 @@ The private `_format_numeric_bin_name` is removed: `str(BinFeature(column, left,
 | `BooleanGP.train_cm`, `GPTrainer.val_cm` | `BooleanGP.evaluator.confusion_matrix(rule)`, `GPTrainer.val_evaluator.confusion_matrix(rule)` |
 | `GPTrainer.score_fn`, `GPTrainer.val_score_fn` | `GPTrainer.gp_algo.evaluator.score_fn` (validation uses the same function) |
 | `GPTrainer.val_data`, `GPTrainer.val_labels` | `GPTrainer.val_evaluator.dataset` |
+| `BooleanRuleClassifier.format_rule()` | `clf.postprocess_to_str(optimize=False)` gives the same string; `clf.postprocess_to_str()` gives the simplified rule over the original columns |
 | Custom `Rule` subclasses with their own `evaluate` | Not supported by backends, which evaluate `Literal`, `And` and `Or` and raise a `TypeError` for other rule types |
 
 `BooleanGP` gained a `dataset` argument, which child populations receive from their parent.

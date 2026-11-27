@@ -60,15 +60,18 @@ class BooleanRuleClassifier:
         (114,)
         >>> history.best_val_score is not None
         True
-        >>> isinstance(clf.format_rule(), str)
-        True
 
-        The evolved rule, simplified without changing a prediction, and written over the
-        original columns:
+        The evolved rule, simplified without changing a prediction, as a rule and as a
+        string over the original columns:
 
         >>> len(clf.postprocess()) <= len(clf.rule)
         True
         >>> isinstance(clf.postprocess_to_str(), str)
+        True
+
+        The rule as evolved, written with the feature names:
+
+        >>> clf.postprocess_to_str(optimize=False) == clf.rule.to_str(clf.feature_names)
         True
 
         All configurations have defaults, so ``BooleanRuleClassifier()`` trains for 1000
@@ -211,13 +214,6 @@ class BooleanRuleClassifier:
         self._check_fitted("feature_names")
         return self.binarizer.get_feature_names_out()
 
-    def format_rule(self) -> str:
-        """
-        Return the evolved rule as a readable logical expression over the original
-        binarized feature names, e.g. ``Or(mean radius < 15.0, ~worst area < 880.0)``.
-        """
-        return self.rule.to_str(self.feature_names)
-
     def postprocess(
         self,
         optimize: bool = True,
@@ -251,6 +247,9 @@ class BooleanRuleClassifier:
         """
         Return the evolved rule postprocessed and written over the original columns by
         `hgp_lib.postprocessing.postprocess_to_str`. Requires a fitted classifier.
+
+        With ``optimize=False`` and ``canonical=None``, this is the rule as evolved,
+        written with the feature names, as ``self.rule.to_str(self.feature_names)``.
 
         Args:
             optimize (bool): Whether to simplify the rule. Default: `True`.

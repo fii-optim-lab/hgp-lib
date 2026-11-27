@@ -57,7 +57,7 @@ clf = BooleanRuleClassifier(config)
 clf.fit(X_train, y_train, X_val, y_val)  # validation is binarized internally too
 
 predictions = clf.predict(X_test)
-print(clf.format_rule())
+print(clf.postprocess_to_str())
 ```
 
 ## How it works

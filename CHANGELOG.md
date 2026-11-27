@@ -45,6 +45,7 @@ Deprecated APIs keep working with a warning and will be removed in a future 2.x 
 - `BooleanGP` has `backend` and `evaluator` attributes (`evaluator.score_fn` is the scoring function); `train_data` and `train_labels` are read-only views of the scored rows, in the backend's array type. Child populations receive their rows through the `dataset` argument.
 - `GPTrainer` has a `val_evaluator` attribute.
 - `Rule` is no longer an abstract base class.
+- Removed `BooleanRuleClassifier.format_rule()`; use `clf.postprocess_to_str()` for the simplified rule over the original columns, or `clf.postprocess_to_str(optimize=False)` for the rule as evolved, with the feature names.
 - The `_fit_boolean`, `_fit_categorical` and `_fit_numeric` hooks of `StandardBinarizer` return `(FeatureSpec, values)` pairs instead of `(name, values)` pairs. The private `StandardBinarizer._format_numeric_bin_name` is removed; `str(BinFeature(column, left, right))` gives the same name.
 - Evaluation backends support `Literal`, `And` and `Or`; other `Rule` subclasses raise a `TypeError`.
 - Removed `hgp_lib.rules.low_memory_operators`; use `NumpyBackend(evaluation="inplace")`.

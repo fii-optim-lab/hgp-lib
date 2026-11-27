@@ -167,12 +167,13 @@ class TestBooleanRuleClassifier(unittest.TestCase):
         history = clf.fit(self.data, self.labels)
         self.assertIs(clf.rule, history.global_best_rule)
 
-    def test_format_rule_is_readable_string(self):
+    def test_postprocess_to_str_without_optimize_is_the_evolved_rule(self):
         clf = BooleanRuleClassifier(self._make_config())
         clf.fit(self.data, self.labels)
-        formatted = clf.format_rule()
-        self.assertIsInstance(formatted, str)
-        self.assertGreater(len(formatted), 0)
+        self.assertEqual(
+            clf.postprocess_to_str(optimize=False),
+            clf.rule.to_str(clf.feature_names),
+        )
 
     # ------------------------------------------------------------------ #
     #  Guardrails before fit

@@ -46,8 +46,7 @@ clf = BooleanRuleClassifier()  # 1000 epochs, F1 score, StandardBinarizer by def
 clf.fit(X_train, y_train, X_val, y_val)  # validation data is binarized internally too
 
 predictions = clf.predict(X_test)  # raw data is binarized internally
-print(clf.format_rule())           # the evolved rule as plain logic
-print(clf.postprocess_to_str())    # simplified, over the original columns
+print(clf.postprocess_to_str())    # the rule, simplified, as plain logic
 ```
 
 Validation data is optional; when supplied it is binarized with the same fitted binarizer and used to track a validation score during training.

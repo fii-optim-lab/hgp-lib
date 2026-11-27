@@ -1,8 +1,9 @@
 """
 Write a tree as a string over the original columns.
 
-The notation is the one of `Rule.to_str`: ``And(...)``, ``Or(...)`` and ``~``. A
-condition on a column is written as:
+The tree is turned into a `Rule` whose literals refer to the text of its conditions,
+and `Rule.to_str` writes it, so the notation is the one of rules: ``And(...)``,
+``Or(...)`` and ``~``. A condition on a column is written as:
 
 - numeric: ``x < 2.5``, ``1.5 <= x < 4.0``, ``2.5 <= x``, one interval per run of
   adjacent bins;
@@ -19,18 +20,9 @@ listed categories, and in its positive form on a tie.
 """
 
 from ..preprocessing.features import BinFeature, BooleanFeature, CategoryFeature
+from ..rules import Literal, Rule
 from .domain import AND, OR, Column, Domain
-from .tree import Cond, Const, Node
-
-
-class _Group:
-    """An ``And`` or ``Or`` of display items (strings or groups)."""
-
-    __slots__ = ("children", "operator")
-
-    def __init__(self, operator: str, children: list):
-        self.operator = operator
-        self.children = children
+from .tree import Cond, Const, Node, operator_rule
 
 
 def to_str(
@@ -50,50 +42,50 @@ def to_str(
     """
     if isinstance(node, Const):
         return str(node.value)
-    (item,) = _display(node, domain, None, term)
-    return _print(item, indent)
+    texts: list[str] = []
+    (rule,) = _display(node, domain, None, term, texts)
+    return rule.to_str(texts, indent)
 
 
-def _display(node: Node, domain: Domain, parent: str | None, term: str | None) -> list:
-    """The display items of ``node``; an item of the parent's kind is spliced."""
+def _display(
+    node: Node, domain: Domain, parent: str | None, term: str | None, texts: list
+) -> list[Rule]:
+    """
+    The rules that write ``node``, whose literals are indices into ``texts``. A rule of
+    the parent's kind is spliced into the parent.
+    """
     if isinstance(node, Cond):
-        operator, atoms = condition(domain.columns[node.column], node.mask)
-        if len(atoms) == 1 or (operator == parent and term in (None, operator)):
-            return atoms
-        return [_Group(operator, atoms)]
+        operator, pieces, negated = condition(domain.columns[node.column], node.mask)
+        literals = []
+        for text in pieces:
+            texts.append(text)
+            literals.append(Literal(value=len(texts) - 1, negated=negated))
+        if len(literals) == 1 or (operator == parent and term in (None, operator)):
+            return literals
+        return [operator_rule(operator, literals)]
     children = []
     for child in node.children:
-        children.extend(_display(child, domain, node.operator, term))
+        children.extend(_display(child, domain, node.operator, term, texts))
     if node.operator == parent:
         return children
-    return [_Group(node.operator, children)]
+    return [operator_rule(node.operator, children)]
 
 
-def _print(item, indent: int) -> str:
-    if isinstance(item, str):
-        return item
-    name = "And" if item.operator == AND else "Or"
-    if indent == -1:
-        return f"{name}({', '.join(_print(child, -1) for child in item.children)})"
-    tab = "\t"
-    inner = indent + 1
-    body = ",\n".join(tab * inner + _print(child, inner) for child in item.children)
-    return f"{name}(\n{body}\n{tab * indent})"
-
-
-def condition(column: Column, mask: int) -> tuple[str, list[str]]:
+def condition(column: Column, mask: int) -> tuple[str, list[str], bool]:
     """
     Write the condition ``mask`` (neither empty nor full) on ``column``.
 
     Returns:
-        tuple[str, list[str]]: The operator joining the pieces (`OR` for the positive
-            form, `AND` for the negative one), and the pieces.
+        tuple[str, list[str], bool]: The operator joining the pieces, the pieces, and
+            whether each piece is negated: `OR` and ``False`` for the positive form
+            (the pieces ``mask`` allows), `AND` and ``True`` for the negative form (the
+            pieces it excludes).
     """
     positive = _pieces(column, mask)
     negative = _pieces(column, column.full & ~mask)
     if _cost(negative) < _cost(positive):
-        return AND, [f"~{text}" for text, _ in negative]
-    return OR, [text for text, _ in positive]
+        return AND, [text for text, _ in negative], True
+    return OR, [text for text, _ in positive], False
 
 
 def cost(column: Column, mask: int, parent: str | None = None) -> tuple[int, int, int]:

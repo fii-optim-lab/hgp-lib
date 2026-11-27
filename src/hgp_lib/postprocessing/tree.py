@@ -146,18 +146,19 @@ def _emit(node: Node, domain: Domain, parent: str | None, term: str | None) -> l
         rules = [Literal(value=f, negated=negated) for f, negated in literals]
         if kind in ("literal", parent):
             return rules
-        return [_operator(kind, rules)]
+        return [operator_rule(kind, rules)]
     if isinstance(node, Op):
         rules = []
         for child in node.children:
             rules.extend(_emit(child, domain, node.operator, term))
         if node.operator == parent:
             return rules
-        return [_operator(node.operator, rules)]
+        return [operator_rule(node.operator, rules)]
     raise ValueError(f"A constant has no rule: {node}")
 
 
-def _operator(operator: str, subrules: list) -> Rule:
+def operator_rule(operator: str, subrules: list) -> Rule:
+    """An `And` (``operator == AND``) or `Or` rule that takes ``subrules`` without copying."""
     cls = And if operator == AND else Or
     return cls(subrules=subrules, copy_subrules=False)
 
@@ -168,4 +169,4 @@ def constant_rule(value: bool, feature: int) -> Rule:
     with ``l`` the literal of ``feature``.
     """
     literals = [Literal(value=feature), Literal(value=feature, negated=True)]
-    return _operator(OR if value else AND, literals)
+    return operator_rule(OR if value else AND, literals)
