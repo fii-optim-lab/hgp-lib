@@ -48,6 +48,7 @@ dependencies = [
     "pandas",
     "scikit-learn",
     "tqdm",
+    "sympy",
 ]
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -75,6 +76,7 @@ dev = [
     "optuna",
     "optuna-dashboard",
     "matplotlib",
+    "sympy",
 ]
 [tool.ruff]
 exclude = [".venv", "docs", "README.md"]
