@@ -47,7 +47,9 @@ class UnseenNaNWarning(BinarizerWarning):
     A column contains NaN at transform time but did not at fit time.
 
     No new column is created for these values, so the affected rows fall into no bin
-    and are encoded as all-false for that column.
+    and are encoded as all-false for that column. `hgp_lib.postprocessing` assumes this
+    does not happen, so a postprocessed rule can predict these rows differently from
+    the rule it was made from.
 
     Examples:
         >>> from hgp_lib.preprocessing.warnings import UnseenNaNWarning
@@ -58,6 +60,28 @@ class UnseenNaNWarning(BinarizerWarning):
     def __init__(self, column: str):
         super().__init__(
             f"Column '{column}' has NaN values that were not seen during fit; "
+            f"these rows are encoded as all-false."
+        )
+
+
+class UnseenCategoryWarning(BinarizerWarning):
+    """
+    A categorical column contains, at transform time, a category not seen at fit time.
+
+    No new column is created for these values, so the affected rows match no category
+    and are encoded as all-false for that column. `hgp_lib.postprocessing` assumes this
+    does not happen, so a postprocessed rule can predict these rows differently from
+    the rule it was made from.
+
+    Examples:
+        >>> from hgp_lib.preprocessing.warnings import UnseenCategoryWarning
+        >>> str(UnseenCategoryWarning("city"))
+        "Column 'city' has categories that were not seen during fit; these rows are encoded as all-false."
+    """
+
+    def __init__(self, column: str):
+        super().__init__(
+            f"Column '{column}' has categories that were not seen during fit; "
             f"these rows are encoded as all-false."
         )
 

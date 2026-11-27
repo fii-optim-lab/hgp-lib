@@ -12,11 +12,19 @@ from ..utils.warnings import warn_once
 from .base import Binarizer
 from .binning import BinningStrategy, QuantileBinning, SupervisedTreeBinning
 from .errors import SchemaMismatchError
+from .features import (
+    BinFeature,
+    BooleanFeature,
+    CategoryFeature,
+    FeatureSpec,
+    MissingFeature,
+)
 from .utils import is_categorical_like
 from .warnings import (
     EmptyBinarizationWarning,
     HighCardinalityWarning,
     StringColumnWarning,
+    UnseenCategoryWarning,
     UnseenNaNWarning,
 )
 
@@ -95,10 +103,15 @@ class StandardBinarizer(Binarizer):
     - A column that contains missing values also gets a boolean ``<col>_is_NA``
       indicator column.
 
+    Each output column is described by a :class:`FeatureSpec` (see
+    :meth:`get_feature_specs`), and its name is ``str(spec)``, with a numeric suffix
+    when two specs give the same name.
+
     To change how numeric bins are chosen, pass a ``numeric_binning`` strategy or
     subclass and override ``_fit_numeric`` / ``_transform_numeric``. Categorical and
     boolean handling can be changed the same way through their ``_fit_*`` / ``_transform_*``
-    hooks.
+    hooks. The ``_fit_*`` hooks return a list of ``(FeatureSpec, values)`` pairs, one
+    per output column.
 
     Args:
         num_bins (int):
@@ -168,6 +181,7 @@ class StandardBinarizer(Binarizer):
         self._original_columns = None
         self._is_fitted = False
         self._feature_names: list[str] = []
+        self._feature_specs: list[FeatureSpec] = []
 
     def _validate_params(
         self,
@@ -230,6 +244,7 @@ class StandardBinarizer(Binarizer):
         self._reset_state()
 
         outputs: dict = {}
+        specs: list[FeatureSpec] = []
         used_names: set[str] = set()
 
         for column in tqdm(
@@ -244,24 +259,27 @@ class StandardBinarizer(Binarizer):
             pieces = []
             if nan_mask.any():
                 self._na_columns.add(column)
-                pieces.append((f"{column}_is_NA", nan_mask))
+                pieces.append((MissingFeature(column), nan_mask))
 
             pieces.extend(self._fit_column(column, series, y, nan_mask))
 
             names: list[str] = []
-            for base_name, values in pieces:
-                name = self._ensure_unique_column_names(used_names, base_name)
+            for spec, values in pieces:
+                name = self._ensure_unique_column_names(used_names, str(spec))
                 outputs[name] = values
+                specs.append(spec)
                 names.append(name)
             self._output_names[column] = names
 
         if len(outputs) == 0:
             warn_once(EmptyBinarizationWarning())
             outputs["default"] = np.ones(len(X), dtype=bool)
+            specs.append(BooleanFeature("default"))
 
         self._original_columns = X.columns
         self._is_fitted = True
         self._feature_names = [str(name) for name in outputs]
+        self._feature_specs = specs
         return pd.DataFrame(outputs, index=X.index)
 
     def get_feature_names_out(self) -> list[str]:
@@ -288,6 +306,40 @@ class StandardBinarizer(Binarizer):
                 "Binarizer must be fitted before calling get_feature_names_out"
             )
         return list(self._feature_names)
+
+    def get_feature_specs(self) -> list[FeatureSpec]:
+        """
+        Describe what each output column tests (see :meth:`Binarizer.get_feature_specs`).
+
+        Returns:
+            list[FeatureSpec]: One description per output column, index-aligned with
+                :meth:`get_feature_names_out`: a :class:`BooleanFeature` for a boolean
+                column, a :class:`CategoryFeature` per category, a :class:`BinFeature`
+                per numeric bin, and a :class:`MissingFeature` for each ``_is_NA``
+                indicator.
+
+        Raises:
+            NotFittedError: If the binarizer has not been fitted yet.
+
+        Examples:
+            >>> import pandas as pd
+            >>> from hgp_lib.preprocessing import StandardBinarizer
+            >>> b = StandardBinarizer(num_bins=2, progress_bar=False)
+            >>> df = pd.DataFrame({"x": [1.0, 2.0, 3.0, None], "c": ["a", "b", "a", "b"]})
+            >>> _ = b.fit_transform(df.astype({"c": "category"}))
+            >>> for spec in b.get_feature_specs():
+            ...     print(repr(spec))
+            MissingFeature(column='x')
+            BinFeature(column='x', left=-inf, right=2.0)
+            BinFeature(column='x', left=2.0, right=inf)
+            CategoryFeature(column='c', value='a')
+            CategoryFeature(column='c', value='b')
+        """
+        if not self._is_fitted:
+            raise NotFittedError(
+                "Binarizer must be fitted before calling get_feature_specs"
+            )
+        return list(self._feature_specs)
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
@@ -379,7 +431,7 @@ class StandardBinarizer(Binarizer):
 
     def _fit_boolean(self, column: str, series: pd.Series):
         """Pass a boolean column through as a single feature."""
-        return [(column, series.to_numpy(dtype=bool))]
+        return [(BooleanFeature(column), series.to_numpy(dtype=bool))]
 
     def _fit_categorical(self, column: str, series: pd.Series):
         """One-hot encode a categorical, string, or object column."""
@@ -395,7 +447,7 @@ class StandardBinarizer(Binarizer):
 
         self._categorical_values[column] = unique_values
         return [
-            (f"{column}={value}", (series == value).to_numpy())
+            (CategoryFeature(column, _to_python(value)), (series == value).to_numpy())
             for value in unique_values
         ]
 
@@ -426,10 +478,7 @@ class StandardBinarizer(Binarizer):
 
         binned = _cut(values, edges)
         return [
-            (
-                self._format_numeric_bin_name(column, edges[i], edges[i + 1]),
-                binned == i,
-            )
+            (BinFeature(column, float(edges[i]), float(edges[i + 1])), binned == i)
             for i in range(len(edges) - 1)
         ]
 
@@ -454,9 +503,10 @@ class StandardBinarizer(Binarizer):
     def _transform_categorical(
         self, column: str, series: pd.Series
     ) -> list[np.ndarray]:
-        return [
-            (series == value).to_numpy() for value in self._categorical_values[column]
-        ]
+        known = self._categorical_values[column]
+        if (series.notna() & ~series.isin(known)).any():
+            warn_once(UnseenCategoryWarning(column))
+        return [(series == value).to_numpy() for value in known]
 
     def _transform_numeric(self, column: str, series: pd.Series) -> list[np.ndarray]:
         edges = self._numerical_bins[column]
@@ -494,6 +544,8 @@ class StandardBinarizer(Binarizer):
         self._skipped_columns = set()
         self._original_columns = None
         self._is_fitted = False
+        self._feature_names = []
+        self._feature_specs = []
 
     def _ensure_unique_column_names(
         self, column_names: set[str], new_column_name: str
@@ -528,43 +580,10 @@ class StandardBinarizer(Binarizer):
         column_names.add(unique_name)
         return unique_name
 
-    def _format_numeric_bin_name(self, column: str, left: float, right: float) -> str:
-        """
-        Build a human-readable label for a numeric bin.
 
-        The format depends on whether the left or right boundary is infinite:
-
-        - Left is ``-inf``: ``"column < right"``
-        - Right is ``inf``: ``"left <= column"``
-        - Both finite: ``"left <= column < right"``
-
-        Args:
-            column (str):
-                Name of the original numeric column.
-            left (float):
-                Left boundary of the bin.
-            right (float):
-                Right boundary of the bin.
-
-        Returns:
-            str: Formatted bin label.
-
-        Examples:
-            >>> import numpy as np
-            >>> from hgp_lib.preprocessing import StandardBinarizer
-            >>> b = StandardBinarizer()
-            >>> b._format_numeric_bin_name("x", -np.inf, 3.0)
-            'x < 3.0'
-            >>> b._format_numeric_bin_name("x", 1.0, np.inf)
-            '1.0 <= x'
-            >>> b._format_numeric_bin_name("x", 0.1597, 0.16029999405145645)
-            '0.1597 <= x < 0.16029999405145645'
-        """
-        if np.isneginf(left):
-            return f"{column} < {right}"
-        if np.isposinf(right):
-            return f"{left} <= {column}"
-        return f"{left} <= {column} < {right}"
+def _to_python(value):
+    """A NumPy scalar as the equal Python scalar, so feature specs print plainly."""
+    return value.item() if isinstance(value, np.generic) else value
 
 
 if __name__ == "__main__":

@@ -3,6 +3,8 @@ from abc import ABC, abstractmethod
 import numpy as np
 import pandas as pd
 
+from .features import BooleanFeature, FeatureSpec
+
 
 class Binarizer(ABC):
     """
@@ -21,6 +23,10 @@ class Binarizer(ABC):
           output of ``fit_transform``.
         - ``get_feature_names_out()`` returns the output column names, in order, so a
           literal's feature index maps to a readable name via ``feature_names[index]``.
+        - ``get_feature_specs()`` describes what each output column tests, in the same
+          order. The default treats every output column as an independent boolean
+          feature; override it to let ``hgp_lib.postprocessing`` merge the features of
+          one original column.
         - ``is_fitted`` reports whether the binarizer has been fitted.
 
     Examples:
@@ -44,6 +50,8 @@ class Binarizer(ABC):
         True
         >>> b.get_feature_names_out()
         ['x']
+        >>> b.get_feature_specs()
+        [BooleanFeature(column='x')]
     """
 
     _is_fitted: bool = False
@@ -77,3 +85,18 @@ class Binarizer(ABC):
         convention, the names are returned as an ordered ``list[str]``. Implementations
         should raise if called before the binarizer is fitted.
         """
+
+    def get_feature_specs(self) -> list[FeatureSpec]:
+        """
+        Describe what each output feature tests, index-aligned with
+        ``get_feature_names_out()``.
+
+        This default knows nothing about the original columns, so it returns one
+        `BooleanFeature` per output feature, named after it. Postprocessing then treats
+        the features as independent, which is exact but merges nothing. Binarizers that
+        know the original columns, like `StandardBinarizer`, override it.
+
+        Returns:
+            list[FeatureSpec]: One description per output feature.
+        """
+        return [BooleanFeature(name) for name in self.get_feature_names_out()]

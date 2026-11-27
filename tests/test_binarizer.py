@@ -1,10 +1,18 @@
 import unittest
+import warnings
 
 import numpy as np
 import pandas as pd
 from sklearn.exceptions import NotFittedError
 
-from hgp_lib.preprocessing import SchemaMismatchError, StandardBinarizer
+from hgp_lib.preprocessing import (
+    BinFeature,
+    BooleanFeature,
+    CategoryFeature,
+    MissingFeature,
+    SchemaMismatchError,
+    StandardBinarizer,
+)
 from hgp_lib.preprocessing.binarizer import round_edges
 from hgp_lib.preprocessing.binning import (
     BinningStrategy,
@@ -14,6 +22,7 @@ from hgp_lib.preprocessing.binning import (
 from hgp_lib.preprocessing.warnings import (
     HighCardinalityWarning,
     StringColumnWarning,
+    UnseenCategoryWarning,
     UnseenNaNWarning,
 )
 from hgp_lib.utils.warnings import _emitted_messages
@@ -221,6 +230,20 @@ class TestStandardBinarizer(unittest.TestCase):
         self.assertNotIn("x_unseen_is_NA", result.columns)
         self.assertEqual(result.iloc[1].sum(), 0)
 
+    def test_unseen_category_on_transform_warns(self):
+        b = StandardBinarizer()
+        b.fit_transform(pd.DataFrame({"c_unseen": pd.Categorical(["a", "b", "a"])}))
+        with self.assertWarns(UnseenCategoryWarning):
+            result = b.transform(pd.DataFrame({"c_unseen": pd.Categorical(["a", "z"])}))
+        self.assertEqual(result.iloc[1].sum(), 0)
+
+    def test_seen_categories_and_missing_values_do_not_warn(self):
+        b = StandardBinarizer()
+        b.fit_transform(pd.DataFrame({"c_seen": pd.Categorical(["a", None, "b", "a"])}))
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            b.transform(pd.DataFrame({"c_seen": pd.Categorical(["b", None, "a"])}))
+
     # ------------------------------------------------------------------ #
     #  Binning strategies
     # ------------------------------------------------------------------ #
@@ -281,19 +304,91 @@ class TestStandardBinarizer(unittest.TestCase):
         self.assertEqual(len(names), 3)
 
     # ------------------------------------------------------------------ #
-    #  _format_numeric_bin_name
+    #  Feature specs
     # ------------------------------------------------------------------ #
-    def test_format_left_inf(self):
-        b = StandardBinarizer()
-        self.assertEqual(b._format_numeric_bin_name("v", -np.inf, 3.0), "v < 3.0")
+    def test_bin_names(self):
+        self.assertEqual(str(BinFeature("v", -np.inf, 3.0)), "v < 3.0")
+        self.assertEqual(str(BinFeature("v", 1.0, np.inf)), "1.0 <= v")
+        self.assertEqual(str(BinFeature("v", 1.5, 3.0)), "1.5 <= v < 3.0")
+        self.assertEqual(str(BinFeature("v", -np.inf, np.inf)), "v < inf")
 
-    def test_format_right_inf(self):
-        b = StandardBinarizer()
-        self.assertEqual(b._format_numeric_bin_name("v", 1.0, np.inf), "1.0 <= v")
+    def test_feature_specs_of_every_column_kind(self):
+        df = pd.DataFrame(
+            {
+                "flag": [True, False, True, False],
+                "color": pd.Categorical(["r", "g", None, "r"]),
+                "x": [1.0, 2.0, 3.0, 4.0],
+            }
+        )
+        b = StandardBinarizer(num_bins=2)
+        b.fit_transform(df)
+        self.assertEqual(
+            b.get_feature_specs(),
+            [
+                BooleanFeature("flag"),
+                MissingFeature("color"),
+                CategoryFeature("color", "r"),
+                CategoryFeature("color", "g"),
+                BinFeature("x", -np.inf, 2.5),
+                BinFeature("x", 2.5, np.inf),
+            ],
+        )
 
-    def test_format_both_finite(self):
+    def test_feature_names_are_the_spec_names(self):
+        df = pd.DataFrame(
+            {
+                "flag": [True, False, True, False],
+                "color": pd.Categorical(["r", "g", None, "r"]),
+                "x": [1.0, 2.0, np.nan, 4.0],
+            }
+        )
+        b = StandardBinarizer(num_bins=2)
+        b.fit_transform(df)
+        self.assertEqual(
+            b.get_feature_names_out(), [str(s) for s in b.get_feature_specs()]
+        )
+
+    def test_feature_specs_stay_distinct_when_names_collide(self):
+        df = pd.DataFrame(
+            {
+                "a=b": pd.Categorical(["c", "d", "c"]),
+                "a": pd.Categorical(["b=c", "e", "e"]),
+            }
+        )
         b = StandardBinarizer()
-        self.assertEqual(b._format_numeric_bin_name("v", 1.5, 3.0), "1.5 <= v < 3.0")
+        b.fit_transform(df)
+        self.assertEqual(
+            b.get_feature_names_out(), ["a=b=c", "a=b=d", "a=b=c_0", "a=e"]
+        )
+        specs = b.get_feature_specs()
+        self.assertEqual(specs[0], CategoryFeature("a=b", "c"))
+        self.assertEqual(specs[2], CategoryFeature("a", "b=c"))
+        self.assertEqual(len(set(specs)), 4)
+
+    def test_category_values_are_python_scalars(self):
+        b = StandardBinarizer()
+        b.fit_transform(pd.DataFrame({"grade": pd.Categorical([1, 2, 1])}))
+        values = [spec.value for spec in b.get_feature_specs()]
+        self.assertEqual(values, [1, 2])
+        self.assertTrue(all(type(v) is int for v in values))
+
+    def test_skipped_column_keeps_its_missing_feature(self):
+        b = StandardBinarizer()
+        with self.assertWarns(HighCardinalityWarning):
+            b.fit_transform(
+                pd.DataFrame({"id_specs": pd.Categorical(["a", None, "c"])})
+            )
+        self.assertEqual(b.get_feature_specs(), [MissingFeature("id_specs")])
+
+    def test_empty_binarization_spec(self):
+        b = StandardBinarizer()
+        with self.assertWarns(HighCardinalityWarning):
+            b.fit_transform(pd.DataFrame({"id_empty": pd.Categorical(["a", "b", "c"])}))
+        self.assertEqual(b.get_feature_specs(), [BooleanFeature("default")])
+
+    def test_get_feature_specs_before_fit_raises(self):
+        with self.assertRaises(NotFittedError):
+            StandardBinarizer().get_feature_specs()
 
     # ------------------------------------------------------------------ #
     #  round_edges
@@ -519,6 +614,20 @@ class TestSklearnBinarizer(unittest.TestCase):
         )
         with self.assertRaises(NotFittedError):
             b.get_feature_names_out()
+
+    def test_feature_specs_default_to_boolean_features(self):
+        from sklearn.preprocessing import KBinsDiscretizer
+
+        from hgp_lib.preprocessing import SklearnBinarizer
+
+        b = SklearnBinarizer(
+            KBinsDiscretizer(n_bins=2, encode="onehot-dense", strategy="uniform")
+        )
+        b.fit_transform(pd.DataFrame({"x": [0.0, 1.0, 2.0, 3.0]}))
+        self.assertEqual(
+            b.get_feature_specs(),
+            [BooleanFeature(name) for name in b.get_feature_names_out()],
+        )
 
 
 if __name__ == "__main__":
