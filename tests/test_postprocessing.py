@@ -1,1610 +1,953 @@
-from itertools import pairwise, product
-from types import SimpleNamespace
+"""
+Tests of `hgp_lib.postprocessing`, through its public API only.
+
+Equivalence is checked exactly: the test data has one row for every combination of
+the cells of its columns (one value per bin, each category, and a missing value where
+the column has missing values), so two rules that predict the same on it predict the
+same on every row the binarizer can produce. The string output is read back by a
+small parser of its documented notation and evaluated on the raw rows.
+"""
+
+import itertools
+import re
+import unittest
+import warnings
+from math import inf
 
 import numpy as np
-import pytest
-import sympy as sp
-from sympy import sympify
-from sympy.core.relational import Rel
-from sympy.logic.boolalg import is_cnf, is_dnf
+import pandas as pd
+from sklearn.exceptions import NotFittedError
 
-from hgp_lib.postprocessing import ThresholdSimplifier, simplify_threshold_formula
-from hgp_lib.postprocessing.rule_to_sympy import (
-    _convert_rule,
-    _feature_base_name,
-    _number,
-    _safe_symbol_name,
-    feature_to_sympy,
-    rule_to_sympy,
+from hgp_lib.evaluation import predict
+from hgp_lib.postprocessing import CanonicalForm, postprocess, postprocess_to_str
+from hgp_lib.preprocessing import (
+    BinFeature,
+    BooleanFeature,
+    CategoryFeature,
+    MissingFeature,
+    StandardBinarizer,
 )
+from hgp_lib.rules import And, Literal, Or, Rule
+
+MODES = [
+    (optimize, canonical)
+    for optimize in (True, False)
+    for canonical in (None, "dnf", "cnf")
+]
 
 
-def _collect_bounds(expr, bounds):
-    for atom in expr.atoms(Rel):
-        lhs, rhs = atom.lhs, atom.rhs
+# ---------------------------------------------------------------------------
+# Test data
+# ---------------------------------------------------------------------------
 
-        if lhs.is_Symbol and rhs.is_number:
-            bounds.setdefault(lhs, set()).add(rhs)
 
-        elif rhs.is_Symbol and lhs.is_number:
-            bounds.setdefault(rhs, set()).add(lhs)
+def fit_binarizer(df: pd.DataFrame, num_bins: int = 3) -> StandardBinarizer:
+    binarizer = StandardBinarizer(num_bins=num_bins, progress_bar=False)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        binarizer.fit_transform(df)
+    return binarizer
 
+
+def all_cells(binarizer: StandardBinarizer, fit: pd.DataFrame) -> pd.DataFrame:
+    """One raw row per combination of the cells of the columns of ``fit``."""
+    specs = binarizer.get_feature_specs()
+    choices = []
+    for column in fit.columns:
+        own = [spec for spec in specs if spec.column == column]
+        values = []
+        for spec in own:
+            if isinstance(spec, BinFeature):
+                # The left edge, which the bin includes, or a value below the right one.
+                values.append(spec.left if spec.left > -inf else spec.right - 1.0)
+            elif isinstance(spec, CategoryFeature):
+                values.append(spec.value)
+            elif isinstance(spec, BooleanFeature):
+                values.extend([True, False])
+        if not values:  # Only a missing-value indicator: any present value.
+            values.append(fit[column].dropna().iloc[0])
+        if any(isinstance(spec, MissingFeature) for spec in own):
+            values.append(None)
+        choices.append(values)
+    rows = pd.DataFrame(list(itertools.product(*choices)), columns=fit.columns)
+    for column in fit.columns:
+        if isinstance(fit[column].dtype, pd.CategoricalDtype):
+            rows[column] = pd.Categorical(
+                rows[column], categories=fit[column].cat.categories
+            )
+        elif fit[column].dtype == bool:
+            rows[column] = rows[column].astype(bool)
         else:
-            raise ValueError(f"Expected variable-vs-number comparison, got: {atom}")
+            rows[column] = rows[column].astype(float)
+    return rows
 
 
-def _sample_points(bounds):
-    points = {}
-
-    for var, values in bounds.items():
-        values = sorted(values, key=float)
-
-        samples = set(values)
-
-        # one point below the smallest boundary
-        samples.add(values[0] - 1)
-
-        # one point between every pair of boundaries
-        for a, b in pairwise(values):
-            samples.add((a + b) / 2)
-
-        # one point above the largest boundary
-        samples.add(values[-1] + 1)
-
-        points[var] = sorted(samples, key=float)
-
-    return points
-
-
-def equivalent(e1, e2):
-    """
-    Exact equivalence test for Boolean combinations of comparisons
-    between real variables and numeric constants.
-
-    Supported:
-
-        x < c
-        x <= c
-        x > c
-        x >= c
-
-    combined with &, |, and parentheses.
-    """
-    e1 = sympify(e1)
-    e2 = sympify(e2)
-
-    bounds = {}
-
-    _collect_bounds(e1, bounds)
-    _collect_bounds(e2, bounds)
-
-    points = _sample_points(bounds)
-    variables = list(points)
-
-    # no variables/bounds
-    if not variables:
-        return bool(e1 == e2)
-
-    # evaluate both expressions at every relevant combination
-    # of one-dimensional sample points
-    for values in product(*(points[v] for v in variables)):
-        substitution = dict(zip(variables, values))
-
-        v1 = bool(e1.subs(substitution))
-        v2 = bool(e2.subs(substitution))
-
-        if v1 != v2:
-            return False
-
-    return True
-
-
-# ====
-
-# class TestPostprecessing(unittest.TestCase):
-#     def setUp(self):
-#         # Seed random generators for reproducibility
-#         random.seed(42)
-#         np.random.seed(42)
-
-
-@pytest.fixture
-def ts():
-    return ThresholdSimplifier()
-
-
-@pytest.fixture
-def x():
-    return sp.Symbol("x", real=True)
-
-
-@pytest.fixture
-def xy():
-    return sp.symbols("x y", real=True)
-
-
-def atoms_for(x):
-    return {
-        "lt": x < 3,
-        "le": x <= 3,
-        "gt": x > 3,
-        "ge": x >= 3,
-    }
-
-
-def eval_bool(expr, x_value, y_value=None):
-    expr = sp.sympify(expr)
-
-    symbols = {str(s): s for s in expr.free_symbols}
-
-    subs = []
-
-    if x_value is not None and "x" in symbols:
-        subs.append((symbols["x"], x_value))
-
-    if y_value is not None and "y" in symbols:
-        subs.append((symbols["y"], y_value))
-
-    return bool(expr.subs(subs))
-
-
-def assert_equivalent_on_grid(actual, expected, values=(-5, -1, 0, 1, 2, 3, 4, 5, 10)):
-    for xv in values:
-        assert eval_bool(actual, xv) == eval_bool(expected, xv), (
-            f"Mismatch at x={xv}: actual={actual}, expected={expected}"
-        )
-
-
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    ("expr", "expected"),
-    [
-        (sp.true, sp.true),
-        (sp.false, sp.false),
-    ],
-)
-def test_simplify_boolean_constants(ts, expr, expected):
-    result = ts.simplify(expr)
-    assert result["best_cnf"] == expected
-    assert result["best_dnf"] == expected
-
-
-def test_simplify_single_atom(ts, x):
-    expr = x >= 3
-    result = ts.simplify(expr)
-    assert result["best_cnf"] == expr
-    assert result["best_dnf"] == expr
-
-
-def test_simplify_negated_atom(ts, x):
-    expr = sp.Not(x < 3)
-    result = ts.simplify(expr)
-    assert_equivalent_on_grid(result["best_dnf"], x >= 3)
-    assert_equivalent_on_grid(result["best_cnf"], x >= 3)
-
-
-@pytest.mark.parametrize(
-    ("expr", "expected"),
-    [
-        (
-            sp.And(sp.true, sp.Symbol("x", real=True) >= 0),
-            sp.Symbol("x", real=True) >= 0,
-        ),
-        (
-            sp.Or(sp.false, sp.Symbol("x", real=True) >= 0),
-            sp.Symbol("x", real=True) >= 0,
-        ),
-        (sp.And(sp.false, sp.Symbol("x", real=True) >= 0), sp.false),
-        (sp.Or(sp.true, sp.Symbol("x", real=True) >= 0), sp.true),
-    ],
-)
-def test_simplify_boolean_identity_cases(expr, expected):
-    result = simplify_threshold_formula(expr)
-    assert_equivalent_on_grid(result["best_dnf"], expected)
-    assert_equivalent_on_grid(result["best_cnf"], expected)
-
-
-def test_simplify_returns_both_normal_forms(ts, x):
-    expr = sp.Or(sp.And(x > 1, x < 5), x >= 10)
-    result = ts.simplify(expr)
-
-    assert set(result) == {"best_cnf", "best_dnf"}
-    assert result["best_cnf"] is not None
-    assert result["best_dnf"] is not None
-    assert_equivalent_on_grid(result["best_cnf"], expr, values=range(-2, 13))
-    assert_equivalent_on_grid(result["best_dnf"], expr, values=range(-2, 13))
-
-
-def test_simplify_normalizes_non_nnf_input(ts, x):
-    expr = sp.Not(sp.And(x < 1, x > -1))
-    result = ts.simplify(expr)
-
-    for value in (-2, -1, 0, 1, 2):
-        expected = bool(expr.subs(x, value))
-        assert bool(result["best_cnf"].subs(x, value)) == expected
-        assert bool(result["best_dnf"].subs(x, value)) == expected
-
-
-def test_max_iterations_zero_still_returns_result_structure(x):
-    result = ThresholdSimplifier(max_iterations=0).simplify(x > 0)
-    assert set(result) == {"best_cnf", "best_dnf"}
-
-
-def test_repeated_simplify_calls_do_not_use_stale_expression_state(x):
-    simplifier = ThresholdSimplifier()
-    first = simplifier.simplify(x > 0)
-    second = simplifier.simplify(x < 0)
-
-    assert_equivalent_on_grid(second["best_dnf"], x < 0)
-    assert_equivalent_on_grid(second["best_cnf"], x < 0)
-    assert (
-        first["best_dnf"] is not second["best_dnf"]
-        or first["best_dnf"] != second["best_dnf"]
+def mixed_data() -> pd.DataFrame:
+    """A numeric column with and one without missing values, a categorical column
+    with missing values, a boolean column, and an all-distinct column with missing
+    values (dropped except for its indicator)."""
+    return pd.DataFrame(
+        {
+            "x": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, np.nan, 7.0, 8.0],
+            "y": [10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0],
+            "color": pd.Categorical(["r", "g", "b", "r", None, "g", "b", "r", "g"]),
+            "flag": [True, False, True, True, False, False, True, False, True],
+            "id": pd.Categorical(["a", "b", "c", "d", "e", "f", "g", "h", None]),
+        }
     )
 
 
 # ---------------------------------------------------------------------------
-# Atom handling
+# Reading the string output back
 # ---------------------------------------------------------------------------
 
-
-@pytest.mark.parametrize(
-    "expr",
-    [
-        sp.Symbol("x", real=True) < 1,
-        sp.Symbol("x", real=True) <= 1,
-        sp.Symbol("x", real=True) > 1,
-        sp.Symbol("x", real=True) >= 1,
-    ],
-)
-def test_is_atom_accepts_all_supported_relations(expr):
-    assert ThresholdSimplifier._is_atom(expr) is True
-
-
-@pytest.mark.parametrize(
-    "expr",
-    [
-        sp.Symbol("x", real=True),
-        sp.Symbol("x", real=True) + 1,
-        sp.true,
-        sp.false,
-        sp.Symbol("x", real=True) == 1,
-    ],
-)
-def test_is_atom_rejects_non_threshold_expressions(expr):
-    assert ThresholdSimplifier._is_atom(expr) is False
-
-
-def test_parts_rejects_non_atom(x):
-    with pytest.raises(TypeError, match="Not a threshold atom"):
-        ThresholdSimplifier._parts(x + 1)
-
-
-@pytest.mark.parametrize(
-    ("expr", "expected"),
-    [
-        (sp.Symbol("x", real=True) < 3, sp.Symbol("x", real=True) >= 3),
-        (sp.Symbol("x", real=True) <= 3, sp.Symbol("x", real=True) > 3),
-        (sp.Symbol("x", real=True) > 3, sp.Symbol("x", real=True) <= 3),
-        (sp.Symbol("x", real=True) >= 3, sp.Symbol("x", real=True) < 3),
-    ],
-)
-def test_negate_atom(expr, expected):
-    assert ThresholdSimplifier._negate_atom(expr) == expected
-
-
-def test_negate_atom_has_expected_double_negation_property(x):
-    for atom in atoms_for(x).values():
-        assert (
-            ThresholdSimplifier._negate_atom(ThresholdSimplifier._negate_atom(atom))
-            == atom
-        )
-
-
-# ---------------------------------------------------------------------------
-# Exact threshold comparison
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    ("a", "b", "expected"),
-    [
-        (sp.Integer(1), sp.Integer(1), 0),
-        (sp.Integer(1), sp.Integer(2), -1),
-        (sp.Integer(2), sp.Integer(1), 1),
-        (sp.Rational(1, 2), sp.Integer(1), -1),
-        (sp.Integer(1), sp.Rational(1, 2), 1),
-        (sp.Integer(2), sp.sqrt(3), 1),
-        (sp.sqrt(3), sp.Integer(2), -1),
-    ],
-)
-def test_cmp(a, b, expected):
-    assert ThresholdSimplifier._cmp(a, b) == expected
-
-
-def test_cmp_raises_for_incomparable_symbolic_thresholds():
-    a, b = sp.symbols("a b", real=True)
-    with pytest.raises(ValueError, match="Cannot compare thresholds"):
-        ThresholdSimplifier._cmp(a, b)
-
-
-# ---------------------------------------------------------------------------
-# Interval construction and mutation
-# ---------------------------------------------------------------------------
-
-
-def test_empty_interval():
-    assert ThresholdSimplifier._empty_interval() == [None, False, None, False]
-
-
-@pytest.mark.parametrize(
-    ("initial", "value", "closed", "expected"),
-    [
-        ([None, False, None, False], 3, True, [3, True, None, False]),
-        ([5, True, None, False], 3, True, [5, True, None, False]),
-        ([5, True, None, False], 7, True, [7, True, None, False]),
-        ([5, True, None, False], 5, False, [5, False, None, False]),
-        ([5, False, None, False], 5, True, [5, False, None, False]),
-    ],
-)
-def test_set_lower(ts, initial, value, closed, expected):
-    ts._set_lower(initial, sp.Integer(value), closed)
-    assert initial == expected
-
-
-@pytest.mark.parametrize(
-    ("initial", "value", "closed", "expected"),
-    [
-        ([None, False, None, False], 3, True, [None, False, 3, True]),
-        ([None, False, 5, True], 7, True, [None, False, 5, True]),
-        ([None, False, 5, True], 3, True, [None, False, 3, True]),
-        ([None, False, 5, True], 5, False, [None, False, 5, False]),
-        ([None, False, 5, False], 5, True, [None, False, 5, False]),
-    ],
-)
-def test_set_upper(ts, initial, value, closed, expected):
-    ts._set_upper(initial, sp.Integer(value), closed)
-    assert initial == expected
-
-
-@pytest.mark.parametrize(
-    ("interval", "expected"),
-    [
-        ([None, False, None, False], True),
-        ([1, True, 2, True], True),
-        ([1, False, 1, False], False),
-        ([1, True, 1, False], False),
-        ([1, False, 1, True], False),
-        ([1, True, 1, True], True),
-        ([2, True, 1, True], False),
-    ],
-)
-def test_valid_interval(ts, interval, expected):
-    assert ts._valid_interval(interval) is expected
-
-
-@pytest.mark.parametrize(
-    ("atoms", "expected"),
-    [
-        (
-            [sp.Symbol("x", real=True) > 1, sp.Symbol("x", real=True) < 5],
-            {sp.Symbol("x", real=True): [sp.Integer(1), False, sp.Integer(5), False]},
-        ),
-        (
-            [sp.Symbol("x", real=True) >= 1, sp.Symbol("x", real=True) <= 5],
-            {sp.Symbol("x", real=True): [sp.Integer(1), True, sp.Integer(5), True]},
-        ),
-        (
-            [sp.Symbol("x", real=True) > 1, sp.Symbol("x", real=True) >= 5],
-            {sp.Symbol("x", real=True): [sp.Integer(5), True, None, False]},
-        ),
-        (
-            [sp.Symbol("x", real=True) < 5, sp.Symbol("x", real=True) <= 3],
-            {sp.Symbol("x", real=True): [None, False, sp.Integer(3), True]},
-        ),
-    ],
-)
-def test_interval_from_atoms(ts, atoms, expected):
-    assert ts._interval_from_atoms(frozenset(atoms)) == expected
-
-
-@pytest.mark.parametrize(
-    "atoms",
-    [
-        [sp.Symbol("x", real=True) > 5, sp.Symbol("x", real=True) < 3],
-        [sp.Symbol("x", real=True) >= 5, sp.Symbol("x", real=True) <= 3],
-        [sp.Symbol("x", real=True) > 3, sp.Symbol("x", real=True) <= 3],
-        [sp.Symbol("x", real=True) >= 3, sp.Symbol("x", real=True) < 3],
-    ],
-)
-def test_interval_from_atoms_detects_contradictions(ts, atoms):
-    assert ts._interval_from_atoms(frozenset(atoms)) is None
-
-
-def test_interval_from_atoms_handles_multiple_variables(ts):
-    x, y = sp.symbols("x y", real=True)
-    result = ts._interval_from_atoms(frozenset([x > 1, x <= 4, y >= -2, y < 10]))
-    assert result == {
-        x: [sp.Integer(1), False, sp.Integer(4), True],
-        y: [sp.Integer(-2), True, sp.Integer(10), False],
-    }
-
-
-# ---------------------------------------------------------------------------
-# Interval implication and term implication
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    ("interval", "atom", "expected"),
-    [
-        ([5, True, 10, True], sp.Symbol("x", real=True) >= 4, True),
-        ([5, True, 10, True], sp.Symbol("x", real=True) > 4, True),
-        ([5, True, 10, True], sp.Symbol("x", real=True) >= 5, True),
-        ([5, True, 10, True], sp.Symbol("x", real=True) > 5, False),
-        ([5, False, 10, True], sp.Symbol("x", real=True) > 5, True),
-        ([5, False, 10, True], sp.Symbol("x", real=True) >= 5, True),
-        ([5, True, 10, True], sp.Symbol("x", real=True) < 10, False),
-        ([5, True, 10, False], sp.Symbol("x", real=True) < 10, True),
-        ([5, True, 10, True], sp.Symbol("x", real=True) <= 10, True),
-        ([None, False, 10, True], sp.Symbol("x", real=True) <= 10, True),
-        ([None, False, 10, False], sp.Symbol("x", real=True) < 10, True),
-        ([5, True, None, False], sp.Symbol("x", real=True) > 4, True),
-        ([5, False, None, False], sp.Symbol("x", real=True) > 5, True),
-    ],
-)
-def test_interval_implies_atom(ts, interval, atom, expected):
-    assert ts._interval_implies_atom(interval, atom) is expected
-
-
-def test_term_implies_term(ts):
-    x, y = sp.symbols("x y", real=True)
-
-    assert ts._term_implies_term(frozenset([x > 5]), frozenset([x > 3]))
-    assert ts._term_implies_term(frozenset([x >= 5]), frozenset([x >= 5]))
-    assert not ts._term_implies_term(frozenset([x > 3]), frozenset([x > 5]))
-    assert not ts._term_implies_term(frozenset([x > 3]), frozenset([y > 3]))
-
-
-def test_contradictory_source_term_implies_everything(ts, x):
-    source = frozenset([x > 5, x < 3])
-    target = frozenset([x > 100, x < -100])
-    assert ts._term_implies_term(source, target) is True
-
-
-# ---------------------------------------------------------------------------
-# DNF term simplification and absorption
-# ---------------------------------------------------------------------------
-
-
-def test_simplify_term_keeps_only_strongest_bounds(ts, x):
-    term = frozenset([x >= 3, x >= 5, x < 10, x <= 8])
-    result = ts._simplify_term(term)
-
-    assert result == frozenset([x >= 5, x <= 8])
-
-
-def test_simplify_term_preserves_singleton_if_both_closed(ts, x):
-    result = ts._simplify_term(frozenset([x >= 3, x <= 3]))
-    assert result == frozenset([x >= 3, x <= 3])
-
-
-def test_simplify_term_detects_open_singleton_contradiction(ts, x):
-    assert ts._simplify_term(frozenset([x > 3, x <= 3])) is None
-    assert ts._simplify_term(frozenset([x >= 3, x < 3])) is None
-
-
-def test_simplify_term_drops_redundant_bounds_with_equal_threshold(ts, x):
-    result = ts._simplify_term(frozenset([x > 3, x >= 3, x < 10, x <= 10]))
-    assert result == frozenset([x > 3, x < 10])
-
-
-def test_absorb_dnf_by_subset(ts, x):
-    a = frozenset([x > 0])
-    b = frozenset([x > 0, x < 10])
-    assert ts._absorb_dnf(frozenset([a, b])) == frozenset([a])
-
-
-def test_absorb_dnf_by_threshold_implication(ts, x):
-    weaker = frozenset([x >= 0])
-    stronger = frozenset([x >= 5])
-    assert ts._absorb_dnf(frozenset([weaker, stronger])) == frozenset([weaker])
-
-
-def test_absorb_dnf_is_order_independent(ts, x):
-    a = frozenset([x >= 0])
-    b = frozenset([x >= 0, x < 10])
-    first = ts._absorb_dnf(frozenset([a, b]))
-    second = ts._absorb_dnf(frozenset([b, a]))
-    assert first == second
-
-
-@pytest.mark.parametrize(
-    ("dnf", "expected"),
-    [
-        (ThresholdSimplifier.DNF_FALSE, ThresholdSimplifier.DNF_FALSE),
-        (ThresholdSimplifier.DNF_TRUE, ThresholdSimplifier.DNF_TRUE),
-    ],
-)
-def test_simplify_dnf_constants(ts, dnf, expected):
-    assert ts._simplify_dnf(dnf) == expected
-
-
-def test_simplify_dnf_removes_contradictory_terms(ts, x):
-    dnf = frozenset(
-        [
-            frozenset([x > 5, x < 3]),
-            frozenset([x >= 0]),
-        ]
-    )
-    assert ts._simplify_dnf(dnf) == frozenset([frozenset([x >= 0])])
-
-
-def test_simplify_dnf_empty_term_means_true(ts, x):
-    dnf = frozenset([frozenset(), frozenset([x > 0])])
-    assert ts._simplify_dnf(dnf) == ThresholdSimplifier.DNF_TRUE
-
-
-# ---------------------------------------------------------------------------
-# CNF tautology detection and clause simplification
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    ("atoms", "expected"),
-    [
-        ([sp.Symbol("x", real=True) < 3, sp.Symbol("x", real=True) >= 3], True),
-        ([sp.Symbol("x", real=True) <= 3, sp.Symbol("x", real=True) > 3], True),
-        ([sp.Symbol("x", real=True) < 3, sp.Symbol("x", real=True) >= 2], True),
-        ([sp.Symbol("x", real=True) > 4, sp.Symbol("x", real=True) <= 3], False),
-        ([sp.Symbol("x", real=True) >= 3], False),
-        ([], False),
-    ],
-)
-def test_union_covers_reals(ts, atoms, expected):
-    assert ts._union_covers_reals(atoms) is expected
-
-
-def test_union_covers_reals_handles_touching_closed_endpoint(ts, x):
-    assert ts._union_covers_reals([x < 3, x >= 3]) is True
-
-
-def test_union_covers_reals_handles_open_gap(ts, x):
-    assert ts._union_covers_reals([x < 3, x > 3]) is False
-
-
-def test_union_covers_reals_can_merge_multiple_intervals(ts, x):
-    assert ts._union_covers_reals([x < 0, x >= 0, x > 10]) is True
-
-
-def test_union_covers_reals_requires_negative_infinity_start(ts, x):
-    assert ts._union_covers_reals([x >= 0]) is False
-
-
-def test_clause_is_tautology_can_use_one_variable_among_many(ts):
-    x, y = sp.symbols("x y", real=True)
-    assert ts._clause_is_tautology(frozenset([x < 0, x >= 0, y > 100]))
-    assert not ts._clause_is_tautology(frozenset([x < 0, y >= 0]))
-
-
-def test_simplify_clause_removes_weaker_disjunct(ts, x):
-    clause = frozenset([x >= 5, x >= 3])
-    assert ts._simplify_clause(clause) == frozenset([x >= 3])
-
-
-def test_simplify_clause_removes_redundant_strict_disjunct(ts, x):
-    clause = frozenset([x > 5, x >= 5])
-    assert ts._simplify_clause(clause) == frozenset([x >= 5])
-
-
-def test_simplify_clause_returns_none_for_tautology(ts, x):
-    assert ts._simplify_clause(frozenset([x < 3, x >= 3])) is None
-
-
-def test_simplify_clause_handles_single_atom(ts, x):
-    atom = x >= 3
-    assert ts._simplify_clause(frozenset([atom])) == frozenset([atom])
-
-
-def test_clause_implies_clause(ts, x):
-    assert ts._clause_implies_clause(
-        frozenset([x >= 5]),
-        frozenset([x >= 3]),
-    )
-    assert not ts._clause_implies_clause(
-        frozenset([x >= 3]),
-        frozenset([x >= 5]),
-    )
-
-
-def test_empty_target_clause_is_not_implied(ts, x):
-    assert ts._clause_implies_clause(frozenset([x >= 3]), frozenset()) is False
-
-
-def test_absorb_cnf_by_implication(ts, x):
-    strong = frozenset([x >= 5])
-    weak = frozenset([x >= 3])
-    assert ts._absorb_cnf(frozenset([strong, weak])) == frozenset([strong])
-
-
-@pytest.mark.parametrize(
-    ("cnf", "expected"),
-    [
-        (ThresholdSimplifier.CNF_TRUE, ThresholdSimplifier.CNF_TRUE),
-        (ThresholdSimplifier.CNF_FALSE, ThresholdSimplifier.CNF_FALSE),
-    ],
-)
-def test_simplify_cnf_constants(ts, cnf, expected):
-    assert ts._simplify_cnf(cnf) == expected
-
-
-def test_simplify_cnf_removes_tautological_clause(ts, x):
-    cnf = frozenset(
-        [
-            frozenset([x < 0, x >= 0]),
-            frozenset([x >= 5]),
-        ]
-    )
-    assert ts._simplify_cnf(cnf) == frozenset([frozenset([x >= 5])])
-
-
-def test_simplify_cnf_empty_clause_is_false(ts, x):
-    cnf = frozenset([frozenset()])
-    assert ts._simplify_cnf(cnf) == ThresholdSimplifier.CNF_FALSE
-
-
-def test_simplify_cnf_all_tautologies_becomes_true(ts, x):
-    cnf = frozenset(
-        [
-            frozenset([x < 0, x >= 0]),
-            frozenset([x <= 10, x > 10]),
-        ]
-    )
-    assert ts._simplify_cnf(cnf) == ThresholdSimplifier.CNF_TRUE
-
-
-# ---------------------------------------------------------------------------
-# DNF construction
-# ---------------------------------------------------------------------------
-
-
-def test_to_dnf_constants_atoms_and_cache(ts, x):
-    assert ts._to_dnf(sp.true) == ts.DNF_TRUE
-    assert ts._to_dnf(sp.false) == ts.DNF_FALSE
-
-    atom = x >= 0
-    expected = frozenset([frozenset([atom])])
-    assert ts._to_dnf(atom) == expected
-    assert atom in ts._dnf_cache
-    assert ts._to_dnf(atom) is ts._dnf_cache[atom]
-
-
-def test_to_dnf_or_combines_terms(ts, x):
-    expr = sp.Or(x < 0, x >= 5)
-    expected = frozenset(
-        [
-            frozenset([x < 0]),
-            frozenset([x >= 5]),
-        ]
-    )
-    assert ts._to_dnf(expr) == expected
-
-
-def test_to_dnf_and_distributes_and_simplifies(ts, x):
-    expr = sp.And(sp.Or(x < 0, x > 5), x <= 10)
-    result = ts._to_dnf(expr)
-
-    expected = frozenset(
-        [
-            frozenset([x < 0]),
-            frozenset([x > 5, x <= 10]),
-        ]
-    )
-    assert result == expected
-
-
-def test_to_dnf_contradictory_and_becomes_false(ts, x):
-    assert ts._to_dnf(sp.And(x > 5, x < 3)) == ts.DNF_FALSE
-
-
-def test_to_dnf_true_and_x_is_x(ts, x):
-    assert ts._to_dnf(sp.And(sp.true, x >= 0)) == frozenset([frozenset([x >= 0])])
-
-
-def test_to_dnf_false_or_x_is_x(ts, x):
-    assert ts._to_dnf(sp.Or(sp.false, x >= 0)) == frozenset([frozenset([x >= 0])])
-
-
-def test_to_dnf_unsupported_expression_raises(ts, x):
-    with pytest.raises(TypeError, match="Unsupported Boolean expression"):
-        # circumvent automatic not evaluation
-        # ts._to_dnf(sp.Not(x > 0))
-        ts._to_dnf(sp.Basic.__new__(sp.Not, x > 0))
-
-
-def test_dnf_and_truth_table_identities(ts, x):
-    atom = frozenset([x > 0])
-    assert ts._dnf_and(ts.DNF_FALSE, atom) == ts.DNF_FALSE
-    assert ts._dnf_and(atom, ts.DNF_FALSE) == ts.DNF_FALSE
-    assert ts._dnf_and(ts.DNF_TRUE, atom) == atom
-    assert ts._dnf_and(atom, ts.DNF_TRUE) == atom
-
-
-# ---------------------------------------------------------------------------
-# CNF construction
-# ---------------------------------------------------------------------------
-
-
-def test_to_cnf_constants_atoms_and_cache(ts, x):
-    assert ts._to_cnf(sp.true) == ts.CNF_TRUE
-    assert ts._to_cnf(sp.false) == ts.CNF_FALSE
-
-    atom = x >= 0
-    expected = frozenset([frozenset([atom])])
-    assert ts._to_cnf(atom) == expected
-    assert atom in ts._cnf_cache
-    assert ts._to_cnf(atom) is ts._cnf_cache[atom]
-
-
-def test_to_cnf_and_combines_clauses(ts, x):
-    expr = sp.And(x > 0, x < 10)
-    expected = frozenset(
-        [
-            frozenset([x > 0]),
-            frozenset([x < 10]),
-        ]
-    )
-    assert ts._to_cnf(expr) == expected
-
-
-def test_to_cnf_or_distributes_from_false_identity(ts, x):
-    expr = sp.Or(sp.And(x > 0, x < 10), x >= 20)
-    result = ts._to_cnf(expr)
-
-    expected = frozenset(
-        [
-            frozenset([x > 0]),
-            frozenset([x < 10, x >= 20]),
-        ]
-    )
-    assert result == expected
-
-
-# NOTE: happens in dnf step
-# def test_to_cnf_contradictory_and_becomes_false(ts, x):
-#     assert ts._to_cnf(sp.And(x > 5, x < 3)) == ts.CNF_FALSE
-
-
-def test_to_cnf_true_or_x_is_true(ts, x):
-    assert ts._to_cnf(sp.Or(sp.true, x >= 0)) == ts.CNF_TRUE
-
-
-def test_to_cnf_false_and_x_is_false(ts, x):
-    assert ts._to_cnf(sp.And(sp.false, x >= 0)) == ts.CNF_FALSE
-
-
-def test_to_cnf_unsupported_expression_raises(ts, x):
-    with pytest.raises(TypeError, match="Unsupported Boolean expression"):
-        # circumvent automatic not evaluation
-        # ts._to_cnf(sp.Not(x > 0))
-        ts._to_cnf(sp.Basic.__new__(sp.Not, x > 0))
-
-
-def test_cnf_or_truth_table_identities(ts, x):
-    atom = frozenset([frozenset([x > 0])])
-    assert ts._cnf_or(ts.CNF_TRUE, atom) == ts.CNF_TRUE
-    assert ts._cnf_or(atom, ts.CNF_TRUE) == ts.CNF_TRUE
-    assert ts._cnf_or(ts.CNF_FALSE, atom) == atom
-    assert ts._cnf_or(atom, ts.CNF_FALSE) == atom
-
-
-# ---------------------------------------------------------------------------
-# Conversion back to SymPy
-# ---------------------------------------------------------------------------
-
-
-def test_and_expr_empty_is_true():
-    assert ThresholdSimplifier._and_expr([]) == sp.true
-
-
-def test_and_expr_sorts_atoms_deterministically():
-    x = sp.Symbol("x", real=True)
-    atoms = [x < 5, x > 1]
-    assert ThresholdSimplifier._and_expr(atoms) == sp.And(*sorted(atoms, key=str))
-
-
-def test_or_expr_empty_is_false():
-    assert ThresholdSimplifier._or_expr([]) == sp.false
-
-
-def test_or_expr_sorts_atoms_deterministically():
-    x = sp.Symbol("x", real=True)
-    atoms = [x < 5, x > 1]
-    assert ThresholdSimplifier._or_expr(atoms) == sp.Or(*sorted(atoms, key=str))
-
-
-def test_dnf_to_expr_constants(ts):
-    assert ts._dnf_to_expr(ts.DNF_FALSE) == sp.false
-    assert ts._dnf_to_expr(ts.DNF_TRUE) == sp.true
-
-
-def test_dnf_to_expr_round_trip(ts, x):
-    dnf = frozenset(
-        [
-            frozenset([x < 0]),
-            frozenset([x >= 5, x <= 10]),
-        ]
-    )
-    expr = ts._dnf_to_expr(dnf)
-    assert ts._to_dnf(expr) == dnf
-
-
-def test_cnf_to_expr_constants(ts):
-    assert ts._cnf_to_expr(ts.CNF_TRUE) == sp.true
-    assert ts._cnf_to_expr(ts.CNF_FALSE) == sp.false
-
-
-def test_cnf_to_expr_round_trip(ts, x):
-    cnf = frozenset(
-        [
-            frozenset([x < 0, x >= 5]),
-            frozenset([x <= 10]),
-        ]
-    )
-    expr = ts._cnf_to_expr(cnf)
-    assert ts._to_cnf(expr) == cnf
-
-
-def test_expr_key_is_structural_and_uses_strings(ts, x):
-    dnf = frozenset([frozenset([x >= 1, x < 5])])
-    key = ts._expr_key(dnf)
-    assert key == frozenset([frozenset({str(x >= 1), str(x < 5)})])
-
-
-# ---------------------------------------------------------------------------
-# Integration / semantic properties
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    "expr",
-    [
-        sp.Or(
-            sp.And(sp.Symbol("x", real=True) > 1, sp.Symbol("x", real=True) < 5),
-            sp.Symbol("x", real=True) >= 10,
-        ),
-        sp.And(
-            sp.Or(sp.Symbol("x", real=True) < 0, sp.Symbol("x", real=True) >= 5),
-            sp.Symbol("x", real=True) <= 20,
-        ),
-        sp.Not(sp.Or(sp.Symbol("x", real=True) <= 0, sp.Symbol("x", real=True) >= 10)),
-        sp.Or(
-            sp.And(sp.Symbol("x", real=True) >= 0, sp.Symbol("x", real=True) <= 3),
-            sp.And(sp.Symbol("x", real=True) > 3, sp.Symbol("x", real=True) < 5),
-        ),
-        sp.And(
-            sp.Or(sp.Symbol("x", real=True) < -2, sp.Symbol("x", real=True) >= 2),
-            sp.Or(sp.Symbol("x", real=True) <= 5, sp.Symbol("x", real=True) > 8),
-        ),
-    ],
-)
-def test_public_simplification_preserves_semantics(expr):
-    result = simplify_threshold_formula(expr)
-
-    for value in range(-12, 13):
-        expected = bool(expr.subs({"x": value}))
-        assert bool(result["best_cnf"].subs({"x": value})) == expected
-        assert bool(result["best_dnf"].subs({"x": value})) == expected
-
-
-def test_two_variable_formula_preserves_semantics():
-    x, y = sp.symbols("x y", real=True)
-    expr = sp.Or(
-        sp.And(x >= 0, x < 5),
-        sp.And(y > 2, y <= 7),
-    )
-
-    result = simplify_threshold_formula(expr)
-
-    for xv in range(-2, 9):
-        for yv in range(-2, 10):
-            expected = bool(expr.subs({x: xv, y: yv}))
-            assert bool(result["best_cnf"].subs({x: xv, y: yv})) == expected
-            assert bool(result["best_dnf"].subs({x: xv, y: yv})) == expected
-
-
-def test_dnf_absorption_integration(ts, x):
-    expr = sp.Or(x >= 0, sp.And(x >= 5, x <= 10))
-    result = ts.simplify(expr)
-
-    assert result["best_dnf"] == (x >= 0)
-    assert_equivalent_on_grid(result["best_cnf"], x >= 0)
-
-
-def test_cnf_subsumption_integration(ts, x):
-    expr = sp.And(x >= 5, sp.Or(x >= 3, x < 0))
-    result = ts.simplify(expr)
-
-    assert_equivalent_on_grid(result["best_cnf"], x >= 5)
-    assert_equivalent_on_grid(result["best_dnf"], x >= 5)
-
-
-def test_contradictory_conjunction_integrates_to_false(ts, x):
-    expr = sp.And(x > 5, x <= 5)
-    result = ts.simplify(expr)
-
-    assert result["best_dnf"] == sp.false
-    assert result["best_cnf"] == sp.false
-
-
-def test_tautological_disjunction_integrates_to_true(ts, x):
-    expr = sp.Or(x < 3, x >= 3)
-    result = ts.simplify(expr)
-
-    assert result["best_dnf"] == sp.true
-    assert result["best_cnf"] == sp.true
-
-
-def test_boundary_semantics_are_preserved(ts, x):
-    expr = sp.Or(x < 3, x > 3)
-    result = ts.simplify(expr)
-
-    for value, expected in [(2, True), (3, False), (4, True)]:
-        assert bool(result["best_dnf"].subs(x, value)) is expected
-        assert bool(result["best_cnf"].subs(x, value)) is expected
-
-
-def test_closed_singleton_semantics_are_preserved(ts, x):
-    expr = sp.And(x >= 3, x <= 3)
-    result = ts.simplify(expr)
-
-    for value in (2, 3, 4):
-        assert bool(result["best_dnf"].subs(x, value)) is (value == 3)
-        assert bool(result["best_cnf"].subs(x, value)) is (value == 3)
-
-
-# ---------------------------------------------------------------------------
-# Unsupported expressions and error paths
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    "expr",
-    [
-        sp.Symbol("x", real=True) + 1,
-        sp.Symbol("x", real=True) * 2,
-        sp.Eq(sp.Symbol("x", real=True), 1),
-        sp.Ne(sp.Symbol("x", real=True), 1),
-    ],
-)
-def test_public_simplify_rejects_unsupported_non_boolean_expression(expr):
-    with pytest.raises(TypeError, match="Unsupported Boolean expression"):
-        ThresholdSimplifier().simplify(expr)
-
-
-def test_parts_preserves_lhs_operator_rhs(ts, x):
-    atom = x <= 7
-    lhs, op, rhs = ts._parts(atom)
-    assert lhs == x
-    assert op == "<="
-    assert rhs == 7
-
-
-def test_invalid_internal_operator_paths_are_defensive():
-    # These are intentionally malformed objects created without invoking the
-    # public parser. They exercise the explicit ValueError branches.
-    class FakeAtom:
-        lhs = sp.Symbol("x", real=True)
-        rel_op = "???"
-        rhs = sp.Integer(1)
-
-    with pytest.raises(TypeError, match=r"Not a threshold atom"):
-        ThresholdSimplifier._negate_atom(FakeAtom())
-
-    ts = ThresholdSimplifier()
-    with pytest.raises(TypeError, match=r"Not a threshold atom"):
-        ts._interval_implies_atom(
-            [None, False, None, False],
-            FakeAtom(),
-        )
-
-
-# ---------------------------------------------------------------------------
-# Regression/property-style tests over many threshold combinations
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("lower", [-2, 0, 2])
-@pytest.mark.parametrize("upper", [0, 2, 4])
-@pytest.mark.parametrize("lower_closed", [False, True])
-@pytest.mark.parametrize("upper_closed", [False, True])
-def test_interval_validity_matches_real_interval_definition(
-    ts, lower, upper, lower_closed, upper_closed
-):
-    interval = [
-        sp.Integer(lower),
-        lower_closed,
-        sp.Integer(upper),
-        upper_closed,
-    ]
-    expected = lower < upper or (lower == upper and lower_closed and upper_closed)
-    assert ts._valid_interval(interval) is expected
-
-
-@pytest.mark.parametrize("op", ["<", "<=", ">", ">="])
-def test_negation_preserves_truth_for_boundary_values(op):
-    x = sp.Symbol("x", real=True)
-    atom = {
-        "<": x < 3,
-        "<=": x <= 3,
-        ">": x > 3,
-        ">=": x >= 3,
-    }[op]
-    negated = ThresholdSimplifier._negate_atom(atom)
-
-    for value in (2, 3, 4):
-        assert bool(atom.subs(x, value)) != bool(negated.subs(x, value))
-
-
-def test_cache_is_cleared_at_start_of_simplify(ts, x):
-    ts._dnf_cache[x > 0] = "stale"
-    ts._cnf_cache[x > 0] = "stale"
-
-    ts.simplify(x > 0)
-
-    assert ts._dnf_cache.get(x > 0) != "stale"
-    assert ts._cnf_cache.get(x > 0) != "stale"
-
-
-def test_formula_properties(ts, x):
-    # Simplified formula should be:
-    # (x >= 3) & (x <= 17) & ((x > 12) | (x < 7))
-    complex_formula = (
-        ((x >= 3) & ((x < 7) | (x < 6)))
-        | ((x > 12) & (x <= 17)) & ((x > 12) & (x <= 17))
-        | ((x <= 2) & (x >= 3))
-    )
-
-    assert not is_cnf(complex_formula)
-    assert not is_dnf(complex_formula)
-
-    result = ts.simplify(complex_formula)
-
-    assert is_cnf(result["best_cnf"])
-    assert is_dnf(result["best_dnf"])
-
-    assert equivalent(complex_formula, result["best_cnf"])
-    assert equivalent(complex_formula, result["best_dnf"])
-
-
-# ---------------------------------------------------------------------------
-# rule_to_sympy.py
-# ---------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def literal(index, negated=False):
-    return SimpleNamespace(
-        kind="Literal",
-        value=index,
-        negated=negated,
-    )
-
-
-def and_rule(*children, negated=False):
-    return SimpleNamespace(
-        kind="And",
-        subrules=list(children),
-        negated=negated,
-    )
-
-
-def or_rule(*children, negated=False):
-    return SimpleNamespace(
-        kind="Or",
-        subrules=list(children),
-        negated=negated,
-    )
-
-
-def make_clf(rule, features, **kwargs):
-    return SimpleNamespace(
-        rule=rule,
-        feature_names=features,
-        **kwargs,
-    )
-
-
-@pytest.fixture
-def symbols():
-    return {
-        "mean radius": sp.Symbol("mean_radius", real=True),
-        "area": sp.Symbol("area", real=True),
-        "texture": sp.Symbol("texture", real=True),
-    }
-
-
-# ---------------------------------------------------------------------------
-# Numeric and symbol-name helpers
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    ("value", "expected"),
-    [
-        ("4", sp.Float("4")),
-        ("13.095", sp.Float("13.095")),
-        ("-2.5", sp.Float("-2.5")),
-        ("+3.2", sp.Float("+3.2")),
-        (".75", sp.Float(".75")),
-        ("5.", sp.Float("5.")),
-        ("1e3", sp.Float("1e3")),
-        ("-2.5E-2", sp.Float("-2.5E-2")),
-    ],
-)
-def test_number(value, expected):
-    assert _number(value) == expected
-
-
-@pytest.mark.parametrize(
-    ("name", "expected"),
-    [
-        ("mean radius", "mean_radius"),
-        ("  mean radius  ", "mean_radius"),
-        ("feature-name", "feature_name"),
-        ("feature.name", "feature_name"),
-        ("a/b\\c", "a_b_c"),
-        ("123feature", "_123feature"),
-        ("___", None),
-        ("", None),
-        ("   ", None),
-    ],
-)
-def test_safe_symbol_name(name, expected):
-    if expected is None:
-        with pytest.raises(ValueError, match="Invalid feature name"):
-            _safe_symbol_name(name)
+_NUMBER = r"[-+0-9.einf]+"
+_ATOMS = [
+    (r"(?P<c>\w+) is NA", lambda df, c: df[c].isna()),
+    (r"(?P<c>\w+) is not NA", lambda df, c: df[c].notna()),
+    (
+        rf"(?P<left>{_NUMBER}) <= (?P<c>\w+) < (?P<right>{_NUMBER})",
+        lambda df, c, left, right: (df[c] >= float(left)) & (df[c] < float(right)),
+    ),
+    (rf"(?P<left>{_NUMBER}) <= (?P<c>\w+)", lambda df, c, left: df[c] >= float(left)),
+    (rf"(?P<c>\w+) < (?P<right>{_NUMBER})", lambda df, c, right: df[c] < float(right)),
+    (
+        r"(?P<c>\w+) in \{(?P<values>.*)\}",
+        lambda df, c, values: df[c].isin(values.split(", ")),
+    ),
+    (r"(?P<c>\w+)=(?P<value>.+)", lambda df, c, value: _equals(df[c], value)),
+    (r"(?P<c>\w+)", lambda df, c: df[c].astype(bool)),
+]
+
+
+def _equals(series: pd.Series, value: str) -> pd.Series:
+    if series.dtype == bool:
+        return series == (value == "True")
+    return (series == value).fillna(False).astype(bool)
+
+
+def evaluate_str(text: str, df: pd.DataFrame) -> np.ndarray:
+    """Evaluate the documented string notation on raw rows."""
+    result, rest = _parse(text.replace("\n", "").replace("\t", ""), df)
+    assert rest == "", f"Unparsed text {rest!r} in {text!r}"
+    return np.asarray(result, dtype=bool)
+
+
+def _parse(text: str, df: pd.DataFrame):
+    if text.startswith("~"):
+        value, rest = _parse(text[1:], df)
+        return ~value, rest
+    for name, combine in (("And(", np.logical_and), ("Or(", np.logical_or)):
+        if text.startswith(name):
+            rest = text[len(name) :]
+            values = []
+            while True:
+                value, rest = _parse(rest, df)
+                values.append(value)
+                if rest.startswith(", "):
+                    rest = rest[2:]
+                elif rest.startswith(","):
+                    rest = rest[1:]
+                else:
+                    break
+            assert rest.startswith(")"), rest
+            return combine.reduce(np.array(values)), rest[1:]
+    for constant in ("True", "False"):
+        if text.startswith(constant) and not re.match(r"\w", text[len(constant) :]):
+            return np.full(len(df), constant == "True"), text[len(constant) :]
+    depth = 0
+    for end, char in enumerate(text):
+        depth += {"{": 1, "}": -1}.get(char, 0)
+        if depth == 0 and char in ",)":
+            break
     else:
-        assert _safe_symbol_name(name) == expected
+        end = len(text)
+    return _atom(text[:end], df), text[end:]
 
 
-@pytest.mark.parametrize(
-    ("feature", "expected"),
-    [
-        ("mean radius", "mean radius"),
-        ("mean radius=4", "mean radius"),
-        ("mean radius < 5.2", "mean radius"),
-        ("3.1 <= mean radius", "mean radius"),
-        ("2.7 <= mean radius < 6", "mean radius"),
-        (" area = -1.5 ", "area"),
-        ("texture", "texture"),
-    ],
-)
-def test_feature_base_name(feature, expected):
-    assert _feature_base_name(feature) == expected
+def _atom(text: str, df: pd.DataFrame) -> np.ndarray:
+    for pattern, evaluate in _ATOMS:
+        match = re.fullmatch(pattern, text)
+        if match and match["c"] in df.columns:
+            return np.asarray(evaluate(df, **match.groupdict()), dtype=bool)
+    raise AssertionError(f"Unknown condition {text!r}")
 
 
 # ---------------------------------------------------------------------------
-# Feature-to-SymPy conversion
+# Rules
 # ---------------------------------------------------------------------------
 
 
-def test_plain_feature_returns_symbol(symbols):
-    result = feature_to_sympy("mean radius", symbols)
-
-    assert result == symbols["mean radius"]
-
-
-@pytest.mark.parametrize(
-    ("feature", "expected"),
-    [
-        ("mean radius=4", sp.Eq(sp.Symbol("mean_radius", real=True), 4.0)),
-        ("mean radius=-2.5", sp.Eq(sp.Symbol("mean_radius", real=True), -2.5)),
-        ("mean radius=1e3", sp.Eq(sp.Symbol("mean_radius", real=True), 1000.0)),
-    ],
-)
-def test_exact_feature(feature, expected, symbols):
-    assert feature_to_sympy(feature, symbols) == expected
+def random_rule(rng: np.random.Generator, num_features: int, depth: int) -> Rule:
+    if depth == 0 or rng.random() < 0.3:
+        return Literal(
+            value=int(rng.integers(num_features)), negated=bool(rng.random() < 0.5)
+        )
+    operator = And if rng.random() < 0.5 else Or
+    count = rng.integers(2, 4)
+    children = [random_rule(rng, num_features, depth - 1) for _ in range(count)]
+    return operator(children, negated=bool(rng.random() < 0.25), copy_subrules=False)
 
 
-def test_upper_bound_feature(symbols):
-    result = feature_to_sympy("mean radius < 5.2", symbols)
+def rewrite(rule: Rule, rng: np.random.Generator) -> Rule:
+    """An equivalent rule: shuffled children, De Morgan, regrouping, repetition."""
+    if isinstance(rule, Literal):
+        return rule.copy()
+    children = [rewrite(child, rng) for child in rule.subrules]
+    rng.shuffle(children)
+    if rng.random() < 0.3:
+        children.append(children[0].copy())
+    if len(children) > 2 and rng.random() < 0.3:
+        children = [children[0], type(rule)(children[1:])]
+    result = type(rule)(children, negated=rule.negated, copy_subrules=False)
+    if rng.random() < 0.3:
+        # And(a, b) is ~Or(~a, ~b): swap the operator and negate it and its children.
+        dual = Or if isinstance(rule, And) else And
+        for child in children:
+            child.negated = not child.negated
+        result = dual(children, negated=not rule.negated, copy_subrules=False)
+    return result
 
-    assert result == (symbols["mean radius"] < sp.Float("5.2"))
+
+class Cells:
+    """
+    The cells of each column, read from the feature specs: the feature true on the
+    cell, or ``("not", f)`` for the cell no feature is true on (the false value of a
+    boolean column, or the present value of a column with only a missing indicator).
+    """
+
+    def __init__(self, specs: list, data: np.ndarray):
+        self.column_of = [spec.column for spec in specs]
+        self.cells: dict = {}
+        for index, spec in enumerate(specs):
+            self.cells.setdefault(spec.column, set()).add(index)
+        for column, features in self.cells.items():
+            kinds = {type(specs[f]) for f in features}
+            if kinds <= {BooleanFeature, MissingFeature} and len(features) == 1:
+                features.add(("not", next(iter(features))))
+        # The cell of each row in each column.
+        self.row_cells = {}
+        for column, features in self.cells.items():
+            own = [f for f in features if isinstance(f, int)]
+            fallback = next((f for f in features if not isinstance(f, int)), None)
+            values = []
+            for row in data:
+                true = [f for f in own if row[f]]
+                values.append(true[0] if true else fallback)
+            self.row_cells[column] = values
+
+    def of_term(self, term: Rule) -> dict:
+        """The cells a conjunction of literals allows, by column."""
+        literals = term.subrules if isinstance(term, And) else [term]
+        allowed = {column: set(cells) for column, cells in self.cells.items()}
+        for literal in literals:
+            column = self.column_of[literal.value]
+            cell = {literal.value}
+            if literal.negated:
+                allowed[column] -= cell
+            else:
+                allowed[column] &= cell
+        return allowed
+
+    def widenings(self, allowed: dict):
+        for column, cells in allowed.items():
+            for cell in self.cells[column] - cells:
+                yield column, cell
+
+    def rows_in(self, allowed: dict) -> np.ndarray:
+        result = np.ones(len(next(iter(self.row_cells.values()))), dtype=bool)
+        for column, cells in allowed.items():
+            result &= np.array([cell in cells for cell in self.row_cells[column]])
+        return result
 
 
-def test_lower_bound_feature(symbols):
-    result = feature_to_sympy("3.1 <= mean radius", symbols)
-
-    assert result == (symbols["mean radius"] >= sp.Float("3.1"))
+def literal_count(rule: Rule) -> int:
+    return sum(isinstance(node, Literal) for node in rule.flatten())
 
 
-def test_range_feature(symbols):
-    result = feature_to_sympy("2.7 <= mean radius < 6", symbols)
-
-    expected = sp.And(
-        symbols["mean radius"] >= sp.Float("2.7"),
-        symbols["mean radius"] < sp.Float("6"),
+def is_normal_form(rule: Rule, outer: type, inner: type) -> bool:
+    """Whether ``rule`` is an ``outer`` of ``inner`` of literals, without negations."""
+    if isinstance(rule, Literal):
+        return True
+    if rule.negated:
+        return False
+    if isinstance(rule, inner):
+        return all(isinstance(child, Literal) for child in rule.subrules)
+    return isinstance(rule, outer) and all(
+        isinstance(child, Literal)
+        or (
+            isinstance(child, inner)
+            and not child.negated
+            and all(isinstance(grand, Literal) for grand in child.subrules)
+        )
+        for child in rule.subrules
     )
-
-    assert result == expected
-
-
-def test_feature_with_surrounding_whitespace(symbols):
-    result = feature_to_sympy("  mean radius  ", symbols)
-
-    assert result == symbols["mean radius"]
-
-
-def test_feature_name_with_spaces(symbols):
-    result = feature_to_sympy("mean radius < 10", symbols)
-
-    assert result == (symbols["mean radius"] < sp.Float("10"))
-
-
-def test_unknown_feature_raises_key_error(symbols):
-    with pytest.raises(KeyError):
-        feature_to_sympy("unknown feature", symbols)
 
 
 # ---------------------------------------------------------------------------
-# Recursive rule conversion
+# Properties on random rules
 # ---------------------------------------------------------------------------
 
 
-def test_convert_literal(symbols):
-    rule = literal(0)
+class TestRandomRules(unittest.TestCase):
+    """Random rules over mixed-type data, checked on every cell combination."""
 
-    result = _convert_rule(rule, ["mean radius"], symbols)
+    @classmethod
+    def setUpClass(cls):
+        cls.fit = mixed_data()
+        cls.binarizer = fit_binarizer(cls.fit)
+        cls.rows = all_cells(cls.binarizer, cls.fit)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            cls.data = cls.binarizer.transform(cls.rows).to_numpy()
+        cls.num_features = len(cls.binarizer.get_feature_names_out())
 
-    assert result == symbols["mean radius"]
+    def rules(self, count: int, depth: int, seed: int = 0):
+        rng = np.random.default_rng(seed)
+        return [random_rule(rng, self.num_features, depth) for _ in range(count)]
+
+    def test_all_cell_combinations_are_present(self):
+        # Every feature is true and false somewhere, and each row is a distinct cell
+        # combination.
+        self.assertTrue(self.data.any(axis=0).all())
+        self.assertFalse(self.data.all(axis=0).any())
+        self.assertEqual(len(np.unique(self.data, axis=0)), len(self.data))
+
+    def test_same_predictions_in_every_mode(self):
+        for i, rule in enumerate(self.rules(150, depth=4)):
+            expected = predict(rule, self.data)
+            for optimize, canonical in MODES:
+                if not optimize and canonical is not None and len(rule) > 25:
+                    continue  # The mechanical normal form can be very large.
+                with self.subTest(rule=i, optimize=optimize, canonical=canonical):
+                    result = postprocess(
+                        rule, self.binarizer, optimize=optimize, canonical=canonical
+                    )
+                    np.testing.assert_array_equal(predict(result, self.data), expected)
+
+    def test_strings_say_what_the_rule_does(self):
+        for i, rule in enumerate(self.rules(150, depth=4)):
+            expected = predict(rule, self.data)
+            for optimize, canonical in MODES:
+                if optimize is False:
+                    continue  # Feature names, not conditions on the columns.
+                with self.subTest(rule=i, canonical=canonical):
+                    text = postprocess_to_str(
+                        rule, self.binarizer, optimize=True, canonical=canonical
+                    )
+                    np.testing.assert_array_equal(
+                        evaluate_str(text, self.rows), expected
+                    )
+
+    def test_optimized_rule_is_never_larger(self):
+        for i, rule in enumerate(self.rules(300, depth=5)):
+            with self.subTest(rule=i):
+                self.assertLessEqual(len(postprocess(rule, self.binarizer)), len(rule))
+
+    def test_optimizing_twice_changes_nothing(self):
+        for i, rule in enumerate(self.rules(300, depth=5)):
+            with self.subTest(rule=i):
+                once = postprocess(rule, self.binarizer)
+                self.assertEqual(str(postprocess(once, self.binarizer)), str(once))
+
+    def test_normal_forms_have_their_shape(self):
+        for i, rule in enumerate(self.rules(150, depth=4)):
+            for optimize in (True, False):
+                if not optimize and len(rule) > 25:
+                    continue
+                with self.subTest(rule=i, optimize=optimize):
+                    dnf = postprocess(
+                        rule, self.binarizer, optimize=optimize, canonical="dnf"
+                    )
+                    cnf = postprocess(
+                        rule, self.binarizer, optimize=optimize, canonical="cnf"
+                    )
+                    self.assertTrue(is_normal_form(dnf, Or, And), str(dnf))
+                    self.assertTrue(is_normal_form(cnf, And, Or), str(cnf))
+
+    def test_equivalent_rules_have_the_same_canonical_form(self):
+        rng = np.random.default_rng(1)
+        for i, rule in enumerate(self.rules(150, depth=4)):
+            other = rewrite(rule, rng)
+            np.testing.assert_array_equal(
+                predict(other, self.data), predict(rule, self.data)
+            )
+            for canonical in ("dnf", "cnf"):
+                with self.subTest(rule=i, canonical=canonical):
+                    self.assertEqual(
+                        str(postprocess(other, self.binarizer, canonical=canonical)),
+                        str(postprocess(rule, self.binarizer, canonical=canonical)),
+                    )
+                    self.assertEqual(
+                        postprocess_to_str(other, self.binarizer, canonical=canonical),
+                        postprocess_to_str(rule, self.binarizer, canonical=canonical),
+                    )
+
+    def test_canonical_terms_are_all_needed(self):
+        # Removing a term (DNF) or a clause (CNF), or a literal from it, changes what
+        # the rule computes.
+        for i, rule in enumerate(self.rules(60, depth=4)):
+            for canonical, outer in (("dnf", Or), ("cnf", And)):
+                result = postprocess(rule, self.binarizer, canonical=canonical)
+                if not isinstance(result, outer) or result.negated:
+                    continue
+                expected = predict(result, self.data)
+                for j in range(len(result.subrules)):
+                    with self.subTest(rule=i, canonical=canonical, part=j):
+                        parts = [
+                            p.copy() for k, p in enumerate(result.subrules) if k != j
+                        ]
+                        smaller = parts[0] if len(parts) == 1 else outer(parts)
+                        self.assertFalse(
+                            np.array_equal(predict(smaller, self.data), expected)
+                        )
+
+    def test_canonical_terms_are_prime(self):
+        # Allowing one more cell of a column in a DNF term makes it true on a row where
+        # the rule is false.
+        cells = Cells(self.binarizer.get_feature_specs(), self.data)
+        for i, rule in enumerate(self.rules(100, depth=4)):
+            expected = predict(rule, self.data)
+            if expected.all() or not expected.any():
+                continue  # A constant is Or(0, ~0) or And(0, ~0), not prime terms.
+            dnf = postprocess(rule, self.binarizer, canonical="dnf")
+            terms = dnf.subrules if isinstance(dnf, Or) else [dnf]
+            for j, term in enumerate(terms):
+                allowed = cells.of_term(term)
+                for column, cell in cells.widenings(allowed):
+                    with self.subTest(rule=i, term=j, column=column, cell=cell):
+                        wider = dict(allowed)
+                        wider[column] = allowed[column] | {cell}
+                        self.assertTrue((cells.rows_in(wider) & ~expected).any())
+
+    def test_input_rule_is_not_modified(self):
+        for rule in self.rules(30, depth=4):
+            before = str(rule)
+            for optimize, canonical in MODES:
+                postprocess(
+                    rule, self.binarizer, optimize=optimize, canonical=canonical
+                )
+                postprocess_to_str(
+                    rule, self.binarizer, optimize=optimize, canonical=canonical
+                )
+            self.assertEqual(str(rule), before)
 
 
-def test_convert_numpy_integer_literal(symbols):
-    rule = literal(np.int64(0))
+class TestIndependentFeatures(unittest.TestCase):
+    """Without features, each literal is an independent boolean feature."""
 
-    result = _convert_rule(rule, ["mean radius"], symbols)
+    def test_same_predictions_on_every_assignment(self):
+        rng = np.random.default_rng(2)
+        num_features = 5
+        data = np.array(list(itertools.product([False, True], repeat=num_features)))
+        for i in range(150):
+            rule = random_rule(rng, num_features, depth=4)
+            expected = predict(rule, data)
+            for optimize, canonical in MODES:
+                if not optimize and canonical is not None and len(rule) > 25:
+                    continue
+                with self.subTest(rule=i, optimize=optimize, canonical=canonical):
+                    result = postprocess(rule, optimize=optimize, canonical=canonical)
+                    np.testing.assert_array_equal(predict(result, data), expected)
 
-    assert result == symbols["mean radius"]
+    def test_canonical_form_equals_that_of_the_truth_table(self):
+        # The DNF of all true rows (and the CNF of all false rows) is as different from
+        # a random rule as an equivalent rule can be.
+        rng = np.random.default_rng(3)
+        num_features = 5
+        data = np.array(list(itertools.product([False, True], repeat=num_features)))
+        for i in range(150):
+            rule = random_rule(rng, num_features, depth=4)
+            values = predict(rule, data)
+            if values.all() or not values.any():
+                continue
+            minterms = Or(
+                [
+                    And([Literal(value=f, negated=not row[f]) for f in range(5)])
+                    for row in data[values]
+                ]
+                + [And([Literal(value=0), Literal(value=0, negated=True)])]
+            )
+            maxterms = And(
+                [
+                    Or([Literal(value=f, negated=bool(row[f])) for f in range(5)])
+                    for row in data[~values]
+                ]
+                + [Or([Literal(value=0), Literal(value=0, negated=True)])]
+            )
+            for canonical in ("dnf", "cnf"):
+                with self.subTest(rule=i, canonical=canonical):
+                    expected = str(postprocess(rule, canonical=canonical))
+                    self.assertEqual(
+                        str(postprocess(minterms, canonical=canonical)), expected
+                    )
+                    self.assertEqual(
+                        str(postprocess(maxterms, canonical=canonical)), expected
+                    )
 
+    def test_literals_are_written_by_index(self):
+        rule = And([Literal(value=0), Literal(value=1), Literal(value=0)])
+        self.assertEqual(str(postprocess(rule)), "And(0, 1)")
+        self.assertEqual(postprocess_to_str(rule), "And(0, 1)")
+        self.assertEqual(postprocess_to_str(rule, optimize=False), "And(0, 1, 0)")
 
-def test_convert_negated_literal(symbols):
-    rule = literal(0, negated=True)
-
-    result = _convert_rule(rule, ["mean radius"], symbols)
-
-    assert result == sp.Not(symbols["mean radius"])
-
-
-def test_convert_and_rule(symbols):
-    rule = and_rule(literal(0), literal(1))
-
-    result = _convert_rule(
-        rule,
-        ["mean radius < 5", "area"],
-        symbols,
-    )
-
-    expected = sp.And(
-        symbols["mean radius"] < sp.Float("5"),
-        symbols["area"],
-    )
-
-    assert result == expected
-
-
-def test_convert_or_rule(symbols):
-    rule = or_rule(literal(0), literal(1))
-
-    result = _convert_rule(
-        rule,
-        ["mean radius", "area"],
-        symbols,
-    )
-
-    assert result == sp.Or(
-        symbols["mean radius"],
-        symbols["area"],
-    )
-
-
-def test_convert_nested_rule(symbols):
-    rule = and_rule(
-        literal(0),
-        or_rule(literal(1), literal(2)),
-    )
-
-    result = _convert_rule(
-        rule,
-        ["mean radius", "area", "texture"],
-        symbols,
-    )
-
-    expected = sp.And(
-        symbols["mean radius"],
-        sp.Or(symbols["area"], symbols["texture"]),
-    )
-
-    assert result == expected
-
-
-def test_convert_empty_and_rule():
-    assert _convert_rule(and_rule(), [], {}) is sp.true
-
-
-def test_convert_empty_or_rule():
-    assert _convert_rule(or_rule(), [], {}) is sp.false
-
-
-def test_convert_negated_and_rule(symbols):
-    rule = and_rule(literal(0), literal(1), negated=True)
-
-    result = _convert_rule(
-        rule,
-        ["mean radius", "area"],
-        symbols,
-    )
-
-    expected = sp.Not(sp.And(symbols["mean radius"], symbols["area"]))
-
-    assert result == expected
-
-
-def test_literal_without_value_raises_value_error():
-    rule = SimpleNamespace(kind="Literal")
-    rule2 = literal(None)
-
-    with pytest.raises(ValueError, match="Literal has no value"):
-        _convert_rule(rule, ["mean radius"], {})
-
-    with pytest.raises(ValueError, match="Literal has no value"):
-        _convert_rule(rule2, ["mean radius"], {})
-
-
-@pytest.mark.parametrize("value", ["0", 1.5, np.int32(0)])
-def test_invalid_literal_value_raises_type_error(value):
-    rule = literal(value)
-
-    with pytest.raises(TypeError, match="Literal.value must be an int"):
-        _convert_rule(rule, ["mean radius", "area"], {})
-
-
-@pytest.mark.parametrize("index", [-1, 1])
-def test_out_of_range_literal_raises_index_error(index):
-    rule = literal(index)
-
-    with pytest.raises(IndexError, match="outside features"):
-        _convert_rule(rule, ["mean radius"], {})
-
-
-def test_unsupported_rule_kind_raises_type_error():
-    rule = SimpleNamespace(kind="Xor")
-
-    with pytest.raises(TypeError, match="Unsupported rule node type"):
-        _convert_rule(rule, [], {})
+    def test_feature_names(self):
+        rule = And([Literal(value=0), Literal(value=1, negated=True), Literal(value=0)])
+        self.assertEqual(postprocess_to_str(rule, ["a", "b"]), "And(a, ~b)")
 
 
 # ---------------------------------------------------------------------------
-# Public rule_to_sympy API
+# Behaviors, one example each
 # ---------------------------------------------------------------------------
 
 
-def test_rule_to_sympy_returns_same_classifier():
-    clf = make_clf(
-        literal(0),
-        ["mean radius"],
+def bins(column: str, *edges: float) -> list:
+    edges = [-inf, *edges, inf]
+    return [BinFeature(column, a, b) for a, b in itertools.pairwise(edges)]
+
+
+class TestOptimize(unittest.TestCase):
+    # Features 0-3: the bins of x (edges 1, 2, 3); 4-6: the categories of c; 7: flag.
+    features = (
+        *bins("x", 1.0, 2.0, 3.0),
+        CategoryFeature("c", "r"),
+        CategoryFeature("c", "g"),
+        CategoryFeature("c", "b"),
+        BooleanFeature("flag"),
     )
+    names = tuple(str(f) for f in features)
 
-    result = rule_to_sympy(clf, simplify=False)
+    def check(self, rule: Rule, expected_rule: str, expected_str: str):
+        self.assertEqual(
+            postprocess(rule, self.features).to_str(self.names), expected_rule
+        )
+        self.assertEqual(postprocess_to_str(rule, self.features), expected_str)
 
-    assert result is clf
+    def test_repeated_literal(self):
+        rule = And([Literal(value=0), Literal(value=7), Literal(value=0)])
+        self.check(rule, "And(x < 1.0, flag)", "And(x < 1.0, flag)")
 
+    def test_bins_exclude_each_other(self):
+        rule = And([Literal(value=0), Literal(value=1), Literal(value=7)])
+        self.check(rule, "And(x < 1.0, ~x < 1.0)", "False")
 
-def test_rule_to_sympy_stores_intermediate_results():
-    rule = literal(0)
-    clf = make_clf(
-        rule,
-        ["mean radius"],
-        format_rule=lambda: "mean radius",
-    )
+    def test_small_constant_rule_is_returned_as_is(self):
+        rule = And([Literal(value=0), Literal(value=1)])
+        self.check(rule, "And(x < 1.0, 1.0 <= x < 2.0)", "False")
+        rule = Or([Literal(value=7), Literal(value=7, negated=True)])
+        self.check(rule, "Or(flag, ~flag)", "True")
 
-    rule_to_sympy(clf, simplify=False)
+    def test_excluded_bins(self):
+        rule = And([Literal(value=i, negated=True) for i in range(3)])
+        self.check(rule, "3.0 <= x", "3.0 <= x")
 
-    assert clf.sympy.original_rule is rule
-    assert clf.sympy.rule_features == ["mean radius"]
-    assert clf.sympy.original_columns == ["mean radius"]
-    assert clf.sympy.formatted_rule == "mean radius"
-    assert clf.sympy.sympy_symbols["mean radius"] == sp.Symbol("mean_radius", real=True)
-    assert clf.sympy.sympy_rule == sp.Symbol("mean_radius", real=True)
-    assert clf.sympy.sympy_rule_string == "mean_radius"
-    assert not hasattr(clf.sympy, "simplified_rule")
+    def test_all_bins(self):
+        rule = And([Or([Literal(value=i) for i in range(4)]), Literal(value=7)])
+        self.check(rule, "flag", "flag")
 
+    def test_adjacent_bins_become_one_interval_in_the_string(self):
+        features = bins("x", 1.0, 2.0, 3.0, 4.0)
+        rule = Or([Literal(value=1), Literal(value=2), Literal(value=3)])
+        result = postprocess(rule, features)
+        self.assertEqual(
+            result.to_str([str(f) for f in features]), "And(~x < 1.0, ~4.0 <= x)"
+        )
+        self.assertEqual(postprocess_to_str(rule, features), "1.0 <= x < 4.0")
 
-def test_rule_to_sympy_supports_features_names_attribute():
-    clf = SimpleNamespace(
-        rule=literal(0),
-        features_names=["mean radius"],
-    )
+    def test_bins_that_are_not_adjacent(self):
+        rule = And([Or([Literal(value=0), Literal(value=2)]), Literal(value=7)])
+        # In the rule, excluding two bins takes one node less than an Or of two bins.
+        self.check(
+            rule,
+            "And(~1.0 <= x < 2.0, ~3.0 <= x, flag)",
+            "And(Or(x < 1.0, 2.0 <= x < 3.0), flag)",
+        )
 
-    result = rule_to_sympy(clf, simplify=False)
+    def test_categories(self):
+        rule = And([Or([Literal(value=4), Literal(value=5)]), Literal(value=7)])
+        # Two of three categories: the excluded one is shorter.
+        self.check(rule, "And(~c=b, flag)", "And(~c=b, flag)")
+        rule = Or([Literal(value=4), Literal(value=5), Literal(value=6)])
+        self.check(rule, "Or(c=r, ~c=r)", "True")
 
-    assert result.sympy.rule_features == ["mean radius"]
+    def test_category_set(self):
+        features = [CategoryFeature("c", v) for v in "rgbk"]
+        rule = Or([Literal(value=0), Literal(value=1)])
+        self.assertEqual(postprocess_to_str(rule, features), "c in {r, g}")
+        rule = Or([Literal(value=0), Literal(value=1), Literal(value=2)])
+        self.assertEqual(postprocess_to_str(rule, features), "~c=k")
 
+    def test_literal_decided_by_its_siblings(self):
+        # Inside And(x < 1, ...), Or(x < 2, c=r) always holds.
+        rule = And(
+            [Literal(value=0), Or([Literal(value=1, negated=True), Literal(value=4)])]
+        )
+        self.check(rule, "x < 1.0", "x < 1.0")
+        # Inside Or(flag, ...), And(~flag, c=r) is c=r.
+        rule = Or(
+            [Literal(value=7), And([Literal(value=7, negated=True), Literal(value=4)])]
+        )
+        self.check(rule, "Or(flag, c=r)", "Or(flag, c=r)")
 
-def test_features_names_takes_precedence_over_feature_names():
-    clf = SimpleNamespace(
-        rule=literal(0),
-        features_names=["area"],
-        feature_names=["mean radius"],
-    )
+    def test_tautology_inside_a_rule_is_removed(self):
+        rule = And(
+            [Literal(value=4), Or([Literal(value=7), Literal(value=7, negated=True)])]
+        )
+        self.check(rule, "c=r", "c=r")
 
-    rule_to_sympy(clf, simplify=False)
+    def test_absorption(self):
+        a = And([Literal(value=4), Literal(value=7)])
+        rule = Or([a, And([a.copy(), Literal(value=0)])])
+        self.check(rule, "And(c=r, flag)", "And(c=r, flag)")
+        rule = And(
+            [
+                Or([Literal(value=0), Literal(value=7)]),
+                Or([Or([Literal(value=0), Literal(value=7)]), Literal(value=5)]),
+            ]
+        )
+        self.check(rule, "Or(x < 1.0, flag)", "Or(x < 1.0, flag)")
 
-    assert clf.sympy.rule_features == ["area"]
-    assert clf.sympy.original_columns == ["area"]
+    def test_operator_and_its_negation(self):
+        a = Or([Literal(value=4), Literal(value=7)])
+        rule = And(
+            [
+                a,
+                Literal(value=0),
+                And([Literal(value=4, negated=True), Literal(value=7, negated=True)]),
+            ]
+        )
+        self.check(rule, "And(c=r, ~c=r)", "False")
 
+    def test_negations_are_pushed_down(self):
+        rule = And([Literal(value=4), Literal(value=7)], negated=True)
+        self.check(rule, "Or(~c=r, ~flag)", "Or(~c=r, ~flag)")
 
-def test_missing_feature_names_raises_attribute_error():
-    clf = SimpleNamespace(rule=literal(0))
-
-    with pytest.raises(
-        AttributeError,
-        match="either 'features_names' or 'feature_names'",
-    ):
-        rule_to_sympy(clf, simplify=False)
-
-
-def test_original_columns_come_from_binarizer():
-    clf = make_clf(
-        literal(0),
-        ["mean radius < 5"],
-        binarizer=SimpleNamespace(
-            _original_columns=["mean radius", "area", "mean radius"]
-        ),
-    )
-
-    rule_to_sympy(clf, simplify=False)
-
-    assert clf.sympy.original_columns == ["mean radius", "area"]
-    assert list(clf.sympy.sympy_symbols) == ["mean radius", "area"]
-
-
-def test_original_columns_fall_back_to_feature_names():
-    clf = make_clf(
-        and_rule(literal(0), literal(1)),
-        ["mean radius < 5", "1<=mean radius < 3"],
-    )
-
-    rule_to_sympy(clf, simplify=False)
-
-    assert clf.sympy.original_columns == ["mean radius"]
-
-
-def test_missing_format_rule_sets_formatted_rule_to_none():
-    clf = make_clf(literal(0), ["mean radius"])
-
-    rule_to_sympy(clf, simplify=False)
-
-    assert clf.sympy.formatted_rule is None
-
-
-def test_prepare_rule_is_applied_and_stored():
-    clf = make_clf(literal(0), ["mean radius"])
-
-    result = rule_to_sympy(
-        clf,
-        prepare_rule=lambda expr: expr > 0,
-        simplify=False,
-    )
-
-    assert result.sympy.prepared_rule == (sp.Symbol("mean_radius", real=True) > 0)
-    assert result.sympy.prepared_rule_string == str(result.sympy.prepared_rule)
-    assert result.sympy.sympy_rule == sp.Symbol("mean_radius", real=True)
-
-
-def test_prepare_rule_is_called_before_simplification():
-    clf = make_clf(literal(0), ["mean radius"])
-    calls = []
-
-    def prepare(expr):
-        calls.append(("prepare", expr))
-        return expr
-
-    def simplify_rule(expr):
-        calls.append(("simplify", expr))
-        return {"result": expr}
-
-    rule_to_sympy(
-        clf,
-        prepare_rule=prepare,
-        simplify_rule=simplify_rule,
-        simplify=True,
-    )
-
-    assert [name for name, _ in calls] == ["prepare", "simplify"]
-    assert clf.sympy.simplified_rule.result == sp.Symbol("mean_radius", real=True)
+    def test_constant_rule_uses_its_first_literal(self):
+        rule = Or(
+            [
+                Literal(value=5),
+                And([Literal(value=4), Literal(value=7)]),
+                Literal(value=5, negated=True),
+            ]
+        )
+        self.check(rule, "Or(c=g, ~c=g)", "True")
 
 
-def test_custom_simplifier_is_called_when_simplify_is_true():
-    clf = make_clf(literal(0), ["mean radius"])
-    received = []
+class TestMissingValues(unittest.TestCase):
+    # Features 0: x is missing; 1-3: the bins of x (edges 1, 2).
+    features = (MissingFeature("x"), *bins("x", 1.0, 2.0))
+    names = tuple(str(f) for f in features)
 
-    def simplify_rule(expr):
-        received.append(expr)
-        return {"expression": expr, "status": "simplified"}
+    def test_negated_bin_includes_missing_values(self):
+        rule = Literal(value=1, negated=True)
+        self.assertEqual(postprocess_to_str(rule, self.features), "~x < 1.0")
+        # All bins do not cover the missing values.
+        rule = Or([Literal(value=1), Literal(value=2), Literal(value=3)])
+        self.assertEqual(postprocess_to_str(rule, self.features), "x is not NA")
+        self.assertEqual(
+            postprocess(rule, self.features).to_str(self.names), "~x_is_NA"
+        )
 
-    result = rule_to_sympy(
-        clf,
-        simplify_rule=simplify_rule,
-        simplify=True,
-    )
+    def test_missing_value_written_explicitly(self):
+        rule = Or([Literal(value=2), Literal(value=0)])
+        self.assertEqual(
+            postprocess_to_str(rule, self.features), "Or(1.0 <= x < 2.0, x is NA)"
+        )
 
-    assert received == [sp.Symbol("mean_radius", real=True)]
-    assert result.sympy.simplified_rule.expression == received[0]
-    assert result.sympy.simplified_rule.status == "simplified"
+    def test_missing_and_present(self):
+        rule = Or(
+            [Literal(value=0), Literal(value=1), Literal(value=2), Literal(value=3)]
+        )
+        self.assertEqual(postprocess_to_str(rule, self.features), "True")
 
-
-def test_custom_simplifier_is_not_called_when_simplify_is_false():
-    clf = make_clf(literal(0), ["mean radius"])
-    called = False
-
-    def simplify_rule(expr):
-        nonlocal called
-        called = True
-        return {"expression": expr}
-
-    rule_to_sympy(
-        clf,
-        simplify_rule=simplify_rule,
-        simplify=False,
-    )
-
-    assert called is False
-    assert not hasattr(clf.sympy, "simplified_rule")
+    def test_column_with_only_a_missing_indicator(self):
+        features = [MissingFeature("id"), BooleanFeature("flag")]
+        rule = And([Literal(value=0, negated=True), Literal(value=1)])
+        self.assertEqual(postprocess_to_str(rule, features), "And(id is not NA, flag)")
+        self.assertEqual(postprocess_to_str(Literal(value=0), features), "id is NA")
 
 
-def test_simplifier_receives_prepared_expression():
-    clf = make_clf(literal(0), ["mean radius"])
-    received = []
+class TestCanonical(unittest.TestCase):
+    features = (*bins("x", 1.0, 2.0), BooleanFeature("a"), BooleanFeature("b"))
+    names = tuple(str(f) for f in features)
 
-    def prepare(expr):
-        return expr > 0
+    def test_dnf_and_cnf(self):
+        # And(Or(a, b), Or(a, x < 1))
+        rule = And(
+            [
+                Or([Literal(value=3), Literal(value=4)]),
+                Or([Literal(value=3), Literal(value=0)]),
+            ]
+        )
+        dnf = postprocess(rule, self.features, canonical="dnf")
+        cnf = postprocess(rule, self.features, canonical=CanonicalForm.CNF)
+        self.assertEqual(dnf.to_str(self.names), "Or(a, And(x < 1.0, b))")
+        self.assertEqual(cnf.to_str(self.names), "And(Or(x < 1.0, a), Or(a, b))")
+        self.assertEqual(
+            postprocess_to_str(rule, self.features, canonical="DNF"),
+            "Or(a, And(x < 1.0, b))",
+        )
 
-    def simplify_rule(expr):
-        received.append(expr)
-        return {"expression": expr}
+    def test_canonical_form_does_not_depend_on_how_the_rule_is_written(self):
+        # Or(And(a, b), And(~a, b)) and And(b, Or(a, ~a, x < 1)) are both b.
+        first = Or(
+            [
+                And([Literal(value=3), Literal(value=4)]),
+                And([Literal(value=3, negated=True), Literal(value=4)]),
+            ]
+        )
+        second = And(
+            [
+                Literal(value=4),
+                Or(
+                    [Literal(value=3), Literal(value=3, negated=True), Literal(value=0)]
+                ),
+            ]
+        )
+        for canonical in ("dnf", "cnf"):
+            self.assertEqual(
+                str(postprocess(first, self.features, canonical=canonical)), "4"
+            )
+            self.assertEqual(
+                str(postprocess(second, self.features, canonical=canonical)), "4"
+            )
 
-    rule_to_sympy(
-        clf,
-        prepare_rule=prepare,
-        simplify_rule=simplify_rule,
-        simplify=True,
-    )
+    def test_consensus_finds_terms_the_rule_does_not_spell_out(self):
+        # Or(And(a, b), And(~a, x < 1)) also holds where b and x < 1 do.
+        rule = Or(
+            [
+                And([Literal(value=3), Literal(value=4)]),
+                And([Literal(value=3, negated=True), Literal(value=0)]),
+            ]
+        )
+        dnf = postprocess(rule, self.features, canonical="dnf")
+        self.assertEqual(dnf.to_str(self.names), "Or(And(a, b), And(x < 1.0, ~a))")
 
-    assert received == [sp.Symbol("mean_radius", real=True) > 0]
-    assert clf.sympy.simplified_rule.expression == received[0]
+    def test_term_with_several_cells_keeps_the_dnf_shape(self):
+        # x >= 1 is two bins: inside a term it is written with the excluded bin.
+        rule = And([Or([Literal(value=1), Literal(value=2)]), Literal(value=3)])
+        dnf = postprocess(rule, self.features, canonical="dnf")
+        self.assertEqual(dnf.to_str(self.names), "And(~x < 1.0, a)")
+        self.assertEqual(
+            postprocess_to_str(rule, self.features, canonical="dnf"), "And(1.0 <= x, a)"
+        )
+
+    def test_constant_canonical_form(self):
+        rule = Or([Literal(value=3), Literal(value=3, negated=True), Literal(value=4)])
+        self.assertEqual(
+            str(postprocess(rule, self.features, canonical="dnf")), "Or(0, ~0)"
+        )
+        self.assertEqual(
+            str(postprocess(rule, self.features, canonical="cnf")), "Or(0, ~0)"
+        )
+        rule = And([Literal(value=0), Literal(value=1)])
+        self.assertEqual(
+            str(postprocess(rule, self.features, canonical="dnf")), "And(0, ~0)"
+        )
+        self.assertEqual(
+            postprocess_to_str(rule, self.features, canonical="cnf"), "False"
+        )
+
+    def test_mechanical_conversion_removes_nothing(self):
+        # ~And(a, Or(b, a)) is Or(~a, And(~b, ~a)).
+        rule = And(
+            [Literal(value=3), Or([Literal(value=4), Literal(value=3)])], negated=True
+        )
+        dnf = postprocess(rule, self.features, optimize=False, canonical="dnf")
+        cnf = postprocess(rule, self.features, optimize=False, canonical="cnf")
+        self.assertEqual(dnf.to_str(self.names), "Or(~a, And(~b, ~a))")
+        self.assertEqual(cnf.to_str(self.names), "And(Or(~a, ~b), Or(~a, ~a))")
+        self.assertEqual(
+            postprocess_to_str(rule, self.features, optimize=False, canonical="cnf"),
+            "And(Or(~a, ~b), Or(~a, ~a))",
+        )
+
+    def test_without_optimize_and_canonical_the_rule_is_copied(self):
+        rule = And([Literal(value=3), Literal(value=3)])
+        result = postprocess(rule, self.features, optimize=False)
+        self.assertIsNot(result, rule)
+        self.assertEqual(str(result), "And(3, 3)")
+        self.assertEqual(
+            postprocess_to_str(rule, self.features, optimize=False), "And(a, a)"
+        )
 
 
-def test_default_simplifier_is_not_invoked_when_disabled():
-    clf = make_clf(literal(0), ["mean radius"])
+class TestIndentation(unittest.TestCase):
+    def test_indent_matches_rule_to_str(self):
+        rule = And(
+            [Literal(value=0), Or([Literal(value=1), Literal(value=2, negated=True)])]
+        )
+        for indent in (-1, 0, 2):
+            self.assertEqual(
+                postprocess_to_str(rule, indent=indent), rule.to_str(indent=indent)
+            )
+            self.assertEqual(
+                postprocess_to_str(rule, optimize=False, indent=indent),
+                rule.to_str(indent=indent),
+            )
 
-    # With simplify=False, the default simplifier is configured but not called.
-    result = rule_to_sympy(clf, simplify=False)
 
-    assert result.sympy.sympy_rule == sp.Symbol("mean_radius", real=True)
-    assert not hasattr(result.sympy, "simplified_rule")
+class TestValidation(unittest.TestCase):
+    rule = And([Literal(value=0), Literal(value=1)])
+
+    def test_rule_type(self):
+        with self.assertRaises(TypeError):
+            postprocess("And(0, 1)")
+
+        class Xor(Rule):
+            pass
+
+        with self.assertRaises(TypeError):
+            postprocess(Xor([Literal(value=0), Literal(value=1)]))
+        with self.assertRaises(TypeError):
+            postprocess_to_str(
+                And([Literal(value=0), Xor([Literal(value=1), Literal(value=0)])]),
+                optimize=False,
+            )
+
+    def test_flags(self):
+        with self.assertRaises(TypeError):
+            postprocess(self.rule, optimize=1)
+        with self.assertRaises(ValueError):
+            postprocess(self.rule, canonical="anf")
+        with self.assertRaises(TypeError):
+            postprocess(self.rule, canonical=True)
+        with self.assertRaises(ValueError):
+            postprocess_to_str(self.rule, indent=-2)
+        with self.assertRaises(TypeError):
+            postprocess_to_str(self.rule, indent=1.0)
+
+    def test_features(self):
+        with self.assertRaises(ValueError):
+            postprocess(self.rule, ["only one"])
+        with self.assertRaises(TypeError):
+            postprocess(self.rule, "ab")
+        with self.assertRaises(TypeError):
+            postprocess(self.rule, [1, 2])
+        with self.assertRaises(NotFittedError):
+            postprocess(self.rule, StandardBinarizer())
+
+    def test_inconsistent_features(self):
+        with self.assertRaises(ValueError):
+            postprocess(
+                self.rule, [BinFeature("x", -inf, inf), CategoryFeature("x", "a")]
+            )
+        with self.assertRaises(ValueError):
+            postprocess(
+                self.rule, [BinFeature("x", -inf, 1.0), BinFeature("x", 2.0, inf)]
+            )
+
+
+# ---------------------------------------------------------------------------
+# Real data
+# ---------------------------------------------------------------------------
+
+
+class TestBreastCancer(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from sklearn.datasets import load_breast_cancer
+        from sklearn.model_selection import train_test_split
+
+        X, y = load_breast_cancer(return_X_y=True, as_frame=True)
+        y = y.to_numpy() == 1
+        cls.X_train, cls.X_test, cls.y_train, cls.y_test = train_test_split(
+            X, y, test_size=0.2, stratify=y, random_state=42
+        )
+
+    def test_rule_from_the_docs(self):
+        # The HGP rule of docs/experiments/breast-cancer.md, on the same bins.
+        binarizer = StandardBinarizer(progress_bar=False)
+        binarizer.fit_transform(self.X_train, self.y_train)
+        names = binarizer.get_feature_names_out()
+
+        def lit(name, negated=False):
+            return Literal(value=names.index(name), negated=negated)
+
+        rule = And(
+            [
+                lit("115.35 <= worst perimeter", True),
+                And(
+                    [
+                        lit("0.125 <= mean compactness < 0.1293", True),
+                        lit("1.807 <= texture error < 1.9", True),
+                        Or(
+                            [
+                                Or(
+                                    [
+                                        Or(
+                                            [
+                                                lit("16.8 <= worst radius < 17.51"),
+                                                lit("696.25 <= mean area"),
+                                            ],
+                                            negated=True,
+                                        ),
+                                        lit("mean texture < 16.395"),
+                                    ]
+                                ),
+                                lit("29.3 <= worst texture < 30.91"),
+                            ]
+                        ),
+                        lit("739.2 <= worst area < 743.45", True),
+                        lit("0.176 <= worst concave points", True),
+                    ]
+                ),
+                lit("17.51 <= worst radius", True),
+                lit("17.51 <= worst radius", True),
+                lit("1.807 <= texture error < 1.9", True),
+                lit("739.2 <= worst area < 743.45", True),
+                Or(
+                    [
+                        lit("mean texture < 16.395", True),
+                        lit("1.807 <= texture error < 1.9", True),
+                    ]
+                ),
+            ]
+        )
+        self.assertEqual((len(rule), literal_count(rule)), (21, 15))
+        result = postprocess(rule, binarizer)
+        self.assertEqual((len(result), literal_count(result)), (13, 10))
+        # The string shown in docs/guide/postprocessing.md.
+        self.assertEqual(
+            postprocess_to_str(rule, binarizer),
+            "And(worst perimeter < 115.35, ~0.125 <= mean compactness < 0.1293, "
+            "~1.807 <= texture error < 1.9, Or(And(worst radius < 16.8, "
+            "mean area < 696.25), mean texture < 16.395, 29.3 <= worst texture < 30.91), "
+            "~739.2 <= worst area < 743.45, worst concave points < 0.176, "
+            "worst radius < 17.51)",
+        )
+        data = binarizer.transform(pd.concat([self.X_train, self.X_test])).to_numpy()
+        np.testing.assert_array_equal(predict(result, data), predict(rule, data))
+
+    def test_classifier(self):
+        from hgp_lib import BooleanRuleClassifier
+        from hgp_lib.configs import TrainerConfig
+
+        clf = BooleanRuleClassifier(
+            TrainerConfig(num_epochs=10, progress_bar=False),
+            StandardBinarizer(progress_bar=False),
+        )
+        clf.fit(self.X_train, self.y_train)
+        data = clf.binarizer.transform(self.X_test).to_numpy()
+        expected = clf.predict(self.X_test)
+        for optimize, canonical in [
+            (True, None),
+            (True, "dnf"),
+            (True, "cnf"),
+            (False, None),
+        ]:
+            with self.subTest(optimize=optimize, canonical=canonical):
+                result = clf.postprocess(optimize=optimize, canonical=canonical)
+                np.testing.assert_array_equal(predict(result, data), expected)
+                self.assertEqual(
+                    clf.postprocess_to_str(optimize=optimize, canonical=canonical),
+                    postprocess_to_str(
+                        clf.rule, clf.binarizer, optimize=optimize, canonical=canonical
+                    ),
+                )
+        self.assertLessEqual(len(clf.postprocess()), len(clf.rule))
+        self.assertEqual(clf.postprocess(optimize=False).to_str(), clf.rule.to_str())
 
 
 if __name__ == "__main__":
-    import pytest
-
-    exit_code = pytest.main(["tests/test_postprocessing.py", "-v"])
-
-    print(f"pytest exited with code {exit_code}")
+    unittest.main()

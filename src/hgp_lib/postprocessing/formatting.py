@@ -1,0 +1,158 @@
+"""
+Write a tree as a string over the original columns.
+
+The notation is the one of `Rule.to_str`: ``And(...)``, ``Or(...)`` and ``~``. A
+condition on a column is written as:
+
+- numeric: ``x < 2.5``, ``1.5 <= x < 4.0``, ``2.5 <= x``, one interval per run of
+  adjacent bins;
+- categorical: ``color=red``, ``color in {red, blue}``;
+- boolean: ``flag``, ``~flag``;
+- missing values: ``x is NA``, ``x is not NA``;
+- constants: ``True``, ``False``.
+
+Every comparison is false for a missing value; only ``x is NA`` matches it. ``~`` is
+plain negation, so ``~1.5 <= x < 4.0`` is true for a missing value. A condition is
+written in the shorter of its positive form (an ``Or`` of the pieces it allows) and its
+negative form (an ``And`` of the negated pieces it excludes), counting pieces and then
+listed categories, and in its positive form on a tie.
+"""
+
+from ..preprocessing.features import BinFeature, BooleanFeature, CategoryFeature
+from .domain import AND, OR, Column, Domain
+from .tree import Cond, Const, Node
+
+
+class _Group:
+    """An ``And`` or ``Or`` of display items (strings or groups)."""
+
+    __slots__ = ("children", "operator")
+
+    def __init__(self, operator: str, children: list):
+        self.operator = operator
+        self.children = children
+
+
+def to_str(
+    node: Node, domain: Domain, indent: int = -1, term: str | None = None
+) -> str:
+    """
+    Write ``node`` over the original columns.
+
+    Args:
+        node (Node): The tree to write.
+        domain (Domain): The domain of its conditions.
+        indent (int): The indentation level, as in `Rule.to_str`. ``-1`` writes one
+            line. Default: `-1`.
+        term (str | None): For a normal form, the operator of its terms (`AND` for a
+            DNF, `OR` for a CNF). A condition is then only spliced into a term, so that
+            each term of the tree stays one term of the string. Default: `None`.
+    """
+    if isinstance(node, Const):
+        return str(node.value)
+    (item,) = _display(node, domain, None, term)
+    return _print(item, indent)
+
+
+def _display(node: Node, domain: Domain, parent: str | None, term: str | None) -> list:
+    """The display items of ``node``; an item of the parent's kind is spliced."""
+    if isinstance(node, Cond):
+        operator, atoms = condition(domain.columns[node.column], node.mask)
+        if len(atoms) == 1 or (operator == parent and term in (None, operator)):
+            return atoms
+        return [_Group(operator, atoms)]
+    children = []
+    for child in node.children:
+        children.extend(_display(child, domain, node.operator, term))
+    if node.operator == parent:
+        return children
+    return [_Group(node.operator, children)]
+
+
+def _print(item, indent: int) -> str:
+    if isinstance(item, str):
+        return item
+    name = "And" if item.operator == AND else "Or"
+    if indent == -1:
+        return f"{name}({', '.join(_print(child, -1) for child in item.children)})"
+    tab = "\t"
+    inner = indent + 1
+    body = ",\n".join(tab * inner + _print(child, inner) for child in item.children)
+    return f"{name}(\n{body}\n{tab * indent})"
+
+
+def condition(column: Column, mask: int) -> tuple[str, list[str]]:
+    """
+    Write the condition ``mask`` (neither empty nor full) on ``column``.
+
+    Returns:
+        tuple[str, list[str]]: The operator joining the pieces (`OR` for the positive
+            form, `AND` for the negative one), and the pieces.
+    """
+    positive = _pieces(column, mask)
+    negative = _pieces(column, column.full & ~mask)
+    if _cost(negative) < _cost(positive):
+        return AND, [f"~{text}" for text, _ in negative]
+    return OR, [text for text, _ in positive]
+
+
+def cost(column: Column, mask: int, parent: str | None = None) -> tuple[int, int, int]:
+    """
+    How long the condition ``mask`` is to read: its number of pieces, then the number of
+    categories it lists, then whether it is negated.
+    """
+    positive = _cost(_pieces(column, mask))
+    negative = _cost(_pieces(column, column.full & ~mask))
+    if negative < positive:
+        return (*negative, 1)
+    return (*positive, 0)
+
+
+def _cost(pieces: list) -> tuple[int, int]:
+    return len(pieces), sum(listed for _, listed in pieces)
+
+
+def _pieces(column: Column, mask: int) -> list[tuple[str, int]]:
+    """
+    The pieces whose ``Or`` is the non-empty mask ``mask``, each with the number of
+    categories it lists.
+    """
+    label = column.label
+    pieces = []
+    values = mask & ~column.missing_bit
+    if values == column.full & ~column.missing_bit:
+        pieces.append((f"{label} is not NA", 1))
+    elif values:
+        cells = column.cells(values)
+        if column.kind is BinFeature:
+            for first, last in _runs(cells):
+                left, right = column.values[first][0], column.values[last][1]
+                pieces.append((str(BinFeature(label, left, right)), 1))
+        elif column.kind is CategoryFeature:
+            categories = [column.values[cell] for cell in cells]
+            if len(categories) == 1:
+                pieces.append((str(CategoryFeature(label, categories[0])), 1))
+            else:
+                listed = ", ".join(f"{category}" for category in categories)
+                pieces.append((f"{label} in {{{listed}}}", len(categories)))
+        elif column.kind is BooleanFeature:
+            if cells == [0]:
+                pieces.append((str(BooleanFeature(label)), 1))
+            elif column.has_missing:
+                pieces.append((f"{label}=False", 1))
+            else:
+                pieces.append((f"~{label}", 1))
+    if mask & column.missing_bit:
+        pieces.append((f"{label} is NA", 1))
+    return pieces
+
+
+def _runs(cells: list[int]) -> list[tuple[int, int]]:
+    """The first and last cell of each run of consecutive cells."""
+    runs = []
+    for cell in cells:
+        if runs and runs[-1][1] == cell - 1:
+            runs[-1] = (runs[-1][0], cell)
+        else:
+            runs.append((cell, cell))
+    return runs

@@ -5,6 +5,7 @@ import pandas as pd
 from sklearn.exceptions import NotFittedError
 
 from ..configs import TrainerConfig, validate_trainer_config
+from ..postprocessing import CanonicalForm, postprocess, postprocess_to_str
 from ..preprocessing import Binarizer, StandardBinarizer
 from ..results import PopulationHistory
 from ..rules import Rule
@@ -60,6 +61,14 @@ class BooleanRuleClassifier:
         >>> history.best_val_score is not None
         True
         >>> isinstance(clf.format_rule(), str)
+        True
+
+        The evolved rule, simplified without changing a prediction, and written over the
+        original columns:
+
+        >>> len(clf.postprocess()) <= len(clf.rule)
+        True
+        >>> isinstance(clf.postprocess_to_str(), str)
         True
 
         All configurations have defaults, so ``BooleanRuleClassifier()`` trains for 1000
@@ -208,6 +217,58 @@ class BooleanRuleClassifier:
         binarized feature names, e.g. ``Or(mean radius < 15.0, ~worst area < 880.0)``.
         """
         return self.rule.to_str(self.feature_names)
+
+    def postprocess(
+        self,
+        optimize: bool = True,
+        canonical: CanonicalForm | str | None = None,
+    ) -> Rule:
+        """
+        Return the evolved rule postprocessed by `hgp_lib.postprocessing.postprocess`,
+        with the binarizer's features. Requires a fitted classifier.
+
+        The result makes the same predictions as `rule` and can be evaluated on
+        ``self.binarizer.transform(X).to_numpy()``. The classifier keeps using `rule`.
+
+        Args:
+            optimize (bool): Whether to simplify the rule. Default: `True`.
+            canonical (CanonicalForm | str | None): ``None`` keeps the structure of the
+                rule; ``"dnf"`` or ``"cnf"`` returns that normal form. Default: `None`.
+
+        Returns:
+            Rule: The postprocessed rule, over the same features as `rule`.
+        """
+        return postprocess(
+            self.rule, self.binarizer, optimize=optimize, canonical=canonical
+        )
+
+    def postprocess_to_str(
+        self,
+        optimize: bool = True,
+        canonical: CanonicalForm | str | None = None,
+        indent: int = -1,
+    ) -> str:
+        """
+        Return the evolved rule postprocessed and written over the original columns by
+        `hgp_lib.postprocessing.postprocess_to_str`. Requires a fitted classifier.
+
+        Args:
+            optimize (bool): Whether to simplify the rule. Default: `True`.
+            canonical (CanonicalForm | str | None): ``None`` keeps the structure of the
+                rule; ``"dnf"`` or ``"cnf"`` returns that normal form. Default: `None`.
+            indent (int): The indentation level, as in `Rule.to_str`. Default: `-1`.
+
+        Returns:
+            str: The postprocessed rule, for example
+                ``And(mean radius < 15.0, 880.0 <= worst area)``.
+        """
+        return postprocess_to_str(
+            self.rule,
+            self.binarizer,
+            optimize=optimize,
+            canonical=canonical,
+            indent=indent,
+        )
 
     def _check_fitted(self, attr: str) -> None:
         if self._history is None:
